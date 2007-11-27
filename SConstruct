@@ -1,0 +1,145 @@
+# -*- python -*-
+import glob, os.path, re, os
+import lsst.SConsUtils as scons
+
+#
+# Custom configure tests
+#
+visCheckSrc = """
+    __attribute__((visibility("hidden")))  void hiddenFunc() {}
+    __attribute__((visibility("default"))) void defaultFunc() {}
+    int main(int argc, char **argv) {
+        hiddenFunc();
+        defaultFunc();
+        return 0;
+    }
+    """
+
+popcountCheckSrc = """
+    int main(int argc, char **argv) {
+        unsigned long long ull = 0;
+        unsigned long      ul  = 0;
+        unsigned int       ui  = 0;
+        return __builtin_popcount(ui) + __builtin_popcountl(ul) + __builtin_popcountll(ull);
+    }
+    """
+
+noatimeCheckSrc = """
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    int main(int argc, char **argv) {
+        open("/tmp/dummy", O_RDONLY | O_NOATIME, 0);
+        return 0;
+    }
+    """
+
+nocacheCheckSrc = """
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    int main(int argc, char **argv) {
+        fcntl(-1, F_NOCACHE, 1);
+        return 0;
+    }
+    """
+
+def CustomCompilerFlag(context, flag):
+    context.Message('Checking if compiler supports ' + flag + ' flag ')
+    ccflagsOld = context.env['CCFLAGS']; 
+    context.env.Append(CCFLAGS = flag)
+    result = context.TryCompile("""
+        int main(int argc, char **argv) { return 0; }
+        """, '.c')
+    context.Result(result)
+    if not result:
+        context.env.Replace(CCFLAGS = ccflagsOld)
+    return result
+
+def CustomCompileCheck(context, message, source, extension = '.c'):
+    context.Message(message)
+    result = context.TryCompile(source, extension)
+    context.Result(result)
+    return result
+
+def CustomLinkCheck(context, message, source, extension = '.c'):
+    context.Message(message)
+    result = context.TryLink(source, extension)
+    context.Result(result)
+    return result
+
+#
+# Setup our environment
+#
+env = scons.makeEnv("associate",
+                    r"$HeadURL: svn+ssh://svn.lsstcorp.org/DC2/associate/tickets/147/SConstruct $",
+                    [["boost", "boost/version.hpp", "boost_filesystem boost_regex boost_serialization:C++"],
+                     ["python", "Python.h"],
+                     ["mwi", "lsst/mwi/data.h", "mwi:C++"],
+                     ["fw", "lsst/fw/DiaSource.h", "fw:C++"],
+                     ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"]
+                    ])
+
+#
+# Run configure tests
+#
+if not env.CleanFlagIsSet():
+    conf = Configure(env, custom_tests = {'CustomCompilerFlag' : CustomCompilerFlag,
+                                          'CustomCompileCheck' : CustomCompileCheck,
+                                          'CustomLinkCheck'    : CustomLinkCheck})
+    if env['PLATFORM'] == "posix":
+        # POSIX platforms have AIO functionality in librt
+        if not conf.CheckLibWithHeader("rt", "aio.h", "C"):
+            print "Missing support for Posix AIO"
+            Exit(1)
+        # Necessary to get Linux direct I/O support
+        if os.uname()[0].title() == "Linux":
+            conf.env.Append(CPPFLAGS = ' -D_GNU_SOURCE')
+    # Required for [U]INT64_C()
+    conf.env.Append(CPPFLAGS = ' -D__STDC_CONSTANT_MACROS')
+    # Indicate that shared libraries are being built
+    conf.env.Append(CPPFLAGS = ' -DLSST_AP_SHARED_LIBRARY_BUILD=1')
+    # compiler flags and features
+    conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
+    if conf.CustomCompileCheck('Checking for __attribute__((visibility)) support... ', visCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
+    if conf.CustomCompileCheck('Checking for __builtin_popcount... ', popcountCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
+    # Platform features
+    if conf.CheckFunc('clock_gettime'): # Linux/Solaris: prototype in <time.h>
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_CLOCK_GETTIME=1')
+    if conf.CheckFunc('directio'): # Solaris: prototype in <sys/fcntl.h>
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_DIRECTIO=1')
+    if conf.CustomCompileCheck('Checking for O_NOATIME in open()... ', noatimeCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_O_NOATIME=1')
+    if conf.CustomCompileCheck('Checking for F_NOCACHE in fcntl()... ', nocacheCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_F_NOCACHE=1')
+    env = conf.Finish()
+
+#
+# Build/install things
+#
+for d in Split("include/lsst/ap doc lib python/lsst/ap tests util"):
+    SConscript(os.path.join(d, "SConscript"))
+
+env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
+
+Alias("install", [env.Install(env['prefix'], "python"),
+                  env.Install(env['prefix'], "include"),
+                  env.Install(env['prefix'], "lib"),
+                  env.InstallEups(env['prefix'] + "/ups", glob.glob("ups/*.table"))])
+
+scons.CleanTree(r"*~ core *.so *.os *.o")
+
+#
+# Build TAGS files
+#
+files = scons.filesToTag()
+if files:
+    env.Command("TAGS", files, "etags -o $TARGET $SOURCES")
+
+env.Declare()
+env.Help("""
+LSST Association Pipeline
+""")
+
