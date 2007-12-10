@@ -1,0 +1,192 @@
+#<?cfg paf dictionary ?>
+#
+# Dictionary for parameters expected in the policy for lsst.ap.pipeline.LoadStage
+
+definitions: {
+
+    fovRadius: {
+        description:"The radius (in degrees) of a circular LSST FOV. This is
+                     configureable via policy to accommodate test data."
+        type:       "double"
+        default:    1.75
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0.0
+            max:    45.0
+        }
+    }
+
+    zonesPerDegree: {
+        description:"The number of zones that fit into 1 degree. In conjunction with 'zonesPerStripe',
+                     this specifies the height of a zone, stripe, and the minimum width of a chunk. 
+                     Note that changing this parameter may require repartitioning the Object catalog
+                     so that chunks match the partitioning granularity implied by the combination of
+                     this parameter and 'zonesPerDegree'."
+        type:       "int"
+        default:    180
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    1
+        }
+    }
+
+    zonesPerStripe: {
+        description:"The number of zones that a declination stripe is divided into. A
+                     declination stripe is a declination range that is further subdivided
+                     into equal-width chunks. The spatial attributes of objects falling
+                     into a given chunk are stored in chunk files. These files are loaded
+                     by the association pipeline and used to create spatial indexes for
+                     objects known to lie in the FOV for a visit. Note that changing this
+                     parameter may require repartitioning the Object catalog so that chunk
+                     files match the granularity implied by the combination of this parameter
+                     and 'zonesPerDegree'."
+        type:       "int"
+        default:    63
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    1
+        }
+    }
+
+    maxEntriesPerZoneEstimate: {
+        description:"An estimate of the maximum number of entries (objects or difference
+                     sources) that will ever end up in a single one of the zones used by
+                     the association pipeline crossmatch algorithms. Setting this value
+                     too high will waste memory, setting it too low will result in
+                     excessive memory reallocations when building spatial indexes for
+                     the initial visits in a night. Prefer overestimates to underestimates."
+        type:       "int"
+        default:    4096
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    1
+        }
+    }
+
+    matchRadius: {
+        description:"The match radius (in arc-seconds) to use when matching difference
+                     sources against existing objects. The detection pipeline can
+                     override this value on a visit-by-visit basis by including a
+                     property named 'matchRadius' in the event used to trigger the
+                     association pipeline."
+        type:       "double"
+        default:    0.05
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    semiMajorAxisThreshold: {
+        description:"The maximum semi major axis length (in arc-seconds) of a
+                     predicted moving objects error ellipse for that object to
+                     be included in the match against difference sources."
+        type:       "double"
+        default:    300
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    filterTableLocation: {
+        description:"A URL-like string identifying the database containing the 'Filter'
+                     table. This table is used to map filter names to ids."
+        type:       "string"
+        default:    "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    uVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'u' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+    gVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'g' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+    rVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'r' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+    iVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'i' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+    zVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'z' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+    yVarProbThreshold: {
+        description:"the threshold which a variability probability in the 'y' filter
+                     must exceed in order for a corresponding object to be considered
+                     'variable'. Difference sources matching 'variable' objects are not
+                     matched to moving object predictions by the association pipeline."
+        type:       "int"
+        default:    90
+        minOccurs:  0
+        maxOccurs:  1
+        allowed: {
+            min:    0
+            max:    100
+        }
+    }
+
+}
+

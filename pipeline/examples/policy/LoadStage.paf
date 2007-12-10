@@ -1,0 +1,19 @@
+#<?cfg paf policy ?>
+#
+# Example policy file for lsst.ap.pipeline.LoadStage
+
+fovRadius                       : 2.5
+zonesPerDegree                  : 180
+zonesPerStripe                  : 63
+maxEntriesPerZoneEstimate       : 4096
+matchRadius                     : 0.05
+semiMajorAxisThreshold          : 0.2
+objectChunkFileNamePattern      : "/tmp/ref/stripe_%1%/objref_chunk%2%"
+objectDeltaChunkFileNamePattern : "/tmp/delta/stripe_%1%/objdelta_chunk%2%"
+filterTableLocation             : "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+uVarProbThreshold               : 90
+gVarProbThreshold               : 90
+rVarProbThreshold               : 90
+iVarProbThreshold               : 90
+zVarProbThreshold               : 90
+yVarProbThreshold               : 90

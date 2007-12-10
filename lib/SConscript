@@ -1,0 +1,30 @@
+# -*- python -*-
+Import('env')
+
+sysLibs = ['z', 'pthread']
+if env['PLATFORM'] == 'posix':
+    sysLibs += ['rt']
+
+env.SharedLibrary('associate',
+    map(lambda str: '../src/' + str,
+        ['Time.cc',
+         'Random.cc',
+         'SpatialUtil.cc',
+         'ChunkToNameMappings.cc',
+         'CircularRegion.cc',
+         'RectangularRegion.cc',
+         'Mutex.cc',
+         'Condition.cc',
+         'Exceptions.cc',
+         'Bitset.cc',
+         'Filter.cc',
+         'Object.cc',
+         'Results.cc',
+         'Utils.cc',
+         'ChunkManager.cc',
+         'Stages.cc']) +
+    map(lambda str: '../src/io/' + str,
+        ['FileIo.cc',
+         'ResultFormatters.cc']),
+    LIBS=env.getlibs('boost mwi fw') + sysLibs)
+

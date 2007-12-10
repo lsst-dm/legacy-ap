@@ -1,0 +1,26 @@
+#<?cfg paf policy ?>
+#
+# Example policy file for the lsst.dps.IOStage.OutputStage
+# that persists lsst.ap.pipeline.MatchDiaSourcesStage outputs
+
+AdditionalData: "visitId=triggerAssociationEvent.visitId"
+RunMode: "preprocess"
+OutputItems: {
+    DiaSourceToObjectMatches: {
+        Required: true
+        StoragePolicy: {
+            Storage:  "DbTsvStorage"
+            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+        }
+    }
+}
+Persistence: {
+    Formatter: {
+        MatchPairVector: {
+            DiaSourceToObjectMatches: {
+                templateTableName: "MatchPair"
+            }
+        }
+    }
+}
+

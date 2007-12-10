@@ -1,0 +1,74 @@
+#<?cfg paf dictionary ?>
+#
+# Dictionary for parameters expected in the policy for lsst.ap.pipeline.StoreStage
+
+definitions: {
+
+    scriptDirectory: {
+        description:"The name of the directory in which lsst.ap.pipeline.StoreStage
+                     should output per-visit SQL scripts."
+        type:       "string"
+        default:    "/tmp/sql_scripts"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    location: {
+        description:"The location of the database containing per-visit tables created by pipelines.
+                     The string should be formatted according to the same rules expected by
+                     lsst::mwi::persistence::DbStorageLocation, i.e. 'database_type://hostname:port/database'"
+        type:       "string"
+        default:    "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    diaSourceTable: {
+        description:"The name of the database table to which newly discovered
+                     difference sources should be appended."
+        type:       "string"
+        default:    "DIASource"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    varObjectTable: {
+        description:"The name of the database table containing 'variable' objects,
+                     and to which newly created objects will be appended."
+        type:       "string"
+        default:    "VarObject"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    nonVarObjectTable: {
+        description:"The name of the database table containing 'non-variable' objects"
+        type:       "string"
+        default:    "NonVarObject"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    storeOutputs: {
+        description:"Flag indicating whether pipeline outputs (new objects, difference
+                     sources) should be stored in the object and difference source tables.
+                     Use the 'diaSourceTable' and 'varObjectPartition' policy
+                     parameters to control the actual tables used."
+        type:       "bool"
+        default:    true
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    dropTables: {
+        description:"Flag indicating whether the per-visit temporary tables created by
+                     LSST pipelines should be dropped when lsst.ap.pipeline.StoreStage
+                     finishes."
+        type:       "bool"
+        default:    false
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+}
+

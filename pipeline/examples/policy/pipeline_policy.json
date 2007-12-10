@@ -1,0 +1,33 @@
+{
+    "shutdownTopic":    "shutdownAssociationEvent",
+
+    "appStages":       ["lsst.ap.pipeline.LoadStage",
+                        "lsst.dps.IOStage.InputStage",
+                        "lsst.ap.pipeline.MatchDiaSourcesStage",
+                        "lsst.dps.IOStage.OutputStage",
+                        "lsst.dps.IOStage.InputStage",
+                        "lsst.ap.pipeline.MatchMopsPredsStage",
+                        "lsst.dps.IOStage.OutputStage",
+                        "lsst.ap.pipeline.StoreStage"
+                       ],
+
+    "eventTopics":     ["triggerAssociationEvent",
+                        "None",
+                        "None",
+                        "None",
+                        "triggerMatchMopsPredsEvent",
+                        "None",
+                        "None",
+                        "None"
+                       ],
+
+    "stagePolicies":   ["policy/LoadStage.paf",
+                        "policy/MatchDiaSourcesStageInput.paf",
+                        "None",
+                        "policy/MatchDiaSourcesStageOutput.paf",
+                        "policy/MatchMopsPredsStageInput.paf",
+                        "None",
+                        "policy/MatchMopsPredsStageOutput.paf",
+                        "policy/StoreStage.paf"
+                       ]
+}

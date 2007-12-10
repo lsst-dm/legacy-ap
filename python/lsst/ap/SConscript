@@ -1,0 +1,5 @@
+# -*- python -*-
+Import("env")
+
+env.CheckSwig("python", ilang="c++", includedProducts="mwi")
+env.LoadableModuleIncomplete("_interface", Split("interface.i"), LIBS=env.getlibs("associate mwi"))

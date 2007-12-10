@@ -1,0 +1,40 @@
+# -*- python -*-
+Import('env')
+
+env.Program('unittests',
+            ['BitsetTest.cc',
+             'ChunkTest.cc',
+             'ChunkManagerTest.cc',
+             'FileIoTest.cc',
+             'HashedSetTest.cc',
+             'Main.cc',
+             'MatchTest.cc',
+             'ResultsIoTest.cc'
+            ],
+            LIBS=env.getlibs('boost') + ['associate', 'fw', 'mwi'])
+
+env.Command('.tests/unittests', 'unittests', """
+            @rm -f ${TARGET}.failed;
+            @if $SOURCES --log_level=message | tee $TARGET; then \
+               echo "Hurray!" >> $TARGET; \
+            else \
+               mv $TARGET ${TARGET}.failed; \
+            fi;
+            """)
+
+env.Clean('.tests/unittests', '.tests')
+
+import os
+import lsst.tests
+import lsst.mwi.persistence
+
+tests = lsst.tests.Control(env, verbose = True)
+
+if lsst.mwi.persistence.DbAuth.available():
+    env["ENV"]["SEAL_PLUGINS"] = os.environ["SEAL_PLUGINS"]
+    if os.environ.has_key('LSST_DB_AUTH'):
+        env['ENV']['LSST_DB_AUTH'] = os.environ['LSST_DB_AUTH']
+
+for target in tests.run("ResultsTest.py"):
+    env.Depends(target, "../python/lsst/ap/_interface%s" % env['LDMODULESUFFIX'])
+

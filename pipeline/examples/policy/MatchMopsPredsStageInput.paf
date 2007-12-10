@@ -1,0 +1,18 @@
+#<?cfg paf policy ?>
+#
+# Example policy file for the lsst.dps.IOStage.InputStage
+# that feeds lsst.ap.pipeline.MatchMopsPredsStage
+
+AdditionalData: "visitId=triggerAssociationEvent.visitId"
+RunMode: "preprocess"
+InputItems: {
+    MopsPreds: {
+        Type: "MovingObjectPredictionVector"
+        PythonType: "lsst.fw.Core.fwCatalog.MopsPredVec"
+        StoragePolicy: {
+            Storage:  "DbTsvStorage"
+            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+        }
+    }
+}
+

@@ -6,8 +6,8 @@ import lsst.SConsUtils as scons
 # Custom configure tests
 #
 visCheckSrc = """
-    __attribute__((visibility("hidden")))  void hiddenFunc() {}
-    __attribute__((visibility("default"))) void defaultFunc() {}
+    __attribute__((visibility('hidden')))  void hiddenFunc() {}
+    __attribute__((visibility('default'))) void defaultFunc() {}
     int main(int argc, char **argv) {
         hiddenFunc();
         defaultFunc();
@@ -29,7 +29,7 @@ noatimeCheckSrc = """
     #include <sys/stat.h>
     #include <fcntl.h>
     int main(int argc, char **argv) {
-        open("/tmp/dummy", O_RDONLY | O_NOATIME, 0);
+        open('/tmp/dummy', O_RDONLY | O_NOATIME, 0);
         return 0;
     }
     """
@@ -71,13 +71,14 @@ def CustomLinkCheck(context, message, source, extension = '.c'):
 #
 # Setup our environment
 #
-env = scons.makeEnv("associate",
+env = scons.makeEnv('associate',
                     r"$HeadURL: svn+ssh://svn.lsstcorp.org/DC2/associate/tickets/147/SConstruct $",
-                    [["boost", "boost/version.hpp", "boost_filesystem boost_regex boost_serialization:C++"],
-                     ["python", "Python.h"],
-                     ["mwi", "lsst/mwi/data.h", "mwi:C++"],
-                     ["fw", "lsst/fw/DiaSource.h", "fw:C++"],
-                     ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"]
+                    [['boost', 'boost/version.hpp',
+                        'boost_filesystem boost_regex boost_serialization boost_program_options:C++'],
+                     ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
+                     ['python', 'Python.h'],
+                     ['mwi', 'lsst/mwi/data.h', 'mwi:C++'],
+                     ['fw', 'lsst/fw/DiaSource.h', 'fw:C++']
                     ])
 
 #
@@ -87,14 +88,20 @@ if not env.CleanFlagIsSet():
     conf = Configure(env, custom_tests = {'CustomCompilerFlag' : CustomCompilerFlag,
                                           'CustomCompileCheck' : CustomCompileCheck,
                                           'CustomLinkCheck'    : CustomLinkCheck})
-    if env['PLATFORM'] == "posix":
+    if env['PLATFORM'] == 'posix':
         # POSIX platforms have AIO functionality in librt
-        if not conf.CheckLibWithHeader("rt", "aio.h", "C"):
-            print "Missing support for Posix AIO"
+        if not conf.CheckLibWithHeader('rt', 'aio.h', 'C'):
+            print 'Missing support for Posix AIO'
             Exit(1)
         # Necessary to get Linux direct I/O support
-        if os.uname()[0].title() == "Linux":
+        if os.uname()[0].title() == 'Linux':
             conf.env.Append(CPPFLAGS = ' -D_GNU_SOURCE')
+
+    # If one of the randomized unit tests fail, uncomment and
+    # set the following defines to obtain repeatable behaviour
+    #conf.env.Append(CPPFLAGS = ' -DLSST_AP_INIT_RANDOM_SEC=')
+    #conf.env.Append(CPPFLAGS = ' -DLSST_AP_INIT_RANDOM_NSEC=')
+
     # Required for [U]INT64_C()
     conf.env.Append(CPPFLAGS = ' -D__STDC_CONSTANT_MACROS')
     # Indicate that shared libraries are being built
@@ -119,15 +126,17 @@ if not env.CleanFlagIsSet():
 #
 # Build/install things
 #
-for d in Split("include/lsst/ap doc lib python/lsst/ap tests util"):
-    SConscript(os.path.join(d, "SConscript"))
+for d in Split('include/lsst/ap doc lib python/lsst/ap bin tests'):
+    SConscript(os.path.join(d, 'SConscript'))
 
 env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 
-Alias("install", [env.Install(env['prefix'], "python"),
-                  env.Install(env['prefix'], "include"),
-                  env.Install(env['prefix'], "lib"),
-                  env.InstallEups(env['prefix'] + "/ups", glob.glob("ups/*.table"))])
+Alias('install', [env.Install(env['prefix'], 'python'),
+                  env.Install(env['prefix'], 'include'),
+                  env.Install(env['prefix'], 'bin'),
+                  env.Install(env['prefix'], 'lib'),
+                  env.Install(env['prefix'] + '/doc', 'doc/html'),
+                  env.InstallEups(env['prefix'] + '/ups', glob.glob('ups/*.table'))])
 
 scons.CleanTree(r"*~ core *.so *.os *.o")
 
@@ -136,10 +145,8 @@ scons.CleanTree(r"*~ core *.so *.os *.o")
 #
 files = scons.filesToTag()
 if files:
-    env.Command("TAGS", files, "etags -o $TARGET $SOURCES")
+    env.Command('TAGS', files, 'etags -o $TARGET $SOURCES')
 
 env.Declare()
-env.Help("""
-LSST Association Pipeline
-""")
+env.Help('LSST Association Pipeline')
 

@@ -22,13 +22,14 @@ static char const* SVNid __attribute__((unused)) = "$Id$";
 #include <fcntl.h>
 #include <getopt.h>
 #include <iostream>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <mysql/mysql.h>
 
 #include "lsst/ap/Chunk.h"
+#include "lsst/ap/Filter.h"
 #include "lsst/ap/Object.h"
 #include "lsst/mwi/exceptions.h"
 #include "lsst/mwi/persistence/DbAuth.h"
@@ -89,16 +90,13 @@ size_t const stripeQuerySize = sizeof(stripeQuery);
 
 // Check a condition and throw an exception (with errno decoding) if failed.
 static void ioAssert(bool cond, char const* msg) {
-    if (cond) return;
-
-    static char buf[256];
-    char const* err = strerror_r(errno, buf, sizeof(buf));
-    if (err == 0) {
-        std::snprintf(buf, sizeof(buf), "Unknown error (%d)", errno);
-        err = buf;
+    if (cond) {
+        return;
     }
 
-    throw lsst::mwi::exceptions::Runtime(std::string(msg) + ": " + err);
+    static char buf[64];
+    std::snprintf(buf, sizeof(buf), "error %d", errno);
+    throw lsst::mwi::exceptions::Runtime(std::string(msg) + ": " + buf);
 }
 
 
@@ -257,20 +255,20 @@ int main(int argc, char** argv) {
     // Retrieved object.
     lsst::ap::SimpleObject obj;
     // Result binding array.
-    MYSQL_BIND resultArray[3 + lsst::ap::NUM_FILTERS];
+    MYSQL_BIND resultArray[3 + lsst::ap::Filter::NUM_FILTERS];
     // Null flags for object fields.
-    my_bool isNull[3 + lsst::ap::NUM_FILTERS];
+    my_bool isNull[3 + lsst::ap::Filter::NUM_FILTERS];
     // Error flags for object fields.
-    my_bool error[3 + lsst::ap::NUM_FILTERS];
+    my_bool error[3 + lsst::ap::Filter::NUM_FILTERS];
 
     // Initialize object to junk values to help detect bugs.
     obj._objectId = 0xcafefeeddeadbeefLL;
     obj._ra = -100.0;
     obj._decl = -1234567890.0;
-    for (int i = 0; i < lsst::ap::NUM_FILTERS; ++i) {
+    for (int i = 0; i < lsst::ap::Filter::NUM_FILTERS; ++i) {
         obj._varProb[i] = -1;
     }
-    for (int i = 0; i < 3 + lsst::ap::NUM_FILTERS; ++i) {
+    for (int i = 0; i < 3 + lsst::ap::Filter::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
 
@@ -298,8 +296,8 @@ int main(int argc, char** argv) {
     resultArray[2].is_unsigned = false;
     resultArray[2].error = &error[2];
 
-    for (int i = 0; i < lsst::ap::NUM_FILTERS; ++i) {
-        resultArray[3 + i].buffer_type = MYSQL_TYPE_TINY;
+    for (int i = 0; i < lsst::ap::Filter::NUM_FILTERS; ++i) {
+        resultArray[3 + i].buffer_type = MYSQL_TYPE_SHORT;
         resultArray[3 + i].buffer = &(obj._varProb[i]);
         resultArray[3 + i].buffer_length = sizeof(obj._varProb[i]);
         resultArray[3 + i].is_null = &isNull[3 + i];

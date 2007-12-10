@@ -1,4 +1,0 @@
-Import('env')
-
-env.Program('dumpObjects', ['dumpObjects.cc'],
-	LIBS = env.getlibs("mysqlclient mwi"))
