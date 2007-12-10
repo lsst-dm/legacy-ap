@@ -1,14 +1,16 @@
 #! /usr/bin/env python
 
 import lsst.mwi.data
+import lsst.mwi.persistence
 import lsst.events
-import datetime
+import time
 
 if __name__ == "__main__":
     print 'starting...\n'
     externalEventTransmitter = lsst.events.EventTransmitter('lsst8.ncsa.uiuc.edu', 'triggerAssociationEvent')
 
-    visitTime = datetime.datetime.utcnow().isoformat(' ')
+    dt        = lsst.mwi.persistence.DateTime(long(time.time())*1000000000)
+    visitTime = dt.utc2mjd()
     triggerAssociationEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 1))
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitTime', visitTime))

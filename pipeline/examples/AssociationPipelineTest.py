@@ -34,18 +34,19 @@ one can run
 
     ap_shmem_admin -u
 """
-import datetime
 import os
 import os.path
 import pdb
 import sys
+import time
 import lsst.dps.Clipboard
 import lsst.dps.Queue
 import lsst.dps.IOStage
 import lsst.mwi.data
+import lsst.mwi.exceptions
+import lsst.mwi.persistence
 import lsst.mwi.policy
 import lsst.mwi.utils
-import lsst.mwi.exceptions
 import lsst.ap.interface
 import lsst.ap.pipeline
 import TestCleanup
@@ -180,7 +181,8 @@ def runOneVisit():
     workerStoreStage.setUniverseSize(2)
 
     # Create the TCS event triggering a single visit
-    visitTime = datetime.datetime.utcnow().isoformat(' ')
+    dt        = lsst.mwi.persistence.DateTime(long(time.time())*1000000000)
+    visitTime = dt.utc2mjd()
     triggerAssociationEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 1))
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitTime', visitTime))

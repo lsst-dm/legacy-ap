@@ -11,11 +11,11 @@ Classes corresponding to the 4 Stages that make up the LSST association pipeline
 """
 from __future__ import with_statement
 
+import datetime
 import os
 import os.path
 import re
 import subprocess
-import time
 
 import lsst.mwi.exceptions
 import lsst.mwi.persistence
@@ -296,7 +296,10 @@ class StoreStage(lsst.dps.Stage.Stage):
         self.outputQueue.addDataset(clipboard)
         vpContext = clipboard.get('vpContext')
         event     = clipboard.get('triggerAssociationEvent')
-        self._createSqlScripts(vpContext, event.findUnique('visitTime').getValueString())
+        # get MJD of visit and convert to UTC string in ISO 8601 format for use in database queries
+        dt        = lsst.mwi.persistence.DateTime(event.findUnique('visitTime').getValueDouble())
+        utcString = datetime.datetime.utcfromtimestamp(dt.nsecs()/1000000000).isoformat(' ')
+        self._createSqlScripts(vpContext, utcString)
         if self.storeOutputs:
             if self._runSqlScript('StoreOutputsTemplate.sql') != 0:
                 ap.endVisit(vpContext, True)
