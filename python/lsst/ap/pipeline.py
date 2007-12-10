@@ -276,6 +276,7 @@ class StoreStage(lsst.dps.Stage.Stage):
                              (self.getStageId(), self.getRank(), self.getUniverseSize()))
 
         clipboard = self.inputQueue.getNextDataset()
+        self.outputQueue.addDataset(clipboard)
         ap.storeSliceObjects(clipboard.get('vpContext'))
 
     def postprocess(self):
@@ -292,6 +293,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         lsst.mwi.utils.Trace('ap.pipeline', 3, 'postprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
+        self.outputQueue.addDataset(clipboard)
         vpContext = clipboard.get('vpContext')
         event     = clipboard.get('triggerAssociationEvent')
         self._createSqlScripts(vpContext, event.findUnique('visitTime').getValueString())
