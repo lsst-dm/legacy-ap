@@ -281,5 +281,8 @@ namespace ap {
 }}
 
 
+%include "lsst/ap/RectangularRegion.h"
+%include "lsst/ap/CircularRegion.h"
+%include "lsst/ap/SpatialUtil.h"
 %include "lsst/ap/Stages.h"
 
