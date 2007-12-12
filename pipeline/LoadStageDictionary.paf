@@ -22,7 +22,7 @@ definitions: {
                      this specifies the height of a zone, stripe, and the minimum width of a chunk. 
                      Note that changing this parameter may require repartitioning the Object catalog
                      so that chunks match the partitioning granularity implied by the combination of
-                     this parameter and 'zonesPerDegree'."
+                     this parameter and 'zonesPerStripe'."
         type:       "int"
         default:    180
         minOccurs:  0
@@ -92,9 +92,11 @@ definitions: {
     objectChunkFileNamePattern: {
         description:"A name pattern for a chunk file, using boost::format compatible syntax.
                      Any of three parameters can be used:
-                     '%1%': An identifier for the pipeline run
-                     '%2%': The stripe id of the chunk
-                     '%3%': The sequence number of the chunk (within its stripe)"
+                     '%1%': An identifier for the pipeline run.
+                     '%2%': The stripe id of the chunk.
+                     '%3%': The sequence number of the chunk (within its stripe).
+                     Note it is OK for chunk files or eve whole directories containting them to be missing.
+                     Such non-existent chunk files are treated as the equivalent of empty chunks."
         type:       "string"
         default:    "/tmp/objects_%1%/ref/stripe_%2%/objref_chunk%3%"
         minOccurs:  0
@@ -104,10 +106,11 @@ definitions: {
     objectDeltaChunkFileNamePattern: {
         description:"A name pattern for a chunk delta file, using boost::format compatible syntax.
                      Any of four parameters can be used:
-                     '%1%': An identifier for the pipeline run
-                     '%2%': The stripe id of the chunk
-                     '%3%': The sequence number of the chunk (within its stripe)
-                     '%4%': An integer file version number"
+                     '%1%': An identifier for the pipeline run.
+                     '%2%': The stripe id of the chunk.
+                     '%3%': The sequence number of the chunk (within its stripe).
+                     '%4%': An integer file version number.
+                     Missing directories in the path name of a chunk delta file are created on the fly."
         type:       "string"
         default:    "/tmp/objects_%1%/delta/stripe_%2%/objdelta_chunk%3%"
         minOccurs:  0
