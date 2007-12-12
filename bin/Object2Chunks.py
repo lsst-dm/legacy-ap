@@ -14,7 +14,6 @@ import lsst.ap.interface as ap
 
 
 def main():
-    #pdb.set_trace()
     defZpd   = 180
     defZps   = 63
     defDbUrl = 'mysql://lsst10.ncsa.uiuc.edu:3306/DC2'

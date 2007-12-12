@@ -9,7 +9,7 @@ definitions: {
                      output per-visit SQL scripts. The name may optionally contain '%(runId)s'
                      substrings which will be replaced by a runId string at execution time."
         type:       "string"
-        default:    "/tmp/sql_scripts_%s"
+        default:    "/tmp/sql_scripts_%(runId)s"
         minOccurs:  0
         maxOccurs:  1
     }
