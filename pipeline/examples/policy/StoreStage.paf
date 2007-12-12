@@ -2,7 +2,7 @@
 #
 # Example policy file for lsst.ap.pipeline.StoreStage
 
-scriptDirectory:   "/tmp/sql_scripts"
+scriptDirectory:   "/tmp/sql_scripts_%(runId)s"
 location:          "mysql://lsst10.ncsa.uiuc.edu:3306/test"
 diaSourceTable:    "DIASource"
 varObjectTable:    "VarObject"

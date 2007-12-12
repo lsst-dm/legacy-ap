@@ -89,6 +89,31 @@ definitions: {
         maxOccurs:  1
     }
 
+    objectChunkFileNamePattern: {
+        description:"A name pattern for a chunk file, using boost::format compatible syntax.
+                     Any of three parameters can be used:
+                     '%1%': An identifier for the pipeline run
+                     '%2%': The stripe id of the chunk
+                     '%3%': The sequence number of the chunk (within its stripe)"
+        type:       "string"
+        default:    "/tmp/objects_%1%/ref/stripe_%2%/objref_chunk%3%"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    objectDeltaChunkFileNamePattern: {
+        description:"A name pattern for a chunk delta file, using boost::format compatible syntax.
+                     Any of four parameters can be used:
+                     '%1%': An identifier for the pipeline run
+                     '%2%': The stripe id of the chunk
+                     '%3%': The sequence number of the chunk (within its stripe)
+                     '%4%': An integer file version number"
+        type:       "string"
+        default:    "/tmp/objects_%1%/delta/stripe_%2%/objdelta_chunk%3%"
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
     filterTableLocation: {
         description:"A URL-like string identifying the database containing the 'Filter'
                      table. This table is used to map filter names to ids."

@@ -1,0 +1,21 @@
+#<?cfg paf policy ?> 
+
+executionMode:  "oneloop"
+
+shutdownTopic:  "shutdownAssociationEvent"
+
+appStages:      "lsst.ap.pipeline.LoadStage"
+appStages:      "lsst.dps.IOStage.InputStage" "lsst.ap.pipeline.MatchDiaSourcesStage" "lsst.dps.IOStage.OutputStage"
+appStages:      "lsst.dps.IOStage.InputStage" "lsst.ap.pipeline.MatchMopsPredsStage" "lsst.dps.IOStage.OutputStage"
+appStages:      "lsst.ap.pipeline.StoreStage"
+ 
+eventTopics:    "triggerAssociationEvent"
+eventTopics:    "None" "None" "None"
+eventTopics:    "triggerMatchMopsPredsEvent" "None" "None"
+eventTopics:    "None"
+ 
+stagePolicies:  "policy/LoadStage.paf"
+stagePolicies:  "policy/MatchDiaSourcesStageInput.paf" "None" "policy/MatchDiaSourcesStageOutput.paf"
+stagePolicies:  "policy/MatchMopsPredsStageInput.paf" "None" "policy/MatchMopsPredsStageOutput.paf"
+stagePolicies:  "policy/StoreStage.paf"
+

@@ -43,10 +43,10 @@
 #include <lsst/mwi/utils/Trace.h>
 
 #include <lsst/fw/DiaSource.h>
+#include <lsst/fw/Filter.h>
 
 #include <lsst/ap/ChunkManager.h>
 #include <lsst/ap/ChunkToNameMappings.h>
-#include <lsst/ap/Filter.h>
 #include <lsst/ap/Match.h>
 #include <lsst/ap/Stages.h>
 #include <lsst/ap/Time.h>
@@ -70,8 +70,8 @@ static int32_t  const DEF_MAX_ENTRIES_PER_ZONE_EST = 4096;
 static double   const DEF_SMAA_THRESH              = 300;   // arc-seconds == 5 arc-minutes
 static double   const DEF_MATCH_RADIUS             = 0.05;  // arc-seconds
 
-static char const * const DEF_OBJ_PATTERN       = "/tmp/objects/ref/stripe_%1%/objref_chunk%2%";
-static char const * const DEF_OBJ_DELTA_PATTERN = "/tmp/objects/delta/stripe_%1%/objdelta_chunk%2%_v%3%";
+static char const * const DEF_OBJ_PATTERN       = "/tmp/objects_%1%/ref/stripe_%2%/objref_chunk%3%";
+static char const * const DEF_OBJ_DELTA_PATTERN = "/tmp/objects_%1%/delta/stripe_%2%/objdelta_chunk%3%_v%4%";
 static char const * const DEF_DB_LOCATION       = "mysql://lsst10.ncsa.uiuc.edu:3306/test";
 
 // -- Adjustable (by policy) configuration parameters ----------------
@@ -115,7 +115,7 @@ static std::string sObjDeltaFilePattern(DEF_OBJ_DELTA_PATTERN);
     "known variable". DiaSources matching "known variables" are not considered when matching against
     predicted positions of moving objects.
  */
-static int8_t sVarProbThreshold[Filter::NUM_FILTERS] = {
+static int8_t sVarProbThreshold[lsst::fw::Filter::NUM_FILTERS] = {
     DEF_VP_THRESH,
     DEF_VP_THRESH,
     DEF_VP_THRESH,
@@ -174,13 +174,13 @@ public :
     typedef MatchWithDistance<ZoneEntryType>          MatchType;
     typedef typename std::vector<MatchType>::iterator MatchIteratorType;
 
-    MatchPairVector & _matches;
-    Filter const      _filter;
-    int8_t const      _threshold;
+    MatchPairVector        & _matches;
+    lsst::fw::Filter const   _filter;
+    int8_t           const   _threshold;
 
     ObjectMatchProcessor(
-        MatchPairVector & matches,
-        Filter const      filter
+        MatchPairVector        & matches,
+        lsst::fw::Filter const   filter
     ) :
         _matches(matches),
         _filter(filter),
@@ -253,14 +253,14 @@ struct LSST_AP_LOCAL NewObjectCreator {
     IdPairVector                       & _results;
     ZoneStripeChunkDecomposition const & _zsc;
     std::map<int64_t, SimpleObjectChunk> _chunks;
-    Filter const                         _filter;
-    int64_t const                        _idNamespace;
+    lsst::fw::Filter const               _filter;
+    int64_t          const               _idNamespace;
 
     explicit NewObjectCreator(
         IdPairVector                       & results,
         SimpleObjectChunkVector            & chunks,
         ZoneStripeChunkDecomposition const & zsc,
-        Filter                       const   filter
+        lsst::fw::Filter             const   filter
     ) :
         _results(results),
         _zsc(zsc),
@@ -291,12 +291,12 @@ struct LSST_AP_LOCAL NewObjectCreator {
             obj._objectId           = id | _idNamespace;
             obj._ra                 = entry._data->getRa();
             obj._decl               = entry._data->getDec();
-            obj._varProb[Filter::U] = 0;
-            obj._varProb[Filter::G] = 0;
-            obj._varProb[Filter::R] = 0;
-            obj._varProb[Filter::I] = 0;
-            obj._varProb[Filter::Z] = 0;
-            obj._varProb[Filter::Y] = 0;
+            obj._varProb[lsst::fw::Filter::U] = 0;
+            obj._varProb[lsst::fw::Filter::G] = 0;
+            obj._varProb[lsst::fw::Filter::R] = 0;
+            obj._varProb[lsst::fw::Filter::I] = 0;
+            obj._varProb[lsst::fw::Filter::Z] = 0;
+            obj._varProb[lsst::fw::Filter::Y] = 0;
             obj._varProb[_filter]   = 100;
 
             _results.push_back(IdPair(id, obj._objectId));
@@ -465,6 +465,7 @@ template size_t ellipseMatch<
 
 VisitProcessingContext::VisitProcessingContext(
     lsst::mwi::data::DataProperty::PtrType const & event,
+    std::string                            const & runId,
     int const workerId,
     int const numWorkers
 ) :
@@ -474,6 +475,7 @@ VisitProcessingContext::VisitProcessingContext(
     _diaSourceIndex(sZonesPerDegree, sZonesPerStripe, sMaxEntriesPerZoneEst),
     _deadline(),
     _fov(),
+    _runId(runId),
     _visitId(-1),
     _matchRadius(sMatchRadius),
     _filter(),
@@ -498,7 +500,7 @@ VisitProcessingContext::VisitProcessingContext(
     dp = extractRequired(event, "filterName");
     std::string filterName = boost::any_cast<std::string>(dp->getValue());
     lsst::mwi::persistence::LogicalLocation location(sFilterTableLocation);
-    _filter = Filter(location, filterName);
+    _filter = lsst::fw::Filter(location, filterName);
 }
 
 
@@ -578,12 +580,12 @@ LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy) {
         sObjDeltaFilePattern = policy->getString("objectDeltaChunkFileNamePattern", DEF_OBJ_DELTA_PATTERN);
         sFilterTableLocation = policy->getString("filterTableLocation",             DEF_DB_LOCATION);
 
-        sVarProbThreshold[Filter::U] = policy->getInt("uVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[Filter::G] = policy->getInt("gVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[Filter::R] = policy->getInt("rVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[Filter::I] = policy->getInt("iVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[Filter::Z] = policy->getInt("zVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[Filter::Y] = policy->getInt("yVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::U] = policy->getInt("uVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::G] = policy->getInt("gVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::R] = policy->getInt("rVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::I] = policy->getInt("iVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::Z] = policy->getInt("zVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::fw::Filter::Y] = policy->getInt("yVarProbThreshold", DEF_VP_THRESH);
     }
 }
 
@@ -649,8 +651,14 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
         ChunkIteratorType      end(toRead.end());
         for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
             ChunkType & c = *i;
-            c.read(refNames.getName(context.getDecomposition(), c.getId()), false);
-            c.readDelta(deltaNames.getName(context.getDecomposition(), c.getId()), false);
+            c.read(
+                refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
+                false
+            );
+            c.readDelta(
+                deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
+                false
+            );
             c.setUsable();
         }
         watch.stop();
@@ -670,8 +678,14 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             end = toRead.end();
             for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
                 ChunkType & c = *i;
-                c.read(refNames.getName(context.getDecomposition(), c.getId()), false);
-                c.readDelta(deltaNames.getName(context.getDecomposition(), c.getId()), false);
+                c.read(
+                    refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
+                    false
+                );
+                c.readDelta(
+                    deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
+                    false
+                );
                 c.setUsable();
             }
             watch.stop();
@@ -863,7 +877,11 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
         ChunkIteratorType      end(chunks.end());
         for (ChunkIteratorType i(chunks.begin()); i != end; ++i) {
             ChunkType & c = *i;
-            c.writeDelta(deltaNames.getName(context.getDecomposition(), c.getId()), true, false);
+            c.writeDelta(
+                deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
+                true,
+                false
+            );
         }
         watch.stop();
         Trace("ap.io", 3, boost::format("wrote %1% chunk delta files in %2%") % chunks.size() % watch);

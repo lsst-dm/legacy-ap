@@ -5,7 +5,7 @@
  *
  * \author $Author$
  * \version $Revision$
- * \date $Date$
+ * \date $Date: 2007-12-10 01:40:54 -0800 (Mon, 10 Dec 2007) $
  *
  * Contact: Kian-Tat Lim (ktl@slac.stanford.edu)
  *
@@ -15,7 +15,7 @@
 #ifndef __GNUC__
 #  define __attribute__(x) /*NOTHING*/
 #endif
-static char const* SVNid __attribute__((unused)) = "$Id$";
+static char const* SVNid __attribute__((unused)) = "$Id: dumpObjects.cc 3605 2007-12-10 09:40:54Z smm $";
 
 #include <cstdlib>
 #include <cerrno>
@@ -29,8 +29,8 @@ static char const* SVNid __attribute__((unused)) = "$Id$";
 #include <mysql/mysql.h>
 
 #include "lsst/ap/Chunk.h"
-#include "lsst/ap/Filter.h"
 #include "lsst/ap/Object.h"
+#include "lsst/fw/Filter.h"
 #include "lsst/mwi/exceptions.h"
 #include "lsst/mwi/persistence/DbAuth.h"
 #include "lsst/mwi/persistence/DbStorageLocation.h"
@@ -255,20 +255,20 @@ int main(int argc, char** argv) {
     // Retrieved object.
     lsst::ap::SimpleObject obj;
     // Result binding array.
-    MYSQL_BIND resultArray[3 + lsst::ap::Filter::NUM_FILTERS];
+    MYSQL_BIND resultArray[3 + lsst::fw::Filter::NUM_FILTERS];
     // Null flags for object fields.
-    my_bool isNull[3 + lsst::ap::Filter::NUM_FILTERS];
+    my_bool isNull[3 + lsst::fw::Filter::NUM_FILTERS];
     // Error flags for object fields.
-    my_bool error[3 + lsst::ap::Filter::NUM_FILTERS];
+    my_bool error[3 + lsst::fw::Filter::NUM_FILTERS];
 
     // Initialize object to junk values to help detect bugs.
     obj._objectId = 0xcafefeeddeadbeefLL;
     obj._ra = -100.0;
     obj._decl = -1234567890.0;
-    for (int i = 0; i < lsst::ap::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < lsst::fw::Filter::NUM_FILTERS; ++i) {
         obj._varProb[i] = -1;
     }
-    for (int i = 0; i < 3 + lsst::ap::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < 3 + lsst::fw::Filter::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
 
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     resultArray[2].is_unsigned = false;
     resultArray[2].error = &error[2];
 
-    for (int i = 0; i < lsst::ap::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < lsst::fw::Filter::NUM_FILTERS; ++i) {
         resultArray[3 + i].buffer_type = MYSQL_TYPE_SHORT;
         resultArray[3 + i].buffer = &(obj._varProb[i]);
         resultArray[3 + i].buffer_length = sizeof(obj._varProb[i]);

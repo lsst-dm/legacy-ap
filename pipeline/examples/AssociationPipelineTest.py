@@ -54,21 +54,23 @@ import TestCleanup
 
 def runOneVisit():
 
+    runId = 'test'
+
     # Turn on tracing
     lsst.mwi.utils.Trace.setVerbosity('ap', 10)
 
     # Create directories for test data
-    if not os.path.isdir('/tmp/ref'):
-        os.mkdir('/tmp/ref')
-    if not os.path.isdir('/tmp/delta'):
-        os.mkdir('/tmp/delta')
-    if not os.path.isdir('/tmp/sql_scripts'):
-        os.mkdir('/tmp/sql_scripts')
+    if not os.path.isdir('/tmp/ref_test'):
+        os.mkdir('/tmp/ref_test')
+    if not os.path.isdir('/tmp/delta_test'):
+        os.mkdir('/tmp/delta_test')
+    if not os.path.isdir('/tmp/sql_scripts_test'):
+        os.mkdir('/tmp/sql_scripts_test')
     for i in xrange(-85,-70):
-        d = '/tmp/ref/stripe_%d' % i
+        d = '/tmp/ref_test/stripe_%d' % i
         if not os.path.isdir(d):
             os.mkdir(d)
-        d = '/tmp/delta/stripe_%d' % i
+        d = '/tmp/delta_test/stripe_%d' % i
         if not os.path.isdir(d):
             os.mkdir(d)
 
@@ -107,6 +109,7 @@ def runOneVisit():
     # load spatial data for objects in the FOV
     masterLoadStage = lsst.ap.pipeline.LoadStage(0, loadPolicy)
     masterLoadStage.initialize(mq1, mq0)
+    masterLoadStage.setRunId(runId)
     masterLoadStage.setRank(1)
     masterLoadStage.setUniverseSize(2)
     workerLoadStage = lsst.ap.pipeline.LoadStage(0, loadPolicy)
@@ -117,6 +120,7 @@ def runOneVisit():
     # read difference sources, match, write match results
     masterMatchStage1Input = lsst.dps.IOStage.InputStage(1, match1InputPolicy)
     masterMatchStage1Input.initialize(mq2, mq1)
+    masterMatchStage1Input.setRunId(runId)
     masterMatchStage1Input.setRank(1)
     masterMatchStage1Input.setUniverseSize(2)
     workerMatchStage1Input = lsst.dps.IOStage.InputStage(1, match1InputPolicy)
@@ -126,6 +130,7 @@ def runOneVisit():
 
     masterMatchStage1 = lsst.ap.pipeline.MatchDiaSourcesStage(2, None)
     masterMatchStage1.initialize(mq3, mq2)
+    masterMatchStage1.setRunId(runId)
     masterMatchStage1.setRank(1)
     masterMatchStage1.setUniverseSize(2)
     workerMatchStage1 = lsst.ap.pipeline.MatchDiaSourcesStage(2, None)
@@ -135,6 +140,7 @@ def runOneVisit():
 
     masterMatchStage1Output = lsst.dps.IOStage.OutputStage(3, match1OutputPolicy)
     masterMatchStage1Output.initialize(mq4, mq3)
+    masterMatchStage1Output.setRunId(runId)
     masterMatchStage1Output.setRank(1)
     masterMatchStage1Output.setUniverseSize(2)
     workerMatchStage1Output = lsst.dps.IOStage.OutputStage(3, match1OutputPolicy)
@@ -145,6 +151,7 @@ def runOneVisit():
     # read moving object predictions, match, write match results
     masterMatchStage2Input = lsst.dps.IOStage.InputStage(4, match2InputPolicy)
     masterMatchStage2Input.initialize(mq5, mq4)
+    masterMatchStage2Input.setRunId(runId)
     masterMatchStage2Input.setRank(1)
     masterMatchStage2Input.setUniverseSize(2)
     workerMatchStage2Input = lsst.dps.IOStage.InputStage(4, match2InputPolicy)
@@ -154,6 +161,7 @@ def runOneVisit():
 
     masterMatchStage2 = lsst.ap.pipeline.MatchMopsPredsStage(5, None)
     masterMatchStage2.initialize(mq6, mq5)
+    masterMatchStage2.setRunId(runId)
     masterMatchStage2.setRank(1)
     masterMatchStage2.setUniverseSize(2)
     workerMatchStage2 = lsst.ap.pipeline.MatchMopsPredsStage(5, None)
@@ -163,6 +171,7 @@ def runOneVisit():
 
     masterMatchStage2Output = lsst.dps.IOStage.OutputStage(6, match2OutputPolicy)
     masterMatchStage2Output.initialize(mq7, mq6)
+    masterMatchStage2Output.setRunId(runId)
     masterMatchStage2Output.setRank(1)
     masterMatchStage2Output.setUniverseSize(2)
     workerMatchStage2Output = lsst.dps.IOStage.OutputStage(6, match2OutputPolicy)
@@ -173,6 +182,7 @@ def runOneVisit():
     # store spatial data for new objects in the FOV
     masterStoreStage = lsst.ap.pipeline.StoreStage(7, storePolicy)
     masterStoreStage.initialize(mq8, mq7)
+    masterStoreStage.setRunId(runId)
     masterStoreStage.setRank(1)
     masterStoreStage.setUniverseSize(2)
     workerStoreStage = lsst.ap.pipeline.StoreStage(7, storePolicy)

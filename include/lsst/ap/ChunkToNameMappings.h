@@ -29,6 +29,7 @@ public :
     virtual ~ChunkToNameMapping();
     
     virtual std::string const getName(
+        std::string                  const & runId,
         ZoneStripeChunkDecomposition const & zsc,
         int64_t                      const   chunkId,
         int                          const   version = 0
@@ -39,8 +40,9 @@ public :
 /*!
     \brief  Maps a chunk id to a file name according to a \c boost::format compatible pattern.
 
-    The pattern can use any of 3 parameters, passed to the formatter as follows:
+    The pattern can use any of 4 parameters, passed to the formatter as follows:
     <ol>
+    <li>An identifier for the pipeline run</li>
     <li>The stripe id of the chunk</li>
     <li>The sequence number of the chunk (within its stripe)</li>
     <li>An integer file version number</li>
@@ -55,6 +57,7 @@ public :
     virtual ~ChunkToFileNameMapping();
 
     virtual std::string const getName(
+        std::string                  const & runId,
         ZoneStripeChunkDecomposition const & zsc,
         int64_t                      const   chunkId,
         int                          const   version = 0

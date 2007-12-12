@@ -1,11 +1,20 @@
 #! /bin/sh
 
-pwd=`pwd`
+# Command line arguments 
+if [ "$#" != 2 ]; then
+    echo "------------------------------------------"
+    echo "Usage:  run.sh <policy-file-name> <runId>"
+    echo "------------------------------------------"
+    exit 0
+fi
+
+pipelinePolicyName=${1}
+runId=${2}
 
 # --------------------------------------------------------- 
 # INPUT PARAMETERS
-# For the association pipeline, everything must run on a single host,
-# so keep nodes set to 1. Increase nslices for a larger parallel execution
+# For the association pipeline, everything must run on a single host, so
+# keep nodes set to 1. Increase nslices for a larger parallel execution
 # (this currently affects only chunk IO).
 nodes=1
 nslices=1
@@ -30,7 +39,7 @@ sleep 2s
 
 echo "Running mpiexec"
 
-mpiexec -usize ${usize}  -machinefile nodelist.scr -np 1 runPipeline.py
+mpiexec -usize ${usize} -machinefile nodelist.scr -np 1 runPipeline.py ${pipelinePolicyName} ${runId}
 
 sleep 1s
 

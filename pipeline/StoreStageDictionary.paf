@@ -5,10 +5,11 @@
 definitions: {
 
     scriptDirectory: {
-        description:"The name of the directory in which lsst.ap.pipeline.StoreStage
-                     should output per-visit SQL scripts."
+        description:"The name of the directory in which lsst.ap.pipeline.StoreStage should
+                     output per-visit SQL scripts. The name may optionally contain '%(runId)s'
+                     substrings which will be replaced by a runId string at execution time."
         type:       "string"
-        default:    "/tmp/sql_scripts"
+        default:    "/tmp/sql_scripts_%s"
         minOccurs:  0
         maxOccurs:  1
     }
@@ -16,7 +17,10 @@ definitions: {
     location: {
         description:"The location of the database containing per-visit tables created by pipelines.
                      The string should be formatted according to the same rules expected by
-                     lsst::mwi::persistence::DbStorageLocation, i.e. 'database_type://hostname:port/database'"
+                     lsst::mwi::persistence::DbStorageLocation, i.e. 
+                     'database_type://hostname:port/database'. The 'database' portion of the location
+                     may optionally contain '%(runId)s' substrings which will be replaced with a runId
+                     string at execution time."
         type:       "string"
         default:    "mysql://lsst10.ncsa.uiuc.edu:3306/test"
         minOccurs:  0

@@ -54,7 +54,9 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         clipboard      = self.inputQueue.getNextDataset()
         event          = clipboard.get('triggerAssociationEvent')
-        self.vpContext = ap.VisitProcessingContext(event, self.getRank(), self.getUniverseSize() - 1)
+        self.vpContext = ap.VisitProcessingContext(
+            event, self.getRunId(), self.getRank(), self.getUniverseSize() - 1
+        )
         clipboard.put('vpContext', self.vpContext)
         self.outputQueue.addDataset(clipboard)
 
@@ -246,10 +248,11 @@ class StoreStage(lsst.dps.Stage.Stage):
         self.templateDict['varObjectTable']    = 'VarObject'
         self.templateDict['nonVarObjectTable'] = 'NonVarObject'
         if policy != None:
-            location             = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test')
+            runIdDict = { 'runId': str(self.getRunId()) }
+            location  = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test') % runIdDict
             self.storeOutputs    = policy.getBool('storeOutputs', True)
             self.dropTables      = policy.getBool('dropTables', False)
-            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/sql_scripts')
+            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/sql_scripts') % runIdDict
             self.templateDict['diaSourceTable']    = policy.getString('diaSourceTable', 'DIASource')
             self.templateDict['varObjectTable']    = policy.getString('varObjectTable', 'VarObject')
             self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', 'NonVarObject')

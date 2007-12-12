@@ -35,6 +35,7 @@ ChunkToFileNameMapping::~ChunkToFileNameMapping() {}
 
 
 std::string const ChunkToFileNameMapping::getName(
+    std::string                  const & runId,
     ZoneStripeChunkDecomposition const & zsc,
     int64_t                      const   chunkId,
     int                          const   version
@@ -42,7 +43,7 @@ std::string const ChunkToFileNameMapping::getName(
     int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(chunkId);
     int32_t const sequence = ZoneStripeChunkDecomposition::chunkToSequence(chunkId);
     _format.clear();
-    _format % stripeId % sequence % version;
+    _format % runId % stripeId % sequence % version;
     return _format.str();
 }
 

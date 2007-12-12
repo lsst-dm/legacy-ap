@@ -93,7 +93,7 @@ static void appendObjects(SObjChunk & chunk, size_t const num) {
         Point p   = Point::random();
         obj._ra   = p._ra;
         obj._decl = p._dec;
-        for (int i = 0; i < Filter::NUM_FILTERS; ++i) {
+        for (int i = 0; i < lsst::fw::Filter::NUM_FILTERS; ++i) {
             obj._varProb[i] = static_cast<int8_t>(uniformRandom()*100.0);
         }
         chunk.insert(obj);

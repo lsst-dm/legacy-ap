@@ -19,12 +19,12 @@
 #include <lsst/mwi/policy/Policy.h>
 
 #include <lsst/fw/DiaSource.h>
+#include <lsst/fw/Filter.h>
 #include <lsst/fw/MovingObjectPrediction.h>
 
 #include <lsst/ap/Common.h>
 #include <lsst/ap/ChunkManager.h>
 #include <lsst/ap/CircularRegion.h>
-#include <lsst/ap/Filter.h>
 #include <lsst/ap/Results.h>
 #include <lsst/ap/SpatialUtil.h>
 #include <lsst/ap/Time.h>
@@ -49,8 +49,9 @@ public :
 
     VisitProcessingContext(
         lsst::mwi::data::DataProperty::PtrType const & event,
-        int const workerId,
-        int const numWorkers
+        std::string const & runId,
+        int         const   workerId,
+        int         const   numWorkers
     );
 
     ~VisitProcessingContext();
@@ -83,9 +84,11 @@ public :
     CircularRegion const & getFov()      const { return _fov;      }
     TimeSpec       const & getDeadline() const { return _deadline; }
 
-    Filter  getFilter()      const { return _filter;      }
+    lsst::fw::Filter getFilter() const { return _filter;      }
 
 #endif
+
+    std::string const & getRunId() const { return _runId; }
 
     int64_t getVisitId()     const { return _visitId;        }
     double  getMatchRadius() const { return _matchRadius;    }
@@ -105,13 +108,14 @@ private :
     DiaSourceIndex                 _diaSourceIndex;
     lsst::fw::DiaSourceVector::Ptr _diaSources;
 
-    TimeSpec       _deadline;
-    CircularRegion _fov;
-    int64_t        _visitId;
-    double         _matchRadius;
-    Filter         _filter;
-    int            _workerId;
-    int            _numWorkers;
+    TimeSpec         _deadline;
+    CircularRegion   _fov;
+    std::string      _runId;
+    int64_t          _visitId;
+    double           _matchRadius;
+    lsst::fw::Filter _filter;
+    int              _workerId;
+    int              _numWorkers;
 };
 
 

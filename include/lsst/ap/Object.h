@@ -12,9 +12,10 @@
 
 #include <lsst/mwi/persistence/DateTime.h>
 
+#include <lsst/fw/Filter.h>
+
 #include <lsst/ap/Common.h>
 #include <lsst/ap/Bitset.h>
-#include <lsst/ap/Filter.h>
 
 
 namespace lsst {
@@ -34,13 +35,13 @@ public :
     int64_t _objectId;
     double  _ra;
     double  _decl;
-    int16_t  _varProb[Filter::NUM_FILTERS];
+    int16_t  _varProb[lsst::fw::Filter::NUM_FILTERS];
 
     int64_t getId()  const { return _objectId; }
     double  getRa()  const { return _ra;       }
     double  getDec() const { return _decl;     }
 
-    int16_t  getVarProb(Filter const f) const { return _varProb[f]; }
+    int16_t  getVarProb(lsst::fw::Filter const f) const { return _varProb[f]; }
 };
 
 LSST_AP_API bool operator==(SimpleObject const & o1, SimpleObject const & o2);
@@ -216,7 +217,7 @@ public :
 
     Bitset<uint8_t, NUM_NULLABLE_FIELDS> _nulls;
 
-    PerFilterObjectData _filters[Filter::NUM_FILTERS];
+    PerFilterObjectData _filters[lsst::fw::Filter::NUM_FILTERS];
 
     // methods
 
@@ -224,15 +225,15 @@ public :
     double  getRa() const  { return _ra;       }
     double  getDec() const { return _decl;     }
 
-    int8_t  getVarProb(Filter const f) const { return _filters[f]._varProb; }
+    int8_t  getVarProb(lsst::fw::Filter const f) const { return _filters[f]._varProb; }
 
-    PerFilterObjectData const & getFilter(Filter const f) const {
-        assert(f >= 0 && f < Filter::NUM_FILTERS);
+    PerFilterObjectData const & getFilter(lsst::fw::Filter const f) const {
+        assert(f >= 0 && f < lsst::fw::Filter::NUM_FILTERS);
         return _filters[f];
     }
 
-    PerFilterObjectData & getFilter(Filter const f) {
-        assert(f >= 0 && f < Filter::NUM_FILTERS);
+    PerFilterObjectData & getFilter(lsst::fw::Filter const f) {
+        assert(f >= 0 && f < lsst::fw::Filter::NUM_FILTERS);
         return _filters[f];
     }
 

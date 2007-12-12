@@ -1,4 +1,6 @@
 {
+    "executionMode":    "oneloop",
+
     "shutdownTopic":    "shutdownAssociationEvent",
 
     "appStages":       ["lsst.ap.pipeline.LoadStage",

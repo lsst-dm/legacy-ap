@@ -8,8 +8,8 @@ zonesPerStripe                  : 63
 maxEntriesPerZoneEstimate       : 4096
 matchRadius                     : 0.05
 semiMajorAxisThreshold          : 0.2
-objectChunkFileNamePattern      : "/tmp/ref/stripe_%1%/objref_chunk%2%"
-objectDeltaChunkFileNamePattern : "/tmp/delta/stripe_%1%/objdelta_chunk%2%"
+objectChunkFileNamePattern      : "/tmp/ref_%1%/stripe_%2%/objref_chunk%3%"
+objectDeltaChunkFileNamePattern : "/tmp/delta_%1%/stripe_%2%/objdelta_chunk%3%"
 filterTableLocation             : "mysql://lsst10.ncsa.uiuc.edu:3306/test"
 uVarProbThreshold               : 90
 gVarProbThreshold               : 90
