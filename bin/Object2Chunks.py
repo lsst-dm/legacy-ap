@@ -37,7 +37,7 @@ def main():
         sys.exit(1)
 
     # create stripe directories, run dumpObjects for each stripe
-    for i in xrange(zsc.decToStripe(-90), zsc.decToStripe(90)):
+    for i in xrange(zsc.decToStripe(-90), zsc.decToStripe(90) + 1):
         stripeDir = os.path.join(dir, 'stripe_%d' % i)
         if not os.path.isdir(stripeDir):
             os.mkdir(stripeDir)
