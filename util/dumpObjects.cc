@@ -5,7 +5,7 @@
  *
  * \author $Author$
  * \version $Revision$
- * \date $Date: 2007-12-10 01:40:54 -0800 (Mon, 10 Dec 2007) $
+ * \date $Date$
  *
  * Contact: Kian-Tat Lim (ktl@slac.stanford.edu)
  *
@@ -15,13 +15,14 @@
 #ifndef __GNUC__
 #  define __attribute__(x) /*NOTHING*/
 #endif
-static char const* SVNid __attribute__((unused)) = "$Id: dumpObjects.cc 3605 2007-12-10 09:40:54Z smm $";
+static char const* SVNid __attribute__((unused)) = "$Id$";
 
 #include <cstdlib>
 #include <cerrno>
 #include <fcntl.h>
 #include <getopt.h>
 #include <iostream>
+#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -363,13 +364,12 @@ int main(int argc, char** argv) {
                 ioAssert(err == 0, "Unable to close output file");
             }
 
-            ++chunkNum;
-
             if (numChunks < 1) {
                 strcpy(fileName, fileBase);
                 chunkBoundary = 1000.0;
             }
             else {
+                chunkNum = floor(obj._ra * numChunks / 360.0);
                 snprintf(fileName, fileNameLen, "%s.%d", fileBase, chunkNum);
                 chunkBoundary = (360.0 * (chunkNum + 1)) / numChunks;
             }
