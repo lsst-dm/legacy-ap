@@ -8,12 +8,20 @@ Access to association pipeline persistable result objects and implementation met
 %feature("autodoc", "1");
 %module(package="lsst.ap", docstring=ap_DOCSTRING) interface
 
+// Suppress swig complaints
+#pragma SWIG nowarn=314                 // print is a python keyword (--> _print)
+#pragma SWIG nowarn=362                 // operator=  ignored
+
 %{
 #include "lsst/ap/Exceptions.h"
 #include "lsst/ap/Results.h"
 #include "lsst/ap/io/ResultFormatters.h"
 #include "lsst/ap/Stages.h"
 #include "lsst/ap/Utils.h"
+%}
+
+%inline %{
+namespace boost { namespace filesystem {} }
 %}
 
 %init %{

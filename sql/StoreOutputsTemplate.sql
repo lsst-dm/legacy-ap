@@ -7,7 +7,7 @@
 --
 
 -- Set objectId of each difference source to the id of the closest matching object
-CREATE TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPair;
+CREATE TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPairTemplate;
 INSERT INTO BestMatch_visit%(visitId)d
     SELECT first, second, MIN(distance)
     FROM DiaSourceToObjectMatches_visit%(visitId)d
@@ -25,7 +25,7 @@ UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
 INSERT INTO %(diaSourceTable)s SELECT * FROM DiaSources_visit%(visitId)d;
 
 -- Create list of matched object ids without duplicates
-CREATE TABLE MatchedObjects_visit%(visitId)d LIKE InMemoryId;
+CREATE TABLE MatchedObjects_visit%(visitId)d LIKE InMemoryIdTemplate;
 INSERT INTO MatchedObjects_visit%(visitId)d
     SELECT DISTINCT(second) FROM DiaSourceToObjectMatches_visit%(visitId)d;
 

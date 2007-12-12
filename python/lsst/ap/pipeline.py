@@ -55,7 +55,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         clipboard      = self.inputQueue.getNextDataset()
         event          = clipboard.get('triggerAssociationEvent')
         self.vpContext = ap.VisitProcessingContext(
-            event, self.getRunId(), self.getRank(), self.getUniverseSize() - 1
+            event, self.getRun(), self.getRank(), self.getUniverseSize() - 1
         )
         clipboard.put('vpContext', self.vpContext)
         self.outputQueue.addDataset(clipboard)
@@ -203,7 +203,7 @@ class StoreStage(lsst.dps.Stage.Stage):
             name, ext = os.path.splitext(i)
             assert name.endswith('Template')
             outName = ''.join([name[:-len('Template')], '_visit%d' % vpContext.getVisitId(), ext])
-            outPath = os.path.join(self.scriptDirectory, outName)
+            outPath = os.path.join(self.scriptDir, outName)
             self.scriptPaths[i] = outPath
             with file(outPath, 'w') as outFile:
                 outFile.write(outText)
@@ -221,6 +221,20 @@ class StoreStage(lsst.dps.Stage.Stage):
         with file(script + '.log', 'w') as logFile:
             exitcode = subprocess.Popen(args, stdout=logFile).wait()
         return exitcode
+
+    def _initPropsFromRun(self, runId):
+        runDict  = { 'runId': str(runId) }
+        location = self.location % runDict
+        self.scriptDir = self.scriptDirectory % runDict
+        # Parse database location string
+        dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
+        if dbloc is None:
+            raise lsst.mwi.exceptions.LsstRuntime('invalid location string')
+        if dbloc.group(1) != 'mysql':
+            raise lsst.mwi.exceptions.LsstRuntime('database type %s not supported' % dbloc.group(1))
+        self.hostname = dbloc.group(2)
+        self.port     = int(dbloc.group(3))
+        self.database = dbloc.group(4)
 
     def __init__(self, stageId=-1, policy=None):
         lsst.dps.Stage.Stage.__init__(self, stageId, policy)
@@ -248,23 +262,18 @@ class StoreStage(lsst.dps.Stage.Stage):
         self.templateDict['varObjectTable']    = 'VarObject'
         self.templateDict['nonVarObjectTable'] = 'NonVarObject'
         if policy != None:
-            runIdDict = { 'runId': str(self.getRunId()) }
-            location  = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test') % runIdDict
+            self.location  = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test')
             self.storeOutputs    = policy.getBool('storeOutputs', True)
             self.dropTables      = policy.getBool('dropTables', False)
-            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/sql_scripts') % runIdDict
+            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/sql_scripts')
             self.templateDict['diaSourceTable']    = policy.getString('diaSourceTable', 'DIASource')
             self.templateDict['varObjectTable']    = policy.getString('varObjectTable', 'VarObject')
             self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', 'NonVarObject')
-        # Parse database location string
-        dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
-        if dbloc is None:
-            raise lsst.mwi.exceptions.LsstRuntime('invalid location string')
-        if dbloc.group(1) != 'mysql':
-            raise lsst.mwi.exceptions.LsstRuntime('database type %s not supported' % dbloc.group(1))
-        self.hostname = dbloc.group(2)
-        self.port     = int(dbloc.group(3))
-        self.database = dbloc.group(4)
+        self._initPropsFromRun(self.getRun())
+
+    def setRun(self, runId):
+        lsst.dps.Stage.Stage.setRun(self, runId)
+        self._initPropsFromRun(runId)
 
     def preprocess(self):
         pass
