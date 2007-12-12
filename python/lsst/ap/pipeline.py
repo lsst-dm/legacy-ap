@@ -35,7 +35,7 @@ class LoadStage(lsst.dps.Stage.Stage):
 
     def __init__(self, stageId, policy):
         lsst.dps.Stage.Stage.__init__(self, stageId, policy)
-        ap.initialize(policy)
+        self.firstVisit = True
 
     def makeVpContext(self):
         """
@@ -68,6 +68,9 @@ class LoadStage(lsst.dps.Stage.Stage):
         assert self.outputQueue.size() == 0
         lsst.mwi.utils.Trace('ap.pipeline', 3, 'preprocess(): stage %d' % self.getStageId())
 
+        if self.firstVisit:
+            ap.initialize(self._policy, str(self.getRun()))
+            self.firstVisit = False
         self.makeVpContext()
         ap.registerVisit(self.vpContext)
 

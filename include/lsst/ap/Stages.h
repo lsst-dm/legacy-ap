@@ -119,7 +119,7 @@ private :
 };
 
 
-LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy);
+LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy, std::string const & runId);
 
 LSST_AP_API void registerVisit(VisitProcessingContext & context);
 

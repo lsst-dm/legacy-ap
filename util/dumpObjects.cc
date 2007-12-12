@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
                 chunkBoundary = 1000.0;
             }
             else {
-                chunkNum = floor(obj._ra * numChunks / 360.0);
+                chunkNum = static_cast<int>(floor(obj._ra * numChunks / 360.0));
                 snprintf(fileName, fileNameLen, "%s.%d", fileBase, chunkNum);
                 chunkBoundary = (360.0 * (chunkNum + 1)) / numChunks;
             }
