@@ -27,7 +27,9 @@ int main(int argc, char * argv[]) {
 
         options_description general("General options");
         general.add_options()
-            ("help,h", "print usage help");
+            ("help,h", "print usage help")
+            ("name,n", value<std::string>()->default_value("test"),
+                "the name of the shared memory object to inspect or manipulate");
 
         options_description inspect("Inspecting the AP chunk manager");
         inspect.add_options()
@@ -47,34 +49,33 @@ int main(int argc, char * argv[]) {
 
         variables_map vm;
         store(parse_command_line(argc, argv, all), vm);
-
+        std::string name(vm["name"].as<std::string>());
         if (vm.count("help")) {
             std::cout << all;
             return EXIT_SUCCESS;
         }
-
         if (vm.count("visits")) {
-            SharedSimpleObjectChunkManager manager;
+            SharedSimpleObjectChunkManager manager(name);
             manager.printVisits(std::cout);
         }
         if (vm.count("chunks")) {
-            SharedSimpleObjectChunkManager manager;
+            SharedSimpleObjectChunkManager manager(name);
             manager.printChunks(std::cout);
         }
         if (vm.count("visit")) {
-            SharedSimpleObjectChunkManager manager;
+            SharedSimpleObjectChunkManager manager(name);
             manager.printVisit(vm["visit"].as<int64_t>(), std::cout);
         }
         if (vm.count("chunk")) {
-            SharedSimpleObjectChunkManager manager;
+            SharedSimpleObjectChunkManager manager(name);
             manager.printChunk(vm["chunk"].as<int64_t>(), std::cout);
         }
         if (vm.count("rollback")) {
-            SharedSimpleObjectChunkManager manager;
+            SharedSimpleObjectChunkManager manager(name);
             manager.endVisit(vm["rollback"].as<int64_t>(), true);
         }
         if (vm.count("unlink")) {
-            SharedSimpleObjectChunkManager::destroyInstance();
+            SharedSimpleObjectChunkManager::destroyInstance(name);
         }
 
         return EXIT_SUCCESS;

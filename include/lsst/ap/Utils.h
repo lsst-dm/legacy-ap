@@ -41,6 +41,8 @@ LSST_AP_API std::string const getTableTemplateName(
     lsst::mwi::data::DataProperty::PtrType const & properties
 );
 
+LSST_AP_API void verifyPathName(std::string const & name);
+
 
 /*!
     Extracts an integer of the specified type from the given boost::any. The extraction

@@ -556,9 +556,9 @@ void VisitProcessingContext::buildObjectIndex() {
     Sets up all fundamental visit processing parameters using a policy and ensure
     that a reference to the shared memory object used for chunk storage exists.
  */
-LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy) {
+LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy, std::string const & runId) {
 
-    volatile SharedSimpleObjectChunkManager manager;
+    volatile SharedSimpleObjectChunkManager manager(runId);
 
     sZonesPerDegree         = DEF_ZONES_PER_DEGREE;
     sZonesPerStripe         = DEF_ZONES_PER_STRIPE;
@@ -597,9 +597,9 @@ LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy) {
 LSST_AP_API void registerVisit(VisitProcessingContext & context) {
     context.getChunkIds().clear();
     computeChunkIds(context.getChunkIds(), context.getFov(), context.getDecomposition(), 0, 1);
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
     // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
-    SharedSimpleObjectChunkManager::destroyInstance();
+    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
     manager.registerVisit(context.getVisitId());
 }
 
@@ -614,7 +614,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<ChunkType>                    ChunkVectorType;
     typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
 
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
 
     try {
 
@@ -712,7 +712,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
     \param[in, out] context     State involved in processing a single visit.
  */
 LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
     if (manager.isVisitInFlight(context.getVisitId())) {
         // Build zone index on objects
         manager.getChunks(context.getChunks(), context.getChunkIds());
@@ -738,7 +738,7 @@ LSST_AP_API void matchDiaSources(
     boost::shared_ptr<MatchPairVector> & matches,
     VisitProcessingContext             & context
 ) {
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
 
     try {
 
@@ -793,7 +793,7 @@ LSST_AP_API void matchMops(
     VisitProcessingContext                 & context,
     lsst::fw::MovingObjectPredictionVector & predictions
 ) {
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
 
     try {
 
@@ -868,7 +868,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<ChunkType>                    ChunkVectorType;
     typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
 
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
 
     try {
         Stopwatch watch(true);
@@ -877,11 +877,9 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
         ChunkIteratorType      end(chunks.end());
         for (ChunkIteratorType i(chunks.begin()); i != end; ++i) {
             ChunkType & c = *i;
-            c.writeDelta(
-                deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                true,
-                false
-            );
+            std::string file(deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()));
+            verifyPathName(file);
+            c.writeDelta(file, true, false);
         }
         watch.stop();
         Trace("ap.io", 3, boost::format("wrote %1% chunk delta files in %2%") % chunks.size() % watch);
@@ -904,7 +902,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     \param[in, out] context     State involved in processing a single visit.
  */
 LSST_AP_API void failVisit(VisitProcessingContext & context) {
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
     manager.failVisit(context.getVisitId());
 }
 
@@ -920,7 +918,7 @@ LSST_AP_API void failVisit(VisitProcessingContext & context) {
                 \c false otherwise.
  */
 LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback) {
-    SharedSimpleObjectChunkManager manager;
+    SharedSimpleObjectChunkManager manager(context.getRunId());
     bool committed = manager.endVisit(context.getVisitId(), rollback);
     if (committed) {
         Trace("ap.manage", 3, boost::format("Committed visit %1%") % context.getVisitId());

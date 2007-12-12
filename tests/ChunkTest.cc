@@ -53,9 +53,9 @@ static std::string const makeTempFile() {
 
 // Creates a single, initially empty, chunk belonging to visit 1.
 static SObjChunk const createChunk() {
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance();
+    SharedSimpleObjectChunkManager::destroyInstance("test");
 
     std::vector<int64_t>   chunkIds;
     std::vector<SObjChunk> toWaitFor;
@@ -297,7 +297,7 @@ static void wrdCycle(
 
 BOOST_AUTO_TEST_CASE(chunkIoTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (without delta)");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(chunkIoTest) {
 
 BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (with delta and no deletes)");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
 
 BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (with delta and deletes)");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
 
 BOOST_AUTO_TEST_CASE(emptyChunkTest) {
     BOOST_TEST_MESSAGE("    - Empty chunk IO test");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;

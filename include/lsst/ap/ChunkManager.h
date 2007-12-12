@@ -26,13 +26,13 @@ private :
 
     ManagerType * _manager;
 
-    static LSST_AP_LOCAL ManagerType * instance();
+    static LSST_AP_LOCAL ManagerType * instance(std::string const & name);
 
 public :
 
     typedef ManagerType::ChunkType SimpleObjectChunkType;
 
-    SharedSimpleObjectChunkManager();
+    SharedSimpleObjectChunkManager(std::string const & name);
 
     bool isVisitInFlight(int64_t const visitId) { return _manager->isVisitInFlight(visitId); }
     void registerVisit  (int64_t const visitId) { _manager->registerVisit(visitId);          }
@@ -72,7 +72,7 @@ public :
     void printVisit(int64_t const visitId, std::ostream & os) const { _manager->printVisit(visitId, os); }
     void printChunk(int64_t const chunkId, std::ostream & os) const { _manager->printChunk(chunkId, os); }
 
-    static void destroyInstance();
+    static void destroyInstance(std::string const & name);
 
     static size_t size();
 };

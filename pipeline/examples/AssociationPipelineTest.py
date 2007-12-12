@@ -20,7 +20,7 @@ death of the pipeline process(es). The ap_shmem_admin tool in the bin/ subdirect
 pipeline can then be used to query the chunk manager (--help for details). For this kind of debugging,
 the line reading:
 
-    SharedSimpleObjectChunkManager::destroyInstance();
+    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
 
 inside the
 
@@ -60,19 +60,8 @@ def runOneVisit():
     lsst.mwi.utils.Trace.setVerbosity('ap', 10)
 
     # Create directories for test data
-    if not os.path.isdir('/tmp/ref_test'):
-        os.mkdir('/tmp/ref_test')
-    if not os.path.isdir('/tmp/delta_test'):
-        os.mkdir('/tmp/delta_test')
     if not os.path.isdir('/tmp/sql_scripts_test'):
         os.mkdir('/tmp/sql_scripts_test')
-    for i in xrange(-85,-70):
-        d = '/tmp/ref_test/stripe_%d' % i
-        if not os.path.isdir(d):
-            os.mkdir(d)
-        d = '/tmp/delta_test/stripe_%d' % i
-        if not os.path.isdir(d):
-            os.mkdir(d)
 
     # Read in stage policies
     policyDir          = os.path.join(os.environ['ASSOCIATE_DIR'], 'pipeline', 'examples', 'policy')

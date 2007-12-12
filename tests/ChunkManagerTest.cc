@@ -34,9 +34,9 @@ typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SObjChunk;
 BOOST_AUTO_TEST_CASE(disjointVisitsTest) {
 
     BOOST_TEST_MESSAGE("    - ChunkManager test: sequence of disjoint visits");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance();
+    SharedSimpleObjectChunkManager::destroyInstance("test");
 
     // Process a series of non-overlapping visits
     static int64_t const numVisits = 50;
@@ -68,9 +68,9 @@ BOOST_AUTO_TEST_CASE(disjointVisitsTest) {
 BOOST_AUTO_TEST_CASE(overlappingVisitsTest) {
 
     BOOST_TEST_MESSAGE("    - ChunkManager test: sequence of overlapping visits");
-    SharedSimpleObjectChunkManager mgr;
+    SharedSimpleObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance();
+    SharedSimpleObjectChunkManager::destroyInstance("test");
 
     // Process a series of overlapping visits
     static int64_t const numVisits = 50;

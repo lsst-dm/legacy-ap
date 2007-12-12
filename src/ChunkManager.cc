@@ -210,17 +210,19 @@ template SSObjChunkMgr * getSingleton<SSObjChunkMgr>(char const * const, char co
 
 
 // Warning: for portability reasons, these names should be no more than 14 characters long
-static char const * const sSharedObjName       = "/lsst_ap_shm";
-static char const * const sSharedObjLock       = "/lsst_ap_shlck";
+static char const * const sSharedObjLock = "/ap_shlck";
+static char const * const sSharedPrefix  = "/ap_";
 
 
 // -- SharedSimpleObjectChunkManager ----------------
 
-SharedSimpleObjectChunkManager::SharedSimpleObjectChunkManager() : _manager(instance()) {}
+SharedSimpleObjectChunkManager::SharedSimpleObjectChunkManager(std::string const & name) : _manager(instance(name)) {}
 
 
-LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance() {
-    return detail::getSingleton<detail::SSObjChunkMgr>(sSharedObjName, sSharedObjLock);
+LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance(std::string const & name) {
+    std::string actualName(sSharedPrefix);
+    actualName += name;
+    return detail::getSingleton<detail::SSObjChunkMgr>(actualName.c_str(), sSharedObjLock);
 }
 
 
@@ -228,15 +230,17 @@ LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance()
     Unlinks the shared memory object underlying all manager instances. The associated memory
     is not returned to the system until all client processes have relinquished references to it.
  */
-void SharedSimpleObjectChunkManager::destroyInstance() {
-    int res = ::shm_unlink(sSharedObjName);
+void SharedSimpleObjectChunkManager::destroyInstance(std::string const & name) {
+    std::string actualName(sSharedPrefix);
+    actualName += name;
+    int res = ::shm_unlink(actualName.c_str());
     // Note: shm_unlink is broken on Mac OSX 10.4 - in violation of the documentation and standard,
     // EINVAL (rather than ENOENT) is returned when trying to shm_unlink a non-existant shared
     // memory object.
     if (res != 0 && errno != ENOENT && errno != EINVAL) {
         LSST_AP_THROW_ERR(
             Runtime,
-            boost::format("shm_unlink(): failed to unlink shared memory object %1%") % sSharedObjName,
+            boost::format("shm_unlink(): failed to unlink shared memory object %1%") % name,
             errno
         );
     }
