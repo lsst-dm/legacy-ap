@@ -130,6 +130,18 @@ std::string const Stopwatch::toString() const {
 }
 
 
+double Stopwatch::seconds() const {
+    TimeSpec t;
+    if (_stopped) {
+        t = _ts;
+    } else {
+        t.now();
+        t -= _ts;
+    }
+    return t.seconds();
+}
+
+
 std::ostream & operator<<(std::ostream & os, Stopwatch const & watch) {
     TimeSpec t;
     if (watch._stopped) {

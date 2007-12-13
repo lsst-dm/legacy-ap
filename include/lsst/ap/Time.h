@@ -83,6 +83,7 @@ public :
     void stop();
 
     std::string const toString() const;
+    double seconds() const;
 
     friend std::ostream & operator<<(std::ostream &, Stopwatch const &);
 
