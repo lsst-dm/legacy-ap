@@ -60,7 +60,7 @@
 #include <cassert>
 #include <cmath>
 
-#include <lsst/mwi/utils/Trace.h>
+#include <iostream>
 
 #include <lsst/ap/Common.h>
 #include <lsst/ap/Random.h>
@@ -70,8 +70,6 @@
 
 namespace lsst {
 namespace ap {
-
-using lsst::mwi::utils::Trace;
 
 namespace {
 
