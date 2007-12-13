@@ -598,8 +598,6 @@ LSST_AP_API void registerVisit(VisitProcessingContext & context) {
     context.getChunkIds().clear();
     computeChunkIds(context.getChunkIds(), context.getFov(), context.getDecomposition(), 0, 1);
     SharedSimpleObjectChunkManager manager(context.getRunId());
-    // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
-    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
     manager.registerVisit(context.getVisitId());
 }
 
@@ -712,6 +710,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
     \param[in, out] context     State involved in processing a single visit.
  */
 LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
+    // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
+    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
     SharedSimpleObjectChunkManager manager(context.getRunId());
     if (manager.isVisitInFlight(context.getVisitId())) {
         // Build zone index on objects

@@ -83,6 +83,9 @@ class LoadStage(lsst.dps.Stage.Stage):
         lsst.mwi.utils.Trace('ap.pipeline', 3, 'process(): stage %d, worker %d (of %d)' %
                              (self.getStageId(), self.getRank(), self.getUniverseSize()))
 
+        if self.firstVisit:
+            ap.initialize(self._policy, str(self.getRun()))
+            self.firstVisit = False
         self.makeVpContext()
         ap.loadSliceObjects(self.vpContext)
 
