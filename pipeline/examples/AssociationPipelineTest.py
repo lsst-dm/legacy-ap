@@ -57,7 +57,8 @@ def runOneVisit():
     runId = 'test'
 
     # Turn on tracing
-    lsst.mwi.utils.Trace.setVerbosity('ap', 10)
+    lsst.mwi.utils.Trace.setVerbosity('', 10)
+    lsst.mwi.logging.ScreenLog.createDefaultLog(True, lsst.mwi.logging.Log.INFO)
 
     # Read in stage policies
     policyDir          = os.path.join(os.environ['ASSOCIATE_DIR'], 'pipeline', 'examples', 'policy')
