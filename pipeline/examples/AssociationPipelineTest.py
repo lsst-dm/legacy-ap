@@ -253,7 +253,7 @@ def runOneVisit():
     except Exception, e:
         print e
 
-    # Close log to void bogus memory-leak reports
+    # Close log to avoid bogus memory-leak reports
     lsst.mwi.logging.Log.closeDefaultLog()
     TestCleanup.cleanup()
 

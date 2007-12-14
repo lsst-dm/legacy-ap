@@ -142,6 +142,7 @@ size_t Zone<EntryType>::pack(FilterType & filter) {
         }
         ++dst;
     }
+    _size = dst;
     return static_cast<size_t>(src - dst);
 }
 
@@ -181,6 +182,17 @@ void ZoneIndex<EntryType>::clear() {
     for (int32_t i = 0; i < _capacity; ++i) {
         _zones[i].clear();
     }
+}
+
+
+/*! Returns the number of entries in the index. */
+template <typename EntryType>
+int32_t ZoneIndex<EntryType>::size() const {
+    int32_t sz = 0;
+    for (int32_t i = 0; i <= _maxZone - _minZone; ++i) {
+        sz += _zones[i].size();
+    }
+    return sz;
 }
 
 

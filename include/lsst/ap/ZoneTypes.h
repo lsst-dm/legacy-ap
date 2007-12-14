@@ -116,6 +116,9 @@ public :
 
     void grow();
 
+    /*! Returns the number of entries in the zone. */
+    int32_t size() const { return _size; }
+
     /*! Empties the zone (without deallocating/shrinking memory). */
     void clear() { _size = 0; }
 
@@ -185,6 +188,8 @@ public :
     );
 
     void clear();
+
+    int32_t size() const;
 
     void setDecBounds(double const minDec, double const maxDec);
 

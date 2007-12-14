@@ -409,7 +409,9 @@ void buildZoneIndex(
     }
     watch.stop();
     Log log(Log::getDefaultLog(), "associate");
+    size_t numElements = index.size();
     Rec(log, Log::INFO) << "inserted elements into zone index" <<
+        DataProperty("numElements", static_cast<long>(numElements)) <<
         DataProperty("time", watch.seconds()) << Rec::endr;
 
     // zone structure is filled, sort individual zones (on right ascension)
@@ -417,6 +419,7 @@ void buildZoneIndex(
     index.sort();
     watch.stop();
     Rec(log, Log::INFO) << "sorted zone index" <<
+        DataProperty("numElements", static_cast<long>(numElements)) <<
         DataProperty("time", watch.seconds()) << Rec::endr;
 }
 
@@ -533,6 +536,7 @@ void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
     watch.stop();
     Log log(Log::getDefaultLog(), "associate");
     Rec(log, Log::INFO) <<  "set dec bounds for difference source index" <<
+        DataProperty("numElements", static_cast<long>(sz)) <<
         DataProperty("time", watch.seconds()) << Rec::endr;
     watch.start();
     try {
@@ -545,11 +549,13 @@ void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
     }
     watch.stop();
     Rec(log, Log::INFO) << "inserted difference sources into zone index" <<
+        DataProperty("numElements", static_cast<long>(sz)) <<
         DataProperty("time", watch.seconds()) << Rec::endr;
     watch.start();
     _diaSourceIndex.sort();
     watch.stop();
     Rec(log, Log::INFO) << "sorted difference source zone index" <<
+        DataProperty("numElements", static_cast<long>(sz)) <<
         DataProperty("time", watch.seconds()) << Rec::endr;
 }
 
@@ -636,7 +642,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             context.getNumWorkers()
         );
         watch.stop();
-        Rec(log, Log::INFO) << "computed chunk ids" <<
+        Rec(log, Log::INFO) << "computed chunk ids in FOV for worker" <<
+            DataProperty("numChunks", static_cast<long>(context.getChunkIds().size())) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         // Register interest in or create chunks via the chunk manager
@@ -656,9 +663,10 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
 
         // Read data files
         watch.start();
-        ChunkToFileNameMapping refNames(sObjFilePattern);
-        ChunkToFileNameMapping deltaNames(sObjDeltaFilePattern);
-        ChunkIteratorType      end(toRead.end());
+        ChunkToFileNameMapping     refNames(sObjFilePattern);
+        ChunkToFileNameMapping     deltaNames(sObjDeltaFilePattern);
+        ChunkIteratorType          end(toRead.end());
+        ChunkVectorType::size_type numToRead(toRead.size());
         for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
             ChunkType & c = *i;
             c.read(
@@ -673,21 +681,23 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
         }
         watch.stop();
         Rec(log, Log::INFO) << "read chunk files" <<
+            DataProperty("numChunks", static_cast<long>(numToRead)) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         toRead.clear();
-        std::vector<ChunkType>::size_type nw = toWaitFor.size();
-        if (nw > 0) {
+        ChunkVectorType::size_type numToWaitFor = toWaitFor.size();
+        if (numToWaitFor > 0) {
             watch.start();
             // Wait for chunks that are owned by another visit
             manager.waitForOwnership(toRead, toWaitFor, context.getVisitId(), context.getDeadline());
             watch.stop();
-            Rec(log, Log::INFO) << "acquired chunk ownership" <<
-                DataProperty("numChunks", static_cast<long>(nw)) <<
+            Rec(log, Log::INFO) << "acquired ownership of pre-existing chunks" <<
+                DataProperty("numChunks", static_cast<long>(numToWaitFor)) <<
                 DataProperty("time", watch.seconds()) << Rec::endr;
 
             // Read in chunks that were not successfully read by the previous owner
             watch.start();
+            numToRead = toRead.size();
             end = toRead.end();
             for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
                 ChunkType & c = *i;
@@ -703,7 +713,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             }
             watch.stop();
             Rec(log, Log::INFO) << "read straggling chunks" <<
-                DataProperty("numChunks", static_cast<long>(toRead.size())) <<
+                DataProperty("numChunks", static_cast<long>(numToRead)) <<
                 DataProperty("time", watch.seconds()) << Rec::endr;
         }
 
@@ -784,6 +794,8 @@ LSST_AP_API void matchDiaSources(
         watch.stop();
         Log log(Log::getDefaultLog(), "associate");
         Rec(log, Log::INFO) << "matched difference sources to objects" <<
+            DataProperty("numDiaSources", context.getDiaSourceIndex().size()) <<
+            DataProperty("numObjects", context.getObjectIndex().size()) <<
             DataProperty("numMatches", static_cast<long>(nm)) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
@@ -844,7 +856,7 @@ LSST_AP_API void matchMops(
         }
         watch.stop();
         Rec(log, Log::INFO) << "built list of match parameters for moving object predictions" <<
-            DataProperty("numPreds", static_cast<long>(ellipses.size())) <<
+            DataProperty("numPredictions", static_cast<long>(ellipses.size())) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         // match them against difference sources
@@ -866,6 +878,8 @@ LSST_AP_API void matchMops(
         );
         watch.stop();
         Rec(log, Log::INFO) << "matched moving object predictions to difference sources" <<
+            DataProperty("numPredictions", static_cast<long>(ellipses.size())) <<
+            DataProperty("numDiaSources", context.getDiaSourceIndex().size()) <<
             DataProperty("numMatches", static_cast<long>(nm)) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
