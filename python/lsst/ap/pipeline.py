@@ -25,19 +25,6 @@ import lsst.fw.Core.fwCatalog
 import lsst.ap.interface as ap
 
 
-def _verifyDirName(path):
-    """
-    Attempts to create all components of the given path not found to exist.
-    Each path component, even the last, is treated as a directory.
-    """
-    if path is None or len(path) == 0 or path == '/':
-        return
-    (head, tail) = os.path.split(path)
-    _verifyDirName(head)
-    if len(tail) > 0 and not os.path.isdir(path):
-        os.mkdir(path)
-
-
 # ----------------------------------------------------------------
 
 class LoadStage(lsst.dps.Stage.Stage):
@@ -63,7 +50,6 @@ class LoadStage(lsst.dps.Stage.Stage):
         clipboard, and finally places the clipboard onto the output queue. Expected
         on the input clipboard is an event named 'triggerAssociationEvent' containing
         the following information:
-
         - the position of the FOV center, given by keys 'FOVRA' and 'FOVDec' (both
           with double precision values in units of degrees).
         - a visit identifier given by the 'visitId' key (with an int64_t value).
@@ -85,7 +71,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -100,8 +86,8 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
-        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
+        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -115,7 +101,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         Checks to make sure all worker slices successfully loaded their share of the
         objects for the visit FOV and builds an object index if so.
         """
-        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
         ap.buildObjectIndex(self.vpContext)
 
 
@@ -136,7 +122,7 @@ class MatchDiaSourcesStage(lsst.dps.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -178,7 +164,7 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -253,7 +239,8 @@ class StoreStage(lsst.dps.Stage.Stage):
         runDict  = { 'runId': str(runId) }
         location = self.location % runDict
         self.scriptDir = self.scriptDirectory % runDict
-        _verifyDirName(self.scriptDir)
+        if not os.path.exists(self.scriptDir):
+            os.makedirs(self.scriptDir)
         # Parse database location string
         dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
         if dbloc is None:
@@ -311,8 +298,8 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
-        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
+        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
@@ -329,7 +316,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
