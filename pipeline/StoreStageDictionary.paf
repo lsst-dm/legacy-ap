@@ -7,9 +7,11 @@ definitions: {
     scriptDirectory: {
         description:"The name of the directory in which lsst.ap.pipeline.StoreStage should
                      output per-visit SQL scripts. The name may optionally contain '%(runId)s'
-                     substrings which will be replaced by a runId string at execution time."
+                     substrings which will be replaced by a runId string at execution time.
+                     If any of the components in the given path name do not exist, then the
+                     association pipeline will attempt to create them at run-time."
         type:       "string"
-        default:    "/tmp/sql_scripts_%(runId)s"
+        default:    "/tmp/%(runId)s"
         minOccurs:  0
         maxOccurs:  1
     }
@@ -56,7 +58,7 @@ definitions: {
     storeOutputs: {
         description:"Flag indicating whether pipeline outputs (new objects, difference
                      sources) should be stored in the object and difference source tables.
-                     Use the 'diaSourceTable' and 'varObjectPartition' policy
+                     Use the 'diaSourceTable' and 'varObjectTable' policy
                      parameters to control the actual tables used."
         type:       "bool"
         default:    true

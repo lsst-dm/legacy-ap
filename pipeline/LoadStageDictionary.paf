@@ -90,21 +90,21 @@ definitions: {
     }
 
     objectChunkFileNamePattern: {
-        description:"A name pattern for a chunk file, using boost::format compatible syntax.
+        description:"A file name pattern for chunk files, using boost::format compatible syntax.
                      Any of three parameters can be used:
                      '%1%': An identifier for the pipeline run.
                      '%2%': The stripe id of the chunk.
                      '%3%': The sequence number of the chunk (within its stripe).
-                     Note it is OK for chunk files or eve whole directories containting them to be missing.
-                     Such non-existent chunk files are treated as the equivalent of empty chunks."
+                     Note it is OK for chunk files (or even whole directories containing them) to be
+                     missing. Non-existent chunk files are treated as corresponding to empty chunks."
         type:       "string"
-        default:    "/tmp/objects_%1%/ref/stripe_%2%/objref_chunk%3%"
+        default:    "/tmp/%1%/objref/stripe_%2%/objref_chunk%3%"
         minOccurs:  0
         maxOccurs:  1
     }
 
     objectDeltaChunkFileNamePattern: {
-        description:"A name pattern for a chunk delta file, using boost::format compatible syntax.
+        description:"A file name pattern for chunk delta files, using boost::format compatible syntax.
                      Any of four parameters can be used:
                      '%1%': An identifier for the pipeline run.
                      '%2%': The stripe id of the chunk.
@@ -112,14 +112,18 @@ definitions: {
                      '%4%': An integer file version number.
                      Missing directories in the path name of a chunk delta file are created on the fly."
         type:       "string"
-        default:    "/tmp/objects_%1%/delta/stripe_%2%/objdelta_chunk%3%"
+        default:    "/tmp/%1%/objdelta/stripe_%2%/objdelta_chunk%3%"
         minOccurs:  0
         maxOccurs:  1
     }
 
     filterTableLocation: {
-        description:"A URL-like string identifying the database containing the 'Filter'
-                     table. This table is used to map filter names to ids."
+        description:"The location of the database containing the 'Filter' table (used to map
+                     between filter ids and names). The string should be formatted according to
+                     the same rules expected by lsst::mwi::persistence::DbStorageLocation, i.e. 
+                     'database_type://hostname:port/database'. The 'database' portion of the
+                     location may optionally contain '%(runId)s' substrings which will be replaced
+                     with a runId string at execution time."
         type:       "string"
         default:    "mysql://lsst10.ncsa.uiuc.edu:3306/test"
         minOccurs:  0
