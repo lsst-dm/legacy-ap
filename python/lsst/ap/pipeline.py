@@ -25,6 +25,19 @@ import lsst.fw.Core.fwCatalog
 import lsst.ap.interface as ap
 
 
+def _verifyDirName(path):
+    """
+    Attempts to create all components of the given path not found to exist.
+    Each path component, even the last, is treated as a directory.
+    """
+    if path is None or len(path) == 0 or path == '/':
+        return
+    (head, tail) = os.path.split(path)
+    _verifyDirName(head)
+    if len(tail) > 0 and not os.path.isdir(path):
+        os.mkdir(path)
+
+
 # ----------------------------------------------------------------
 
 class LoadStage(lsst.dps.Stage.Stage):
@@ -32,6 +45,12 @@ class LoadStage(lsst.dps.Stage.Stage):
     Stage that loads basic object data (id, position, variability probabilities)
     for a visit FOV.
     """
+
+    def _massagePolicy(self):
+        runDict = { 'runId': str(self.getRun()) }
+        if self._policy.exists('filterTableLocation'):
+            ftLoc = self._policy.get('filterTableLocation') % runDict
+            self._policy.set('filterTableLocation', ftLoc)
 
     def __init__(self, stageId, policy):
         lsst.dps.Stage.Stage.__init__(self, stageId, policy)
@@ -66,9 +85,10 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
 
         if self.firstVisit:
+            self._massagePolicy()
             ap.initialize(self._policy, str(self.getRun()))
             self.firstVisit = False
         self.makeVpContext()
@@ -80,10 +100,11 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'process(): stage %d, worker %d (of %d)' %
-                             (self.getStageId(), self.getRank(), self.getUniverseSize()))
+        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
 
         if self.firstVisit:
+            self._massagePolicy()
             ap.initialize(self._policy, str(self.getRun()))
             self.firstVisit = False
         self.makeVpContext()
@@ -94,7 +115,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         Checks to make sure all worker slices successfully loaded their share of the
         objects for the visit FOV and builds an object index if so.
         """
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'postprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
         ap.buildObjectIndex(self.vpContext)
 
 
@@ -115,7 +136,7 @@ class MatchDiaSourcesStage(lsst.dps.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -157,7 +178,7 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'preprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -173,7 +194,7 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
             matches   = ap.MatchPairVecPtr()
             idPairs   = ap.IdPairVecPtr()
         except:
-            ap.failVisit(vpContext)
+            ap.endVisit(vpContext, True)
             raise
 
         ap.matchMops(matches, idPairs, vpContext, preds)
@@ -232,6 +253,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         runDict  = { 'runId': str(runId) }
         location = self.location % runDict
         self.scriptDir = self.scriptDirectory % runDict
+        _verifyDirName(self.scriptDir)
         # Parse database location string
         dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
         if dbloc is None:
@@ -246,6 +268,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         lsst.dps.Stage.Stage.__init__(self, stageId, policy)
         if not lsst.mwi.persistence.DbAuth.available():
             raise lsst.mwi.exceptions.LsstRuntime('missing credentials for database authorization')
+        self.firstVisit    = True
         self.username      = lsst.mwi.persistence.DbAuth.username()
         self.password      = lsst.mwi.persistence.DbAuth.password()
         self.filterChars   = ('u','g','r','i','z','y')
@@ -263,7 +286,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         location = 'mysql://lsst10.ncsa.uiuc.edu:3306/test'
         self.storeOutputs    = True
         self.dropTables      = False
-        self.scriptDirectory = '/tmp/sql_scripts'
+        self.scriptDirectory = '/tmp/%(runId)s'
         self.templateDict['diaSourceTable']    = 'DIASource'
         self.templateDict['varObjectTable']    = 'VarObject'
         self.templateDict['nonVarObjectTable'] = 'NonVarObject'
@@ -271,18 +294,16 @@ class StoreStage(lsst.dps.Stage.Stage):
             self.location  = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test')
             self.storeOutputs    = policy.getBool('storeOutputs', True)
             self.dropTables      = policy.getBool('dropTables', False)
-            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/sql_scripts')
+            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/%(runId)s')
             self.templateDict['diaSourceTable']    = policy.getString('diaSourceTable', 'DIASource')
             self.templateDict['varObjectTable']    = policy.getString('varObjectTable', 'VarObject')
             self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', 'NonVarObject')
         self._initPropsFromRun(self.getRun())
 
-    def setRun(self, runId):
-        lsst.dps.Stage.Stage.setRun(self, runId)
-        self._initPropsFromRun(runId)
-
     def preprocess(self):
-        pass
+        if self.firstVisit:
+            self._initPropsFromRun(self.getRun())
+            self.firstVisit = False
 
     def process(self):
         """
@@ -290,8 +311,8 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'process(): stage %d, worker %d (of %d)' %
-                             (self.getStageId(), self.getRank(), self.getUniverseSize()))
+        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
@@ -308,7 +329,7 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('ap.pipeline', 3, 'postprocess(): stage %d' % self.getStageId())
+        lsst.mwi.utils.Trace('StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)

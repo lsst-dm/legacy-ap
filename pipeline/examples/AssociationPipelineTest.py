@@ -59,10 +59,6 @@ def runOneVisit():
     # Turn on tracing
     lsst.mwi.utils.Trace.setVerbosity('ap', 10)
 
-    # Create directories for test data
-    if not os.path.isdir('/tmp/sql_scripts_test'):
-        os.mkdir('/tmp/sql_scripts_test')
-
     # Read in stage policies
     policyDir          = os.path.join(os.environ['ASSOCIATE_DIR'], 'pipeline', 'examples', 'policy')
     loadPolicy         = lsst.mwi.policy.Policy.createPolicy(os.path.join(policyDir,'LoadStage.paf'))

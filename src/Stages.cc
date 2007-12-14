@@ -40,7 +40,7 @@
 #include <boost/format.hpp>
 #include <boost/scoped_array.hpp>
 
-#include <lsst/mwi/utils/Trace.h>
+#include <lsst/mwi/logging/Log.h>
 
 #include <lsst/fw/DiaSource.h>
 #include <lsst/fw/Filter.h>
@@ -56,8 +56,10 @@
 namespace lsst {
 namespace ap {
 
+using lsst::mwi::data::DataProperty;
+using lsst::mwi::logging::Log;
+using lsst::mwi::logging::Rec;
 
-using lsst::mwi::utils::Trace;
 
 // -- Constants ----------------
 
@@ -70,8 +72,8 @@ static int32_t  const DEF_MAX_ENTRIES_PER_ZONE_EST = 4096;
 static double   const DEF_SMAA_THRESH              = 300;   // arc-seconds == 5 arc-minutes
 static double   const DEF_MATCH_RADIUS             = 0.05;  // arc-seconds
 
-static char const * const DEF_OBJ_PATTERN       = "/tmp/objects_%1%/ref/stripe_%2%/objref_chunk%3%";
-static char const * const DEF_OBJ_DELTA_PATTERN = "/tmp/objects_%1%/delta/stripe_%2%/objdelta_chunk%3%_v%4%";
+static char const * const DEF_OBJ_PATTERN       = "/tmp/%1%/objchunk/stripe_%2%/objref_chunk%3%";
+static char const * const DEF_OBJ_DELTA_PATTERN = "/tmp/%1%/objdelta/stripe_%2%/objdelta_chunk%3%";
 static char const * const DEF_DB_LOCATION       = "mysql://lsst10.ncsa.uiuc.edu:3306/test";
 
 // -- Adjustable (by policy) configuration parameters ----------------
@@ -406,13 +408,16 @@ void buildZoneIndex(
         LSST_AP_THROW(Runtime, "Failed to build zone index");
     }
     watch.stop();
-    Trace("ap.index", 3, boost::format("inserted elements into zone index in %1%") % watch);
+    Log log(Log::getDefaultLog(), "associate");
+    Rec(log, Log::INFO) << "inserted elements into zone index" <<
+        DataProperty("time", watch.seconds()) << Rec::endr;
 
     // zone structure is filled, sort individual zones (on right ascension)
     watch.start();
     index.sort();
     watch.stop();
-    Trace("ap.index", 3, boost::format("sorted zone index in %1%") % watch);
+    Rec(log, Log::INFO) << "sorted zone index" <<
+        DataProperty("time", watch.seconds()) << Rec::endr;
 }
 
 
@@ -526,7 +531,9 @@ void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
     assert(maxDec >= minDec && "invalid dec bounds for DiaSource list");
     _diaSourceIndex.setDecBounds(minDec, maxDec);
     watch.stop();
-    Trace("ap.index", 3, boost::format("set dec bounds for DiaSource index in %1%") % watch);
+    Log log(Log::getDefaultLog(), "associate");
+    Rec(log, Log::INFO) <<  "set dec bounds for difference source index" <<
+        DataProperty("time", watch.seconds()) << Rec::endr;
     watch.start();
     try {
         for (lsst::fw::DiaSourceVector::size_type i = 0; i < sz; ++i) {
@@ -537,11 +544,13 @@ void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
         throw;
     }
     watch.stop();
-    Trace("ap.index", 3, boost::format("inserted DiaSources into zone index in %1%") % watch);
+    Rec(log, Log::INFO) << "inserted difference sources into zone index" <<
+        DataProperty("time", watch.seconds()) << Rec::endr;
     watch.start();
     _diaSourceIndex.sort();
     watch.stop();
-    Trace("ap.index", 3, boost::format("sorted DiaSource zone index in %1%") % watch);
+    Rec(log, Log::INFO) << "sorted difference source zone index" <<
+        DataProperty("time", watch.seconds()) << Rec::endr;
 }
 
 
@@ -613,6 +622,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
 
     SharedSimpleObjectChunkManager manager(context.getRunId());
+    Log log(Log::getDefaultLog(), "associate");
 
     try {
 
@@ -626,7 +636,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             context.getNumWorkers()
         );
         watch.stop();
-        Trace("ap.load", 3, boost::format("computed chunk ids in %1%") % watch);
+        Rec(log, Log::INFO) << "computed chunk ids" <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         // Register interest in or create chunks via the chunk manager
         std::vector<ChunkType> toRead;
@@ -634,7 +645,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
         watch.start();
         manager.startVisit(toRead, toWaitFor, context.getVisitId(), context.getChunkIds());
         watch.stop();
-        Trace("ap.manage", 3, boost::format("started processing of visit %1% in in %2%") % context.getVisitId() % watch);
+        Rec(log, Log::INFO) << "started processing visit" <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         // record pointers to all chunks being handled by the slice
         ChunkVectorType & chunks = context.getChunks();
@@ -660,7 +672,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             c.setUsable();
         }
         watch.stop();
-        Trace("ap.io", 3, boost::format("read chunk files in %1%") % watch);
+        Rec(log, Log::INFO) << "read chunk files" <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         toRead.clear();
         std::vector<ChunkType>::size_type nw = toWaitFor.size();
@@ -669,7 +682,9 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             // Wait for chunks that are owned by another visit
             manager.waitForOwnership(toRead, toWaitFor, context.getVisitId(), context.getDeadline());
             watch.stop();
-            Trace("ap.manage", 3, boost::format("acquired ownership of %1% chunks in %2%") % nw % watch);
+            Rec(log, Log::INFO) << "acquired chunk ownership" <<
+                DataProperty("numChunks", nw)              <<
+                DataProperty("time",      watch.seconds()) << Rec::endr;
 
             // Read in chunks that were not successfully read by the previous owner
             watch.start();
@@ -687,17 +702,19 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
                 c.setUsable();
             }
             watch.stop();
-            Trace("ap.io", 3, boost::format("read %1% straggler chunks in %2%") % toRead.size() % watch);
+            Rec(log, Log::INFO) << "read straggling chunks" <<
+                DataProperty("numChunks", toRead.size())   <<
+                DataProperty("time",      watch.seconds()) << Rec::endr;
         }
 
     } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
-        Trace("ap", 1, ex.what());
-        Trace("ap", 1, ex.getStack()->toString("", true));
+        Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
         manager.failVisit(context.getVisitId());
     } catch (std::exception & ex) {
-        Trace("ap", 1, ex.what());
+        log.log(Log::FATAL, ex.what());
         manager.failVisit(context.getVisitId());
     } catch (...) {
+        log.log(Log::FATAL, "caught unknown exception");
         manager.failVisit(context.getVisitId());
     }
 }
@@ -765,7 +782,10 @@ LSST_AP_API void matchDiaSources(
             mlp
         );
         watch.stop();
-        Trace("ap.match", 3, boost::format("found %1% matching objects in %2%") % nm % watch);
+        Log log(Log::getDefaultLog(), "associate");
+        Rec(log, Log::INFO) << "matched difference sources to objects" <<
+            DataProperty("numMatches", nm)              <<
+            DataProperty("time",       watch.seconds()) << Rec::endr;
 
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
@@ -809,7 +829,10 @@ LSST_AP_API void matchMops(
         detail::DiscardKnownVariableFilter dvf;
         size_t nr = context.getDiaSourceIndex().pack(dvf);
         watch.stop();
-        Trace("ap.index", 3, boost::format("removed %1% DiaSources matching known variables in %2%") % nr % watch);
+        Log log(Log::getDefaultLog(), "associate");
+        Rec(log, Log::INFO) << "removed difference sources matching known variables from index" <<
+            DataProperty("numRemoved", nr)              <<
+            DataProperty("time",       watch.seconds()) << Rec::endr;
 
         // build ellipses required for matching from predictions
         watch.start();
@@ -820,7 +843,9 @@ LSST_AP_API void matchMops(
             ellipses.push_back(*i);
         }
         watch.stop();
-        Trace("ap.index", 3, boost::format("built list of match parameters for %1% moving object predictions in %2%") % ellipses.size() % watch);
+        Rec(log, Log::INFO) << "built list of match parameters for moving object predictions" <<
+            DataProperty("numPreds", ellipses.size()) <<
+            DataProperty("time",     watch.seconds()) << Rec::endr;
 
         // match them against difference sources
         detail::DiscardLargeEllipseFilter dlef;
@@ -840,14 +865,18 @@ LSST_AP_API void matchMops(
             mpp
         );
         watch.stop();
-        Trace("ap.match", 3, boost::format("found %1% matching difference sources in %2%") % nm % watch);
+        Rec(log, Log::INFO) << "matched moving object predictions to difference sources" <<
+            DataProperty("numMatches", nm)              <<
+            DataProperty("time",       watch.seconds()) << Rec::endr;
 
         // Create new objects from difference sources with no matches
         watch.start();
         detail::NewObjectCreator createObjects(*newObjects, context.getChunks(), context.getDecomposition(), context.getFilter());
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
-        Trace("ap.create", 3, boost::format("created %1% new objects in %2%") % newObjects->size() % watch);
+        Rec(log, Log::INFO) << "created new objects" <<
+            DataProperty("numObjects", newObjects->size()) <<
+            DataProperty("time",       watch.seconds())    << Rec::endr;
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
         throw;
@@ -869,6 +898,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
 
     SharedSimpleObjectChunkManager manager(context.getRunId());
+    Log log(Log::getDefaultLog(), "associate");
 
     try {
         Stopwatch watch(true);
@@ -882,15 +912,18 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
             c.writeDelta(file, true, false);
         }
         watch.stop();
-        Trace("ap.io", 3, boost::format("wrote %1% chunk delta files in %2%") % chunks.size() % watch);
+        Rec(log, Log::INFO) << "wrote chunk delta files" <<
+            DataProperty("numChunks", chunks.size())   <<
+            DataProperty("time",      watch.seconds()) << Rec::endr;
+
     } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
-        Trace("ap", 1, ex.what());
-        Trace("ap", 1, ex.getStack()->toString("", true));
+        Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
         manager.failVisit(context.getVisitId());
     } catch (std::exception & ex) {
-        Trace("ap", 1, ex.what());
+        log.log(Log::FATAL, ex.what());
         manager.failVisit(context.getVisitId());
     } catch (...) {
+        log.log(Log::FATAL, "caught unknown exception");
         manager.failVisit(context.getVisitId());
     }
 }
@@ -920,10 +953,11 @@ LSST_AP_API void failVisit(VisitProcessingContext & context) {
 LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback) {
     SharedSimpleObjectChunkManager manager(context.getRunId());
     bool committed = manager.endVisit(context.getVisitId(), rollback);
+    Log log(Log::getDefaultLog(), "associate");
     if (committed) {
-        Trace("ap.manage", 3, boost::format("Committed visit %1%") % context.getVisitId());
+        log.log(Log::INFO, "Committed visit");
     } else {
-        Trace("ap.manage", 3, boost::format("Visit %1% was rolled back or didn't exist") % context.getVisitId());
+        log.log(Log::FATAL, "Rolled back visit");
     }
     return committed;
 }
