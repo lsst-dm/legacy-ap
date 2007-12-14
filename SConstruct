@@ -134,7 +134,7 @@ env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 Alias('install', [env.Install(env['prefix'], 'python'),
                   env.Install(env['prefix'], 'include'),
                   env.Install(env['prefix'], 'bin'),
-                  env.Install(end['prefix'], 'sql'),
+                  env.Install(env['prefix'], 'sql'),
                   env.Install(env['prefix'], 'lib'),
                   env.Install(env['prefix'] + '/doc', 'doc/html'),
                   env.InstallEups(env['prefix'] + '/ups', glob.glob('ups/*.table'))])
