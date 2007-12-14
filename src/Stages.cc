@@ -683,8 +683,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             manager.waitForOwnership(toRead, toWaitFor, context.getVisitId(), context.getDeadline());
             watch.stop();
             Rec(log, Log::INFO) << "acquired chunk ownership" <<
-                DataProperty("numChunks", nw)              <<
-                DataProperty("time",      watch.seconds()) << Rec::endr;
+                DataProperty("numChunks", static_cast<long>(nw)) <<
+                DataProperty("time", watch.seconds()) << Rec::endr;
 
             // Read in chunks that were not successfully read by the previous owner
             watch.start();
@@ -703,8 +703,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             }
             watch.stop();
             Rec(log, Log::INFO) << "read straggling chunks" <<
-                DataProperty("numChunks", toRead.size())   <<
-                DataProperty("time",      watch.seconds()) << Rec::endr;
+                DataProperty("numChunks", static_cast<long>(toRead.size())) <<
+                DataProperty("time", watch.seconds()) << Rec::endr;
         }
 
     } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
@@ -784,8 +784,8 @@ LSST_AP_API void matchDiaSources(
         watch.stop();
         Log log(Log::getDefaultLog(), "associate");
         Rec(log, Log::INFO) << "matched difference sources to objects" <<
-            DataProperty("numMatches", nm)              <<
-            DataProperty("time",       watch.seconds()) << Rec::endr;
+            DataProperty("numMatches", static_cast<long>(nm)) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
@@ -831,8 +831,8 @@ LSST_AP_API void matchMops(
         watch.stop();
         Log log(Log::getDefaultLog(), "associate");
         Rec(log, Log::INFO) << "removed difference sources matching known variables from index" <<
-            DataProperty("numRemoved", nr)              <<
-            DataProperty("time",       watch.seconds()) << Rec::endr;
+            DataProperty("numRemoved", static_cast<long>(nr)) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         // build ellipses required for matching from predictions
         watch.start();
@@ -844,8 +844,8 @@ LSST_AP_API void matchMops(
         }
         watch.stop();
         Rec(log, Log::INFO) << "built list of match parameters for moving object predictions" <<
-            DataProperty("numPreds", ellipses.size()) <<
-            DataProperty("time",     watch.seconds()) << Rec::endr;
+            DataProperty("numPreds", static_cast<long>(ellipses.size())) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         // match them against difference sources
         detail::DiscardLargeEllipseFilter dlef;
@@ -866,8 +866,8 @@ LSST_AP_API void matchMops(
         );
         watch.stop();
         Rec(log, Log::INFO) << "matched moving object predictions to difference sources" <<
-            DataProperty("numMatches", nm)              <<
-            DataProperty("time",       watch.seconds()) << Rec::endr;
+            DataProperty("numMatches", static_cast<long>(nm)) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
         // Create new objects from difference sources with no matches
         watch.start();
@@ -875,8 +875,8 @@ LSST_AP_API void matchMops(
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
         Rec(log, Log::INFO) << "created new objects" <<
-            DataProperty("numObjects", newObjects->size()) <<
-            DataProperty("time",       watch.seconds())    << Rec::endr;
+            DataProperty("numObjects", static_cast<long>(newObjects->size())) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
         throw;
@@ -913,8 +913,8 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
         }
         watch.stop();
         Rec(log, Log::INFO) << "wrote chunk delta files" <<
-            DataProperty("numChunks", chunks.size())   <<
-            DataProperty("time",      watch.seconds()) << Rec::endr;
+            DataProperty("numChunks", static_cast<long>(chunks.size())) <<
+            DataProperty("time", watch.seconds()) << Rec::endr;
 
     } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
         Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
