@@ -156,8 +156,9 @@ void MlProcessor::operator()(ZeType & entry, MatchIteratorType begin, MatchItera
 
     for ( ; begin != end; ++begin) {
         TestDatum * s = (*begin)->_data;
-        BOOST_CHECK_MESSAGE(begin->_distance <= _matchDist, *s << " matched " << *p <<
-            " but is " << begin->_distance << " (> " << _matchDist << ") degrees away");
+        double d = degrees(begin->_distance);
+        BOOST_CHECK_MESSAGE(d <= _matchDist, *s << " matched " << *p <<
+            " but is " << d << " (> " << _matchDist << ") degrees away");
         BOOST_CHECK_MESSAGE(p->matchWasExpected(s->_id), "unexpected match " << *s << " for " << *p <<
             " separated by " << s->_loc.distance(p->_loc));
         ++s->_matched;
