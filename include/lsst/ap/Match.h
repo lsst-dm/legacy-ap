@@ -52,25 +52,23 @@ struct PassthroughFilter {
 
 
 /*!
-    \brief  Contains a pointer to a match.
-
-    The match type must provide a public member function
-    \code void setDistance(double) \endcode , used by the MatchWithDistance
-    constructor to set a distance associated with the match.
+    \brief  Contains a pointer to a match and an associated distance.
  */
 template <typename T>
 struct MatchWithDistance {
 
     MatchWithDistance() {}
 
-    MatchWithDistance(T * const match, double const d2) : _match(match) {
-        match->setDistance(2.0*std::asin(0.5*std::sqrt(d2)));
-    }
+    MatchWithDistance(T * const match, double const d2) :
+        _match(match),
+        _distance(2.0*std::asin(0.5*std::sqrt(d2)))
+    {}
 
     T & operator*()  const { return *_match; }
     T * operator->() const { return  _match; }
 
-    T * _match;
+    T *    _match;
+    double _distance;
 };
 
 

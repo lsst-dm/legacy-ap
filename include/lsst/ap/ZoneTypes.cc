@@ -42,8 +42,7 @@ ZoneEntry<C>::ZoneEntry(
     _data(data),
     _flags(0),
     _index(index),
-    _chunk(chunk),
-    _distance(TWO_PI)
+    _chunk(chunk)
 {
     double ra  = data->getRa();
     double dec = data->getDec();

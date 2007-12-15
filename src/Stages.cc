@@ -100,15 +100,15 @@ static double sMatchRadius = DEF_MATCH_RADIUS;
 
 /*!
     The pattern (\c boost::format compatible) of simple object chunk file names. The pattern
-    is supplied with 2 parameters - an integer stripe id and an integer chunk id - which may be used to
-    construct a unique file name.
+    is supplied with 3 parameters - a run id string, an integer stripe id and an integer chunk id -
+    which may be used to construct a unique file name.
  */
 static std::string sObjFilePattern(DEF_OBJ_PATTERN);
 
 /*!
     The pattern (\c boost::format compatible) of simple object delta chunk file names. The pattern is
-    supplied with 3 parameters - an integer stripe id, an integer chunk id, and an integer version id -
-    which may be used to construct a file name.
+    supplied with 4 parameters - a run id string, an integer stripe id, an integer chunk id and an
+    integer version id - which may be used to construct a file name.
  */
 static std::string sObjDeltaFilePattern(DEF_OBJ_DELTA_PATTERN);
 
@@ -195,7 +195,7 @@ public :
             ZoneEntryType * const obj = begin->_match;
             ++begin;
             // record match results (to be persisted later)
-            _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), degrees(obj->_distance)));
+            _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), degrees(begin->_distance)));
             if (obj->_data->getVarProb(_filter) >= _threshold) {
                 // flag ds as matching a known variable
                 flags |= HAS_KNOWN_VARIABLE_MATCH;

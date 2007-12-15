@@ -44,11 +44,8 @@ public :
     double      _x;     //!< unit vector x coordinate of entity position
     double      _y;     //!< unit vector y coordinate of entity position
     double      _z;     //!< unit vector z coordinate of entity position
-    double      _distance; //!< Reserved for closest match tracking
 
     ZoneEntry(DataType * const data, ChunkType * const chunk, int32_t const index);
-
-    void setDistance(double const distance) { _distance = distance; }
 };
 
 template <typename C>
