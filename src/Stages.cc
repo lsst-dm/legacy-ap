@@ -192,10 +192,11 @@ public :
     void operator()(DiaSourceEntry & ds, MatchIteratorType begin, MatchIteratorType end) {
         uint32_t flags = HAS_MATCH;
         do {
-            ZoneEntryType * const obj = begin->_match;
+            ZoneEntryType * const obj  = begin->_match;
+            double          const dist = degrees(begin->_distance);
             ++begin;
             // record match results (to be persisted later)
-            _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), degrees(begin->_distance)));
+            _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), dist));
             if (obj->_data->getVarProb(_filter) >= _threshold) {
                 // flag ds as matching a known variable
                 flags |= HAS_KNOWN_VARIABLE_MATCH;
