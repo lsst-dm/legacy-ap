@@ -72,7 +72,7 @@ def CustomLinkCheck(context, message, source, extension = '.c'):
 # Setup our environment
 #
 env = scons.makeEnv('associate',
-                    r"$HeadURL: svn+ssh://svn.lsstcorp.org/DC2/associate/tickets/147/SConstruct $",
+                    r"$HeadURL$",
                     [['boost', 'boost/version.hpp',
                         'boost_filesystem boost_regex boost_serialization boost_program_options:C++'],
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
