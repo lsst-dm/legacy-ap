@@ -55,7 +55,7 @@ int openFile(
 
     if (fd == -1) {
         if (errno != ENOENT || (oflag & O_WRONLY) != 0) {
-            LSST_AP_THROW_ERR(IoError, boost::format("open(): failed to open file %1%") % fileName, errno);
+            LSST_AP_THROW_ERR(IoError, boost::format("open(): failed to open file %1%, flags: %2%, errno: %3%") % fileName % oflag % errno, errno);
         }
         // file didn't exist (ok when opening for reading)
         return -1;
