@@ -259,7 +259,9 @@ class StoreStage(lsst.dps.Stage.Stage):
         self.username      = lsst.mwi.persistence.DbAuth.username()
         self.password      = lsst.mwi.persistence.DbAuth.password()
         self.filterChars   = ('u','g','r','i','z','y')
-        self.templateNames = ['StoreOutputsTemplate.sql', 'DropTablesTemplate.sql']
+        self.templateNames = ['StoreOutputsTemplate.sql',
+                              'AppendTablesTemplate.sql',
+                              'DropTablesTemplate.sql']
         self.templates     = {}
         self.scriptPaths   = {}
         self.templateDict  = {}
@@ -269,22 +271,25 @@ class StoreStage(lsst.dps.Stage.Stage):
             inPath = os.path.join(associateDir, "sql", i)
             with file(inPath, 'r') as inFile:
                 self.templates[i] = inFile.read()
-        # extract policy parameters
-        location = 'mysql://lsst10.ncsa.uiuc.edu:3306/test'
+        # set default policy parameters
+        self.location        = 'mysql://lsst10.ncsa.uiuc.edu:3306/test'
         self.storeOutputs    = True
-        self.dropTables      = False
+        self.appendTables    = True
+        self.dropTables      = True
         self.scriptDirectory = '/tmp/%(runId)s'
         self.templateDict['diaSourceTable']    = 'DIASource'
         self.templateDict['varObjectTable']    = 'VarObject'
         self.templateDict['nonVarObjectTable'] = 'NonVarObject'
+        # extract policy parameters from policy (if available)
         if policy != None:
-            self.location  = policy.getString('location', 'mysql://lsst10.ncsa.uiuc.edu:3306/test')
-            self.storeOutputs    = policy.getBool('storeOutputs', True)
-            self.dropTables      = policy.getBool('dropTables', False)
-            self.scriptDirectory = policy.getString('scriptDirectory', '/tmp/%(runId)s')
-            self.templateDict['diaSourceTable']    = policy.getString('diaSourceTable', 'DIASource')
-            self.templateDict['varObjectTable']    = policy.getString('varObjectTable', 'VarObject')
-            self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', 'NonVarObject')
+            self.location        = policy.getString('location', self.location)
+            self.storeOutputs    = policy.getBool('storeOutputs', self.storeOutputs)
+            self.appendTables    = policy.getBool('appendTables', self.appendTables)
+            self.dropTables      = policy.getBool('dropTables', self.dropTables)
+            self.scriptDirectory = policy.getString('scriptDirectory', self.scriptDirectory)
+            self.templateDict['diaSourceTable'] = policy.getString('diaSourceTable', self.templateDict['diaSourceTable'])
+            self.templateDict['varObjectTable'] = policy.getString('varObjectTable', self.templateDict['varObjectTable'])
+            self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', self.templateDict['nonVarObjectTable'])
         self._initPropsFromRun(self.getRun())
 
     def preprocess(self):
@@ -310,8 +315,8 @@ class StoreStage(lsst.dps.Stage.Stage):
         Checks to make sure all worker slices successfully stored their share of the
         new objects for the visit and removes the visit from the list of in-flight
         visits being tracked by the shared memory chunk manager. Optionally:
-          - appends pipeline outputs into the object catalog and
-            historical difference source table
+          - stores pipeline outputs (new objects, object updates, new difference sources)
+          - appends per-visit tables to global accumulator tables
           - drops per-visit tables created by LSST pipelines
         """
         assert self.inputQueue.size()  == 1
@@ -336,6 +341,13 @@ class StoreStage(lsst.dps.Stage.Stage):
 
         if not ap.endVisit(vpContext, False):
             raise lsst.mwi.exceptions.LsstRuntime('Association pipeline failed: visit not committed')
+
+        if self.appendTables:
+            if self._runSqlScript('AppendTablesTemplate.sql') != 0:
+                raise lsst.mwi.exceptions.LsstRuntime(
+                    'Association pipeline failed: SQL script %s failed' %
+                    self.scriptPaths['AppendTablesTemplate.sql']
+                )
 
         if self.dropTables:
             if self._runSqlScript('DropTablesTemplate.sql') != 0:

@@ -15,6 +15,7 @@ INSERT INTO BestMatch_visit%(visitId)d
 UPDATE DiaSources_visit%(visitId)d AS s, BestMatch_visit%(visitId)d AS m
     SET s.objectId = m.second
     WHERE s.diaSourceId = m.first;
+DROP TABLE BestMatch_visit%(visitId)d;
 
 -- Set objectId of each difference source used to create an object
 UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
@@ -38,6 +39,7 @@ UPDATE %(nonVarObjectTable)s AS o, MatchedObjects_visit%(visitId)d AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
+DROP TABLE MatchedObjects_visit%(visitId)d;
 
 -- Create new objects from difference sources in an in-memory table. This provides both
 -- a debugging aid and allows different filters to be handled with a single script.
@@ -113,4 +115,6 @@ UPDATE NewObjects_visit%(visitId)d       AS o,
 
 -- Finally, append the in-memory temp table to the variable object partition
 INSERT INTO %(varObjectTable)s SELECT * FROM NewObjects_visit%(visitId)d;
+
+DROP TABLE NewObjects_visit%(visitId)d;
 
