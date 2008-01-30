@@ -44,6 +44,7 @@
 
 #include <lsst/fw/DiaSource.h>
 #include <lsst/fw/Filter.h>
+#include <lsst/fw/MovingObjectPrediction.h>
 
 #include <lsst/ap/ChunkManager.h>
 #include <lsst/ap/ChunkToNameMappings.h>
@@ -70,6 +71,8 @@ static int32_t  const DEF_ZONES_PER_DEGREE         = 180;   // 20 arc-second zon
 static int32_t  const DEF_ZONES_PER_STRIPE         = 63;    // 0.35 degree stripes
 static int32_t  const DEF_MAX_ENTRIES_PER_ZONE_EST = 4096;
 static double   const DEF_SMAA_THRESH              = 300;   // arc-seconds == 5 arc-minutes
+static double   const DEF_SMAA_CLAMP               = 0.0;   // no clmaping
+static double   const DEF_SMIA_CLAMP               = 0.0;   // no clmaping
 static double   const DEF_MATCH_RADIUS             = 0.05;  // arc-seconds
 
 static char const * const DEF_OBJ_PATTERN       = "/tmp/%1%/objchunk/stripe_%2%/objref_chunk%3%";
@@ -91,6 +94,20 @@ static double sFovRadius = FOV_RADIUS;
     than this threshold (in arc-seconds) are ignored by the association pipeline.
  */
 static double sSemiMajorAxisThreshold = DEF_SMAA_THRESH;
+
+/*!
+    Any error ellipse for a predicted moving object with a semi-major axis length greater
+    than this value (in arc-seconds) has its semi-major axis length clamped to this value.
+    Non-positive values indicate no clamping is to be performed.
+ */
+static double sSemiMajorAxisClamp = DEF_SMAA_CLAMP;
+
+/*!
+    Any error ellipse for a predicted moving object with a semi-minor axis length greater
+    than this value (in arc-seconds) has its semi-minor axis length clamped to this value.
+    Non-positive values indicate no clamping is to be performed.
+ */
+static double sSemiMinorAxisClamp = DEF_SMIA_CLAMP;
 
 /*!
     Unless overridden by the detection pipeline/policy, this is the default match radius
@@ -240,8 +257,8 @@ struct LSST_AP_LOCAL DiscardKnownVariableFilter {
 
 /*! \brief  Filter which discards predicted moving objects with large position error ellipses. */
 struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
-    bool operator()(MovingObjectEllipse const & ell) {
-        return ell._data->getSemiMajorAxisLength() < sSemiMajorAxisThreshold;
+    bool operator()(lsst::fw::MovingObjectPrediction const & p) {
+        return p.getSemiMajorAxisLength() < sSemiMajorAxisThreshold;
     }
 };
 
@@ -451,14 +468,14 @@ template size_t distanceMatch<
 template size_t ellipseMatch<
     lsst::fw::MovingObjectPrediction,
     DiaSourceEntry,
-    DiscardLargeEllipseFilter,
-    DiscardKnownVariableFilter,
+    PassthroughFilter<MovingObjectEllipse>,
+    PassthroughFilter<DiaSourceEntry>,
     MovingObjectPredictionMatchProcessor
 >(
     EllipseList<lsst::fw::MovingObjectPrediction> &,
     ZoneIndex<DiaSourceEntry> &,
-    DiscardLargeEllipseFilter &,
-    DiscardKnownVariableFilter &,
+    PassthroughFilter<MovingObjectEllipse> &,
+    PassthroughFilter<DiaSourceEntry> &,
     MovingObjectPredictionMatchProcessor &
 );
 //! \endcond
@@ -580,12 +597,16 @@ LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy, std::strin
     sZonesPerStripe         = DEF_ZONES_PER_STRIPE;
     sMaxEntriesPerZoneEst   = DEF_MAX_ENTRIES_PER_ZONE_EST;
     sSemiMajorAxisThreshold = DEF_SMAA_THRESH;
+    sSemiMajorAxisClamp     = DEF_SMAA_CLAMP;
+    sSemiMinorAxisClamp     = DEF_SMIA_CLAMP;
     sObjFilePattern         = DEF_OBJ_PATTERN;
     sObjDeltaFilePattern    = DEF_OBJ_DELTA_PATTERN;
 
     if (policy) {
         sFovRadius              = policy->getDouble("fovRadius",              FOV_RADIUS);
         sSemiMajorAxisThreshold = policy->getDouble("semiMajorAxisThreshold", DEF_SMAA_THRESH);
+        sSemiMajorAxisClamp     = policy->getDouble("semiMajorAxisClamp",     DEF_SMAA_CLAMP);
+        sSemiMinorAxisClamp     = policy->getDouble("semiMinorAxisClamp",     DEF_SMIA_CLAMP); 
         sMatchRadius            = policy->getDouble("matchRadius",            DEF_MATCH_RADIUS);
 
         sZonesPerDegree       = policy->getInt("zonesPerDegree",            DEF_ZONES_PER_DEGREE);
@@ -851,9 +872,19 @@ LSST_AP_API void matchMops(
         watch.start();
         EllipseList<lsst::fw::MovingObjectPrediction> ellipses;
         ellipses.reserve(predictions.size());
+        detail::DiscardLargeEllipseFilter elf;
         lsst::fw::MovingObjectPredictionVector::iterator const end = predictions.end();
         for (lsst::fw::MovingObjectPredictionVector::iterator i = predictions.begin(); i != end; ++i) {
-            ellipses.push_back(*i);
+            if (elf(*i)) {
+                // clamp error ellipses if necessary
+                if (sSemiMajorAxisClamp > 0.0 && i->getSemiMajorAxisLength() > sSemiMajorAxisClamp) {
+                    i->setSemiMajorAxisLength(sSemiMajorAxisClamp);
+                }
+                if (sSemiMinorAxisClamp > 0.0 && i->getSemiMinorAxisLength() > sSemiMinorAxisClamp) {
+                    i->setSemiMinorAxisLength(sSemiMinorAxisClamp);
+                }
+                ellipses.push_back(*i);
+            }
         }
         watch.stop();
         Rec(log, Log::INFO) << "built list of match parameters for moving object predictions" <<
@@ -861,20 +892,20 @@ LSST_AP_API void matchMops(
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         // match them against difference sources
-        detail::DiscardLargeEllipseFilter dlef;
-        PassthroughFilter<detail::DiaSourceEntry> pf;
+        PassthroughFilter<detail::MovingObjectEllipse> pef;
+        PassthroughFilter<detail::DiaSourceEntry>      pdf;
         watch.start();
         size_t nm = ellipseMatch<
             lsst::fw::MovingObjectPrediction,
             detail::DiaSourceEntry,
-            detail::DiscardLargeEllipseFilter,
+            PassthroughFilter<detail::MovingObjectEllipse>,
             PassthroughFilter<detail::DiaSourceEntry>,
             detail::MovingObjectPredictionMatchProcessor
         >(
             ellipses,
             context.getDiaSourceIndex(),
-            dlef,
-            pf,
+            pef,
+            pdf,
             mpp
         );
         watch.stop();

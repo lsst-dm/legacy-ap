@@ -89,6 +89,30 @@ definitions: {
         maxOccurs:  1
     }
 
+    semiMajorAxisClamp: {
+        description:"If the semi major axis length (in arc-seconds) of a predicted
+                     moving objects error ellipse is greater than this value, it is
+                     clamped (to the value). Note that clamping is performed after
+                     any filtering induced by 'semiMajorAxisThreshhold'. Non-positive
+                     values indicate no clamping is to be performed."
+        type:       "double"
+        default:    0
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
+    semiMinorAxisClamp: {
+        description:"If the semi minor axis length (in arc-seconds) of a predicted
+                     moving objects error ellipse is greater than this value, it is
+                     clamped (to the value). Note that clamping is performed after
+                     any filtering induced by 'semiMajorAxisThreshhold'. Non-positive
+                     values indicate no clamping is to be performed."
+        type:       "double"
+        default:    0
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
     objectChunkFileNamePattern: {
         description:"A file name pattern for chunk files, using boost::format compatible syntax.
                      Any of three parameters can be used:
