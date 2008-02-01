@@ -188,7 +188,7 @@ def runOneVisit():
     dt        = lsst.mwi.persistence.DateTime(long(time.time())*1000000000)
     visitTime = dt.utc2mjd()
     triggerAssociationEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
-    triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 1))
+    triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 708125))
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('visitTime', visitTime))
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('filterName', 'u'))
     triggerAssociationEvent.addProperty(lsst.mwi.data.DataProperty('FOVRA', 273.48066298343))
@@ -196,7 +196,7 @@ def runOneVisit():
 
     # Create the event triggering the match against moving object predictions
     triggerMatchMopsPredsEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
-    triggerMatchMopsPredsEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 1))
+    triggerMatchMopsPredsEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 708125))
 
 
     # Create clipboards for the master and worker, add the events to both,

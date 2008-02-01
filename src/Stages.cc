@@ -763,9 +763,14 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
     SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
     SharedSimpleObjectChunkManager manager(context.getRunId());
     if (manager.isVisitInFlight(context.getVisitId())) {
-        // Build zone index on objects
-        manager.getChunks(context.getChunks(), context.getChunkIds());
-        context.buildObjectIndex();
+        try {
+            // Build zone index on objects
+            manager.getChunks(context.getChunks(), context.getChunkIds());
+            context.buildObjectIndex();
+        } catch(...) {
+            manager.endVisit(context.getVisitId(), true);
+            throw;
+        }
     } else {
         // One or more workers failed in the load phase - rollback the visit
         manager.endVisit(context.getVisitId(), true);
