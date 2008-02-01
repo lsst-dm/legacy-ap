@@ -11,7 +11,7 @@ semiMajorAxisThreshold          : 10800.0
 semiMajorAxisClamp              : 10.0
 semiMinorAxisClamp              : 10.0
 objectChunkFileNamePattern      : "/lsst/DC2data/association-objchunk/stripe_%2%/objref_chunk.%3%"
-objectDeltaChunkFileNamePattern : "/lsst/DC2root/rlp0121/assoc/objdelta/stripe_%2%/objdelta_chunk%3%"
+objectDeltaChunkFileNamePattern : "/tmp/%1/objdelta/stripe_%2%/objdelta_chunk%3%"
 filterTableLocation             : "mysql://lsst10.ncsa.uiuc.edu:3306/test"
 uVarProbThreshold               : 90
 gVarProbThreshold               : 90

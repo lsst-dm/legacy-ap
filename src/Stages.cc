@@ -495,6 +495,7 @@ VisitProcessingContext::VisitProcessingContext(
     int const workerId,
     int const numWorkers
 ) :
+    lsst::mwi::data::Citizen(typeid(*this)),
     _chunkIds(),
     _chunks(),
     _objectIndex(sZonesPerDegree, sZonesPerStripe, sMaxEntriesPerZoneEst),

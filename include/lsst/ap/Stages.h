@@ -15,6 +15,7 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <lsst/mwi/data/Citizen.h>
 #include <lsst/mwi/data/DataProperty.h>
 #include <lsst/mwi/policy/Policy.h>
 
@@ -22,13 +23,13 @@
 #include <lsst/fw/Filter.h>
 #include <lsst/fw/MovingObjectPrediction.h>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/ChunkManager.h>
-#include <lsst/ap/CircularRegion.h>
-#include <lsst/ap/Results.h>
-#include <lsst/ap/SpatialUtil.h>
-#include <lsst/ap/Time.h>
-#include <lsst/ap/ZoneTypes.h>
+#include "lsst/ap/Common.h"
+#include "lsst/ap/ChunkManager.h"
+#include "lsst/ap/CircularRegion.h"
+#include "lsst/ap/Results.h"
+#include "lsst/ap/SpatialUtil.h"
+#include "lsst/ap/Time.h"
+#include "lsst/ap/ZoneTypes.h"
 
 
 namespace lsst {
@@ -43,7 +44,7 @@ struct DiaSourceChunk {
 
 
 /*! \brief  Container for inter-stage association pipeline state. */
-class LSST_AP_API VisitProcessingContext {
+class LSST_AP_API VisitProcessingContext : public lsst::mwi::data::Citizen {
 
 public :
 

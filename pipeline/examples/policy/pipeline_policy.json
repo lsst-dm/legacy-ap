@@ -1,6 +1,8 @@
 {
     "executionMode":    "oneloop",
 
+    "activemqBroker":   "lsst4.ncsa.uiuc.edu",
+
     "shutdownTopic":    "shutdownAssociationEvent",
 
     "appStages":       ["lsst.ap.pipeline.LoadStage",

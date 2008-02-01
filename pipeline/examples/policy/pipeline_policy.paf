@@ -1,6 +1,8 @@
 #<?cfg paf policy ?> 
 
-executionMode:  "oneloop"
+#executionMode:  "oneloop"
+
+activemqBroker: lsst4.ncsa.uiuc.edu
 
 shutdownTopic:  "shutdownAssociationEvent"
 

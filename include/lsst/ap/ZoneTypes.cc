@@ -167,6 +167,7 @@ ZoneIndex<EntryType>::ZoneIndex(
     int32_t const zonesPerStripe,
     int32_t const maxEntriesPerZoneEstimate
 ) :
+    lsst::mwi::data::Citizen(typeid(*this)),
     _zsc(zonesPerDegree, zonesPerStripe, maxEntriesPerZoneEstimate),
     _zones(),
     _capacity(0),
@@ -213,6 +214,12 @@ void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec
         }
         for ( ; i < cap; ++i) {
             zones[i].init(worst);
+        }
+        // transfer zone ownership from old zone array to new array
+        for (i = 0; i < _capacity; ++i) {
+            _zones[i]._entries  = 0;
+            _zones[i]._size     = 0;
+            _zones[i]._capacity = 0;
         }
         using std::swap;
         swap(_zones, zones);

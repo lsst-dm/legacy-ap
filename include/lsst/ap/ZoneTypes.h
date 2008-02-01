@@ -170,7 +170,10 @@ public :
 
 /*! \brief  Container for a sequence of adjacent zones. */
 template <typename EntryType>
-class ZoneIndex : private boost::noncopyable {
+class ZoneIndex :
+    public  lsst::mwi::data::Citizen,
+    private boost::noncopyable
+{
 
 public :
 
