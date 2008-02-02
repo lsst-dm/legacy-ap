@@ -1,7 +1,7 @@
 {
     "executionMode":    "oneloop",
 
-    "activemqBroker":   "lsst4.ncsa.uiuc.edu",
+    "activemqBroker":   "lsst8.ncsa.uiuc.edu",
 
     "shutdownTopic":    "shutdownAssociationEvent",
 

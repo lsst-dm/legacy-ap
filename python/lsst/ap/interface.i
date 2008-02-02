@@ -13,6 +13,7 @@ Access to association pipeline persistable result objects and implementation met
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
+#include <lsst/mwi/persistence/Persistence.h>
 #include "lsst/ap/Exceptions.h"
 #include "lsst/ap/Results.h"
 #include "lsst/ap/io/ResultFormatters.h"

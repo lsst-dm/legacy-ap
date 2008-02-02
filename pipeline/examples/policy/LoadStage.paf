@@ -10,8 +10,8 @@ matchRadius                     : 0.5
 semiMajorAxisThreshold          : 10800.0
 semiMajorAxisClamp              : 10.0
 semiMinorAxisClamp              : 10.0
-objectChunkFileNamePattern      : "/lsst/DC2data/association-objchunk/stripe_%2%/objref_chunk.%3%"
-objectDeltaChunkFileNamePattern : "/tmp/%1/objdelta/stripe_%2%/objdelta_chunk%3%"
+objectChunkFileNamePattern      : "/tmp/%1%/objchunk/stripe_%2%/objref_chunk.%3%"
+objectDeltaChunkFileNamePattern : "/tmp/%1%/objdelta/stripe_%2%/objdelta_chunk%3%"
 filterTableLocation             : "mysql://lsst10.ncsa.uiuc.edu:3306/test"
 uVarProbThreshold               : 90
 gVarProbThreshold               : 90

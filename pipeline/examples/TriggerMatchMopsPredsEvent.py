@@ -8,7 +8,7 @@ if __name__ == "__main__":
     externalEventTransmitter = lsst.events.EventTransmitter('lsst8.ncsa.uiuc.edu', 'triggerMatchMopsPredsEvent')
 
     triggerMatchMopsPredsEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
-    triggerMatchMopsPredsEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 1))
+    triggerMatchMopsPredsEvent.addProperty(lsst.mwi.data.DataProperty('visitId', 708125))
 
     externalEventTransmitter.publish('eventtype', triggerMatchMopsPredsEvent)
 

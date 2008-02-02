@@ -6,7 +6,7 @@ import lsst.events
 
 if __name__ == "__main__":
     print 'starting...\n'
-    externalEventTransmitter = lsst.events.EventTransmitter('lsst4.ncsa.uiuc.edu', 'shutdownAssociationEvent')
+    externalEventTransmitter = lsst.events.EventTransmitter('lsst8.ncsa.uiuc.edu', 'shutdownAssociationEvent')
     shutdownAssociationEvent = lsst.mwi.data.SupportFactory.createPropertyNode('root')
     externalEventTransmitter.publish('eventtype', shutdownAssociationEvent)
 
