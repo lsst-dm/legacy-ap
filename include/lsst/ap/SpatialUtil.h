@@ -16,9 +16,9 @@
 #include <algorithm>
 #include <vector>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/CircularRegion.h>
-#include <lsst/ap/RectangularRegion.h>
+#include "Common.h"
+#include "CircularRegion.h"
+#include "RectangularRegion.h"
 
 
 namespace lsst {

@@ -12,8 +12,8 @@
 
 #include <lsst/mwi/exceptions.h>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/CustomExceptions.h>
+#include "Common.h"
+#include "CustomExceptions.h"
 
 
 namespace lsst {

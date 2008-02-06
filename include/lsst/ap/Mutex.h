@@ -17,8 +17,8 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Exceptions.h>
+#include "Common.h"
+#include "Exceptions.h"
 
 
 namespace lsst {

@@ -18,7 +18,7 @@
 #include <lsst/mwi/data/Citizen.h>
 #include <lsst/mwi/persistence/Persistable.h>
 
-#include <lsst/ap/Common.h>
+#include "Common.h"
 
 
 //! \cond

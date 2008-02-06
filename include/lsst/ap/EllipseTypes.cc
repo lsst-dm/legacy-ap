@@ -15,8 +15,8 @@
 
 #include <boost/scoped_array.hpp>
 
-#include <lsst/ap/EllipseTypes.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "EllipseTypes.h"
+#include "SpatialUtil.h"
 
 
 namespace lsst {

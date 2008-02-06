@@ -17,7 +17,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_array.hpp>
 
-#include <lsst/ap/Common.h>
+#include "../Common.h"
 
 
 namespace lsst {

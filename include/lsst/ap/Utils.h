@@ -19,7 +19,7 @@
 #include <lsst/mwi/data/DataProperty.h>
 #include <lsst/mwi/policy/Policy.h>
 
-#include <lsst/ap/Common.h>
+#include "Common.h"
 
 
 namespace lsst {

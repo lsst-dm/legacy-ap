@@ -13,8 +13,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_array.hpp>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "Common.h"
+#include "SpatialUtil.h"
 
 
 namespace lsst {
@@ -262,7 +262,7 @@ private :
 
 }} // end of namespace lsst::ap
 
-#include <lsst/ap/ZoneTypes.cc>
+#include "ZoneTypes.cc"
 
 #endif // LSST_AP_ZONE_TYPES_H
 

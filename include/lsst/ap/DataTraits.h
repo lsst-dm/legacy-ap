@@ -12,8 +12,8 @@
 
 #include <lsst/fw/DiaSource.h>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Object.h>
+#include "Common.h"
+#include "Object.h"
 
 
 namespace lsst {

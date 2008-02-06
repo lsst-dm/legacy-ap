@@ -23,13 +23,13 @@
 #include <lsst/fw/Filter.h>
 #include <lsst/fw/MovingObjectPrediction.h>
 
-#include "lsst/ap/Common.h"
-#include "lsst/ap/ChunkManager.h"
-#include "lsst/ap/CircularRegion.h"
-#include "lsst/ap/Results.h"
-#include "lsst/ap/SpatialUtil.h"
-#include "lsst/ap/Time.h"
-#include "lsst/ap/ZoneTypes.h"
+#include "Common.h"
+#include "ChunkManager.h"
+#include "CircularRegion.h"
+#include "Results.h"
+#include "SpatialUtil.h"
+#include "Time.h"
+#include "ZoneTypes.h"
 
 
 namespace lsst {

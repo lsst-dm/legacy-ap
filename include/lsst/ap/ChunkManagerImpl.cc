@@ -13,9 +13,9 @@
 
 #include <boost/format.hpp>
 
-#include <lsst/ap/Chunk.cc>
-#include <lsst/ap/ChunkManagerImpl.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "Chunk.cc"
+#include "ChunkManagerImpl.h"
+#include "SpatialUtil.h"
 
 
 namespace lsst {

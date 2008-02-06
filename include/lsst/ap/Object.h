@@ -14,8 +14,8 @@
 
 #include <lsst/fw/Filter.h>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Bitset.h>
+#include "Common.h"
+#include "Bitset.h"
 
 
 namespace lsst {

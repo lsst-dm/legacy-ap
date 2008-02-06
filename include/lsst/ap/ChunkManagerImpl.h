@@ -17,13 +17,13 @@
 //#include <boost/type_traits/has_nothrow_constructor.hpp>
 //#include <boost/type_traits/has_trivial_destructor.hpp>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Bitset.h>
-#include <lsst/ap/Mutex.h>
-#include <lsst/ap/Condition.h>
-#include <lsst/ap/Chunk.h>
-#include <lsst/ap/DataTraits.h>
-#include <lsst/ap/Time.h>
+#include "Common.h"
+#include "Bitset.h"
+#include "Mutex.h"
+#include "Condition.h"
+#include "Chunk.h"
+#include "DataTraits.h"
+#include "Time.h"
 
 
 namespace lsst {

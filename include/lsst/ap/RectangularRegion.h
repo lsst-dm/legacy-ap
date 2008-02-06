@@ -10,7 +10,7 @@
 #ifndef LSST_AP_RECTANGULAR_REGION_H
 #define LSST_AP_RECTANGULAR_REGION_H
 
-#include <lsst/ap/Common.h>
+#include "Common.h"
 
 
 namespace lsst {

@@ -18,7 +18,7 @@
 #include <lsst/mwi/persistence/Formatter.h>
 #include <lsst/mwi/persistence/DbStorage.h>
 
-#include <lsst/ap/Results.h>
+#include "../Results.h"
 
 
 namespace lsst {

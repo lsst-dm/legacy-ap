@@ -13,8 +13,8 @@
 
 #include <vector>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "Common.h"
+#include "SpatialUtil.h"
 
 
 namespace lsst {
@@ -167,7 +167,7 @@ private :
 
 }} // end of namespace lsst::ap
 
-#include <lsst/ap/EllipseTypes.cc>
+#include "EllipseTypes.cc"
 
 #endif // LSST_AP_ELLIPSE_TYPES_H
 

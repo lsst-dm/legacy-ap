@@ -14,7 +14,7 @@
 
 #include <boost/format.hpp>
 
-#include <lsst/ap/SpatialUtil.h>
+#include "SpatialUtil.h"
 
 
 namespace lsst {

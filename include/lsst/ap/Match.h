@@ -33,11 +33,11 @@
 #include <stdexcept>
 #include <vector>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/EllipseTypes.h>
-#include <lsst/ap/Exceptions.h>
-#include <lsst/ap/SpatialUtil.h>
-#include <lsst/ap/ZoneTypes.h>
+#include "Common.h"
+#include "EllipseTypes.h"
+#include "Exceptions.h"
+#include "SpatialUtil.h"
+#include "ZoneTypes.h"
 
 
 namespace lsst {

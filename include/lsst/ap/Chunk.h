@@ -20,9 +20,9 @@
 // #include <boost/type_traits/has_trivial_copy.hpp>
 // #include <boost/type_traits/has_trivial_destructor.hpp>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/DataTraits.h>
-#include <lsst/ap/Fifo.h>
+#include "Common.h"
+#include "DataTraits.h"
+#include "Fifo.h"
 
 
 namespace lsst {

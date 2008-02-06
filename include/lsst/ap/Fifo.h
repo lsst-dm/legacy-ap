@@ -13,8 +13,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/static_assert.hpp>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Exceptions.h>
+#include "Common.h"
+#include "Exceptions.h"
 
 
 namespace lsst {

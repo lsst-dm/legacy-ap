@@ -10,8 +10,10 @@
 #define LSST_AP_CHUNK_MANAGER_H
 
 #include <iosfwd>
-#include <lsst/ap/ChunkManagerImpl.h>
-#include <lsst/ap/Object.h>
+
+#include "ChunkManagerImpl.h"
+#include "Object.h"
+
 
 namespace lsst {
 namespace ap {

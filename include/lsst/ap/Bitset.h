@@ -15,7 +15,7 @@
 
 #include <boost/static_assert.hpp>
 
-#include <lsst/ap/Common.h>
+#include "Common.h"
 
 
 namespace lsst {

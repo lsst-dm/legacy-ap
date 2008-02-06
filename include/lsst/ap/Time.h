@@ -15,7 +15,7 @@
 
 #include <iosfwd>
 
-#include <lsst/ap/Common.h>
+#include "Common.h"
 
 
 namespace lsst {

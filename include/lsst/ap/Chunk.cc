@@ -16,9 +16,9 @@
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include <lsst/ap/DataTraits.h>
-#include <lsst/ap/Chunk.h>
-#include <lsst/ap/io/FileIo.h>
+#include "DataTraits.h"
+#include "Chunk.h"
+#include "io/FileIo.h"
 
 
 namespace lsst {

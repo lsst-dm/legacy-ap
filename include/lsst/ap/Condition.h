@@ -16,8 +16,8 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <lsst/ap/Mutex.h>
-#include <lsst/ap/Time.h>
+#include "Mutex.h"
+#include "Time.h"
 
 
 namespace lsst {
