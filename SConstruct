@@ -44,6 +44,12 @@ nocacheCheckSrc = """
     }
     """
 
+rshiftCheckSrc = """
+    int main(int argc, char **argv) {
+        return ((-1 >> 1) != -1);
+    }
+"""
+
 def CustomCompilerFlag(context, flag):
     context.Message('Checking if compiler supports ' + flag + ' flag ')
     ccflagsOld = context.env['CCFLAGS']; 
@@ -112,6 +118,8 @@ if not env.CleanFlagIsSet():
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
     if conf.CustomCompileCheck('Checking for __builtin_popcount... ', popcountCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
+    if conf.CustomCompileCheck('Checking for signed right shift... ', rshiftCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_SIGNED_RSHIFT=1')
     # Platform features
     if conf.CheckFunc('clock_gettime'): # Linux/Solaris: prototype in <time.h>
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_CLOCK_GETTIME=1')
