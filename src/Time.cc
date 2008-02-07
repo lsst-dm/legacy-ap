@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Time.cc
-//! \brief  Time related utility class implementations.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   TimeSpec and Stopwatch utility class implementations.
+ *
+ * @ingroup associate
+ */
 
 #include <sys/time.h> // for ::gettimeofday()
 #if LSST_AP_HAVE_CLOCK_GETTIME
@@ -26,7 +26,7 @@ namespace ap {
 
 // -- TimeSpec ----------------
 
-//! \cond
+/// @cond
 typedef boost::numeric::converter<
     time_t,
     double,
@@ -34,7 +34,7 @@ typedef boost::numeric::converter<
     boost::numeric::def_overflow_handler,
     boost::numeric::Floor<double>
 > DoubleToTime;
-//! \endcond
+/// @endcond
 
 TimeSpec::TimeSpec(double const seconds) {
     time_t const sec = DoubleToTime::convert(seconds);
@@ -63,9 +63,9 @@ TimeSpec & TimeSpec::operator+=(double const seconds) {
 }
 
 
-/*!
-    Sets the TimeSpec to the number of seconds and nanoseconds that have elapsed
-    since some arbitrary point in the past.
+/**
+ * Sets the TimeSpec to the number of seconds and nanoseconds that have elapsed
+ * since some arbitrary point in the past.
  */
 TimeSpec & TimeSpec::now() {
 #if LSST_AP_HAVE_CLOCK_GETTIME
@@ -83,9 +83,9 @@ TimeSpec & TimeSpec::now() {
 }
 
 
-/*!
-    Sets the TimeSpec to the number of seconds and nanoseconds that have elapsed
-    since midnight (0 hour), January 1, 1970.
+/**
+ * Sets the TimeSpec to the number of seconds and nanoseconds that have elapsed
+ * since midnight (0 hour), January 1, 1970.
  */
 TimeSpec & TimeSpec::systemTime() {
     ::timeval tv;

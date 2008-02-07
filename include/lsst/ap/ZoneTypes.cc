@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ZoneTypes.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of zone related classes.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_ZONE_TYPES_CC
 #define LSST_AP_ZONE_TYPES_CC
@@ -72,7 +73,7 @@ Zone<EntryType>::~Zone() {
 }
 
 
-/*! Initializes the zone, allocating space for the given number of entries. */
+/// Initializes the zone, allocating space for the given number of entries.
 template <typename EntryType>
 void Zone<EntryType>::init(int32_t const capacity) {
     if (capacity > 0) {
@@ -87,14 +88,14 @@ void Zone<EntryType>::init(int32_t const capacity) {
 }
 
 
-/*! Sorts the zone entries on ra. */
+/// Sorts the zone entries on ra.
 template <typename EntryType>
 void Zone<EntryType>::sort() {
     std::sort(_entries, _entries + _size);
 }
 
 
-/*! Increases the size of the underlying array of entries by roughly 25% (and by at least 1). */
+/// Increases the size of the underlying array of entries by roughly 25% (and by at least 1).
 template <typename EntryType>
 void Zone<EntryType>::grow() {
     int32_t cap = _capacity >> 2;
@@ -108,7 +109,7 @@ void Zone<EntryType>::grow() {
 }
 
 
-/*! Prepares for a distance based match with the given radius */
+/// Prepares for a distance based match with the given radius
 template <typename EntryType>
 void Zone<EntryType>::computeMatchParams(
     ZoneStripeChunkDecomposition const & zsc,
@@ -120,11 +121,11 @@ void Zone<EntryType>::computeMatchParams(
 }
 
 
-/*!
-    Given a functor that implements \code bool operator()(EntryType const &) \endcode ,
-    removes any entry \a e where \c filter(e) returns \c false from the zone.
-
-    \return     the number of entries that were removed.
+/**
+ * Given a functor that implements @code bool operator()(EntryType const &) @endcode ,
+ * removes any entry @a e where @c filter(e) returns @c false from the zone.
+ *
+ * @return     the number of entries that were removed.
  */
 template <typename EntryType>
     template <typename FilterType>
@@ -146,9 +147,9 @@ size_t Zone<EntryType>::pack(FilterType & filter) {
 }
 
 
-/*!
-    Given a functor that implements \code void operator()(EntryType const &) \endcode ,
-    applies it to every entry in the zone.
+/**
+ * Given a functor that implements @code void operator()(EntryType const &) @endcode ,
+ * applies it to every entry in the zone.
  */
 template <typename EntryType>
     template <typename FunctionType>
@@ -176,7 +177,7 @@ ZoneIndex<EntryType>::ZoneIndex(
 {}
 
 
-/*! Removes all entries from every zone in the index. */
+/// Removes all entries from every zone in the index.
 template <typename EntryType>
 void ZoneIndex<EntryType>::clear() {
     for (int32_t i = 0; i < _capacity; ++i) {
@@ -185,7 +186,7 @@ void ZoneIndex<EntryType>::clear() {
 }
 
 
-/*! Returns the number of entries in the index. */
+/// Returns the number of entries in the index.
 template <typename EntryType>
 int32_t ZoneIndex<EntryType>::size() const {
     int32_t sz = 0;
@@ -196,7 +197,7 @@ int32_t ZoneIndex<EntryType>::size() const {
 }
 
 
-/*! Sets the range of declination values the index will accept data for. */
+/// Sets the range of declination values the index will accept data for.
 template <typename EntryType>
 void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec) {
     int32_t minZone = _zsc.decToZone(minDec);
@@ -239,7 +240,7 @@ void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec
 }
 
 
-/*! Prepares for distance based matches of the given maximum radius */
+/// Prepares for distance based matches of the given maximum radius
 template <typename EntryType>
 void ZoneIndex<EntryType>::computeMatchParams(double const radius) {
     int32_t const numZones = _maxZone - _minZone + 1;
@@ -249,7 +250,7 @@ void ZoneIndex<EntryType>::computeMatchParams(double const radius) {
 }
 
 
-/*! Sorts each zone in the index (on right ascension) */
+/// Sorts each zone in the index (on right ascension)
 template <typename EntryType>
 void ZoneIndex<EntryType>::sort() {
     int32_t const numZones = _maxZone - _minZone + 1;
@@ -263,11 +264,11 @@ void ZoneIndex<EntryType>::sort() {
 }
 
 
-/*!
-    Given a functor that implements \code bool operator()(EntryType const &) \endcode ,
-    removes any entry \a e where \c filter(e) returns \c false from the index.
-
-    \return     the number of entries that were removed.
+/**
+ * Given a functor that implements @code bool operator()(EntryType const &) @endcode ,
+ * removes any entry @a e where @c filter(e) returns @c false from the index.
+ *
+ * @return     the number of entries that were removed.
  */
 template <typename EntryType>
     template <typename FilterType>
@@ -287,9 +288,9 @@ size_t ZoneIndex<EntryType>::pack(FilterType & filter) {
 }
 
 
-/*!
-    Calls a functor implementing \code void operator()(EntryType const &) \endcode
-    on every entry in the index.
+/**
+ * Calls a functor implementing @code void operator()(EntryType const &) @endcode
+ * on every entry in the index.
  */
 template <typename EntryType>
     template <typename FunctionType>

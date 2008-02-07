@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   HashedSetTest.cc
-//! \brief  Testing of HashedSet template.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests for HashedSet template.
+ *
+ * @ingroup associate
+ */
 
 #include <cmath>
 #include <algorithm>

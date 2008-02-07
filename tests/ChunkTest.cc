@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkTest.cc
-//! \brief  Testing of Chunk class functionality (I/O, etc...).
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Testing of Chunk class functionality (I/O, etc...).
+ *
+ * @ingroup associate
+ */
 
 #include <unistd.h>
 
@@ -268,7 +268,7 @@ static void wrdCycle(
     uint32_t const delta = c.delta();
     std::string    deltaName(makeTempFile());
     ScopeGuard     guard(boost::bind(::unlink, deltaName.c_str()));
-    
+
     verifyChunk(c, d, packed, false);
     c.writeDelta(deltaName, true, compress);
     if (coinToss(0.5)) {
@@ -311,9 +311,9 @@ BOOST_AUTO_TEST_CASE(chunkIoTest) {
     std::string name(makeTempFile());
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
     wrCycle(c, v, name, false);
-    verifyData(c, data);    
+    verifyData(c, data);
     wrCycle(c, v, name, true);
-    verifyData(c, data);    
+    verifyData(c, data);
 }
 
 
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
 
     // repeat test, this time with compression
     wrCycle(c, v, name, true);
-    verifyData(c, data);    
+    verifyData(c, data);
     appendObjects(c, static_cast<size_t>(uniformRandom()*8192.0));
     data  = copyData(c);
     wrdCycle(c, v, name, false, true);

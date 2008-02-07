@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Mutex.h
-//! \brief  Simple wrappers for POSIX mutual exclusion locks.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Simple wrappers for POSIX mutual exclusion locks.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_MUTEX_H
 #define LSST_AP_MUTEX_H
@@ -29,7 +29,7 @@ template <typename MutexType> class ScopedLock;
 template <typename MutexType> class Condition;
 
 
-/*! \brief A wrapper for a process private POSIX mutual exclusion lock. */
+/** @brief A wrapper for a process private POSIX mutual exclusion lock. */
 class LSST_AP_LOCAL Mutex : private boost::noncopyable {
 
 public :
@@ -69,7 +69,7 @@ private :
 };
 
 
-/*! \brief A wrapper for a POSIX process shared mutual exclusion lock. */
+/** @brief A wrapper for a POSIX process shared mutual exclusion lock. */
 class LSST_AP_LOCAL SharedMutex : private boost::noncopyable {
 
 public :
@@ -104,7 +104,7 @@ private :
 };
 
 
-/*! \brief Grants access to a mutex, enforcing the RAII principle. */
+/** @brief Grants access to a mutex, enforcing the RAII principle. */
 template <typename MutexType>
 class ScopedLock : private boost::noncopyable {
 
@@ -126,18 +126,18 @@ public :
         }
     }
 
-    /*! Acquires the given Mutex. */
+    /// Acquires the given Mutex.
     void acquire(MutexType & m) {
         assert(_mutex == 0);
         _mutex = &m;
         m.acquire();
     }
 
-    /*!
-        Attempts to acquire the given Mutex, returning immediately if this is not possible.
-
-        \pre    Any previously acquired Mutex was released
-        \return \c true if the mutual exclusion lock was acquired, \c false otherwise.
+    /**
+     * Attempts to acquire the given Mutex, returning immediately if this is not possible.
+     *
+     * @pre     Any previously acquired Mutex was released
+     * @return  @c true if the mutual exclusion lock was acquired, @c false otherwise.
      */
     bool tryAcquire(MutexType & m) {
         assert(_mutex == 0);
@@ -148,10 +148,10 @@ public :
         return false;
     }
 
-    /*!
-        Releases a previously acquired Mutex.
-
-        \pre  A Mutex was previously acquired via acquire(Mutex &) or tryAcquire(Mutex &).
+    /**
+     * Releases a previously acquired Mutex.
+     *
+     * @pre     A Mutex was previously acquired via acquire(Mutex &) or tryAcquire(Mutex &).
      */
     void release() {
         assert(_mutex != 0);
@@ -159,9 +159,9 @@ public :
         _mutex = 0;
     }
 
-    /*!
-        Returns \c true if and only if a Mutex is currently held; that is, if a Mutex was
-        obtained via acquire(Mutex &) or tryAcquire(Mutex &) but not yet released via release().
+    /**
+     * Returns @c true if and only if a Mutex is currently held; that is, if a Mutex was
+     * obtained via acquire(Mutex &) or tryAcquire(Mutex &) but not yet released via release().
      */
     bool isAcquired() const {
         return _mutex != 0;

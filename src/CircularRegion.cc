@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                              ----------------====##/
-//
-//! \file   CircularRegion.cc
-//! \brief  Implementation of the CircularRegion class.
-//
-//##====----------------                              ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of the CircularRegion class.
+ *
+ * @ingroup associate
+ */
 
 #include <stdexcept>
 

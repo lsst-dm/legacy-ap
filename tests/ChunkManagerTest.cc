@@ -1,12 +1,12 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkManagerTest.cc
-//! \brief  Tests whether ChunkManager handles successive visits
-//!         (including overlapping ones) correctly.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests whether ChunkManager handles successive visits
+ *          (including overlapping ones) correctly.
+ *
+ * @ingroup associate
+ */
 
 #include <vector>
 

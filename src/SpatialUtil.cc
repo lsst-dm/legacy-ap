@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   SpatialUtil.cc
-//! \brief  Implementation of spatial utility classes and functions.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of spatial utility classes and functions.
+ *
+ * @ingroup associate
+ */
 
 #include <cassert>
 #include <stdexcept>
@@ -97,14 +97,14 @@ void ZoneStripeChunkDecomposition::swap(ZoneStripeChunkDecomposition & zsc) {
 }
 
 
-/*!
-    Computes and returns the maximum number of equal-width chunks that can fit
-    into the given declination stripe, where each chunk has the given minimum width.
-    The minimum width for a chunk is defined as the minimum allowable distance between
-    two points in non-adjacent chunks belonging to the same stripe.
-
-    \param[in] stripeId     the stripe to determine a chunk count for
-    \param[in] minWidth     the minimum width of a chunk (in degrees)
+/**
+ * Computes and returns the maximum number of equal-width chunks that can fit
+ * into the given declination stripe, where each chunk has the given minimum width.
+ * The minimum width for a chunk is defined as the minimum allowable distance between
+ * two points in non-adjacent chunks belonging to the same stripe.
+ *
+ * @param[in] stripeId  the stripe to determine a chunk count for
+ * @param[in] minWidth  the minimum width of a chunk (in degrees)
  */
 int32_t ZoneStripeChunkDecomposition::getNumChunksPerStripe(
     int32_t const stripeId,
@@ -130,18 +130,18 @@ int32_t ZoneStripeChunkDecomposition::getNumChunksPerStripe(
 }
 
 
-/*!
-   Computes the intersection of the given declination stripe and circular region,
-   then returns the range of right ascension values in the intersection as a
-   difference in ra from the circle center.
-
-   \param[in]  stripeId     id of the declination stripe
-   \param[in]  cenRa        right ascension of circle center (degrees)
-   \param[in]  cenDec       declination of circle center (degrees)
-   \param[in]  rad          radius of circle (degrees)
-
-   \return      alpha, such that points in the intersection of the input circle and stripe
-                have right ascensions between [cenRa - alpha, cenRa + alpha].
+/**
+ * Computes the intersection of the given declination stripe and circular region,
+ * then returns the range of right ascension values in the intersection as a
+ * difference in ra from the circle center.
+ * 
+ * @param[in]  stripeId id of the declination stripe
+ * @param[in]  cenRa    right ascension of circle center (degrees)
+ * @param[in]  cenDec   declination of circle center (degrees)
+ * @param[in]  rad      radius of circle (degrees)
+ *
+ * @return  alpha, such that points in the intersection of the input circle and stripe
+ *          have right ascensions between [cenRa - alpha, cenRa + alpha].
  */
 double ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
     int32_t const stripeId,
@@ -199,22 +199,22 @@ double ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
 
 // -- Helper functions ----------------
 
-/*!
-    Intersects the plane given by z = sin(\a dec) with the circle of radius \a theta and center
-    (0, \a centerDec) on the unit sphere, then returns the right ascension alpha giving the two
-    resulting points: (-alpha, \a dec) and (alpha, \a dec).
-
-    \pre    \code theta > 0.0 && theta < 10.0 \endcode
-    \pre    \code centerDec >= -90.0 && centerDec <= 90.0 \endcode
-    \pre    \code dec >= -90.0 && dec <= 90.0 \endcode
-
-    \param[in] theta        the radius of the input circle
-    \param[in] centerDec    the declination of the circle center
-    \param[in] dec          the declination of the horizontal plane to
-                            intersect with the input circle
-
-    \return     alpha, the largest right ascension of the two points in the intersection
-                of the input circle with the input plane.
+/**
+ * Intersects the plane given by z = sin(@a dec) with the circle of radius @a theta and center
+ * (0, @a centerDec) on the unit sphere, then returns the right ascension alpha giving the two
+ * resulting points: (-alpha, @a dec) and (alpha, @a dec).
+ *
+ * @pre    @code theta > 0.0 && theta < 10.0 @endcode
+ * @pre    @code centerDec >= -90.0 && centerDec <= 90.0 @endcode
+ * @pre    @code dec >= -90.0 && dec <= 90.0 @endcode
+ *
+ * @param[in] theta     the radius of the input circle
+ * @param[in] centerDec the declination of the circle center
+ * @param[in] dec       the declination of the horizontal plane to
+ *                      intersect with the input circle
+ *
+ * @return  alpha, the largest right ascension of the two points in the intersection
+ *          of the input circle with the input plane.
  */
 LSST_AP_API double alpha(
     double const theta,
@@ -235,17 +235,17 @@ LSST_AP_API double alpha(
 }
 
 
-/*!
-    Computes the extent in right ascension [-alpha, alpha] of the circle
-    with radius \a theta and center (0, \a centerDec) on the unit sphere.
-
-    \pre    \code theta > 0.0 && theta < 10.0 \endcode
-    \pre    \code centerDec >= -90.0 && centerDec <= 90.0 \endcode
-
-    \param[in] theta        the radius of the circle to find ra extents for
-    \param[in] centerDec    the declination of the circle center (in degrees)
-
-    \return     the largest right ascension of any point on the input circle
+/**
+ * Computes the extent in right ascension [-alpha, alpha] of the circle
+ * with radius @a theta and center (0, @a centerDec) on the unit sphere.
+ *
+ * @pre    @code theta > 0.0 && theta < 10.0 @endcode
+ * @pre    @code centerDec >= -90.0 && centerDec <= 90.0 @endcode
+ *
+ * @param[in] theta     the radius of the circle to find ra extents for
+ * @param[in] centerDec the declination of the circle center (in degrees)
+ *
+ * @return  the largest right ascension of any point on the input circle
  */
 LSST_AP_API double maxAlpha(
     double const theta,
@@ -263,17 +263,17 @@ LSST_AP_API double maxAlpha(
 }
 
 
-/*!
-    Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
-    the given region and belong to the specified worker. Chunks belonging to a stripe \c s such
-    that \code s % numWorkers == workerId \endcode belong to the worker identified by \a workerId.
-
-    \param[out] chunkIds    The list in which to store the computed chunk identifiers.
-    \param[in]  region      The region for which overlapping chunks are to be computed.
-    \param[in]  zsc         A decomposition of the unit sphere into stripes, chunks, and zones.
-    \param[in]  workerId    The integer id of the current worker (in a set of \a numWorkers parallel
-                            workers).
-    \param[in]  numWorkers  The number of parallel workers.
+/**
+ * Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
+ * the given region and belong to the specified worker. Chunks belonging to a stripe @c s such
+ * that @code s % numWorkers == workerId @endcode belong to the worker identified by @a workerId.
+ *
+ * @param[out] chunkIds     The list in which to store the computed chunk identifiers.
+ * @param[in]  region       The region for which overlapping chunks are to be computed.
+ * @param[in]  zsc          A decomposition of the unit sphere into stripes, chunks, and zones.
+ * @param[in]  workerId     The integer id of the current worker (in a set of @a numWorkers parallel
+ *                          workers).
+ * @param[in]  numWorkers   The number of parallel workers.
  */
 LSST_AP_API void computeChunkIds(
     std::vector<int64_t>               & chunkIds,
@@ -345,17 +345,17 @@ LSST_AP_API void computeChunkIds(
 }
 
 
-/*!
-    Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
-    the given region and belong to the specified worker. Chunks belonging to a stripe \c s such
-    that \code s % numWorkers == workerId \endcode belong to the worker identified by \a workerId.
-
-    \param[out] chunkIds    The list in which to store the computed chunk identifiers.
-    \param[in]  region      The region for which overlapping chunks are to be computed.
-    \param[in]  zsc         A decomposition of the unit sphere into stripes, chunks, and zones.
-    \param[in]  workerId    The integer id of the current worker (in a set of \a numWorkers parallel
-                            workers).
-    \param[in]  numWorkers  The number of parallel workers.
+/**
+ * Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
+ * the given region and belong to the specified worker. Chunks belonging to a stripe @c s such
+ * that @code s % numWorkers == workerId @endcode belong to the worker identified by @a workerId.
+ *
+ * @param[out] chunkIds     The list in which to store the computed chunk identifiers.
+ * @param[in]  region       The region for which overlapping chunks are to be computed.
+ * @param[in]  zsc          A decomposition of the unit sphere into stripes, chunks, and zones.
+ * @param[in]  workerId     The integer id of the current worker (in a set of @a numWorkers parallel
+ *                          workers).
+ * @param[in]  numWorkers   The number of parallel workers.
  */
 LSST_AP_API void computeChunkIds(
     std::vector<int64_t>               & chunkIds,

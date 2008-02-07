@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Results.h
-//! \brief  Persistable vectors that hold association pipeline results.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Persistable vectors for association pipeline results.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_RESULTS_H
 #define LSST_AP_RESULTS_H
@@ -21,12 +21,12 @@
 #include "Common.h"
 
 
-//! \cond
+/// @cond
 namespace boost {
 namespace serialization {
     class access;
 }}
-//! \endcond
+/// @endcond
 
 
 namespace lsst {
@@ -40,7 +40,7 @@ namespace io {
 }
 
 
-/*! \brief  Holds a pair of ids and the distance between the corresponding positions on the unit sphere. */
+/** @brief  Holds a pair of ids and the distance between the corresponding positions on the unit sphere. */
 class LSST_AP_API MatchPair {
 
 public :
@@ -86,11 +86,11 @@ inline bool operator!=(MatchPair const & d1, MatchPair const & d2) {
 // Classes that require special handling in the SWIG interface file follow
 #ifndef SWIG
 
-/*! \brief  Holds a pair of ids. */
+/** @brief  Holds a pair of ids. */
 typedef std::pair<int64_t, int64_t> IdPair;
 
 
-/*! \brief  A persistable container of MatchPair instances, implemented using std::vector. */
+/** @brief  A persistable container of MatchPair instances, implemented using std::vector. */
 class LSST_AP_API MatchPairVector :
     public lsst::mwi::persistence::Persistable,
     public lsst::mwi::data::Citizen
@@ -188,7 +188,7 @@ private :
 };
 
 
-/*! \brief  A persistable container of IdPair identifiers, implemented using std::vector. */
+/** @brief  A persistable container of IdPair identifiers, implemented using std::vector. */
 class LSST_AP_API IdPairVector :
     public lsst::mwi::persistence::Persistable,
     public lsst::mwi::data::Citizen
@@ -286,7 +286,7 @@ private :
 };
 
 
-/*! \brief  A persistable container of integer (int64_t) identifiers, implemented using std::vector. */
+/** @brief  A persistable container of integer (int64_t) identifiers, implemented using std::vector. */
 class LSST_AP_API IdVector :
     public lsst::mwi::persistence::Persistable,
     public lsst::mwi::data::Citizen

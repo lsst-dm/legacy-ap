@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkToNameMappings.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of all chunk to name mappings.
+ *
+ * @ingroup associate
+ */
 
 #include <stdexcept>
 #include <sstream>

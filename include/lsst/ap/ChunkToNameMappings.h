@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkToNameMappings.h
-//! \brief  Classes for mapping chunk ids to names (of files, database tables, etc...).
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Classes for mapping chunk ids to names (of files, database tables, etc...).
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CHUNK_TO_NAME_MAPPINGS_H
 #define LSST_AP_CHUNK_TO_NAME_MAPPINGS_H
@@ -18,16 +18,16 @@
 
 
 namespace lsst {
-namespace ap {    
+namespace ap {
 
 
-/*! \brief  Interface for mapping chunk ids to names. */
+/** @brief  Interface for mapping chunk ids to names. */
 class LSST_AP_LOCAL ChunkToNameMapping {
-    
+
 public :
 
     virtual ~ChunkToNameMapping();
-    
+
     virtual std::string const getName(
         std::string                  const & runId,
         ZoneStripeChunkDecomposition const & zsc,
@@ -37,16 +37,16 @@ public :
 };
 
 
-/*!
-    \brief  Maps a chunk id to a file name according to a \c boost::format compatible pattern.
-
-    The pattern can use any of 4 parameters, passed to the formatter as follows:
-    <ol>
-    <li>An identifier for the pipeline run</li>
-    <li>The stripe id of the chunk</li>
-    <li>The sequence number of the chunk (within its stripe)</li>
-    <li>An integer file version number</li>
-    </ol>
+/**
+ * @brief   Maps a chunk id to a file name according to a @c boost::format compatible pattern.
+ *
+ * The pattern can use any of 4 parameters, passed to the formatter as follows:
+ * <ol>
+ * <li>An identifier for the pipeline run</li>
+ * <li>The stripe id of the chunk</li>
+ * <li>The sequence number of the chunk (within its stripe)</li>
+ * <li>An integer file version number</li>
+ * </ol>
  */
 class LSST_AP_LOCAL ChunkToFileNameMapping : public ChunkToNameMapping {
 

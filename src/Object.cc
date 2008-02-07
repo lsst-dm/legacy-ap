@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Object.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of Object and SimpleOject classes.
+ *
+ * @ingroup associate
+ */
 
 #include <lsst/ap/Object.h>
 

@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Chunk.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Chunk class implementation.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CHUNK_CC
 #define LSST_AP_CHUNK_CC
@@ -48,7 +49,7 @@ void ChunkDescriptor<MaxBlocksPerChunk>::initialize() {
 
 // -- Chunk ----------------
 
-/*! Ensures the chunk has space to hold at least \a n entries. */
+/** Ensures the chunk has space to hold at least @a n entries. */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::reserve(uint32_t const n) {
     if (n > capacity()) {
@@ -71,7 +72,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::reserve(uint32_t const n) {
 }
 
 
-/*! Inserts the entry into the chunk, allocating memory if necessary. */
+/** Inserts the entry into the chunk, allocating memory if necessary. */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::insert(
     DataType           const & data,
@@ -114,12 +115,12 @@ void Chunk<AllocatorType, DataType, TraitsType>::insert(
 }
 
 
-/*!
-    Walks through the chunk beginning at the \a i-th entry and removes all entries
-    marked as DELETED. Never throws.
-
-    \param[in] i    The index of the first entry to test for removal.
-    \return         \c true if any entries were removed
+/**
+ * Walks through the chunk beginning at the @a i-th entry and removes all entries
+ * marked as DELETED. Never throws.
+ *
+ * @param[in] i The index of the first entry to test for removal.
+ * @return      @c true if any entries were removed
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
@@ -192,14 +193,14 @@ bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
 }
 
 
-/*!
-    Sets flag values for \a n entries in block \a b, starting at the \a i-th entry.
-
-    \param[in] b        The block containing the entries for which flag values are to be set.
-    \param[in] flags    The desired flag value of the block entries.
-    \param[in] i        The index of the first entry in block \a b for which the flag value is to be set.
-    \param[in] n        The number of block entries for which flag values are to be set.
-*/
+/**
+ * Sets flag values for @a n entries in block @a b, starting at the @a i-th entry.
+ *
+ * @param[in] b     The block containing the entries for which flag values are to be set.
+ * @param[in] flags The desired flag value of the block entries.
+ * @param[in] i     The index of the first entry in block @a b for which the flag value is to be set.
+ * @param[in] n     The number of block entries for which flag values are to be set.
+ */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::setFlags(
     uint32_t           const b,
@@ -214,10 +215,10 @@ void Chunk<AllocatorType, DataType, TraitsType>::setFlags(
 }
 
 
-/*!
-    Walks through the chunk and undoes any uncommitted inserts or deletes. Never throws.
-
-    \return     \c true if there were any modifications to rollback
+/**
+ * Walks through the chunk and undoes any uncommitted inserts or deletes. Never throws.
+ *
+ * @return  @c true if there were any modifications to rollback
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 bool Chunk<AllocatorType, DataType, TraitsType>::rollback() {
@@ -249,11 +250,11 @@ bool Chunk<AllocatorType, DataType, TraitsType>::rollback() {
 }
 
 
-/*!
-    Marks all uncommitted deletes/inserts as committed. Never throws.
-
-    \param[in] clearDelta   If set to \c true, then the IN_DELTA flag bit is
-                            cleared for each entry.
+/**
+ * Marks all uncommitted deletes/inserts as committed. Never throws.
+ *
+ * @param[in] clearDelta    If set to @c true, then the IN_DELTA flag bit is
+ *                          cleared for each entry.
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::commit(bool clearDelta) {
@@ -280,13 +281,13 @@ void Chunk<AllocatorType, DataType, TraitsType>::commit(bool clearDelta) {
 }
 
 
-/*!
-    Marks the entries specified by the indexes in the given array as deleted.
-
-    \param[in] deletes      An array containing the indexes of entries to delete.
-                            Must be of length at least \a numDeletes.
-    \param[in] numDeletes   The number of entries to mark as deleted.
-    \param[in] end          Valid entry indexes must be less than this value.
+/**
+ * Marks the entries specified by the indexes in the given array as deleted.
+ *
+ * @param[in] deletes      An array containing the indexes of entries to delete.
+ *                         Must be of length at least @a numDeletes.
+ * @param[in] numDeletes   The number of entries to mark as deleted.
+ * @param[in] end          Valid entry indexes must be less than this value.
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::applyDeletes(
@@ -329,12 +330,12 @@ static void doRead(io::SequentialReader & reader, uint8_t * dst, size_t dstlen) 
 }
 
 
-/*!
-    Reads the data from the binary chunk file \a name into this chunk. Note that this chunk is
-    emptied immediately on entering the function.
-
-    \param name         The name of binary chunk file to read into memory
-    \param compressed   Is the binary chunk file compressed (zlib or gzip compression is supported)?
+/**
+ * Reads the data from the binary chunk file @a name into this chunk. Note that this chunk is
+ * emptied immediately on entering the function.
+ *
+ * @param name         The name of binary chunk file to read into memory
+ * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::read(
@@ -396,13 +397,13 @@ void Chunk<AllocatorType, DataType, TraitsType>::read(
 }
 
 
-/*!
-    Reads the given binary chunk delta file, performing any indicated deletes and appending new
-    records to the end of this chunk. This function provides the strong exception safety
-    guarantee.
-
-    \param name         The name of binary chunk file to read into memory
-    \param compressed   Is the binary chunk file compressed (zlib or gzip compression is supported)?
+/**
+ * Reads the given binary chunk delta file, performing any indicated deletes and appending new
+ * records to the end of this chunk. This function provides the strong exception safety
+ * guarantee.
+ *
+ * @param name         The name of binary chunk file to read into memory
+ * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
@@ -478,17 +479,17 @@ void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
 }
 
 
-/*!
-    Writes the data from this chunk to a binary file. Note that deleted records will be
-    written out as well - to skip them, call pack() immediately before this function. Note
-    that uncomitted deletes/inserts and entries flagged as IN_DELTA do not automatically
-    have their status cleared - to do this call commit() with \c true as the argument.
-
-    \param name         The name of binary chunk file to write.
-    \param overwrite    Should an existing file with the given name be overwritten?
-    \param compressed   Should the binary chunk file contents be compressed (a gzip compatible
-                        algorithm will be used)?
-    \param withDelta    Should entries marked IN_DELTA be written out?
+/**
+ * Writes the data from this chunk to a binary file. Note that deleted records will be
+ * written out as well - to skip them, call pack() immediately before this function. Note
+ * that uncomitted deletes/inserts and entries flagged as IN_DELTA do not automatically
+ * have their status cleared - to do this call commit() with @c true as the argument.
+ *
+ * @param name         The name of binary chunk file to write.
+ * @param overwrite    Should an existing file with the given name be overwritten?
+ * @param compressed   Should the binary chunk file contents be compressed? A gzip compatible
+ *                     algorithm will be used.
+ * @param withDelta    Should entries marked IN_DELTA be written out?
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::write(
@@ -520,17 +521,17 @@ void Chunk<AllocatorType, DataType, TraitsType>::write(
 }
 
 
-/*!
-    Writes any deletes and inserts in this chunk to a binary delta file named \a name. Note that
-    even on successful function return, uncommitted deletes/inserts are \b not marked as committed
-    (allowing for writeDelta calls on multiple chunks to be aggregated into a single transaction).
-    Finally, note that deleted delta records are written out by this function. To skip them, call
-    pack() on this chunk, passing delta() as the parameter.
-
-    \param name         The name of binary chunk file to write
-    \param overwrite    Should an existing file with the given name be overwritten?
-    \param compressed   Should the binary chunk delta file contents be compressed (a gzip
-                        compatible algorithm will be used)?
+/**
+ * Writes any deletes and inserts in this chunk to a binary delta file named @a name. Note that
+ * even on successful function return, uncommitted deletes/inserts are @b not marked as committed
+ * (allowing for writeDelta calls on multiple chunks to be aggregated into a single transaction).
+ * Finally, note that deleted delta records are written out by this function. To skip them, call
+ * pack() on this chunk, passing delta() as the parameter.
+ *
+ * @param name         The name of binary chunk file to write
+ * @param overwrite    Should an existing file with the given name be overwritten?
+ * @param compressed   Should the binary chunk delta file contents be compressed (a gzip
+ *                     compatible algorithm will be used)?
  */
 template <typename AllocatorType, typename DataType, typename TraitsType>
 void Chunk<AllocatorType, DataType, TraitsType>::writeDelta(

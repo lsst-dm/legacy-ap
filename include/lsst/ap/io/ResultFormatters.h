@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ResultFormatters.h
-//! \brief  Formatter subclasses for association pipeline results.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Formatter subclasses for association pipeline result vectors.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_IO_RESULT_FORMATTERS_H
 #define LSST_AP_IO_RESULT_FORMATTERS_H
@@ -34,13 +34,13 @@ using lsst::mwi::policy::Policy;
 using lsst::mwi::data::DataProperty;
 
 
-/*!
-    \brief  Formatter for MatchPairVector instances.
-
-    Supports persistence and retrieval with
-    - lsst::mwi::persistence::DbStorage
-    - lsst::mwi::persistence::DbTsvStorage
-    - lsst::mwi::persistence::BoostStorage
+/**
+ * @brief  Formatter for MatchPairVector instances.
+ *
+ * Supports persistence and retrieval with
+ * - lsst::mwi::persistence::DbStorage
+ * - lsst::mwi::persistence::DbTsvStorage
+ * - lsst::mwi::persistence::BoostStorage
  */
 class LSST_AP_API MatchPairVectorFormatter : public Formatter {
 public:
@@ -64,13 +64,13 @@ private:
 };
 
 
-/*!
-    \brief  Formatter for IdPairVector instances.
-
-    Supports persistence and retrieval with
-    - lsst::mwi::persistence::DbStorage
-    - lsst::mwi::persistence::DbTsvStorage
-    - lsst::mwi::persistence::BoostStorage
+/**
+ * @brief  Formatter for IdPairVector instances.
+ *
+ * Supports persistence and retrieval with
+ * - lsst::mwi::persistence::DbStorage
+ * - lsst::mwi::persistence::DbTsvStorage
+ * - lsst::mwi::persistence::BoostStorage
  */
 class LSST_AP_API IdPairVectorFormatter : public Formatter {
 public:
@@ -94,13 +94,13 @@ private:
 };
 
 
-/*!
-    \brief  Formatter for IdVector instances.
-
-    Supports persistence and retrieval with
-    - lsst::mwi::persistence::DbStorage
-    - lsst::mwi::persistence::DbTsvStorage
-    - lsst::mwi::persistence::BoostStorage
+/**
+ * @brief  Formatter for IdVector instances.
+ *
+ * Supports persistence and retrieval with
+ * - lsst::mwi::persistence::DbStorage
+ * - lsst::mwi::persistence::DbTsvStorage
+ * - lsst::mwi::persistence::BoostStorage
  */
 class LSST_AP_API IdVectorFormatter : public Formatter {
 public:

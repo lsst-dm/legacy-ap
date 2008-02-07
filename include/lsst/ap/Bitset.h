@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Bitset.h
-//! \brief  A fixed capacity FIFO buffer for integers.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   A class for manipulating a fixed set of bits at the individual bit level.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_BITSET_H
 #define LSST_AP_BITSET_H
@@ -84,7 +84,7 @@ void reset(
 } // end of namespace detail
 
 
-/*! \brief  A fixed size set of bits. */
+/** @brief  A fixed size set of bits. */
 template <typename Word, int NumBits>
 class Bitset {
 
@@ -99,29 +99,29 @@ public :
     static int const NUM_WORDS = (NumBits + (detail::BitTraits<Word>::BITS_PER_WORD - 1)) >>
                                  detail::BitTraits<Word>::BITS_PER_WORD_LOG2;
 
-    /*! Clears all bits. */
+    /** Clears all bits. */
     void reset() {
         std::memset(_bits, 0, sizeof(_bits));
     }
 
-    /*! Sets all bits to 1. */
+    /** Sets all bits to 1. */
     void set() {
         std::memset(_bits, -1, sizeof(_bits));
     }
 
-    /*! Sets the i-th bit in the set to zero. */
+    /** Sets the i-th bit in the set to zero. */
     void reset(int const i) {
         assert(i >= 0 && i < NumBits);
         _bits[detail::wordForBit<Word>(i)] &= ~ detail::maskForBit<Word>(i);
     }
 
-    /*! Sets the i-th bit in the set to one. */
+    /** Sets the i-th bit in the set to one. */
     void set(int const i) {
         assert(i >= 0 && i < NumBits);
         _bits[detail::wordForBit<Word>(i)] |= detail::maskForBit<Word>(i);
     }
 
-    /*! Sets the i-th bit in the set to one if \a on is \c true and to zero otherwise. */
+    /** Sets the i-th bit in the set to one if @a on is @c true and to zero otherwise. */
     void set(int const i, bool const on) {
         if (on) {
             set(i);
@@ -130,19 +130,21 @@ public :
         }
     }
 
-    /*! Returns \c true if the i-th bit in the set is one and \c false otherwise. */
+    /** Returns @c true if the i-th bit in the set is one and @c false otherwise. */
     bool test(int const i) const {
         assert(i >= 0 && i < NumBits);
         return _bits[detail::wordForBit<Word>(i)] & detail::maskForBit<Word>(i);
     }
 
-    /*! If at least \a numBits zero bits are available in this Bitset, this function sets the first
-        \a numBits of them to one and returns \c true. Otherwise, \c false is returned. */
+    /**
+     * If at least @a numBits zero bits are available in this Bitset, this function sets the first
+     * @a numBits of them to one and returns @c true. Otherwise, @c false is returned.
+     */
     bool set(int * const indexes, int const numBits) {
         return detail::set<Word>(indexes, _bits, numBits, NumBits);
     }
 
-    /*! Sets \a numBits bits identified by the integers in \a indexes to zero. */
+    /** Sets @a numBits bits identified by the integers in @a indexes to zero. */
     void reset(int const * const indexes, int const numBits) {
         detail::reset<Word>(_bits, indexes, numBits, NumBits);
     }

@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   RectangularRegion.h
-//! \brief  Class describing a rectangular region on the sky.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Class describing a rectangular (in ra and dec) region on the sky.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_RECTANGULAR_REGION_H
 #define LSST_AP_RECTANGULAR_REGION_H
@@ -19,7 +19,7 @@ namespace ap {
 
 class CircularRegion;
 
-/*! \brief  A rectangular region (in right ascension and declination) of the unit sphere. */
+/** @brief  A rectangular region (in right ascension and declination) of the unit sphere. */
 class LSST_AP_API RectangularRegion {
 
 public :
@@ -41,22 +41,22 @@ public :
 
     explicit RectangularRegion(CircularRegion const & region);
 
-    /*! Returns the minimum right ascension of points in the region. */
+    /// Returns the minimum right ascension of points in the region.
     double getMinRa() const {
         return _minRa;
     }
 
-    /*! Returns the maximum right ascension of points in the region. */
+    /// Returns the maximum right ascension of points in the region.
     double getMaxRa() const {
         return _maxRa;
     }
 
-    /*! Returns the minimum declination of points in the region */
+    /// Returns the minimum declination of points in the region
     double getMinDec() const {
         return _minDec;
     }
 
-    /*! Returns the maximum declination of points in the region */
+    /// Returns the maximum declination of points in the region
     double getMaxDec() const {
         return _maxDec;
     }

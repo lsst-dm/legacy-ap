@@ -1,15 +1,16 @@
 // -*- lsst-c++ -*-
 
-/** \file
- * \brief Utility to dump object data from the database to binary files.
+/** 
+ * @file
+ * @brief Utility to dump object data from the database to binary files.
  *
- * \author $Author$
- * \version $Revision$
- * \date $Date$
+ * @author $Author$
+ * @version $Revision$
+ * @date $Date$
  *
  * Contact: Kian-Tat Lim (ktl@slac.stanford.edu)
  *
- * \ingroup associate
+ * @ingroup associate
  */
 
 #ifndef __GNUC__

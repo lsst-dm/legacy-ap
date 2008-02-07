@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   BitsetTest.cc
-//! \brief  Testing of Bitset template and implementation details.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests for Bitset template and implementation details.
+ *
+ * @ingroup associate
+ */
 
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103400

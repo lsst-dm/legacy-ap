@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Utils.cc
-//! \brief  Implementation of miscellaneous helper functions
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of miscellaneous helper functions
+ *
+ * @ingroup associate
+ */
 
 #include <cerrno>
 #include <sys/stat.h>
@@ -69,9 +69,9 @@ static std::string const extractPolicyString(
 }
 
 
-/*!
-    Returns a visit specific table name, given a DataProperty that contains an
-    integer-valued property named "visitId" and a string-valued property named "itemName".
+/**
+ * Returns a visit specific table name, given a DataProperty that contains an
+ * integer-valued property named "visitId" and a string-valued property named "itemName".
  */
 LSST_AP_API std::string const getTableName(
     lsst::mwi::policy::Policy::Ptr         const & policy,
@@ -91,9 +91,9 @@ LSST_AP_API std::string const getTableName(
 }
 
 
-/*!
-    Returns the name of the template table that should be used
-    to create tables for a particular item.
+/**
+ * Returns the name of the template table that should be used
+ * to create tables for a particular item.
  */
 LSST_AP_API std::string const getTableTemplateName(
     lsst::mwi::policy::Policy::Ptr         const & policy,
@@ -104,10 +104,10 @@ LSST_AP_API std::string const getTableTemplateName(
 }
 
 
-/*!
-    Ensure that all directories along a path exist, creating them if necessary.
-
-    \param[in] name     Pathname to file to be created
+/**
+ * Ensure that all directories along a path exist, creating them if necessary.
+ *
+ * @param[in] name  Pathname to file to be created
  */
 LSST_AP_API void verifyPathName(std::string const & name) {
     // Get the directory by stripping off anything after the last slash.

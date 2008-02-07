@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Mutex.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of the Mutex and SharedMutex classes
+ *
+ * @ingroup associate
+ */
 
 #include <pthread.h>
 

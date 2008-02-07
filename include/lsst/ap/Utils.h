@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Utils.h
-//! \brief  Miscellaneous helper methods.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Miscellaneous helper methods for operating on DataProperty and Policy instances.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_UTILS_H
 #define LSST_AP_UTILS_H
@@ -44,10 +44,10 @@ LSST_AP_API std::string const getTableTemplateName(
 LSST_AP_API void verifyPathName(std::string const & name);
 
 
-/*!
-    Extracts an integer of the specified type from the given boost::any. The extraction
-    will succeed if and only if \a v contains an integer value (of built-in C++ type)
-    that can be converted to an integer of the desired type without overflow.
+/**
+ * Extracts an integer of the specified type from the given boost::any. The extraction
+ * will succeed if and only if @a v contains an integer value (of built-in C++ type)
+ * that can be converted to an integer of the desired type without overflow.
  */
 template <typename Target>
 Target anyToInteger(boost::any const & v) {

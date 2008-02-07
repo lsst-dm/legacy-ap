@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ScopeGuard.h
-//! \brief  Utility class for automatically invoking a function when leaving a scope.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Utility class for automatically invoking a function when leaving a scope.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_SCOPE_GUARD_H
 #define LSST_AP_SCOPE_GUARD_H
@@ -21,11 +21,11 @@ namespace lsst {
 namespace ap {
 
 
-/*!
-    \brief  Utility class for automatically invoking a function when leaving a scope.
-
-    See http://www.ddj.com/cpp/184403758 and http://www.zete.org/people/jlehrer/scopeguard.html
-    for details on the origins and uses of this class.
+/**
+ * @brief   Utility class for automatically invoking a function when leaving a scope.
+ *
+ * See http://www.ddj.com/cpp/184403758 and http://www.zete.org/people/jlehrer/scopeguard.html
+ * for details on the origins and uses of this class.
  */
 class LSST_AP_API ScopeGuard : public boost::function<void ()>, private boost::noncopyable {
 

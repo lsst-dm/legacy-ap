@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Exceptions.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Helper functions for storing file name/line number information in an ExceptionStack
+ *
+ * @ingroup associate
+ */
 
 #include <iostream>
 
@@ -19,9 +20,9 @@ namespace lsst {
 namespace ap {
 
 
-/*!
-    Adds a DataProperty named "origin" (containing a string describing the location
-    from which \a ex is to be thrown) to the given exception object.
+/**
+ * Adds a DataProperty named "origin" (containing a string describing the location
+ * from which @a ex is to be thrown) to the given exception object.
  */
 LSST_AP_API void setOrigin(
     lsst::mwi::exceptions::ExceptionStack & ex,
@@ -44,9 +45,9 @@ LSST_AP_API void setOrigin(
 }
 
 
-/*!
-    Adds a DataProperty named "error" containing a system error code
-    value (as obtained from e.g. errno) to the given exception object.
+/**
+ * Adds a DataProperty named "error" containing a system error code
+ * value (as obtained from e.g. errno) to the given exception object.
  */
 LSST_AP_API void setSystemErrorCode(lsst::mwi::exceptions::ExceptionStack & ex, int const errorCode) throw() {
     try {

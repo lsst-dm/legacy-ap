@@ -1,13 +1,13 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Common.h
-//! \brief  Master header file for the association pipeline. Intended for
-//!         things of broad utility, e.g. platform normalization and global
-//!         constants.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Master header file for the association pipeline.
+ *
+ * Intended for things of broad utility, e.g. platform normalization and global constants
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_COMMON_H
 #define LSST_AP_COMMON_H
@@ -67,13 +67,13 @@ using boost::uintmax_t;
 
 namespace {
 
-/*! The radius of an LSST FOV, in degrees. */
+/// The radius of an LSST FOV, in degrees.
 double const FOV_RADIUS = 1.75;
 
-/*!
-    The maximum number of LSST visits in-flight in the association pipeline. In-flight visits
-    are defined as those for which data is actively being read, processed, or written out.
-    \b Must be a power of 2.
+/**
+ * The maximum number of LSST visits in-flight in the association pipeline. In-flight visits
+ * are defined as those for which data is actively being read, processed, or written out.
+ * @b Must be a power of 2.
  */
 uint32_t const MAX_VISITS_IN_FLIGHT = 16;
 

@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkManager.h
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Class for managing chunks of SimpleObject instances in shared memory.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CHUNK_MANAGER_H
 #define LSST_AP_CHUNK_MANAGER_H
@@ -19,7 +20,7 @@ namespace lsst {
 namespace ap {
 
 
-/*! \brief  A manager for SimpleObject chunks that exist in shared memory. */
+/** @brief  A manager for SimpleObject chunks that exist in shared memory. */
 class LSST_AP_API SharedSimpleObjectChunkManager {
 
 private :

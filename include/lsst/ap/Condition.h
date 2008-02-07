@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Condition.h
-//! \brief  Simple wrapper for POSIX condition variables.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Simple wrapper class for POSIX condition variables.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CONDITION_H
 #define LSST_AP_CONDITION_H
@@ -23,7 +23,7 @@
 namespace lsst {
 namespace ap {
 
-/*! \brief  Encapsulates a POSIX condition variable. */
+/** @brief  Encapsulates a POSIX condition variable. */
 template <typename MutexType>
 class Condition : private boost::noncopyable {
 
@@ -38,11 +38,11 @@ public :
         assert(result == 0);
     }
 
-    /*!
-        Waits on the condition variable until the calling thread is woken as a result
-        of another thread calling notify() or notifyAll(). Spurious wakeup can occur.
-
-        \pre    \a lock has been successfully acquired
+    /**
+     * Waits on the condition variable until the calling thread is woken as a result
+     * of another thread calling notify() or notifyAll(). Spurious wakeup can occur.
+     *
+     * @pre     @a lock has been successfully acquired
      */
     void wait(LockType & lock) {
         assert(lock.isAcquired());
@@ -50,10 +50,10 @@ public :
         assert(result == 0);
     }
 
-    /*!
-        Waits on the condition variable until the given predicate evaluates to \c true.
-
-        \pre    \a lock has been successfully acquired
+    /**
+     * Waits on the condition variable until the given predicate evaluates to @c true.
+     *
+     * @pre     @a lock has been successfully acquired
      */
     template <typename P>
     void wait(LockType & lock, P predicate)
@@ -65,13 +65,13 @@ public :
         }
     }
 
-    /*!
-        Waits on this condition variable until either the given deadline expires or the calling
-        thread is woken as a result of another thread calling notify() or notifyAll(). Spurious
-        wakeup can occur.
-
-        \pre    \a lock has been successfully acquired
-        \return \c false if the deadline was missed, and \c true otherwise.
+    /**
+     * Waits on this condition variable until either the given deadline expires or the calling
+     * thread is woken as a result of another thread calling notify() or notifyAll(). Spurious
+     * wakeup can occur.
+     *
+     * @pre     @a lock has been successfully acquired
+     * @return  @c false if the deadline was missed, and @c true otherwise.
      */
     bool wait(LockType & lock, TimeSpec const & ts) {
         assert(lock.isAcquired());
@@ -83,13 +83,13 @@ public :
         return true;
     }
 
-    /*!
-        Waits on this condition variable until the given predicate evaluates to \c true
-        or the given deadline is missed.
-
-        \pre    \a lock has been successfully acquired
-        \return \c true if the predicate became \c true before the deadline expired,
-                and \c false if the deadline was missed.
+    /**
+     * Waits on this condition variable until the given predicate evaluates to @c true
+     * or the given deadline is missed.
+     *
+     * @pre     @a lock has been successfully acquired
+     * @return  @c true if the predicate became @c true before the deadline expired,
+     *          and @c false if the deadline was missed.
      */
     template <typename P>
     bool wait(LockType & lock, P predicate, TimeSpec const & deadline) {
@@ -104,15 +104,19 @@ public :
         return true;
     }
 
-    /*! Wakes up at least one thread waiting on the condition. For predictable scheduling, the
-        mutex associated with the condition should be acquired prior to calling this method. */
+    /**
+     * Wakes up at least one thread waiting on the condition. For predictable scheduling, the
+     * mutex associated with the condition should be acquired prior to calling this method.
+     */
     void notify() {
         int result = ::pthread_cond_signal(&_condition);
         assert(result == 0);
     }
 
-    /*! Wakes up all threads waiting on the condition. For predictable scheduling, the
-        mutex associated with the condition should be acquired prior to calling this method. */
+    /**
+     * Wakes up all threads waiting on the condition. For predictable scheduling, the
+     * mutex associated with the condition should be acquired prior to calling this method.
+     */
     void notifyAll() {
         int result = ::pthread_cond_broadcast(&_condition);
         assert(result == 0);

@@ -1,12 +1,12 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   SharedMemoryAdmin.cc
-//! \brief  Tool for inspecting and manipulating the contents of the shared
-//!         memory chunk manager used by the association pipeline.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tool for inspecting and manipulating the contents of the shared
+ *          memory chunk manager used by the association pipeline.
+ *
+ * @ingroup associate
+ */
 
 #include <cstdlib>
 #include <iostream>

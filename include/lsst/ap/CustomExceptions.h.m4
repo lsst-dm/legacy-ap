@@ -1,14 +1,14 @@
 undefine(`format')dnl ' Stop m4 expanding format
 // -*- lsst-c++ -*-
-//
-// This file is machine generated from CustomExceptions.h.m4. Please do not edit directly.
-//
-//##====----------------                                ----------------====##/
-//
-//! \file  CustomExceptions.h
-//! \brief Association pipeline specific exception classes.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Association pipeline specific exception classes.
+ *
+ * This file is machine generated from CustomExceptions.h.m4. Please do not edit directly.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CUSTOM_EXCEPTIONS_H
 #define LSST_AP_CUSTOM_EXCEPTIONS_H
@@ -19,7 +19,7 @@ undefine(`format')dnl ' Stop m4 expanding format
 namespace lsst {
 namespace ap {
 define(LSST_AP_NEW_EXCEPTION,
-`/*! \brief  Exception class thrown when $2. */
+`/** @brief  Exception class thrown when $2. */
 class LSST_AP_API $1 : public lsst::mwi::exceptions::ExceptionStack  {
 public:
 

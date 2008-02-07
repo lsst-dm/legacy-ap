@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Results.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of persistable association pipeline result vectors.
+ *
+ * @ingroup associate
+ */
 
 #include <lsst/ap/Results.h>
 

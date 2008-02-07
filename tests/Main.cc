@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Main.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Compilation unit for boost::test generated main function
+ *
+ * @ingroup associate
+ */
 
 // Use boost::test in header-only mode
 #include <boost/version.hpp>

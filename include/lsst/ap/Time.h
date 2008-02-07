@@ -1,12 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Time.h
-//! \brief  Convenience wrapper for the C library timespec struct and
-//!         a simple profiling class.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Convenience wrapper for the C library timespec struct and a simple profiling class.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_TIME_H
 #define LSST_AP_TIME_H
@@ -22,7 +21,7 @@ namespace lsst {
 namespace ap {
 
 
-/*! \brief  Wraps the C library timespec struct. */
+/** @brief  Wraps the C library timespec struct. */
 class LSST_AP_API TimeSpec : public ::timespec {
 
 public :
@@ -72,7 +71,7 @@ public :
 };
 
 
-/*! \brief  Utility class for profiling. */
+/** @brief  Utility class for profiling. */
 class LSST_AP_API Stopwatch {
 
 public :

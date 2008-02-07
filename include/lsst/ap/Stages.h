@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Stages.h
-//! \brief  C++ stage implementation methods.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   C++ pipeline stage implementation methods.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_STAGES_H
 #define LSST_AP_STAGES_H
@@ -43,7 +43,7 @@ struct DiaSourceChunk {
 #endif
 
 
-/*! \brief  Container for inter-stage association pipeline state. */
+/** @brief  Container for inter-stage association pipeline state. */
 class LSST_AP_API VisitProcessingContext : public lsst::mwi::data::Citizen {
 
 public :

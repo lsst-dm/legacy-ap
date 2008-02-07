@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   RectangularRegion.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of RectangularRegion class
+ *
+ * @ingroup associate
+ */
 
 #include <stdexcept>
 

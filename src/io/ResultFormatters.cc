@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ResultFormatters.cc
-//! \brief  Implementation of persistence for association pipeline results.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Persistence implementation for association pipeline result vectors.
+ *
+ * @ingroup associate
+ */
 
 #include <memory>
 
@@ -86,7 +86,7 @@ void MatchPairVectorFormatter::delegateSerialize(
     }
 }
 
-//! \cond
+/// @cond
 template void MatchPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
@@ -99,7 +99,7 @@ template void MatchPairVectorFormatter::delegateSerialize<boost::archive::text_i
 //template void MatchPairVector::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
-//! \endcond
+/// @endcond
 
 
 void MatchPairVectorFormatter::write(
@@ -254,7 +254,7 @@ void IdPairVectorFormatter::delegateSerialize(
     }
 }
 
-//! \cond
+/// @cond
 template void IdPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
@@ -267,7 +267,7 @@ template void IdPairVectorFormatter::delegateSerialize<boost::archive::text_iarc
 //template void IdPairVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
-//! \endcond
+/// @endcond
 
 
 void IdPairVectorFormatter::write(
@@ -421,7 +421,7 @@ void IdVectorFormatter::delegateSerialize(
     }
 }
 
-//! \cond
+/// @cond
 template void IdVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
@@ -434,7 +434,7 @@ template void IdVectorFormatter::delegateSerialize<boost::archive::text_iarchive
 //template void IdVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
-//! \endcond
+/// @endcond
 
 
 void IdVectorFormatter::write(

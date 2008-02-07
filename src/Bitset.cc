@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Bitset.cc
-//! \brief  Implementation of the Bitset template and helper functions.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of the Bitset template and helper functions.
+ *
+ * @ingroup associate
+ */
 
 #include <climits>
 
@@ -107,20 +107,20 @@ static inline int populationCount(uint8_t const val)
 #endif
 
 
-/*!
-    Attempts to find at least \a numBitsToSet zero bits in the array \a words (containing at least
-    \a numBits bits). If \a numBitsToSet zero bits cannot be found, \c false is returned. Otherwise,
-    the first \a numBitsToSet zero bits in \a words are set to one and \c true is returned.
-    The indexes of the bits which were set to one are stored in the \a indexes array.
-
-    \param[out]    indexes      An array of at least \a numBitsToSet integers, which is filled
-                                with the indexes of zero bits that were set (to one).
-    \param[in,out] words        A memory buffer containing at least \a numBits bits
-    \param[in]     numBitsToSet The number of bits to reset (to zero)
-    \param[in]     numBits      The number of bits in \a words
-
-    \return     \c true if \a numBitsToSet zero bits were found and set to one in \a words,
-                \c false otherwise.
+/**
+ * Attempts to find at least @a numBitsToSet zero bits in the array @a words (containing at least
+ * @a numBits bits). If @a numBitsToSet zero bits cannot be found, @c false is returned. Otherwise,
+ * the first @a numBitsToSet zero bits in @a words are set to one and @c true is returned.
+ * The indexes of the bits which were set to one are stored in the @a indexes array.
+ *
+ * @param[out]    indexes       An array of at least @a numBitsToSet integers, which is filled
+ *                              with the indexes of zero bits that were set (to one).
+ * @param[in,out] words         A memory buffer containing at least @a numBits bits
+ * @param[in]     numBitsToSet  The number of bits to reset (to zero)
+ * @param[in]     numBits       The number of bits in @a words
+ *
+ * @return     @c true if @a numBitsToSet zero bits were found and set to one in @a words,
+ *             @c false otherwise.
  */
 template <typename Word>
 bool set(
@@ -175,15 +175,15 @@ bool set(
 }
 
 
-/*!
-    Given the array \a words containing \a numBits bits and a list of \a numBitsToReset \a indexes,
-    resets (to zero) the bit at each index.
-
-    \param[in,out] words            A memory buffer containing at least \a numBits bits
-    \param[in]     indexes          An array of at least \a numBitsToReset integers, each corresponding
-                                    to the index of a single bit to reset (to zero).
-    \param[in]     numBitsToReset   The number of bits to reset (to zero)
-    \param[in]     numBits          The number of bits in \a words
+/**
+ * Given the array @a words containing @a numBits bits and a list of @a numBitsToReset @a indexes,
+ * resets (to zero) the bit at each index.
+ *
+ * @param[in,out] words             A memory buffer containing at least @a numBits bits
+ * @param[in]     indexes           An array of at least @a numBitsToReset integers, each corresponding
+ *                                  to the index of a single bit to reset (to zero).
+ * @param[in]     numBitsToReset    The number of bits to reset (to zero)
+ * @param[in]     numBits           The number of bits in @a words
  */
 template <typename Word>
 void reset(
@@ -204,7 +204,7 @@ void reset(
 
 
 // Explicit instantiations
-//! \cond
+/// @cond
 template bool set(int * const, uint8_t  * const, int const, int const);
 template bool set(int * const, uint16_t * const, int const, int const);
 template bool set(int * const, uint32_t * const, int const, int const);
@@ -213,7 +213,7 @@ template void reset(uint8_t  * const, int const * const, int const, int const);
 template void reset(uint16_t * const, int const * const, int const, int const);
 template void reset(uint32_t * const, int const * const, int const, int const);
 template void reset(uint64_t * const, int const * const, int const, int const);
-//! \endcond
+/// @endcond
 
 }}} // end of namespace lsst::ap::detail
 

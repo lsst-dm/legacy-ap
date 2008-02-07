@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   EllipseTypes.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of Ellipse and EllipseList classes.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_ELLIPSE_TYPES_CC
 #define LSST_AP_ELLIPSE_TYPES_CC
@@ -87,9 +88,9 @@ EllipseList<DataType> & EllipseList<DataType>::operator=(EllipseList const & lis
 }
 
 
-/*!
-    Prepares the list of ellipses for matching against a list of positions --
-    finds zone bounds for each ellipse and sorts them in order of minimum zone.
+/**
+ * Prepares the list of ellipses for matching against a list of positions --
+ * finds zone bounds for each ellipse and sorts them in order of minimum zone.
  */
 template <typename DataType>
 void EllipseList<DataType>::prepareForMatch(ZoneStripeChunkDecomposition const & zsc) {

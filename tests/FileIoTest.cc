@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   FileIoTest.cc
-//! \brief  Testing of file I/O classes.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests for low-level file I/O classes.
+ *
+ * @ingroup associate
+ */
 
 #include <unistd.h>
 

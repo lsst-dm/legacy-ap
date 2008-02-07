@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   FileIo.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of low level file IO classes.
+ *
+ * @ingroup associate
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>

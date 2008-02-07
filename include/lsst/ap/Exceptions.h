@@ -1,11 +1,12 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Exceptions.h
-//! \brief  Association Pipeline related exception classes.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Association pipeline exception classes and macros for throwing them with
+ *          file name/line number information.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_EXCEPTIONS_H
 #define LSST_AP_EXCEPTIONS_H
@@ -31,12 +32,12 @@ using lsst::mwi::exceptions::Memory;
 #define LSST_AP_JOIN_IMPL(a,b)  a##b
 #define LSST_AP_JOIN(a,b)       LSST_AP_JOIN_IMPL(a,b)
 
-/*!
-    \def LSST_AP_THROW_TERSE
-
-    Convenience macro for throwing an exception object of type \a Ex without an error message.
-    The line number, file name, and enclosing function name of the macro call are recorded in the
-    resulting exception.
+/**
+ * @def LSST_AP_THROW_TERSE
+ *
+ * Convenience macro for throwing an exception object of type @a Ex without an error message.
+ * The line number, file name, and enclosing function name of the macro call are recorded in the
+ * resulting exception.
  */
 #define LSST_AP_THROW_TERSE(Ex) \
     do { \
@@ -45,12 +46,12 @@ using lsst::mwi::exceptions::Memory;
         throw LSST_AP_JOIN(exs_, __LINE__); \
     } while (false)
 
-/*!
-    \def LSST_AP_THROW
-
-    Convenience macro for throwing an exception object of type \a Ex with an error message \a msg.
-    The line number, file name, and enclosing function name of the macro call are recorded in the
-    resulting exception.
+/**
+ * @def LSST_AP_THROW
+ *
+ * Convenience macro for throwing an exception object of type @a Ex with an error message @a msg.
+ * The line number, file name, and enclosing function name of the macro call are recorded in the
+ * resulting exception.
  */
 #define LSST_AP_THROW(Ex, msg) \
     do { \
@@ -59,12 +60,12 @@ using lsst::mwi::exceptions::Memory;
        throw LSST_AP_JOIN(exs_, __LINE__); \
     } while (false)
 
-/*!
-    \def LSST_AP_THROW_ERR
-
-    Convenience macro for throwing an exception object of type \a Ex with an error message \a msg.
-    The line number, file name, and enclosing function name of the macro call are recorded in the
-    resulting exception, as is the system error code \a err.
+/**
+ * @def LSST_AP_THROW_ERR
+ *
+ * Convenience macro for throwing an exception object of type @a Ex with an error message @a msg.
+ * The line number, file name, and enclosing function name of the macro call are recorded in the
+ * resulting exception, as is an error code @a err.
  */
 #define LSST_AP_THROW_ERR(Ex, msg, err) \
     do { \

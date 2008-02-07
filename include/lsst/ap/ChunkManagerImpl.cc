@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkManagerImpl.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Chunk manager helper class implementations.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_CHUNK_MANAGER_IMPL_CC
 #define LSST_AP_CHUNK_MANAGER_IMPL_CC
@@ -24,9 +25,9 @@ namespace detail {
 
 // -- HashedSet ----------------
 
-/*!
-    Returns the 32 bit hash of a 32 bit value using Thomas Wang's
-    <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
+/**
+ * Returns the 32 bit hash of a 32 bit value using Thomas Wang's
+ * <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
  */
 inline uint32_t hash(uint32_t key) {
     key = (~key) + (key << 15); // key = (key << 15) - key - 1;
@@ -38,9 +39,9 @@ inline uint32_t hash(uint32_t key) {
     return key;
 }
 
-/*!
-    Returns the 32 bit hash of a 64 bit value using Thomas Wang's
-    <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
+/**
+ * Returns the 32 bit hash of a 64 bit value using Thomas Wang's
+ * <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
  */
 inline uint32_t hash(uint64_t key) {
     key = (~key) + (key << 18); // key = (key << 18) - key - 1;
@@ -72,11 +73,11 @@ HashedSet<EntryType, NumEntries>::HashedSet() :
 }
 
 
-/*!
-    Returns a pointer to the entry with the given identifier, or null if there is no such entry.
-
-    \param[in] id   The identifier of the entry to find.
-    \return         A pointer to the entry with the given identifier, or null if no such entry was found.
+/**
+ * Returns a pointer to the entry with the given identifier, or null if there is no such entry.
+ *
+ * @param[in] id    The identifier of the entry to find.
+ * @return          A pointer to the entry with the given identifier, or null if no such entry was found.
  */
 template <typename EntryType, uint32_t NumEntries>
 EntryType const * HashedSet<EntryType, NumEntries>::doFind(int64_t const id) const {
@@ -91,14 +92,14 @@ EntryType const * HashedSet<EntryType, NumEntries>::doFind(int64_t const id) con
 }
 
 
-/*!
-    Returns a pointer to a freshly initialized entry with the given identifier,
-    or null if an entry with the given identifier already exists.
-
-    \param[in] id   The identifier (unique within this set) of the entry to insert.
-    \return         A pointer to a freshly default-constructed entry with identifier set to \a id,
-                    or null if either a preexisting entry with the given identifier was found or
-                    no space for new entries remains.
+/**
+ * Returns a pointer to a freshly initialized entry with the given identifier,
+ * or null if an entry with the given identifier already exists.
+ *
+ * @param[in] id    The identifier (unique within this set) of the entry to insert.
+ * @return          A pointer to a freshly default-constructed entry with identifier set to @a id,
+ *                  or null if either a preexisting entry with the given identifier was found or
+ *                  no space for new entries remains.
  */
 template <typename EntryType, uint32_t NumEntries>
 EntryType * HashedSet<EntryType, NumEntries>::insert(int64_t const id) {
@@ -141,15 +142,15 @@ EntryType * HashedSet<EntryType, NumEntries>::insert(int64_t const id) {
 }
 
 
-/*!
-    Returns a pointer to a preexisting or freshly default-constructed entry
-    with the given identifier, along with a boolean indicating whether the entry was
-    inserted (\c true) or found (\c false). The pointer returned is null if and
-    only if a fresh entry was required but there were no free entries available.
-
-    \param[in] id   The identifier (unique within this set) of the entry to find or insert.
-    \return         A pointer to the entry with the given id along with a boolean indicating
-                    whether the entry was inserted (\c true) or found (\c false).
+/**
+ * Returns a pointer to a preexisting or freshly default-constructed entry
+ * with the given identifier, along with a boolean indicating whether the entry was
+ * inserted (@c true) or found (@c false). The pointer returned is null if and
+ * only if a fresh entry was required but there were no free entries available.
+ *
+ * @param[in] id    The identifier (unique within this set) of the entry to find or insert.
+ * @return          A pointer to the entry with the given id along with a boolean indicating
+ *                  whether the entry was inserted (@c true) or found (@c false).
  */
 template <typename EntryType, uint32_t NumEntries>
 std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int64_t const id) {
@@ -190,11 +191,11 @@ std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int6
 }
 
 
-/*!
-    Erases the entry with the given id, returning \c true if an entry with the given id was found.
-
-    \param[in] id   The id of the entry to erase.
-    \return         \c true if an entry with the given id was found (and erased).
+/**
+ * Erases the entry with the given id, returning @c true if an entry with the given id was found.
+ *
+ * @param[in] id    The id of the entry to erase.
+ * @return          @c true if an entry with the given id was found (and erased).
  */
 template <typename EntryType, uint32_t NumEntries>
 bool HashedSet<EntryType, NumEntries>::erase(int64_t const id) {
@@ -228,14 +229,14 @@ bool HashedSet<EntryType, NumEntries>::erase(int64_t const id) {
 
 // -- BlockAllocator ----------------
 
-/*!
-    Creates a new BlockAllocator instance. The memory blocks to be tracked by the allocator are located
-    in contiguous memory, starting \a offset bytes after the given \a reference address.
-
-    \param[in] reference    The address relative to which \a offset is specified.
-    \param[in] offset       The location of the first memory block in the pool of contiguous blocks
-                            to be managed by this allocator instance, specified as an offset in bytes
-                            relative to the \a reference address.
+/**
+ * Creates a new BlockAllocator instance. The memory blocks to be tracked by the allocator are located
+ * in contiguous memory, starting @a offset bytes after the given @a reference address.
+ *
+ * @param[in] reference The address relative to which @a offset is specified.
+ * @param[in] offset    The location of the first memory block in the pool of contiguous blocks
+ *                      to be managed by this allocator instance, specified as an offset in bytes
+ *                      relative to the @a reference address.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 BlockAllocator<MutexType, DataType, TraitsType>::BlockAllocator(
@@ -250,13 +251,13 @@ BlockAllocator<MutexType, DataType, TraitsType>::BlockAllocator(
 }
 
 
-/*!
-    Allocates a single memory block.
-
-    \return     The offset (in bytes relative to the address of this allocator instance)
-                of the newly allocated block.
-
-    \throw std::bad_alloc   Thrown if no free block was available.
+/**
+ * Allocates a single memory block.
+ *
+ * @return  The offset (in bytes relative to the address of this allocator instance)
+ *          of the newly allocated block.
+ *
+ * @throw std::bad_alloc    Thrown if no free block was available.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 size_t BlockAllocator<MutexType, DataType, TraitsType>::allocate() {
@@ -269,14 +270,14 @@ size_t BlockAllocator<MutexType, DataType, TraitsType>::allocate() {
 }
 
 
-/*!
-    Allocates \a n memory blocks, storing their offsets in the given array.
-
-    \param[out] blockOffsets    The array in which the offsets (relative to this allocator instance) of
-                                allocated memory blocks are stored. Assumed to be of length at least \a n.
-    \param[in]  n               The number of memory blocks to allocate.
-
-    \throw std::bad_alloc   Thrown if there were less than \a n free blocks available.
+/**
+ * Allocates @a n memory blocks, storing their offsets in the given array.
+ *
+ * @param[out] blockOffsets The array in which the offsets (relative to this allocator instance) of
+ *                          allocated memory blocks are stored. Assumed to be of length at least @a n.
+ * @param[in]  n            The number of memory blocks to allocate.
+ *
+ * @throw std::bad_alloc    Thrown if there were less than @a n free blocks available.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void BlockAllocator<MutexType, DataType, TraitsType>::allocate(
@@ -298,12 +299,12 @@ void BlockAllocator<MutexType, DataType, TraitsType>::allocate(
 }
 
 
-/*!
-    Frees \a n memory blocks, identified by offsets stored in the given array. Never throws.
-
-    \param[in] blockOffsets The array in which the offsets (relative to this allocator instance) of
-                            the memory blocks to free are stored. Assumed to be of length at least \a n.
-    \param[in] n            The number of memory blocks to free.
+/**
+ * Frees @a n memory blocks, identified by offsets stored in the given array. Never throws.
+ *
+ * @param[in] blockOffsets  The array in which the offsets (relative to this allocator instance) of
+ *                          the memory blocks to free are stored. Assumed to be of length at least @a n.
+ * @param[in] n             The number of memory blocks to free.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void BlockAllocator<MutexType, DataType, TraitsType>::free(
@@ -330,9 +331,9 @@ void BlockAllocator<MutexType, DataType, TraitsType>::free(
 
 // -- VisitTracker ----------------
 
-/*!
-    Returns \c true if the given visit is being tracked by this
-    VisitTracker and has not been marked as failed.
+/**
+ * Returns @c true if the given visit is being tracked by this
+ * VisitTracker and has not been marked as failed.
  */
 bool VisitTracker::isValid(int64_t const visitId) const {
     Visit const * v = this->find(visitId);
@@ -380,20 +381,20 @@ void VisitTracker::print(int64_t const visitId, std::ostream & os) const {
 
 // -- SubManager ----------------
 
-/*!
-    Registers the given visit as an interested party of each of the given chunks. If any of the
-    given identifiers doesn't correspond to a chunk, an empty chunk is created. Newly created
-    chunks are stored in the \a toRead list (indicating data for them must be read from disk),
-    previously existing chunks are returned in the \a toWaitFor list (indicating that the
-    visit must wait until it owns those instances before processing can begin).
-
-    \param[out] toRead      Set to the list of chunks that were not found in memory
-                            and must be read in from disk.
-    \param[out] toWaitFor   Set to the list of chunks instances that are already in memory
-                            and must be waited on.
-    \param[in]  visitId     The visit to register interest or create chunks for.
-    \param[in]  chunkIds    A list of identifiers for chunks required by the visit.
-                            Assumed to be duplicate free.
+/**
+ * Registers the given visit as an interested party of each of the given chunks. If any of the
+ * given identifiers doesn't correspond to a chunk, an empty chunk is created. Newly created
+ * chunks are stored in the @a toRead list (indicating data for them must be read from disk),
+ * previously existing chunks are returned in the @a toWaitFor list (indicating that the
+ * visit must wait until it owns those instances before processing can begin).
+ *
+ * @param[out] toRead       Set to the list of chunks that were not found in memory
+ *                          and must be read in from disk.
+ * @param[out] toWaitFor    Set to the list of chunks instances that are already in memory
+ *                          and must be waited on.
+ * @param[in]  visitId      The visit to register interest or create chunks for.
+ * @param[in]  chunkIds     A list of identifiers for chunks required by the visit.
+ *                          Assumed to be duplicate free.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void SubManager<MutexType, DataType, TraitsType>::createOrRegisterInterest(
@@ -423,20 +424,20 @@ void SubManager<MutexType, DataType, TraitsType>::createOrRegisterInterest(
 }
 
 
-/*!
-    Checks to see whether the chunks in the \a toWaitFor list are owned by the given visit.
-    Any chunks that have had their ownership transferred to the given visit are removed from
-    \a toWaitFor. Of these chunks, the subset that were not completely read into memory (that
-    is, whose previous owners failed while reading them in) are appended to \a toRead.
-
-    \param[out]    toRead       Set to the list of chunks now owned by the given visit,
-                                but which must be re-read from disk.
-    \param[in,out] toWaitFor    The list of chunks for which ownership must be checked. Any chunks
-                                now owned by the given visit are removed from the list by the call.
-    \param[in]     visitId      An identifier for a visit to a FOV.
-
-    \return     \c true if and only if all the chunks initially in the \a toWaitFor list now
-                belong to the given visit.
+/**
+ * Checks to see whether the chunks in the @a toWaitFor list are owned by the given visit.
+ * Any chunks that have had their ownership transferred to the given visit are removed from
+ * @a toWaitFor. Of these chunks, the subset that were not completely read into memory (that
+ * is, whose previous owners failed while reading them in) are appended to @a toRead.
+ *
+ * @param[out]    toRead    Set to the list of chunks now owned by the given visit,
+ *                          but which must be re-read from disk.
+ * @param[in,out] toWaitFor The list of chunks for which ownership must be checked. Any chunks
+ *                          now owned by the given visit are removed from the list by the call.
+ * @param[in]     visitId   An identifier for a visit to a FOV.
+ *
+ * @return  @c true if and only if all the chunks initially in the @a toWaitFor list now
+ *          belong to the given visit.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 bool SubManager<MutexType, DataType, TraitsType>::checkForOwnership(
@@ -468,14 +469,14 @@ bool SubManager<MutexType, DataType, TraitsType>::checkForOwnership(
 }
 
 
-/*!
-    Returns a chunk for each of the given identifiers that corresponds to a chunk
-    managed by this SubManager.
-
-    \param[out] chunks      Set to the list of chunk instances managed by this SubManager and with an
-                            identifier in \a chunkIds.
-    \param[in]  chunkIds    The list of chunk identifiers to return chunk instances for.
-                            Assumed to be duplicate free.
+/**
+ * Returns a chunk for each of the given identifiers that corresponds to a chunk
+ * managed by this SubManager.
+ *
+ * @param[out] chunks   Set to the list of chunk instances managed by this SubManager and with an
+ *                      identifier in @a chunkIds.
+ * @param[in]  chunkIds The list of chunk identifiers to return chunk instances for.
+ *                      Assumed to be duplicate free.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void SubManager<MutexType, DataType, TraitsType>::getChunks(
@@ -492,18 +493,18 @@ void SubManager<MutexType, DataType, TraitsType>::getChunks(
 }
 
 
-/*!
-    Relinquishes ownership of any chunks owned by the given visit (each chunk is passed on to
-    its first interested party that is still in flight).
-
-    \param[in] visitId      The visit owning the chunks to relinquish ownership of.
-    \param[in] rollback     Flag indicating whether or not in-memory changes to a chunk should
-                            be rolled back (\c true) or committed (\c false) prior to relinquishing
-                            ownership.
-    \param[in] tracker      Tracks the status of visits (whether or not a visit is in flight,
-                            and if so, whether or not it has failed).
-
-    \return     \c true if any chunks changed hands.
+/**
+ * Relinquishes ownership of any chunks owned by the given visit (each chunk is passed on to
+ * its first interested party that is still in flight).
+ *
+ * @param[in] visitId   The visit owning the chunks to relinquish ownership of.
+ * @param[in] rollback  Flag indicating whether or not in-memory changes to a chunk should
+ *                      be rolled back (@c true) or committed (@c false) prior to relinquishing
+ *                      ownership.
+ * @param[in] tracker   Tracks the status of visits (whether or not a visit is in flight,
+ *                      and if so, whether or not it has failed).
+ *
+ * @return      @c true if any chunks changed hands.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 bool SubManager<MutexType, DataType, TraitsType>::relinquishOwnership(
@@ -630,7 +631,7 @@ void SubManager<MutexType, DataType, TraitsType>::print(
     std::ostream  & os
 ) const {
     ChunkDescriptorType const * c = _chunks.find(chunkId);
-    os << "    [" << c->_chunkId << "] chunk " << 
+    os << "    [" << c->_chunkId << "] chunk " <<
           ZoneStripeChunkDecomposition::chunkToSequence(chunkId) << " in stripe " <<
           ZoneStripeChunkDecomposition::chunkToStripe(chunkId);
     if (c == 0) {
@@ -688,7 +689,7 @@ ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::ChunkManagerSingleImpl(
 {}
 
 
-/*! Returns \c true if the given visit is in-flight and has not been marked as failed. */
+/// Returns @c true if the given visit is in-flight and has not been marked as failed.
 template <typename MutexType, typename DataType, typename TraitsType>
 bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::isVisitInFlight(int64_t const visitId) {
     ScopedLock<MutexType> lock(_mutex);
@@ -696,9 +697,9 @@ bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::isVisitInFlight(in
 }
 
 
-/*!
-    Marks the given visit a failure. If the given visit has not been previously
-    registered, or has already been marked as failed, then the call has no effect.
+/**
+ * Marks the given visit a failure. If the given visit has not been previously
+ * registered, or has already been marked as failed, then the call has no effect.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::failVisit(int64_t const visitId) {
@@ -710,7 +711,7 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::failVisit(int64_t 
 }
 
 
-/*! Registers the given visit as in-flight without performing any further action. */
+/// Registers the given visit as in-flight without performing any further action.
 template <typename MutexType, typename DataType, typename TraitsType>
 void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::registerVisit(int64_t const visitId) {
     ScopedLock<MutexType> lock(_mutex);
@@ -731,19 +732,19 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::registerVisit(int6
 }
 
 
-/*!
-    Begins visit processing by registering the given visit as an interested party of each chunk with
-    identifier in the given list. If any identifier in the list does not have a corresponding chunk,
-    a new chunk (owned by the specified visit) is created.
-
-    Note that the \a toWaitFor and \a toRead output vectors are cleared immediately on entry to the
-    function. Under the assumption that these vectors are empty to begin with, strong exception safety
-    is guaranteed.
-
-    \param[out] toRead      Set to the list of newly created chunks that must be read from disk.
-    \param[out] toWaitFor   Set to the list of chunks that are already in memory and must be waited on.
-    \param[in]  visitId     The visit to begin.
-    \param[in]  chunkIds    Identifiers for chunks to register an interest in or create.
+/**
+ * Begins visit processing by registering the given visit as an interested party of each chunk with
+ * identifier in the given list. If any identifier in the list does not have a corresponding chunk,
+ * a new chunk (owned by the specified visit) is created.
+ *
+ * Note that the @a toWaitFor and @a toRead output vectors are cleared immediately on entry to the
+ * function. Under the assumption that these vectors are empty to begin with, strong exception safety
+ * is guaranteed.
+ *
+ * @param[out] toRead      Set to the list of newly created chunks that must be read from disk.
+ * @param[out] toWaitFor   Set to the list of chunks that are already in memory and must be waited on.
+ * @param[in]  visitId     The visit to begin.
+ * @param[in]  chunkIds    Identifiers for chunks to register an interest in or create.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::startVisit(
@@ -776,22 +777,22 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::startVisit(
 }
 
 
-/*!
-    Blocks the calling thread until the given visit owns every one of the given chunks.
-
-    Note that the vector \a toRead passed into the method is assumed to be empty -
-    it is immediately cleared upon entry to the function.
-
-    \param[out]    toRead       Set to the list of chunks acquired by the given visit,
-                                but which must be re-read from disk.
-    \param[in,out] toWaitFor    The list of chunks that must be owned by the given visit before
-                                returning - acquired chunks are removed from the list, so that
-                                the list is empty on successfull return.
-    \param[in]     visitId      The visit that must wait for chunk ownership.
-    \param[in]     deadline     The point in time after which chunk acquisition should be abandoned.
-
-    \throw  Timeout     Thrown if the given visit deadline expired while
-                        waiting to acquire the specified chunks.
+/**
+ * Blocks the calling thread until the given visit owns every one of the given chunks.
+ *
+ * Note that the vector @a toRead passed into the method is assumed to be empty -
+ * it is immediately cleared upon entry to the function.
+ *
+ * @param[out]    toRead    Set to the list of chunks acquired by the given visit,
+ *                          but which must be re-read from disk.
+ * @param[in,out] toWaitFor The list of chunks that must be owned by the given visit before
+ *                          returning - acquired chunks are removed from the list, so that
+ *                          the list is empty on successfull return.
+ * @param[in]     visitId   The visit that must wait for chunk ownership.
+ * @param[in]     deadline  The point in time after which chunk acquisition should be abandoned.
+ *
+ * @throw Timeout   Thrown if the given visit deadline expired while
+ *                  waiting to acquire the specified chunks.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::waitForOwnership(
@@ -816,11 +817,11 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::waitForOwnership(
 }
 
 
-/*!
-    Returns a chunk for each identifier in the given list that corresponds to a managed chunk.
-
-    \param[out] chunks      The list to store chunks in.
-    \param[in]  chunkIds    The list of identifiers for which corresponding chunks are desired.
+/**
+ * Returns a chunk for each identifier in the given list that corresponds to a managed chunk.
+ *
+ * @param[out] chunks   The list to store chunks in.
+ * @param[in]  chunkIds The list of identifiers for which corresponding chunks are desired.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::getChunks(
@@ -832,18 +833,18 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::getChunks(
 }
 
 
-/*!
-    Relinquishes ownership of any chunks owned by the given visit (each chunk is passed on to
-    its first interested party that is still in flight) and removes the given visit from the
-    list of in-flight visits.
-
-    \param[in] visitId      The visit to remove from the set of in-flight visits being tracked
-    \param[in] rollback     Flag indicating whether chunks should be rolled back (to the state
-                            they were in before being acquired by the given visit), or whether
-                            changes should be marked as committed.
-
-    \return     \c true if the visit existed, was not marked as a failure and was committed,
-                \c false otherwise.
+/**
+ * Relinquishes ownership of any chunks owned by the given visit (each chunk is passed on to
+ * its first interested party that is still in flight) and removes the given visit from the
+ * list of in-flight visits.
+ *
+ * @param[in] visitId   The visit to remove from the set of in-flight visits being tracked
+ * @param[in] rollback  Flag indicating whether chunks should be rolled back (to the state
+ *                      they were in before being acquired by the given visit), or whether
+ *                      changes should be marked as committed.
+ *
+ * @return  @c true if the visit existed, was not marked as a failure and was committed,
+ *          @c false otherwise.
  */
 template <typename MutexType, typename DataType, typename TraitsType>
 bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::endVisit(

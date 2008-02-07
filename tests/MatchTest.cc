@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   MatchTest.cc
-//! \brief  Tests for cross-match (distance based and in-ellipse) algorithms.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests for cross-match (distance based and in-ellipse) algorithms.
+ *
+ * @ingroup associate
+ */
 
 #include <algorithm>
 #include <iostream>
@@ -33,7 +33,7 @@ namespace {
 
 int32_t const MAX_EXPECTED = 9;
 
-// A test point/ellipse that knows what it should match
+// A test point or ellipse that knows what it should match
 struct TestDatum {
 
     int64_t _id;

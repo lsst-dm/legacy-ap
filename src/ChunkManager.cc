@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ChunkManager.cc
-//! \brief  Implementation of shared memory chunk manager for SimpleObject instances.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of shared memory chunk manager for SimpleObject instances.
+ *
+ * @ingroup associate
+ */
 
 #include <sys/mman.h>   // for mmap, munmap, shm_open, shm_unlink
 #include <time.h>       // for nanosleep
@@ -34,25 +34,25 @@ namespace detail {
 
 typedef BlockAllocator<SharedMutex, SimpleObject> SimpleObjectAllocator;
 
-//! \cond
+/// @cond
 template class BlockAllocator<SharedMutex, SimpleObject>;
 template class Chunk<SimpleObjectAllocator, SimpleObject>;
 template class SubManager<SharedMutex, SimpleObject>;
 template class ChunkManagerSingleImpl<SharedMutex, SimpleObject>;
-//! \endcond
+/// @endcond
 
 typedef ChunkManagerSingleImpl<SharedMutex, SimpleObject> SSObjChunkMgr;
 
 
 // -- Shared memory implementation details ----------------
 
-/*!
-    \brief  Mutual exclusion lock suitable for initializing shared memory objects.
-
-    Before standard POSIX shared memory mutexes can be used for inter-process synchronization, shared
-    memory must be allocated and initialized. Therefore, such mutexes cannot be used to protect allocation
-    and initialization of shared memory blocks themselves. BootstrapLock instances get around this by
-    spinning on exclusive creation of a zero-size shared memory object.
+/**
+ * @brief   Mutual exclusion lock suitable for initializing shared memory objects.
+ *
+ * Before standard POSIX shared memory mutexes can be used for inter-process synchronization, shared
+ * memory must be allocated and initialized. Therefore, such mutexes cannot be used to protect allocation
+ * and initialization of shared memory blocks themselves. BootstrapLock instances get around this by
+ * spinning on exclusive creation of a zero-size shared memory object.
  */
 struct LSST_AP_LOCAL BootstrapLock {
 
@@ -199,9 +199,9 @@ M * getSingleton(char const * const shmObjName, char const * const shmLockName) 
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility push(hidden)
 #endif
-//! \cond
+/// @cond
 template SSObjChunkMgr * getSingleton<SSObjChunkMgr>(char const * const, char const * const);
-//! \endcond
+/// @endcond
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility pop
 #endif
@@ -226,9 +226,9 @@ LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance(s
 }
 
 
-/*!
-    Unlinks the shared memory object underlying all manager instances. The associated memory
-    is not returned to the system until all client processes have relinquished references to it.
+/**
+ * Unlinks the shared memory object underlying all manager instances. The associated memory
+ * is not returned to the system until all client processes have relinquished references to it.
  */
 void SharedSimpleObjectChunkManager::destroyInstance(std::string const & name) {
     std::string actualName(sSharedPrefix);
@@ -247,7 +247,7 @@ void SharedSimpleObjectChunkManager::destroyInstance(std::string const & name) {
 }
 
 
-/*! Returns the size in bytes of the underlying chunk manager and pool of memory blocks. */
+/// Returns the size in bytes of the underlying chunk manager and pool of memory blocks.
 size_t SharedSimpleObjectChunkManager::size() { return detail::SSObjChunkMgr::size(); }
 
 

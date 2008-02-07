@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ZoneTypes.h
-//! \brief  Classes for zone entries, zones, and zone indexes.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Classes for zone entries, zones, and zone indexes.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_ZONE_TYPES_H
 #define LSST_AP_ZONE_TYPES_H
@@ -21,11 +21,11 @@ namespace lsst {
 namespace ap {
 
 
-/*!
-    \brief  Contains spatial information for a single point used during cross-matching.
-
-    A pointer to the underlying data object gives access to ancillary fields (e.g. colors,
-    magnitudes, etc...).
+/**
+ * @brief   Contains spatial information for a single point used during cross-matching.
+ *
+ * A pointer to the underlying data object gives access to ancillary fields (e.g. colors,
+ * magnitudes, etc...).
  */
 template <typename C>
 class ZoneEntry {
@@ -35,15 +35,15 @@ public :
     typedef C                     ChunkType;
     typedef typename C::EntryType DataType;
 
-    DataType *  _data;  //!< Pointer to the corresponding data object
-    uint32_t    _ra;    //!< scaled right ascension of entity position
-    int32_t     _dec;   //!< scaled declination of entity position
-    uint32_t    _flags; //!< Reserved
-    int32_t     _index; //!< Index of the data object in the chunk
-    ChunkType * _chunk; //!< Pointer to chunk containing the data object
-    double      _x;     //!< unit vector x coordinate of entity position
-    double      _y;     //!< unit vector y coordinate of entity position
-    double      _z;     //!< unit vector z coordinate of entity position
+    DataType *  _data;  ///< Pointer to the corresponding data object
+    uint32_t    _ra;    ///< scaled right ascension of entity position
+    int32_t     _dec;   ///< scaled declination of entity position
+    uint32_t    _flags; ///< Reserved
+    int32_t     _index; ///< Index of the data object in the chunk
+    ChunkType * _chunk; ///< Pointer to chunk containing the data object
+    double      _x;     ///< unit vector x coordinate of entity position
+    double      _y;     ///< unit vector y coordinate of entity position
+    double      _z;     ///< unit vector z coordinate of entity position
 
     ZoneEntry(DataType * const data, ChunkType * const chunk, int32_t const index);
 };
@@ -79,7 +79,7 @@ inline bool operator== (ZoneEntry<C> const & a, uint32_t const b) {
 }
 
 
-/*! \brief  Contains entries inside a single zone (a narrow declination stripe). */
+/** @brief  Contains entries inside a single zone (a narrow declination stripe). */
 template <typename EntryType>
 class Zone {
 
@@ -99,7 +99,7 @@ public :
 
     void init(int32_t const capacity);
 
-    /*! Inserts the given data item into the zone. */
+    /// Inserts the given data item into the zone.
     void insert(DataType * const data, ChunkType * const chunk, int32_t const index) {
         int32_t const sz = _size;
         if (sz == _capacity) {
@@ -113,13 +113,13 @@ public :
 
     void grow();
 
-    /*! Returns the number of entries in the zone. */
+    /// Returns the number of entries in the zone.
     int32_t size() const { return _size; }
 
-    /*! Empties the zone (without deallocating/shrinking memory). */
+    /// Empties the zone (without deallocating/shrinking memory).
     void clear() { _size = 0; }
 
-    /*! Finds the last entry with ra less than or equal to the specified value. */
+    /// Finds the last entry with ra less than or equal to the specified value.
     int32_t findLte(uint32_t const ra) {
         EntryType const * const entries = _entries;
         int32_t   const         last    = _size - 1;
@@ -140,7 +140,7 @@ public :
         return (i < 0) ? last : i;
     }
 
-    /*! Finds the first entry with ra greater than or equal to the specified value. */
+    /// Finds the first entry with ra greater than or equal to the specified value.
     int32_t findGte(uint32_t const ra) const {
         EntryType const * const entries = _entries;
         int32_t   const         end     = _size;
@@ -168,7 +168,7 @@ public :
 };
 
 
-/*! \brief  Container for a sequence of adjacent zones. */
+/** @brief  Container for a sequence of adjacent zones. */
 template <typename EntryType>
 class ZoneIndex :
     public  lsst::mwi::data::Citizen,
@@ -200,7 +200,7 @@ public :
     template <typename FilterType>   size_t pack (FilterType   & filter);
     template <typename FunctionType> void   apply(FunctionType & function);
 
-    /*! Inserts the given data item from the given chunk into the index. */
+    /// Inserts the given data item from the given chunk into the index.
     void insert(DataType * const data, ChunkType * const chunk, int32_t const index) {
         int32_t const zone = _zsc.decToZone(data->getDec());
         if (zone >= _minZone && zone <= _maxZone) {
@@ -208,13 +208,13 @@ public :
         }
     }
 
-    /*! Returns the smallest zone id in the index. */
+    /// Returns the smallest zone id in the index.
     int32_t getMinZone() const { return _minZone; }
 
-    /*! Returns the largest zone id in the index. */
+    /// Returns the largest zone id in the index.
     int32_t getMaxZone() const { return _maxZone; }
 
-    /*! Returns a pointer to the zone with the given id, or 0 if the requested zone isn't in the index. */
+    /// Returns a pointer to the zone with the given id, or 0 if the requested zone isn't in the index.
     ZoneType * getZone(int32_t const zone) {
         if (zone >= _minZone && zone <= _maxZone) {
             return &_zones[zone - _minZone];
@@ -222,8 +222,10 @@ public :
         return 0;
     }
 
-    /*! Returns a pointer to the first zone in the index within the given id range,
-        or 0 if there is no such zone. */
+    /**
+     * Returns a pointer to the first zone in the index within the given id range,
+     * or 0 if there is no such zone.
+     */
     ZoneType * firstZone(int32_t const minZone, int32_t const maxZone) {
         if (maxZone < _minZone || minZone > _maxZone) {
             return 0;
@@ -234,8 +236,10 @@ public :
         return &_zones[minZone - _minZone];
     }
 
-    /*! Returns a pointer to the zone following the last zone in the index within the given id range,
-        or 0 if there is no such zone. */
+    /**
+     * Returns a pointer to the zone following the last zone in the index within the given id range,
+     * or 0 if there is no such zone.
+     */
     ZoneType * endZone(int32_t const minZone, int32_t const maxZone) {
         if (maxZone < _minZone || minZone > _maxZone) {
             return 0;

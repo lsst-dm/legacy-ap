@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Fifo.h
-//! \brief  A fixed capacity FIFO buffer for integers.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   A fixed capacity FIFO buffer for integers.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_FIFO_H
 #define LSST_AP_FIFO_H
@@ -21,7 +21,7 @@ namespace lsst {
 namespace ap {
 
 
-/*! \brief  A First In, First Out (FIFO) queue of fixed capacity. */
+/** @brief  A First In, First Out (FIFO) queue of fixed capacity. */
 template <int NumEntries>
 class Fifo : private boost::noncopyable {
 
@@ -30,31 +30,31 @@ class Fifo : private boost::noncopyable {
 
 public :
 
-    /*! Creates an empty Fifo. */
+    /// Creates an empty Fifo.
     Fifo() { clear(); }
 
 
-    /*! Empties the Fifo. */
+    /// Empties the Fifo.
     void clear() {
         _size  = 0;
         _back  = 0;
         _front = 0;
     }
 
-    /*! Returns \c true if the Fifo is empty */
+    /// Returns @c true if the Fifo is empty
     bool empty() const {
         return _size == 0;
     }
 
-    /*! Returns \c true if the Fifo is full */
+    /// Returns @c true if the Fifo is full
     bool full() const {
         return _size == NumEntries;
     }
 
-    /*!
-        Inserts the given integer into the Fifo.
-
-        \throw lsst::mwi::exceptions::LengthError   Thrown if the Fifo is full.
+    /**
+     * Inserts the given integer into the Fifo.
+     *
+     * @throw lsst::mwi::exceptions::LengthError    Thrown if the Fifo is full.
      */
     void enqueue(int64_t const elt) {
         int sz = _size;
@@ -67,10 +67,10 @@ public :
         _size      = sz + 1;
     }
 
-    /*!
-        Removes the least recently inserted integer from the Fifo.
-
-        \throw lsst::mwi::exceptions::LengthError   Thrown if the Fifo is empty.
+    /**
+     * Removes the least recently inserted integer from the Fifo.
+     *
+     * @throw lsst::mwi::exceptions::LengthError   Thrown if the Fifo is empty.
      */
     int64_t dequeue() {
         int sz = _size;

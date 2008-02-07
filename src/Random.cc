@@ -1,61 +1,60 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Random.cc
-//! \brief  Implementation of random number generation and point
-//!         generation/perturbation.
-//!
-//! This code is nearly identical to code by Makoto Matsumoto and Takuji Nishimura, which
-//! carries the following license:
-//!
-//! <pre>
-//! Copyright (C) 2004, Makoto Matsumoto and Takuji Nishimura,
-//! All rights reserved.
-//!
-//! Redistribution and use in source and binary forms, with or without
-//! modification, are permitted provided that the following conditions
-//! are met:
-//!
-//!   1. Redistributions of source code must retain the above copyright
-//!      notice, this list of conditions and the following disclaimer.
-//!
-//!   2. Redistributions in binary form must reproduce the above copyright
-//!      notice, this list of conditions and the following disclaimer in the
-//!      documentation and/or other materials provided with the distribution.
-//!
-//!   3. The names of its contributors may not be used to endorse or promote
-//!      products derived from this software without specific prior written
-//!      permission.
-//!
-//! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//! "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//! LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//! A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-//! CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-//! EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-//! PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-//! PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-//! LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-//! NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-//! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//!
-//! References:
-//! T. Nishimura, ``Tables of 64-bit Mersenne Twisters''
-//!   ACM Transactions on Modeling and
-//!   Computer Simulation 10. (2000) 348--357.
-//! M. Matsumoto and T. Nishimura,
-//!   ``Mersenne Twister: a 623-dimensionally equidistributed
-//!     uniform pseudorandom number generator''
-//!   ACM Transactions on Modeling and
-//!   Computer Simulation 8. (Jan. 1998) 3--30.
-//!
-//! Any feedback is very welcome.
-//! http://www.math.hiroshima-u.ac.jp/~m-mat/MT/emt.html
-//! email: m-mat @ math.sci.hiroshima-u.ac.jp (remove spaces)
-//! </pre>
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of random number generation and point generation/perturbation.
+ *
+ * @ingroup associate
+ *
+ * This code is nearly identical to code by Makoto Matsumoto and Takuji Nishimura, which
+ * carries the following license:
+ *
+ * <pre>
+ * Copyright (C) 2004, Makoto Matsumoto and Takuji Nishimura,
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *
+ *   3. The names of its contributors may not be used to endorse or promote
+ *      products derived from this software without specific prior written
+ *      permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * References:
+ * T. Nishimura, ``Tables of 64-bit Mersenne Twisters''
+ *   ACM Transactions on Modeling and
+ *   Computer Simulation 10. (2000) 348--357.
+ * M. Matsumoto and T. Nishimura,
+ *   ``Mersenne Twister: a 623-dimensionally equidistributed
+ *     uniform pseudorandom number generator''
+ *   ACM Transactions on Modeling and
+ *   Computer Simulation 8. (Jan. 1998) 3--30.
+ *
+ * Any feedback is very welcome.
+ * http://www.math.hiroshima-u.ac.jp/~m-mat/MT/emt.html
+ * email: m-mat @ math.sci.hiroshima-u.ac.jp (remove spaces)
+ * </pre>
+ */
 
 #include <cassert>
 #include <cmath>
@@ -180,10 +179,10 @@ static void initRand(TimeSpec const & ts) {
 } // end of anonymous namespace
 
 
-/*!
-    Initializes the random number generation functions with the current system time. Calls subsequent
-    to the first initRandom() call will have no effect. N.b. random number generation routines are 
-    \b not thread safe!
+/**
+ * Initializes the random number generation functions with the current system time. Calls subsequent
+ * to the first initRandom() call will have no effect. N.b. random number generation routines are 
+ * @b not thread safe!
  */
 LSST_AP_API void initRandom() {
     static bool called = false;
@@ -209,19 +208,19 @@ LSST_AP_API void initRandom() {
 }
 
 
-/*! Returns uniformly distributed random numbers in the range [0,1). */
+/// Returns uniformly distributed random numbers in the range [0,1).
 LSST_AP_API double uniformRandom() {
     return (genRand64() >> 11) * (1.0/9007199254740992.0);
 }
 
 
-/*! Returns uniformly distributed random numbers in the range [0,1]. */
+/// Returns uniformly distributed random numbers in the range [0,1].
 LSST_AP_API double uniformRandom1() {
     return (genRand64() >> 11) * (1.0/9007199254740991.0);
 }
 
 
-/*! Returns normally distributed random numbers (with a standard deviation of 1). */
+/// Returns normally distributed random numbers (with a standard deviation of 1).
 LSST_AP_API double normalRandom() {
     // Use Box-Muller transform to get a normal distribution
     // from the uniform distribution
@@ -238,8 +237,10 @@ LSST_AP_API double normalRandom() {
 }
 
 
-/*! Performs a weighted coin toss: returns \c true with probability \a p and \c false
-    with probability 1 - \a p. */
+/**
+ * Performs a weighted coin toss: returns @c true with probability @a p and @c false
+ * with probability 1 - @a p.
+ */
 LSST_AP_API bool coinToss(double const p) {
     return (uniformRandom() <= p);
 }
@@ -271,19 +272,19 @@ static double randomDec(double const decMin, double const decMax) {
 }
 
 
-/*!
-    Randomly perturbs the point such that the results are distributed according to a normal
-    distribution centered on the original point and having a standard deviation of \a sigma
-    degrees.
+/**
+ * Randomly perturbs the point such that the results are distributed according to a normal
+ * distribution centered on the original point and having a standard deviation of @a sigma
+ * degrees.
  */
 Point & Point::perturb(double const sigma) {
     return perturb(sigma, uniformRandom()*360.0);
 }
 
 
-/*!
-    Randomly perturbs the point in the direction given by the specified position angle so that the
-    distance to the original point is normally distributed with a standard deviation of \a sigma degrees.
+/**
+ * Randomly perturbs the point in the direction given by the specified position angle so that the
+ * distance to the original point is normally distributed with a standard deviation of @a sigma degrees.
  */
 Point & Point::perturb(double const sigma, double const pa) {
 
@@ -340,7 +341,7 @@ Point & Point::perturb(double const sigma, double const pa) {
 }
 
 
-/*! Returns the angular distance to the given point (in degrees). */
+/// Returns the angular distance to the given point (in degrees).
 double Point::distance(Point const & p) const {
 
     double sra  = std::sin(radians(_ra));
@@ -365,7 +366,7 @@ double Point::distance(Point const & p) const {
 }
 
 
-/*! Picks a point uniformly at random on the unit sphere.*/
+/// Picks a point uniformly at random on the unit sphere.
 Point const Point::random() {
     double z   = -1.0 + 2.0*uniformRandom1();
     double dec = degrees(std::asin(z));
@@ -374,13 +375,13 @@ Point const Point::random() {
 }
 
 
-/*! Picks a point uniformly at random in the specified dec band. */
+/// Picks a point uniformly at random in the specified dec band.
 Point const Point::random(double const decMin, double const decMax) {
     return Point(uniformRandom1()*360.0, randomDec(decMin, decMax));
 }
 
 
-/*! Picks a point uniformly at random in the specified box. */
+/// Picks a point uniformly at random in the specified box.
 Point const Point::random(
     double const raMin,
     double const raMax,

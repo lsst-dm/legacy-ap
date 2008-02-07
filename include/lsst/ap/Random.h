@@ -1,12 +1,12 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Random.h
-//! \brief  Methods for random number generation and randomly perturbing points,
-//!         based on Mersenne-Twister code by T. Nishimura and M. Matsumoto.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Methods for random number generation and randomly perturbing points,
+ *          based on Mersenne-Twister code by T. Nishimura and M. Matsumoto.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_RANDOM_H
 #define LSST_AP_RANDOM_H
@@ -27,10 +27,10 @@ LSST_AP_API double normalRandom();
 LSST_AP_API bool coinToss(double const p);
 
 
-/*!
-    \brief  A point on the unit sphere (sky), specified in spherical polar coordinates..
-
-    The units of all angles (stored or passed to member functions) are degrees.
+/**
+ * @brief   A point on the unit sphere (sky), specified in spherical polar coordinates.
+ *
+ * The units of all angles (stored or passed to member functions) are degrees.
  */
 struct LSST_AP_API Point {
 

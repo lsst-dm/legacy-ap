@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Condition.cc
-//! \brief  Implementation of POSIX condition variable wrappers.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Implementation of POSIX condition variable wrappers.
+ *
+ * @ingroup associate
+ */
 
 #include <pthread.h>
 

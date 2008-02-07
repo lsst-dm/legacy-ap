@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ResultIoTest.cc
-//! \brief  Testing of IO for association pipeline results.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Tests for association pipeline result IO.
+ *
+ * @ingroup associate
+ */
 
 #include <unistd.h>
 

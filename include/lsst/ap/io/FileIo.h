@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   FileIo.h
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Low-level sequential file IO classes.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_IO_FILE_IO_H
 #define LSST_AP_IO_FILE_IO_H
@@ -25,7 +26,7 @@ namespace ap {
 namespace io {
 
 
-/*! \brief  Abstract base class for sequential I/O classes. */
+/** @brief  Abstract base class for sequential I/O classes. */
 class LSST_AP_API SequentialIoBase {
 
 public :
@@ -40,13 +41,13 @@ public :
 
     virtual ~SequentialIoBase() = 0;
 
-    /*! Returns \c true if there are no more bytes available for reading. */
+    /// Returns @c true if there are no more bytes available for reading.
     bool finished() const { return _state == FINISHED; }
 
-    /*! Returns \c true if a read operation failed. */
+    /// Returns @c true if a read operation failed.
     bool failed() const { return _state == FAILED; }
 
-    /*! Returns the state of the SequentialReader. */
+    /// Returns the state of the SequentialReader.
     State getState() const { return _state; }
 
 protected :
@@ -55,33 +56,33 @@ protected :
 };
 
 
-/*! \brief  Abstract base class for reading a stream of data in sequential fashion. */
+/** @brief  Abstract base class for reading a stream of data in sequential fashion. */
 class LSST_AP_API SequentialReader : public SequentialIoBase {
 
 public :
 
-    /*!
-        Reads up to \a len bytes from an underlying storage device into \a buf
-        and returns the number of bytes actually read.
+    /**
+     * Reads up to @a len bytes from an underlying storage device into @a buf
+     * and returns the number of bytes actually read.
      */
     virtual size_t read(uint8_t * const buf, size_t const len) = 0;
 };
 
 
-/*! \brief  Abstract base class for writing a stream of data in sequential fashion. */
+/** @brief  Abstract base class for writing a stream of data in sequential fashion. */
 class LSST_AP_API SequentialWriter : public SequentialIoBase {
 
 public :
 
-    /*! Writes \a len bytes from \a buf to the underlying storage device, */
+    /// Writes @a len bytes from @a buf to the underlying storage device.
     virtual void write(uint8_t const * const buf, size_t const len) = 0;
 
-    /*! Moves modified data to the underlying storage device and marks the SequentialWriter as finished. */
+    /// Moves modified data to the underlying storage device and marks the SequentialWriter as finished.
     virtual void finish() = 0;
 };
 
 
-/*! \brief  A sequential reader for uncompressed files. Uses standard (blocking) IO calls. */
+/** @brief  A sequential reader for uncompressed files. Uses standard (blocking) IO calls. */
 class LSST_AP_API SequentialFileReader :
     public  SequentialReader,
     private boost::noncopyable
@@ -108,7 +109,7 @@ private :
 };
 
 
-/*! \brief  A sequential writer for uncompressed files. Uses standard (blocking) IO calls. */
+/** @brief  A sequential writer for uncompressed files. Uses standard (blocking) IO calls. */
 class LSST_AP_API SequentialFileWriter :
     public  SequentialWriter,
     private boost::noncopyable
@@ -137,11 +138,11 @@ private :
 };
 
 
-/*!
-    \brief  A sequential reader for compressed files that uses asynchronous IO
-            to overlap IO with decompression.
-
-    Gzip compatible files, or files written with zlib compression can be read by this class.
+/**
+ * @brief   A sequential reader for compressed files that uses asynchronous IO
+ *          to overlap IO with decompression.
+ *
+ * Gzip compatible files, or files written with zlib compression can be read by this class.
  */
 class LSST_AP_API CompressedFileReader : public SequentialReader {
 
@@ -161,14 +162,14 @@ public :
 private :
 
     boost::scoped_array<uint8_t> _memory;
-    uint8_t *                    _buffers; //!< aligned input buffers
+    uint8_t *                    _buffers; ///< aligned input buffers
 
-    ::z_stream   _stream;       //!< zlib state
-    ::aiocb      _request;      //!< Outstanding IO request
-    size_t const _blockSize;    //!< read granularity
-    size_t       _fileSize;     //!< Size of the file being read
-    size_t       _remaining;    //!< Bytes that haven't yet been read
-    int          _fd;           //!< file descriptor
+    ::z_stream   _stream;       ///< zlib state
+    ::aiocb      _request;      ///< Outstanding IO request
+    size_t const _blockSize;    ///< read granularity
+    size_t       _fileSize;     ///< Size of the file being read
+    size_t       _remaining;    ///< Bytes that haven't yet been read
+    int          _fd;           ///< file descriptor
 
     void cleanup();
     void cleanup(State const state) {
@@ -178,11 +179,11 @@ private :
 };
 
 
-/*!
-    \brief  A sequential writer for compressed files that uses asynchronous IO
-            to overlap IO with compression.
-
-    Gzip compatible files are written by this class.
+/**
+ * @brief   A sequential writer for compressed files that uses asynchronous IO
+ *          to overlap IO with compression.
+ *
+ * Gzip compatible files are written by this class.
  */
 class LSST_AP_API CompressedFileWriter : public SequentialWriter {
 
@@ -205,11 +206,11 @@ public :
 private :
 
     boost::scoped_array<uint8_t> _memory;
-    uint8_t *                    _buffers; //!< aligned output buffers
+    uint8_t *                    _buffers; ///< aligned output buffers
 
-    ::z_stream   _stream;       //!< zlib state
-    ::aiocb      _request;      //!< Outstanding IO request
-    size_t const _blockSize;    //!< read granularity
+    ::z_stream   _stream;       ///< zlib state
+    ::aiocb      _request;      ///< Outstanding IO request
+    size_t const _blockSize;    ///< read granularity
     int          _fd;
     bool         _started;
 

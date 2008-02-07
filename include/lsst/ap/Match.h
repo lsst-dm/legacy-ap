@@ -1,27 +1,27 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Match.h
-//! \brief  Spatial crossmatch algorithms.
-//!
-//! The spatial crossmatch routines currently implemented take match list (or pair) processors
-//! as parameters. In this model, a processor could for example be some part of the LSST alert
-//! generation pipeline. More likely, it will be something that sets various flags on entities
-//! involved in the match and/or records matches in some form (e.g. as an id-id pair) for later
-//! use.
-//!
-//! Note that the routines currently don't do anything special (like match-processing) for cases
-//! where no matches to a given entity are found. The routines could be extended with a
-//! no-match-processor parameter, or the existing processors could simply be called with empty
-//! match lists. Finally, the user could write a match processor that flags all entities involved
-//! in a match, and then post-process over unflagged entities.
-//!
-//! Note that a single match pair/list processor instance is used by all threads involved
-//! in a parallel match. Ensuring that this doesn't cause problems is the responsibility of the
-//! match pair/list processor author.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Spatial crossmatch algorithms.
+ *
+ * The spatial crossmatch routines currently implemented take match list (or pair) processors
+ * as parameters. In this model, a processor could for example be some part of the LSST alert
+ * generation pipeline. More likely, it will be something that sets various flags on entities
+ * involved in the match and/or records matches in some form (e.g. as an id-id pair) for later
+ * use.
+ *
+ * Note that the routines currently don't do anything special (like match-processing) for cases
+ * where no matches to a given entity are found. The routines could be extended with a
+ * no-match-processor parameter, or the existing processors could simply be called with empty
+ * match lists. Finally, the user could write a match processor that flags all entities involved
+ * in a match, and then post-process over unflagged entities.
+ *
+ * Note that a single match pair/list processor instance is used by all threads involved
+ * in a parallel match. Ensuring that this doesn't cause problems is the responsibility of the
+ * match pair/list processor author.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_MATCH_H
 #define LSST_AP_MATCH_H
@@ -44,16 +44,14 @@ namespace lsst {
 namespace ap {
 
 
-/*! \brief  A default "let everything through" filter implementation. */
+/** @brief  A default "let everything through" filter implementation. */
 template <typename T>
 struct PassthroughFilter {
     bool operator() (T const &) { return true; }
 };
 
 
-/*!
-    \brief  Contains a pointer to a match and an associated distance.
- */
+/** @brief  Contains a pointer to a match and an associated distance. */
 template <typename T>
 struct MatchWithDistance {
 
@@ -72,7 +70,7 @@ struct MatchWithDistance {
 };
 
 
-/*! \brief Contains a pointer to a match. */
+/** @brief Contains a pointer to a match. */
 template <typename T>
 struct MatchWithoutDistance {
 
@@ -87,7 +85,7 @@ struct MatchWithoutDistance {
 };
 
 
-/*! \brief  A default "do nothing" match list processing implementation. */
+/** @brief  A default "do nothing" match list processing implementation. */
 template <typename F, typename M>
 struct EmptyMatchListProcessor {
 
@@ -98,31 +96,31 @@ struct EmptyMatchListProcessor {
 };
 
 
-/*! \brief  A default "do nothing" match pair processing implementation. */
+/** @brief  A default "do nothing" match pair processing implementation. */
 template <typename F, typename S>
 struct EmptyMatchPairProcessor {
     inline void operator() (F & first, S & second) {}
 };
 
 
-/*!
-    Spatial cross-match routine -- finds match pairs in a first and a second set of
-    entities (both subject to filtering), where both sets consist of points. An entity from
-    the second set is deemed a match to an entity from the first set if the two are within
-    the given angle of eachother. All matches for a given entity in the first set are found
-    at once, and sent off to a match list processor for further inspection.
-
-    This routine is optimized for the case where few matches are expected for any given entity.
-
-    \pre \code radius >= 0 \endcode
-
-    \param[in] first                A first set of entities.
-    \param[in] second               A second set of entities.
-    \param[in] radius               The match-radius (in degrees).
-    \param[in] firstFilter          A filter on the first set of entities.
-    \param[in] secondFilter         A filter on the second set of entities.
-    \param[in] matchListProcessor   A processor for match lists.
-    \return                         The number of match pairs found.
+/**
+ * Spatial cross-match routine -- finds match pairs in a first and a second set of
+ * entities (both subject to filtering), where both sets consist of points. An entity from
+ * the second set is deemed a match to an entity from the first set if the two are within
+ * the given angle of eachother. All matches for a given entity in the first set are found
+ * at once, and sent off to a match list processor for further inspection.
+ *
+ * This routine is optimized for the case where few matches are expected for any given entity.
+ *
+ * @pre @code radius >= 0 @endcode
+ *
+ * @param[in] first                 A first set of entities.
+ * @param[in] second                A second set of entities.
+ * @param[in] radius                The match-radius (in degrees).
+ * @param[in] firstFilter           A filter on the first set of entities.
+ * @param[in] secondFilter          A filter on the second set of entities.
+ * @param[in] matchListProcessor    A processor for match lists.
+ * @return                          The number of match pairs found.
  */
 template <
     typename FirstEntryType,
@@ -350,24 +348,24 @@ size_t distanceMatch(
 }
 
 
-/*!
-    Spatial cross-match routine -- finds match pairs in a first and a second set of entities
-    (both subject to filtering), where the first set consists of ellipses and the second of
-    points. An entity in the second set is deemed a match for an entity in the first set if it
-    is within the ellipse defined by the first entity. Note -- this particular routine does
-    not package up all matches for a given ellipse before sending them off to a match list
-    processor. Instead, it reports match pairs to a match pair processor in no particular order.
-    The routine is also currently single threaded. For a parallel routine that uses a
-    match list processor, see ellipseGroupedMatch(). The advantage of this routine is that it
-    should have much better memory access patterns (smaller cache footprint, more sequential
-    access) in the presence of ellipses with wildly varying size.
-
-    \param[in] first                A first set of entities.
-    \param[in] second               A second set of entities.
-    \param[in] firstFilter          A filter on the first set of entities.
-    \param[in] secondFilter         A filter on the second set of entities.
-    \param[in] matchPairProcessor   A processor for match pairs.
-    \return                         The number of match pairs found.
+/**
+ * Spatial cross-match routine -- finds match pairs in a first and a second set of entities
+ * (both subject to filtering), where the first set consists of ellipses and the second of
+ * points. An entity in the second set is deemed a match for an entity in the first set if it
+ * is within the ellipse defined by the first entity. Note -- this particular routine does
+ * not package up all matches for a given ellipse before sending them off to a match list
+ * processor. Instead, it reports match pairs to a match pair processor in no particular order.
+ * The routine is also currently single threaded. For a parallel routine that uses a
+ * match list processor, see ellipseGroupedMatch(). The advantage of this routine is that it
+ * should have much better memory access patterns (smaller cache footprint, more sequential
+ * access) in the presence of ellipses with wildly varying size.
+ *
+ * @param[in] first                 A first set of entities.
+ * @param[in] second                A second set of entities.
+ * @param[in] firstFilter           A filter on the first set of entities.
+ * @param[in] secondFilter          A filter on the second set of entities.
+ * @param[in] matchPairProcessor    A processor for match pairs.
+ * @return                          The number of match pairs found.
  */
 template <
     typename FirstEntryType,
@@ -506,19 +504,19 @@ size_t ellipseMatch(
 }
 
 
-/*!
-    Spatial cross-match routine -- finds match pairs in a first and a second set of entities
-    (both subject to filtering), where the first set consists of ellipses and the second of
-    points. An entity in the second set is deemed a match for an entity in the first set if it
-    is within the ellipse defined by the first entity. All matches for a given ellipse are found
-    at once and sent off to a match list processor for further inspection.
-
-    \param[in] first                A first set of entities.
-    \param[in] second               A second set of entities.
-    \param[in] firstFilter          A filter on the first set of entities.
-    \param[in] secondFilter         A filter on the second set of entities.
-    \param[in] matchListProcessor   A processor for match lists.
-    \return                         The number of match pairs found.
+/**
+ * Spatial cross-match routine -- finds match pairs in a first and a second set of entities
+ * (both subject to filtering), where the first set consists of ellipses and the second of
+ * points. An entity in the second set is deemed a match for an entity in the first set if it
+ * is within the ellipse defined by the first entity. All matches for a given ellipse are found
+ * at once and sent off to a match list processor for further inspection.
+ *
+ * @param[in] first                 A first set of entities.
+ * @param[in] second                A second set of entities.
+ * @param[in] firstFilter           A filter on the first set of entities.
+ * @param[in] secondFilter          A filter on the second set of entities.
+ * @param[in] matchListProcessor    A processor for match lists.
+ * @return                          The number of match pairs found.
  */
 template <
     typename FirstEntryType,

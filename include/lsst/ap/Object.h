@@ -1,11 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   Object.h
-//! \brief  C++ representations of an LSST Object.
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   C++ representations of an LSST Object.
+ *
+ * @ingroup associate
+ */
 
 #ifndef LSST_AP_OBJECT_H
 #define LSST_AP_OBJECT_H
@@ -22,11 +22,11 @@ namespace lsst {
 namespace ap {
 
 
-/*!
-    \brief  A simplified Object representation containing only id, position and
-            per-filter variability probabilities.
-
-    This is sufficient for performing spatial crosss matches. None of these fields may ever be NULL.
+/**
+ * @brief   A simplified Object representation containing only id, position and
+ *          per-filter variability probabilities.
+ *
+ * This is sufficient for performing spatial crosss matches. None of these fields may ever be NULL.
  */
 class LSST_AP_API SimpleObject {
 
@@ -51,12 +51,12 @@ inline bool operator!=(SimpleObject const & o1, SimpleObject const & o2) {
 }
 
 
-/*! \brief  A well named class. */
+/** @brief  A well named class. */
 class LSST_AP_LOCAL PerFilterObjectData {
 
 public :
 
-    /*! \brief  Nullable field ordinals, counting from 0. */
+    /** @brief  Nullable field ordinals, counting from 0. */
     enum NullableField {
         MAG = 0,
         MAG_ERR,
@@ -123,24 +123,24 @@ public :
 };
 
 
-/*!
-    \brief  Contains data for Object records.
-
-    This is a memory critical structure - for some AP designs, tens of millions of instances
-    can be held in memory.
-
-    This structure is derived from the <b>DC2</b> version of the LSST MySQL schema, where the Object and
-    ObjectPhotoZ schema have been merged (storage for two sets of redshift parameters is provided).
-
-    The C++ version consists of a per-filter structure and a common header, and columns are sorted
-    by type size. This minimizes the number of padding bytes the compiler must insert to meet type
-    alignment requirements.
-*/
+/**
+ * @brief  Contains data for Object records.
+ *
+ * This is a memory critical structure - for some AP designs, tens of millions of instances
+ * can be held in memory.
+ *
+ * This structure is derived from the <b>DC2</b> version of the LSST MySQL schema, where the Object and
+ * ObjectPhotoZ schema have been merged (storage for two sets of redshift parameters is provided).
+ *
+ * The C++ version consists of a per-filter structure and a common header, and columns are sorted
+ * by type size. This minimizes the number of padding bytes the compiler must insert to meet type
+ * alignment requirements.
+ */
 class LSST_AP_LOCAL Object {
 
 public :
 
-    /*! \brief  Nullable field ordinals for header (non filter specific) fields. */
+    /** @brief  Nullable field ordinals for header (non filter specific) fields. */
     enum NullableField {
         MU_RA = 0,
         MU_DECL,

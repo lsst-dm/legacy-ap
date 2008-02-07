@@ -1,10 +1,11 @@
 // -*- lsst-c++ -*-
-//
-//##====----------------                                ----------------====##/
-//
-//! \file   ScopeGuard.cc
-//
-//##====----------------                                ----------------====##/
+
+/**
+ * @file
+ * @brief   Static members for ScopeGuard.
+ *
+ * @ingroup associate
+ */
 
 #include <lsst/ap/ScopeGuard.h>
 
