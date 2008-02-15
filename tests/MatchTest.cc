@@ -116,23 +116,26 @@ struct BogusChunk {
 };
 
 
-// explicit instantiations and helpful typedefs
-template class ZoneEntry<BogusChunk>;
-template class Ellipse<TestDatum>;
-
 typedef ZoneEntry<BogusChunk>      ZeType;
 typedef Ellipse<TestDatum>         EllType;
 typedef PassthroughFilter<ZeType>  FiltType;
 typedef PassthroughFilter<EllType> EllFiltType;
 typedef MatchWithDistance<ZeType>  MatchType;
+typedef ZoneIndex<ZeType>      ZiType;
+typedef EllipseList<TestDatum> EllListType;
 
+} // end of anonymous namespace
+
+
+// explicit instantiations
+template class ZoneEntry<BogusChunk>;
+template class Ellipse<TestDatum>;
 template class Zone<ZeType>;
 template class ZoneIndex<ZeType>;
 template class EllipseList<TestDatum>;
 
-typedef ZoneIndex<ZeType>      ZiType;
-typedef EllipseList<TestDatum> EllListType;
 
+namespace {
 
 // Scrutinizes incoming match lists and validates them
 struct MlProcessor {
@@ -211,6 +214,8 @@ void EmlProcessor::operator()(EllType & e, MatchIteratorType begin, MatchIterato
     }
 }
 
+} // end of anonymous namespace
+
 
 // explicit instantiations of match routines
 
@@ -239,6 +244,8 @@ template size_t ellipseGroupedMatch<TestDatum, ZeType, EllFiltType, FiltType, Em
     EmlProcessor &
 );
 
+
+namespace {
 
 // builds test data for distance based matching of points
 void buildPoints(

@@ -36,13 +36,20 @@ typedef BlockAllocator<SharedMutex, SimpleObject> SimpleObjectAllocator;
 
 /// @cond
 template class BlockAllocator<SharedMutex, SimpleObject>;
-template class Chunk<SimpleObjectAllocator, SimpleObject>;
 template class SubManager<SharedMutex, SimpleObject>;
 template class ChunkManagerSingleImpl<SharedMutex, SimpleObject>;
 /// @endcond
 
 typedef ChunkManagerSingleImpl<SharedMutex, SimpleObject> SSObjChunkMgr;
 
+} // end of namespace detail
+
+///@ cond
+template class Chunk<detail::SimpleObjectAllocator, SimpleObject>;
+///@ endcond
+
+
+namespace detail {
 
 // -- Shared memory implementation details ----------------
 

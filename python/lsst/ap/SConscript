@@ -1,5 +1,14 @@
 # -*- python -*-
 Import("env")
 
+# env.CheckSwig() overwrites SWIGFLAGS completely, so save it's value before proceding
+flags = ''
+try:
+    flags = env['SWIGFLAGS']
+except:
+    pass
+
 env.CheckSwig("python", ilang="c++", includedProducts="mwi")
+env.Append(SWIGFLAGS = flags)
+
 env.LoadableModuleIncomplete("_interface", Split("interface.i"), LIBS=env.getlibs("associate mwi"))

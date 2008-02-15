@@ -147,9 +147,10 @@ static int8_t sVarProbThreshold[lsst::fw::Filter::NUM_FILTERS] = {
 static std::string sFilterTableLocation(DEF_DB_LOCATION);
 
 
-namespace detail {
 
 // -- Typedefs and templates for chunks and spatial indexes ----------------
+
+namespace detail {
 
 typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SimpleObjectChunk;
 
@@ -160,19 +161,20 @@ typedef ZoneEntry<DiaSourceChunk>       DiaSourceEntry;
 
 typedef Ellipse<lsst::fw::MovingObjectPrediction> MovingObjectEllipse;
 
+} // end of namespace detail
 
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
-template class ZoneEntry<SimpleObjectChunk>;
+template class ZoneEntry<detail::SimpleObjectChunk>;
 template class ZoneEntry<DiaSourceChunk>;
 
-template class Zone<SimpleObjectEntry>;
-template class Zone<DiaSourceEntry>;
+template class Zone<detail::SimpleObjectEntry>;
+template class Zone<detail::DiaSourceEntry>;
 
-template class ZoneIndex<SimpleObjectEntry>;
-template class ZoneIndex<DiaSourceEntry>;
+template class ZoneIndex<detail::SimpleObjectEntry>;
+template class ZoneIndex<detail::DiaSourceEntry>;
 
 template class Ellipse<lsst::fw::MovingObjectPrediction>;
 template class EllipseList<lsst::fw::MovingObjectPrediction>;
@@ -181,6 +183,8 @@ template class EllipseList<lsst::fw::MovingObjectPrediction>;
 #   pragma GCC visibility pop
 #endif
 
+
+namespace detail {
 
 // -- Match processors ----------------
 
@@ -441,6 +445,8 @@ void buildZoneIndex(
         DataProperty("time", watch.seconds()) << Rec::endr;
 }
 
+} // end of namespace detail
+
 
 // -- Template instantiations ----------------
 
@@ -448,43 +454,40 @@ void buildZoneIndex(
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
-template class ObjectMatchProcessor<SimpleObjectEntry>;
+template class detail::ObjectMatchProcessor<detail::SimpleObjectEntry>;
 
 template size_t distanceMatch<
-    DiaSourceEntry,
-    SimpleObjectEntry,
-    PassthroughFilter<DiaSourceEntry>,
-    PassthroughFilter<SimpleObjectEntry>,
-    ObjectMatchProcessor<SimpleObjectEntry>
+    detail::DiaSourceEntry,
+    detail::SimpleObjectEntry,
+    PassthroughFilter<detail::DiaSourceEntry>,
+    PassthroughFilter<detail::SimpleObjectEntry>,
+    detail::ObjectMatchProcessor<detail::SimpleObjectEntry>
 >(
-    ZoneIndex<DiaSourceEntry> &,
-    ZoneIndex<SimpleObjectEntry> &,
+    ZoneIndex<detail::DiaSourceEntry> &,
+    ZoneIndex<detail::SimpleObjectEntry> &,
     double const,
-    PassthroughFilter<DiaSourceEntry> &,
-    PassthroughFilter<SimpleObjectEntry> &,
-    ObjectMatchProcessor<SimpleObjectEntry> &
+    PassthroughFilter<detail::DiaSourceEntry> &,
+    PassthroughFilter<detail::SimpleObjectEntry> &,
+    detail::ObjectMatchProcessor<detail::SimpleObjectEntry> &
 );
 
 template size_t ellipseMatch<
     lsst::fw::MovingObjectPrediction,
-    DiaSourceEntry,
-    PassthroughFilter<MovingObjectEllipse>,
-    PassthroughFilter<DiaSourceEntry>,
-    MovingObjectPredictionMatchProcessor
+    detail::DiaSourceEntry,
+    PassthroughFilter<detail::MovingObjectEllipse>,
+    PassthroughFilter<detail::DiaSourceEntry>,
+    detail::MovingObjectPredictionMatchProcessor
 >(
     EllipseList<lsst::fw::MovingObjectPrediction> &,
-    ZoneIndex<DiaSourceEntry> &,
-    PassthroughFilter<MovingObjectEllipse> &,
-    PassthroughFilter<DiaSourceEntry> &,
-    MovingObjectPredictionMatchProcessor &
+    ZoneIndex<detail::DiaSourceEntry> &,
+    PassthroughFilter<detail::MovingObjectEllipse> &,
+    PassthroughFilter<detail::DiaSourceEntry> &,
+    detail::MovingObjectPredictionMatchProcessor &
 );
 /// @endcond
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility pop
 #endif
-
-
-} // end of namespace detail
 
 
 // -- VisitProcessingContext ----------------
