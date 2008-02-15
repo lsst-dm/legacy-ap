@@ -137,8 +137,8 @@ void MatchPairVectorFormatter::write(
             db->setTableForInsert(name);
             MatchPairVector::const_iterator const end(p->end());
             for (MatchPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("first",    i->_first);
-                db->setColumn<int64_t>("second",   i->_second);
+                db->setColumn<long long>("first",    i->_first);
+                db->setColumn<long long>("second",   i->_second);
                 db->setColumn<double> ("distance", i->_distance);
                 db->insertRow();
             }
@@ -151,8 +151,8 @@ void MatchPairVectorFormatter::write(
             db->setTableForInsert(name);
             MatchPairVector::const_iterator const end(p->end());
             for (MatchPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("first",    i->_first);
-                db->setColumn<int64_t>("second",   i->_second);
+                db->setColumn<long long>("first",    i->_first);
+                db->setColumn<long long>("second",   i->_second);
                 db->setColumn<double> ("distance", i->_distance);
                 db->insertRow();
             }
@@ -305,8 +305,8 @@ void IdPairVectorFormatter::write(
             db->setTableForInsert(name);
             IdPairVector::const_iterator const end(p->end());
             for (IdPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("first",  i->first);
-                db->setColumn<int64_t>("second", i->second);
+                db->setColumn<long long>("first",  i->first);
+                db->setColumn<long long>("second", i->second);
                 db->insertRow();
             }
         } else {
@@ -318,8 +318,8 @@ void IdPairVectorFormatter::write(
             db->setTableForInsert(name);
             IdPairVector::const_iterator const end(p->end());
             for (IdPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("first",  i->first);
-                db->setColumn<int64_t>("second", i->second);
+                db->setColumn<long long>("first",  i->first);
+                db->setColumn<long long>("second", i->second);
                 db->insertRow();
             }
         }
@@ -472,7 +472,7 @@ void IdVectorFormatter::write(
             db->setTableForInsert(name);
             IdVector::const_iterator const end(p->end());
             for (IdVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("id", *i);
+                db->setColumn<long long>("id", *i);
                 db->insertRow();
             }
         } else {
@@ -484,7 +484,7 @@ void IdVectorFormatter::write(
             db->setTableForInsert(name);
             IdVector::const_iterator const end(p->end());
             for (IdVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<int64_t>("id", *i);
+                db->setColumn<long long>("id", *i);
                 db->insertRow();
             }
         }
