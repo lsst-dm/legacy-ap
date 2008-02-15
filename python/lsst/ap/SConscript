@@ -1,14 +1,33 @@
 # -*- python -*-
+import re
+
 Import("env")
 
 # env.CheckSwig() overwrites SWIGFLAGS completely, so save it's value before proceding
-flags = ''
+swigflags = ''
 try:
-    flags = env['SWIGFLAGS']
+    swigflags = env['SWIGFLAGS']
+except:
+    pass
+# Wish to compile SWIG generated code specially - save CCFLAGS before modifying it.
+ccflags = ''
+swigccflags = ''
+try:
+    ccflags = env['CCFLAGS']
 except:
     pass
 
+# Find and remove compiler optimization flags
+swigccflags = re.sub('-O\d', '', str(ccflags), 1)
 env.CheckSwig("python", ilang="c++", includedProducts="mwi")
-env.Append(SWIGFLAGS = flags)
+
+# Append app specific SWIG flags to the environment
+env.Append(SWIGFLAGS = swigflags)
+
+# Make sure generated code is compiled without optimization and with strict aliasing turned off
+env.Replace(CCFLAGS = swigccflags + ' -fno-strict-aliasing')
 
 env.LoadableModuleIncomplete("_interface", Split("interface.i"), LIBS=env.getlibs("associate mwi"))
+
+# Restore standard CCFLAGS for other code
+env.Replace(CCFLAGS = ccflags)

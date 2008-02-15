@@ -47,9 +47,9 @@ int openFile(
 ) {
 
     int o = oflag;
-#if LSST_AP_HAVE_O_NOATIME // Linux: turn off last-access-time updates for the file (save on seeks)
-    o |= O_NOATIME;
-#endif
+//#if LSST_AP_HAVE_O_NOATIME // Linux: turn off last-access-time updates for the file (save on seeks)
+//    o |= O_NOATIME;
+//#endif
 
     // Open file
     int fd = ::open(fileName.c_str(), o, mode);

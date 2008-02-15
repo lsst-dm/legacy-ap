@@ -15,7 +15,10 @@ env.Program('unittests',
 
 env.Command('.tests/unittests', 'unittests', """
             @rm -f ${TARGET}.failed;
-            @if $SOURCES --log_level=message | tee $TARGET; then \
+            @rm -f ${TARGET}.fifo;
+            @mkfifo ${TARGET}.fifo;
+            @(tee ${TARGET} < ${TARGET}.fifo; rm -f ${TARGET}.fifo) &
+            @if $SOURCES --log_level=message > ${TARGET}.fifo 2>&1 ; then \
                echo "Hurray!" >> $TARGET; \
             else \
                mv $TARGET ${TARGET}.failed; \

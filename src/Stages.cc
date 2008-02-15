@@ -326,9 +326,14 @@ struct LSST_AP_LOCAL NewObjectCreator {
             _results.push_back(IdPair(id, obj._objectId));
 
             // find the chunk the new object belongs to and insert the new object into it
-            ChunkMapIteratorType c = _chunks.find(_zsc.radecToChunk(obj._ra, obj._decl));
+            int64_t const chunkId = _zsc.radecToChunk(obj._ra, obj._decl);
+            ChunkMapIteratorType c = _chunks.find(chunkId);
             if (c == _chunks.end()) {
-                LSST_AP_THROW(Runtime, "new object falls outside of object chunks covering the FOV");
+                LSST_AP_THROW(
+                    Runtime,
+                    boost::format("new object falls outside of object chunks covering the FOV: (%1%, %2%) in chunk %3%") %
+                        obj._ra % obj._decl % chunkId
+                );
             }
             c->second.insert(obj);
         }
