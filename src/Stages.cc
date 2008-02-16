@@ -331,7 +331,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
             if (c == _chunks.end()) {
                 LSST_AP_THROW(
                     Runtime,
-                    boost::format("new object falls outside of object chunks covering the FOV: (%1%, %2%) in chunk %3%") %
+                    boost::format("new object not in any chunk overlapping the FOV: (%1%, %2%) in chunk %3%") %
                         obj._ra % obj._decl % chunkId
                 );
             }
@@ -673,7 +673,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             context.getNumWorkers()
         );
         watch.stop();
-        Rec(log, Log::INFO) << "computed chunk ids in FOV for worker" <<
+        Rec(log, Log::INFO) << "computed chunk ids in FOV for worker " <<
             DataProperty("numChunks", static_cast<long>(context.getChunkIds().size())) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
@@ -931,7 +931,12 @@ LSST_AP_API void matchMops(
 
         // Create new objects from difference sources with no matches
         watch.start();
-        detail::NewObjectCreator createObjects(*newObjects, context.getChunks(), context.getDecomposition(), context.getFilter());
+        detail::NewObjectCreator createObjects(
+            *newObjects,
+            context.getChunks(),
+            context.getDecomposition(),
+            context.getFilter()
+        );
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
         Rec(log, Log::INFO) << "created new objects" <<
