@@ -295,7 +295,11 @@ LSST_AP_API void computeChunkIds(
     for (int32_t s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
 
         // round-robin stripes to workers
-        if (abs(s % numWorkers) != workerId) {
+        int32_t rem = s % numWorkers;
+        if (rem < 0) {
+            rem += numWorkers;
+        }
+        if (rem != workerId) {
             continue;
         }
 
@@ -378,7 +382,11 @@ LSST_AP_API void computeChunkIds(
     for (int32_t s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
 
         // round-robin stripes to workers
-        if (abs(s % numWorkers) != workerId) {
+        int32_t rem = s % numWorkers;
+        if (rem < 0) {
+            rem += numWorkers;
+        }
+        if (rem != workerId) {
             continue;
         }
 
