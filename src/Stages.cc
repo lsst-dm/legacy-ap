@@ -148,11 +148,11 @@ static std::string sFilterTableLocation(DEF_DB_LOCATION);
 
 
 
-// -- Typedefs and templates for chunks and spatial indexes ----------------
+// -- typedefs and templates for chunks and spatial indexes ----------------
 
 namespace detail {
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SimpleObjectChunk;
+typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SimpleObjectChunk;
 
 typedef std::vector<SimpleObjectChunk>  SimpleObjectChunkVector;
 
@@ -189,13 +189,13 @@ namespace detail {
 // -- Match processors ----------------
 
 /** @brief  Processor for lists of objects matching a difference source */
-template <typename ZoneEntryType>
+template <typename ZoneEntryT>
 class ObjectMatchProcessor {
 
 public :
 
-    typedef MatchWithDistance<ZoneEntryType>          MatchType;
-    typedef typename std::vector<MatchType>::iterator MatchIteratorType;
+    typedef MatchWithDistance<ZoneEntryT>         Match;
+    typedef typename std::vector<Match>::iterator MatchIterator;
 
     MatchPairVector        & _matches;
     lsst::fw::Filter const   _filter;
@@ -210,11 +210,11 @@ public :
         _threshold(sVarProbThreshold[filter])
     {}
 
-    void operator()(DiaSourceEntry & ds, MatchIteratorType begin, MatchIteratorType end) {
+    void operator()(DiaSourceEntry & ds, MatchIterator begin, MatchIterator end) {
         uint32_t flags = HAS_MATCH;
         do {
-            ZoneEntryType * const obj  = begin->_match;
-            double          const dist = degrees(begin->_distance);
+            ZoneEntryT * const obj  = begin->_match;
+            double       const dist = degrees(begin->_distance);
             ++begin;
             // record match results (to be persisted later)
             _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), dist));
@@ -231,8 +231,8 @@ public :
 /** @brief  Processor for matches between moving object predictions and difference sources. */
 struct LSST_AP_LOCAL MovingObjectPredictionMatchProcessor {
 
-    typedef DiaSourceEntry *                 MatchType;
-    typedef std::vector<MatchType>::iterator MatchIteratorType;
+    typedef DiaSourceEntry *             Match;
+    typedef std::vector<Match>::iterator MatchIterator;
 
     MatchPairVector & _results;
 
@@ -270,13 +270,13 @@ struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
 /** @brief  Records ids of difference sources with no matches. */
 struct LSST_AP_LOCAL NewObjectCreator {
 
-    typedef std::map<int64_t, SimpleObjectChunk> ChunkMapType;
-    typedef ChunkMapType::value_type             ChunkMapValueType;
-    typedef ChunkMapType::iterator               ChunkMapIteratorType;
+    typedef std::map<int64_t, SimpleObjectChunk> ChunkMap;
+    typedef ChunkMap::value_type             ChunkMapValue;
+    typedef ChunkMap::iterator               ChunkMapIterator;
 
     IdPairVector                       & _results;
     ZoneStripeChunkDecomposition const & _zsc;
-    std::map<int64_t, SimpleObjectChunk> _chunks;
+    ChunkMap                             _chunks;
     lsst::fw::Filter const               _filter;
     int64_t          const               _idNamespace;
 
@@ -295,7 +295,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
         // build a map of ids to chunks
         SimpleObjectChunkVector::iterator const end = chunks.end();
         for (SimpleObjectChunkVector::iterator i = chunks.begin(); i != end; ++i) {
-            _chunks.insert(ChunkMapValueType(i->getId(), *i));
+            _chunks.insert(ChunkMapValue(i->getId(), *i));
         }
     }
 
@@ -327,7 +327,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
 
             // find the chunk the new object belongs to and insert the new object into it
             int64_t const chunkId = _zsc.radecToChunk(obj._ra, obj._decl);
-            ChunkMapIteratorType c = _chunks.find(chunkId);
+            ChunkMapIterator c = _chunks.find(chunkId);
             if (c == _chunks.end()) {
                 LSST_AP_THROW(
                     Runtime,
@@ -343,16 +343,16 @@ struct LSST_AP_LOCAL NewObjectCreator {
 
 // -- Index creation ----------------
 
-template <typename EntryType>
+template <typename EntryT>
 void buildZoneIndex(
-    ZoneIndex<EntryType>                             & index,
-    std::vector<typename EntryType::ChunkType> const & chunks
+    ZoneIndex<EntryT>                         & index,
+    std::vector<typename EntryT::Chunk> const & chunks
 ) {
-    typedef typename EntryType::DataType             DataType;
-    typedef typename EntryType::ChunkType            ChunkType;
-    typedef          std::vector<ChunkType>          ChunkVectorType;
-    typedef typename ChunkVectorType::const_iterator ChunkIteratorType;
-    typedef typename ChunkVectorType::size_type      SizeType;
+    typedef typename EntryT::Data             Data;
+    typedef typename EntryT::Chunk            Chunk;
+    typedef          std::vector<Chunk>       ChunkVector;
+    typedef typename ChunkVector::const_iterator ChunkIterator;
+    typedef typename ChunkVector::size_type      Size;
 
     index.clear();
     if (chunks.empty()) {
@@ -365,8 +365,8 @@ void buildZoneIndex(
     ZoneStripeChunkDecomposition const & zsc = index.getDecomposition();
     int32_t minStripe = 0x7FFFFFFF;
     int32_t maxStripe = -1 - minStripe;
-    ChunkIteratorType const end(chunks.end());
-    for (ChunkIteratorType c(chunks.begin()); c != end; ++c) {
+    ChunkIterator const end(chunks.end());
+    for (ChunkIterator c(chunks.begin()); c != end; ++c) {
         int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
         if (stripeId > maxStripe) {
             maxStripe = stripeId;
@@ -379,8 +379,8 @@ void buildZoneIndex(
 
     // Partition input chunks into stripes
     int32_t const numStripes = maxStripe - minStripe + 1;
-    boost::scoped_array<ChunkVectorType> stripes(new ChunkVectorType[numStripes]);
-    for (ChunkIteratorType c(chunks.begin()); c != end; ++c) {
+    boost::scoped_array<ChunkVector> stripes(new ChunkVector[numStripes]);
+    for (ChunkIterator c(chunks.begin()); c != end; ++c) {
         int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
         assert(stripeId >= minStripe && stripeId <= maxStripe && "stripe id out of bounds");
         stripes[stripeId - minStripe].push_back(*c);
@@ -399,25 +399,25 @@ void buildZoneIndex(
 #endif
     for (int32_t s = 0; s < numStripes; ++s) {
         try {
-            ChunkVectorType & vec       = stripes[s];
-            SizeType const    numChunks = vec.size();
+            ChunkVector &  vec       = stripes[s];
+            Size const numChunks = vec.size();
 
             // Loop over chunks in stripe
-            for (SizeType c = 0; c < numChunks; ++c) {
+            for (Size c = 0; c < numChunks; ++c) {
 
-                ChunkType * const ch         = &vec[c];
-                uint32_t    const numBlocks  = ch->blocks();
-                uint32_t          i          = 0;
+                Chunk  * const ch         = &vec[c];
+                uint32_t const numBlocks  = ch->blocks();
+                uint32_t       i          = 0;
 
                 // loop over blocks in chunk
                 for (uint32_t b = 0; b < numBlocks; ++b) {
                     uint32_t const numEntries = ch->entries(b);
-                    DataType                 * const block = ch->getBlock(b);
-                    ChunkEntryFlagType const * const flags = ch->getFlagBlock(b);
+                    Data                 * const block = ch->getBlock(b);
+                    ChunkEntryFlag const * const flags = ch->getFlagBlock(b);
 
                     // loop over entries in block
                     for (uint32_t e = 0; e < numEntries; ++e, ++i) {
-                        if ((flags[e] & ChunkType::DELETED) == 0) {
+                        if ((flags[e] & Chunk::DELETED) == 0) {
                             index.insert(&block[e], ch, i);
                         }
                     }
@@ -654,9 +654,9 @@ LSST_AP_API void registerVisit(VisitProcessingContext & context) {
  */
 LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
 
-    typedef VisitProcessingContext::SimpleObjectChunk ChunkType;
-    typedef std::vector<ChunkType>                    ChunkVectorType;
-    typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
+    typedef VisitProcessingContext::SimpleObjectChunk Chunk;
+    typedef std::vector<Chunk>                        ChunkVector;
+    typedef std::vector<Chunk>::iterator              ChunkIterator;
 
     SharedSimpleObjectChunkManager manager(context.getRunId());
     Log log(Log::getDefaultLog(), "associate");
@@ -678,8 +678,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         // Register interest in or create chunks via the chunk manager
-        std::vector<ChunkType> toRead;
-        std::vector<ChunkType> toWaitFor;
+        std::vector<Chunk> toRead;
+        std::vector<Chunk> toWaitFor;
         watch.start();
         manager.startVisit(toRead, toWaitFor, context.getVisitId(), context.getChunkIds());
         watch.stop();
@@ -687,19 +687,19 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         // record pointers to all chunks being handled by the slice
-        ChunkVectorType & chunks = context.getChunks();
+        ChunkVector & chunks = context.getChunks();
         chunks.clear();
         chunks.insert(chunks.end(), toRead.begin(),    toRead.end());
         chunks.insert(chunks.end(), toWaitFor.begin(), toWaitFor.end());
 
         // Read data files
         watch.start();
-        ChunkToFileNameMapping     refNames(sObjFilePattern);
-        ChunkToFileNameMapping     deltaNames(sObjDeltaFilePattern);
-        ChunkIteratorType          end(toRead.end());
-        ChunkVectorType::size_type numToRead(toRead.size());
-        for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
-            ChunkType & c = *i;
+        ChunkToFileNameMapping refNames(sObjFilePattern);
+        ChunkToFileNameMapping deltaNames(sObjDeltaFilePattern);
+        ChunkIterator          end(toRead.end());
+        ChunkVector::size_type numToRead(toRead.size());
+        for (ChunkIterator i(toRead.begin()); i != end; ++i) {
+            Chunk & c = *i;
             c.read(
                 refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
                 false
@@ -716,7 +716,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             DataProperty("time", watch.seconds()) << Rec::endr;
 
         toRead.clear();
-        ChunkVectorType::size_type numToWaitFor = toWaitFor.size();
+        ChunkVector::size_type numToWaitFor = toWaitFor.size();
         if (numToWaitFor > 0) {
             watch.start();
             // Wait for chunks that are owned by another visit
@@ -730,8 +730,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             watch.start();
             numToRead = toRead.size();
             end = toRead.end();
-            for (ChunkIteratorType i(toRead.begin()); i != end; ++i) {
-                ChunkType & c = *i;
+            for (ChunkIterator i(toRead.begin()); i != end; ++i) {
+                Chunk & c = *i;
                 c.read(
                     refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
                     false
@@ -958,9 +958,9 @@ LSST_AP_API void matchMops(
  */
 LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
 
-    typedef VisitProcessingContext::SimpleObjectChunk ChunkType;
-    typedef std::vector<ChunkType>                    ChunkVectorType;
-    typedef std::vector<ChunkType>::iterator          ChunkIteratorType;
+    typedef VisitProcessingContext::SimpleObjectChunk Chunk;
+    typedef std::vector<Chunk>                        ChunkVector;
+    typedef std::vector<Chunk>::iterator              ChunkIterator;
 
     SharedSimpleObjectChunkManager manager(context.getRunId());
     Log log(Log::getDefaultLog(), "associate");
@@ -968,10 +968,10 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     try {
         Stopwatch watch(true);
         ChunkToFileNameMapping deltaNames(sObjDeltaFilePattern);
-        ChunkVectorType &      chunks = context.getChunks();
-        ChunkIteratorType      end(chunks.end());
-        for (ChunkIteratorType i(chunks.begin()); i != end; ++i) {
-            ChunkType & c = *i;
+        ChunkVector &      chunks = context.getChunks();
+        ChunkIterator      end(chunks.end());
+        for (ChunkIterator i(chunks.begin()); i != end; ++i) {
+            Chunk & c = *i;
             std::string file(deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()));
             verifyPathName(file);
             c.writeDelta(file, true, false);

@@ -35,7 +35,7 @@ using namespace lsst::ap;
 
 namespace {
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SObjChunk;
+typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SObjChunk;
 
 
 static std::string const makeTempFile() {

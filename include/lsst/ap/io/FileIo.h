@@ -90,9 +90,7 @@ class LSST_AP_API SequentialFileReader :
 
 public:
 
-    explicit SequentialFileReader(
-        std::string const & fileName
-    );
+    explicit SequentialFileReader(std::string const & fileName);
 
     virtual ~SequentialFileReader();
     virtual size_t read(uint8_t * const buf, size_t const size);

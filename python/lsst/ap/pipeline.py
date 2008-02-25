@@ -55,7 +55,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         - a visit identifier given by the 'visitId' key (with an int64_t value).
         - the name of the filter (a string) for the visit given by the 'filterName' key.
         - [optionally] a match radius given by the 'matchRadius' key (with a double
-          precision value in units of degrees).
+          precision value in units of arc-seconds).
         """
         clipboard      = self.inputQueue.getNextDataset()
         event          = clipboard.get('triggerAssociationEvent')

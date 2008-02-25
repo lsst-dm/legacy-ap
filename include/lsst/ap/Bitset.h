@@ -23,7 +23,7 @@ namespace ap {
 
 namespace detail {
 
-template <typename Word> struct BitTraits {
+template <typename WordT> struct BitTraits {
     static bool const IS_SPECIALIZED = false;
 };
 
@@ -55,27 +55,27 @@ template <> struct LSST_AP_LOCAL BitTraits<uint64_t> {
     static uint64_t const WORD_MASK          = UINT64_C(0xffffffffffffffff);
 };
 
-template <typename Word>
+template <typename WordT>
 inline int wordForBit(int const i) {
-    return (i >> BitTraits<Word>::BITS_PER_WORD_LOG2);
+    return (i >> BitTraits<WordT>::BITS_PER_WORD_LOG2);
 }
 
-template <typename Word>
-inline Word maskForBit(int const i) {
-    return static_cast<Word>(1) << (i & (BitTraits<Word>::BITS_PER_WORD - 1));
+template <typename WordT>
+inline WordT maskForBit(int const i) {
+    return static_cast<WordT>(1) << (i & (BitTraits<WordT>::BITS_PER_WORD - 1));
 }
 
-template <typename Word>
+template <typename WordT>
 bool set(
     int        * const indexes,
-    Word       * const words,
+    WordT      * const words,
     int  const         numBitsToSet,
     int  const         numBits
 );
 
-template <typename Word>
+template <typename WordT>
 void reset(
-    Word      * const words,
+    WordT     * const words,
     int const * const indexes,
     int const         numBitsToReset,
     int const         numBits
@@ -85,19 +85,19 @@ void reset(
 
 
 /** @brief  A fixed size set of bits. */
-template <typename Word, int NumBits>
+template <typename WordT, int NumBits>
 class Bitset {
 
 private :
 
     BOOST_STATIC_ASSERT(NumBits > 0);
-    BOOST_STATIC_ASSERT(detail::BitTraits<Word>::IS_SPECIALIZED);
+    BOOST_STATIC_ASSERT(detail::BitTraits<WordT>::IS_SPECIALIZED);
 
 public :
 
     static int const NUM_BITS  = NumBits;
-    static int const NUM_WORDS = (NumBits + (detail::BitTraits<Word>::BITS_PER_WORD - 1)) >>
-                                 detail::BitTraits<Word>::BITS_PER_WORD_LOG2;
+    static int const NUM_WORDS = (NumBits + (detail::BitTraits<WordT>::BITS_PER_WORD - 1)) >>
+                                 detail::BitTraits<WordT>::BITS_PER_WORD_LOG2;
 
     /** Clears all bits. */
     void reset() {
@@ -112,13 +112,13 @@ public :
     /** Sets the i-th bit in the set to zero. */
     void reset(int const i) {
         assert(i >= 0 && i < NumBits);
-        _bits[detail::wordForBit<Word>(i)] &= ~ detail::maskForBit<Word>(i);
+        _bits[detail::wordForBit<WordT>(i)] &= ~ detail::maskForBit<WordT>(i);
     }
 
     /** Sets the i-th bit in the set to one. */
     void set(int const i) {
         assert(i >= 0 && i < NumBits);
-        _bits[detail::wordForBit<Word>(i)] |= detail::maskForBit<Word>(i);
+        _bits[detail::wordForBit<WordT>(i)] |= detail::maskForBit<WordT>(i);
     }
 
     /** Sets the i-th bit in the set to one if @a on is @c true and to zero otherwise. */
@@ -133,7 +133,7 @@ public :
     /** Returns @c true if the i-th bit in the set is one and @c false otherwise. */
     bool test(int const i) const {
         assert(i >= 0 && i < NumBits);
-        return _bits[detail::wordForBit<Word>(i)] & detail::maskForBit<Word>(i);
+        return _bits[detail::wordForBit<WordT>(i)] & detail::maskForBit<WordT>(i);
     }
 
     /**
@@ -141,17 +141,17 @@ public :
      * @a numBits of them to one and returns @c true. Otherwise, @c false is returned.
      */
     bool set(int * const indexes, int const numBits) {
-        return detail::set<Word>(indexes, _bits, numBits, NumBits);
+        return detail::set<WordT>(indexes, _bits, numBits, NumBits);
     }
 
     /** Sets @a numBits bits identified by the integers in @a indexes to zero. */
     void reset(int const * const indexes, int const numBits) {
-        detail::reset<Word>(_bits, indexes, numBits, NumBits);
+        detail::reset<WordT>(_bits, indexes, numBits, NumBits);
     }
 
 private :
 
-    Word _bits[NUM_WORDS];
+    WordT _bits[NUM_WORDS];
 };
 
 

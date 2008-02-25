@@ -111,13 +111,13 @@ public :
 
 
 /**
- * @def ChunkEntryFlagType
+ * @def ChunkEntryFlag
  *
  * The smallest unsigned integral type into which the values of the Chunk::EntryFlag enum
  * can fit. This typedef controls the size of the flag word -- simply using an array of
  * Chunk::EntryFlag values results in sizeof(int) bytes per flag, which is excessive.
  */
-typedef uint8_t ChunkEntryFlagType;
+typedef uint8_t ChunkEntryFlag;
 
 
 /**
@@ -220,16 +220,16 @@ typedef uint8_t ChunkEntryFlagType;
  * changes to a chunk relative to some initial state. This avoids having to write out entire chunks
  * to record a small number of incremental modifications.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType = DataTraits<DataType> >
+template <typename AllocatorT, typename DataT, typename TraitsT = DataTraits<DataT> >
 class Chunk {
 
-//    BOOST_STATIC_ASSERT(boost::has_trivial_assign<DataType>::value);
-//    BOOST_STATIC_ASSERT(boost::has_trivial_copy<DataType>::value);
-//    BOOST_STATIC_ASSERT(boost::has_trivial_destructor<DataType>::value);
+//    BOOST_STATIC_ASSERT(boost::has_trivial_assign<DataT>::value);
+//    BOOST_STATIC_ASSERT(boost::has_trivial_copy<DataT>::value);
+//    BOOST_STATIC_ASSERT(boost::has_trivial_destructor<DataT>::value);
 
 public  :
 
-    typedef DataType EntryType;
+    typedef DataT Entry;
 
     enum EntryFlag {
         IN_DELTA         = 0x01,
@@ -238,14 +238,14 @@ public  :
         DELETED          = 0x08
     };
 
-    static uint32_t const ENTRIES_PER_BLOCK_LOG2 = TraitsType::ENTRIES_PER_BLOCK_LOG2;
-    static uint32_t const MAX_BLOCKS             = TraitsType::MAX_BLOCKS_PER_CHUNK;
+    static uint32_t const ENTRIES_PER_BLOCK_LOG2 = TraitsT::ENTRIES_PER_BLOCK_LOG2;
+    static uint32_t const MAX_BLOCKS             = TraitsT::MAX_BLOCKS_PER_CHUNK;
     static size_t   const BLOCK_SIZE =
-        (sizeof(DataType) + sizeof(ChunkEntryFlagType)) << ENTRIES_PER_BLOCK_LOG2;
+        (sizeof(DataT) + sizeof(ChunkEntryFlag)) << ENTRIES_PER_BLOCK_LOG2;
 
-    typedef ChunkDescriptor<MAX_BLOCKS> DescriptorType;
+    typedef ChunkDescriptor<MAX_BLOCKS> Descriptor;
 
-    Chunk(DescriptorType * desc, AllocatorType * all) : _descriptor(desc), _allocator(all) {}
+    Chunk(Descriptor * desc, AllocatorT * all) : _descriptor(desc), _allocator(all) {}
 
     ~Chunk() {
         _descriptor = 0;
@@ -258,59 +258,59 @@ public  :
     void    setUsable()        { _descriptor->_usable = true;  }
 
     /// Returns a reference to the @a i-th chunk entry.
-    DataType const & get(uint32_t const i) const {
+    DataT const & get(uint32_t const i) const {
         assert(i < _descriptor->_size);
-        return *reinterpret_cast<DataType const *>(map(
+        return *reinterpret_cast<DataT const *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
-            sizeof(ChunkEntryFlagType)*(1u << ENTRIES_PER_BLOCK_LOG2) +
-            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(DataType)
+            sizeof(ChunkEntryFlag)*(1u << ENTRIES_PER_BLOCK_LOG2) +
+            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(DataT)
         ));
     }
 
     /// Returns a pointer to the @a b-th data block.
-    DataType const * getBlock(uint32_t const b) const {
+    DataT const * getBlock(uint32_t const b) const {
         assert(b < _descriptor->_numBlocks);
-        return reinterpret_cast<DataType const *>(map(
-            _descriptor->_blocks[b] + (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2)
+        return reinterpret_cast<DataT const *>(map(
+            _descriptor->_blocks[b] + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)
         ));
     }
 
-    DataType * getBlock(uint32_t const b) {
+    DataT * getBlock(uint32_t const b) {
         assert(b < _descriptor->_numBlocks);
-        return reinterpret_cast<DataType *>(map(
-            _descriptor->_blocks[b] + (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2)
+        return reinterpret_cast<DataT *>(map(
+            _descriptor->_blocks[b] + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)
         ));
     }
 
     /// Returns the value of the @a i-th flag word.
-    ChunkEntryFlagType getFlag(uint32_t const i) const {
+    ChunkEntryFlag getFlag(uint32_t const i) const {
         assert(i < _descriptor->_size);
-        return *reinterpret_cast<ChunkEntryFlagType const *>(map(
+        return *reinterpret_cast<ChunkEntryFlag const *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
-            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlagType)
+            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
         ));
     }
 
     /// Returns a pointer to the @a b-th flag block.
-    ChunkEntryFlagType const * getFlagBlock(uint32_t const b) const {
+    ChunkEntryFlag const * getFlagBlock(uint32_t const b) const {
         assert(b < _descriptor->_numBlocks);
-        return reinterpret_cast<ChunkEntryFlagType const *>(map(_descriptor->_blocks[b]));
+        return reinterpret_cast<ChunkEntryFlag const *>(map(_descriptor->_blocks[b]));
     }
 
-    ChunkEntryFlagType * getFlagBlock(uint32_t const i) {
+    ChunkEntryFlag * getFlagBlock(uint32_t const i) {
         assert(i < _descriptor->_numBlocks);
-        return reinterpret_cast<ChunkEntryFlagType *>(map(_descriptor->_blocks[i]));
+        return reinterpret_cast<ChunkEntryFlag *>(map(_descriptor->_blocks[i]));
     }
 
     /// Inserts the given data entry into the chunk, allocating memory if necessary.
-    void insert(DataType const & data) { insert(data, IN_DELTA | UNCOMMITTED | INSERTED); }
+    void insert(DataT const & data) { insert(data, IN_DELTA | UNCOMMITTED | INSERTED); }
 
     /// Marks the i-th entry in the chunk as removed. Never throws.
     void remove(uint32_t const i) {
         assert(i < _descriptor->_size);
-        ChunkEntryFlagType * f = reinterpret_cast<ChunkEntryFlagType *>(map(
+        ChunkEntryFlag * f = reinterpret_cast<ChunkEntryFlag *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
-            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlagType)
+            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
         ));
         if ((*f & DELETED) == 0) { // removing an entry that is already deleted is a no-op
             *f |= DELETED | UNCOMMITTED;
@@ -374,10 +374,10 @@ public  :
 
 private :
 
-    BOOST_STATIC_ASSERT(TraitsType::ENTRIES_PER_BLOCK_LOG2 >= 9);
+    BOOST_STATIC_ASSERT(TraitsT::ENTRIES_PER_BLOCK_LOG2 >= 9);
 
-    DescriptorType * _descriptor;
-    AllocatorType  * _allocator;
+    Descriptor * _descriptor;
+    AllocatorT * _allocator;
 
     /// Maps the given offset to an actual address.
     uint8_t * map(size_t const off) {
@@ -396,15 +396,15 @@ private :
     );
 
     void insert(
-        DataType           const & data,
-        ChunkEntryFlagType const   flags
+        DataT          const & data,
+        ChunkEntryFlag const   flags
     );
 
     void setFlags(
-        uint32_t           const b,
-        ChunkEntryFlagType const flags,
-        uint32_t           const i = 0,
-        uint32_t           const n = (1u << ENTRIES_PER_BLOCK_LOG2)
+        uint32_t       const b,
+        ChunkEntryFlag const flags,
+        uint32_t       const i = 0,
+        uint32_t       const n = (1u << ENTRIES_PER_BLOCK_LOG2)
     );
 };
 

@@ -89,10 +89,10 @@ struct MatchWithoutDistance {
 template <typename F, typename M>
 struct EmptyMatchListProcessor {
 
-    typedef M MatchType;
-    typedef typename std::vector<M>::const_iterator MatchIteratorType;
+    typedef M Match;
+    typedef typename std::vector<M>::const_iterator MatchIterator;
 
-    inline void operator() (F & entity, MatchIteratorType begin, MatchIteratorType end) {}
+    inline void operator() (F & entity, MatchIterator begin, MatchIterator end) {}
 };
 
 
@@ -123,23 +123,23 @@ struct EmptyMatchPairProcessor {
  * @return                          The number of match pairs found.
  */
 template <
-    typename FirstEntryType,
-    typename SecondEntryType,
-    typename FirstFilterType,        // = PassthroughFilter<FirstEntryType>,
-    typename SecondFilterType,       // = PassthroughFilter<SecondEntryType>,
-    typename MatchListProcessorType  // = EmptyMatchListProcessor<FirstEntryType, MatchWithoutDistance<SecondEntryType> >
+    typename FirstEntryT,
+    typename SecondEntryT,
+    typename FirstFilterT,        // = PassthroughFilter<FirstEntryT>,
+    typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
+    typename MatchListProcessorT  // = EmptyMatchListProcessor<FirstEntryT, MatchWithoutDistance<SecondEntryT> >
 >
 size_t distanceMatch(
-    ZoneIndex<FirstEntryType>  & first,
-    ZoneIndex<SecondEntryType> & second,
-    double const                 radius,
-    FirstFilterType            & firstFilter,
-    SecondFilterType           & secondFilter,
-    MatchListProcessorType     & matchListProcessor
+    ZoneIndex<FirstEntryT>  & first,
+    ZoneIndex<SecondEntryT> & second,
+    double const              radius,
+    FirstFilterT            & firstFilter,
+    SecondFilterT           & secondFilter,
+    MatchListProcessorT     & matchListProcessor
 ) {
-    typedef typename ZoneIndex<FirstEntryType>::ZoneType  FirstZoneType;
-    typedef typename ZoneIndex<SecondEntryType>::ZoneType SecondZoneType;
-    typedef typename MatchListProcessorType::MatchType    MatchType;
+    typedef typename ZoneIndex<FirstEntryT>::Zone  FirstZone;
+    typedef typename ZoneIndex<SecondEntryT>::Zone SecondZone;
+    typedef typename MatchListProcessorT::Match    Match;
 
     if (radius < 0) {
         LSST_AP_THROW(OutOfRange, "match radius must be greater than or equal to zero degrees");
@@ -157,14 +157,13 @@ size_t distanceMatch(
 
     // loop over first set of zones in parallel
 #if LSST_AP_HAVE_OPEN_MP
-    omp_set_num_threads(omp_get_num_procs());
 #   pragma omp parallel default(shared)
 #endif
     {
         // allocate per-thread data structures
-        SecondZoneType * zones[2048];
-        int32_t          limits[2048];
-        std::vector<MatchType> matches;
+        SecondZone * zones[2048];
+        int32_t      limits[2048];
+        std::vector<Match> matches;
         matches.reserve(32);
 
         // loop over the first set of zones in parallel, assigning batches of
@@ -176,8 +175,8 @@ size_t distanceMatch(
 #endif
         for (int32_t fzi = minZone; fzi <= maxZone; ++fzi) {
 
-            FirstZoneType  * const __restrict fz = first.getZone(fzi);
-            FirstEntryType * const __restrict fze = fz->_entries;
+            FirstZone   * const __restrict fz = first.getZone(fzi);
+            FirstEntryT * const __restrict fze = fz->_entries;
             int32_t const nfze = fz->_size;
             if (nfze <= 0) {
                 continue; // no entries in first zone
@@ -193,8 +192,8 @@ size_t distanceMatch(
                 // A search circle should never cover more than 2048 zones
                 assert(maxz - minz + 1 <= 2048 && "match radius too large");
 
-                SecondZoneType *       __restrict sz    = second.firstZone(minz, maxz);
-                SecondZoneType * const __restrict szend = second.endZone(minz, maxz);
+                SecondZone *       __restrict sz    = second.firstZone(minz, maxz);
+                SecondZone * const __restrict szend = second.endZone(minz, maxz);
 
                 for ( ; sz < szend; ++sz) {
                     int32_t const nsze = sz->_size;
@@ -235,8 +234,8 @@ size_t distanceMatch(
                 // loop over all potentially matching zones.
                 for (int32_t szi = 0; szi < nsz; ++szi) {
 
-                    SecondZoneType  * const __restrict sz  = zones[szi];
-                    SecondEntryType * const __restrict sze = sz->_entries;
+                    SecondZone   * const __restrict sz  = zones[szi];
+                    SecondEntryT * const __restrict sze = sz->_entries;
 
                     int32_t  const seWrap      = sz->_size;
                     uint32_t const deltaRa     = sz->_deltaRa;
@@ -314,7 +313,7 @@ size_t distanceMatch(
                                 // Note: this isn't necessarily the best place for the second filter test...
                                 if (secondFilter(sze[se])) {
                                     // found a match, record it
-                                    matches.push_back(MatchType(&sze[se], d2));
+                                    matches.push_back(Match(&sze[se], d2));
                                 }
                             }
                         }
@@ -368,22 +367,22 @@ size_t distanceMatch(
  * @return                          The number of match pairs found.
  */
 template <
-    typename FirstEntryType,
-    typename SecondEntryType,
-    typename FirstFilterType,        // = PassthroughFilter<FirstEntryType>,
-    typename SecondFilterType,       // = PassthroughFilter<SecondEntryType>,
-    typename MatchPairProcessorType  // = EmptyMatchPairProcessor<FirstEntryType, SecondEntryType>
+    typename FirstEntryT,
+    typename SecondEntryT,
+    typename FirstFilterT,        // = PassthroughFilter<FirstEntryT>,
+    typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
+    typename MatchPairProcessorT  // = EmptyMatchPairProcessor<FirstEntryT, SecondEntryT>
 >
 size_t ellipseMatch(
-    EllipseList<FirstEntryType> & first,
-    ZoneIndex<SecondEntryType>  & second,
-    FirstFilterType             & firstFilter,
-    SecondFilterType            & secondFilter,
-    MatchPairProcessorType      & matchPairProcessor
+    EllipseList<FirstEntryT> & first,
+    ZoneIndex<SecondEntryT>  & second,
+    FirstFilterT             & firstFilter,
+    SecondFilterT            & secondFilter,
+    MatchPairProcessorT      & matchPairProcessor
 ) {
 
-    typedef typename EllipseList<FirstEntryType>::EllipseType EllipseType;
-    typedef typename ZoneIndex<SecondEntryType>::ZoneType     SecondZoneType;
+    typedef typename EllipseList<FirstEntryT>::Ellipse Ellipse;
+    typedef typename ZoneIndex<SecondEntryT>::Zone     SecondZone;
 
     int32_t const minZone = second.getMinZone();
     int32_t const maxZone = second.getMaxZone();
@@ -391,10 +390,10 @@ size_t ellipseMatch(
 
     first.prepareForMatch(second.getDecomposition());
 
-    EllipseType * activeHead = 0;
-    EllipseType * activeTail = 0;
-    EllipseType * searchHead = first.begin();
-    EllipseType * const end  = first.end();
+    Ellipse * activeHead = 0;
+    Ellipse * activeTail = 0;
+    Ellipse * searchHead = first.begin();
+    Ellipse * const end  = first.end();
 
     // initialize the linked list of active ellipses (those that intersect minZone)
     while (searchHead < end && searchHead->_minZone <= minZone) {
@@ -415,15 +414,15 @@ size_t ellipseMatch(
     int32_t szi = minZone;
     while (true) {
 
-        SecondZoneType  * const __restrict sz  = second.getZone(szi);
-        SecondEntryType * const __restrict sze = sz->_entries;
+        SecondZone   * const __restrict sz  = second.getZone(szi);
+        SecondEntryT * const __restrict sze = sz->_entries;
         int32_t const seWrap = sz->_size;
 
         ++szi;
 
         // Traverse the active ellipse list
-        EllipseType * active = activeHead;
-        EllipseType * prev   = 0;
+        Ellipse * active = activeHead;
+        Ellipse * prev   = 0;
 
         while (active != 0) {
 
@@ -519,23 +518,22 @@ size_t ellipseMatch(
  * @return                          The number of match pairs found.
  */
 template <
-    typename FirstEntryType,
-    typename SecondEntryType,
-    typename FirstFilterType,       // = PassthroughFilter<FirstEntryType>,
-    typename SecondFilterType,      // = PassthroughFilter<SecondEntryType>,
-    typename MatchListProcessorType // = EmptyMatchListProcessor<FirstEntryType, SecondEntryType>
+    typename FirstEntryT,
+    typename SecondEntryT,
+    typename FirstFilterT,       // = PassthroughFilter<FirstEntryT>,
+    typename SecondFilterT,      // = PassthroughFilter<SecondEntryT>,
+    typename MatchListProcessorT // = EmptyMatchListProcessor<FirstEntryT, SecondEntryT>
 >
 size_t ellipseGroupedMatch(
-    EllipseList<FirstEntryType> & first,
-    ZoneIndex<SecondEntryType>  & second,
-    FirstFilterType             & firstFilter,
-    SecondFilterType            & secondFilter,
-    MatchListProcessorType      & matchListProcessor
+    EllipseList<FirstEntryT> & first,
+    ZoneIndex<SecondEntryT>  & second,
+    FirstFilterT             & firstFilter,
+    SecondFilterT            & secondFilter,
+    MatchListProcessorT      & matchListProcessor
 ) {
-
-    typedef typename EllipseList<FirstEntryType>::EllipseType EllipseType;
-    typedef typename ZoneIndex<SecondEntryType>::ZoneType     SecondZoneType;
-    typedef typename MatchListProcessorType::MatchType        MatchType;
+    typedef typename EllipseList<FirstEntryT>::Ellipse Ellipse;
+    typedef typename ZoneIndex<SecondEntryT>::Zone     SecondZone;
+    typedef typename MatchListProcessorT::Match        Match;
 
     size_t const numEllipses   = first.size();
     size_t       numMatchPairs = 0;
@@ -543,12 +541,11 @@ size_t ellipseGroupedMatch(
     first.prepareForMatch(second.getDecomposition());
 
 #if LSST_AP_HAVE_OPEN_MP
-    omp_set_num_threads(omp_get_num_procs());
 #   pragma omp parallel default(shared)
 #endif
     {
         // allocate per-thread match list
-        std::vector<MatchType> matches;
+        std::vector<Match> matches;
         matches.reserve(2048);
 
         // loop over the list of ellipses in parallel
@@ -563,9 +560,9 @@ size_t ellipseGroupedMatch(
                 continue; // ellipse was filtered out
             }
 
-            EllipseType    * const __restrict ell   = &first[i];
-            SecondZoneType *       __restrict sz    = second.firstZone(ell->_minZone, ell->_maxZone);
-            SecondZoneType * const __restrict szend = second.endZone(ell->_minZone, ell->_maxZone);
+            Ellipse    * const __restrict ell   = &first[i];
+            SecondZone *       __restrict sz    = second.firstZone(ell->_minZone, ell->_maxZone);
+            SecondZone * const __restrict szend = second.endZone(ell->_minZone, ell->_maxZone);
 
             uint32_t const ra          = ell->_ra;
             uint32_t const deltaRa     = ell->_deltaRa;
@@ -582,7 +579,7 @@ size_t ellipseGroupedMatch(
                 }
 
                 // find starting point within ra range of the ellipse
-                SecondEntryType * const __restrict sze = sz->_entries;
+                SecondEntryT * const __restrict sze = sz->_entries;
                 int32_t const start = sz->findGte(ra - deltaRa);
                 int32_t       se    = start;
                 uint32_t      dra   = ra - sze[se]._ra;
@@ -596,7 +593,7 @@ size_t ellipseGroupedMatch(
                         if (ell->contains(sze[se]._x, sze[se]._y, sze[se]._z)) {
                             if (secondFilter(sze[se])) {
                                 // record match
-                                matches.push_back(MatchType(&sze[se]));
+                                matches.push_back(Match(&sze[se]));
                             }
                         }
                     }

@@ -28,7 +28,7 @@
 
 using namespace lsst::ap;
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SObjChunk;
+typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SObjChunk;
 
 
 BOOST_AUTO_TEST_CASE(disjointVisitsTest) {

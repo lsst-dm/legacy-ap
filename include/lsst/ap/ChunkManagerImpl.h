@@ -32,42 +32,42 @@ namespace ap {
 namespace detail {
 
 /**
- * @brief  A set of up to @a NumEntries elements of type @a EntryType, hashed by an integer identifier.
+ * @brief  A set of up to @a NumEntries elements of type @a EntryT, hashed by an integer identifier.
  *
  * The hash table implementation is chained and intrusive -- requirements follow:
  *
  * <ul>
  * <li>@a NumEntries must be a positive power of 2</li>
- * <li>@a EntryType must have @code int64_t getId() @endcode and @code void setId(int64_t) @endcode
+ * <li>@a EntryT must have @code int64_t getId() @endcode and @code void setId(int64_t) @endcode
  *     methods which get/set an int64_t member field and never throw. An id value of -1 is reserved
  *     for invalid entries.</li>
- * <li>@a EntryType must have @code int getNextInChain() @endcode and
+ * <li>@a EntryT must have @code int getNextInChain() @endcode and
  *     @code void setNextInChain(int) @endcode methods which get/set an
  *     int member field and never throw</li>
- * <li>@a EntryType must have a trivial destructor, and a default constructor that doesn't throw</li>
+ * <li>@a EntryT must have a trivial destructor, and a default constructor that doesn't throw</li>
  * </ul>
  */
-template <typename EntryType, uint32_t NumEntries>
+template <typename EntryT, uint32_t NumEntries>
 class HashedSet : private boost::noncopyable {
 
     BOOST_STATIC_ASSERT(NumEntries > 0 && (NumEntries & (NumEntries - 1)) == 0);
     BOOST_STATIC_ASSERT(NumEntries < INT_MAX);
-//    BOOST_STATIC_ASSERT(boost::has_nothrow_constructor<EntryType>::value);
-//    BOOST_STATIC_ASSERT(boost::has_trivial_destructor<EntryType>::value);
+//    BOOST_STATIC_ASSERT(boost::has_nothrow_constructor<EntryT>::value);
+//    BOOST_STATIC_ASSERT(boost::has_trivial_destructor<EntryT>::value);
 
 public :
 
     HashedSet();
 
     /// Returns a pointer to the entry with the given identifier, or null if there is no such entry.
-    EntryType * find(int64_t const id) { return const_cast<EntryType *>(doFind(id)); }
+    EntryT * find(int64_t const id) { return const_cast<EntryT *>(doFind(id)); }
 
     /// Returns a pointer to the entry with the given identifier, or null if there is no such entry.
-    EntryType const * find(int64_t const id) const { return doFind(id); }
+    EntryT const * find(int64_t const id) const { return doFind(id); }
 
-    EntryType * insert(int64_t const id);
+    EntryT * insert(int64_t const id);
 
-    std::pair<EntryType *, bool> findOrInsert(int64_t const id);
+    std::pair<EntryT *, bool> findOrInsert(int64_t const id);
 
     bool erase(int64_t const id);
 
@@ -82,21 +82,21 @@ public :
      * correspond to HashedSet entries : invalid entries - those that do not correspond to an entry that
      * has been added to the set via insert() or findOrInsert() - are marked with an id value of -1.
      */
-    EntryType       * begin()       { return _entries; }
-    EntryType const * begin() const { return _entries; }
+    EntryT       * begin()       { return _entries; }
+    EntryT const * begin() const { return _entries; }
 
     /// Returns a pointer to the end of the underlying array of entries.
-    EntryType       * end()       { return _entries + NumEntries; }
-    EntryType const * end() const { return _entries + NumEntries; }
+    EntryT       * end()       { return _entries + NumEntries; }
+    EntryT const * end() const { return _entries + NumEntries; }
 
 private :
 
-    int       _hashTable[2*NumEntries];
-    int       _free;
-    uint32_t  _size;
-    EntryType _entries[NumEntries];
+    int      _hashTable[2*NumEntries];
+    int      _free;
+    uint32_t _size;
+    EntryT   _entries[NumEntries];
 
-    EntryType const * doFind(int64_t const id) const;
+    EntryT const * doFind(int64_t const id) const;
 };
 
 
@@ -111,7 +111,7 @@ private :
  * them to be stored in shared memory. Clients then map these offsets to an actual block address
  * simply by adding the offsets to the (process-specific) block allocator address.
  */
-template <typename MutexType, typename DataType, typename TraitsType = DataTraits<DataType> >
+template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
 class BlockAllocator : private boost::noncopyable {
 
 public :
@@ -124,16 +124,16 @@ public :
 
 private :
 
-    typedef Bitset<uint64_t, TraitsType::NUM_BLOCKS> AllocatorType;
+    typedef Bitset<uint64_t, TraitsT::NUM_BLOCKS> Allocator;
 
-    BOOST_STATIC_ASSERT(TraitsType::ENTRIES_PER_BLOCK_LOG2 >= 9);
+    BOOST_STATIC_ASSERT(TraitsT::ENTRIES_PER_BLOCK_LOG2 >= 9);
 
     static size_t const BLOCK_SIZE =
-        (sizeof(DataType) + sizeof(ChunkEntryFlagType)) << TraitsType::ENTRIES_PER_BLOCK_LOG2;
+        (sizeof(DataT) + sizeof(ChunkEntryFlag)) << TraitsT::ENTRIES_PER_BLOCK_LOG2;
 
-    MutexType     _mutex;
-    AllocatorType _allocator;
-    size_t const  _offset;
+    MutexT       _mutex;
+    Allocator    _allocator;
+    size_t const _offset;
 };
 
 
@@ -174,21 +174,21 @@ public :
  *
  * To be used exclusively by chunk manager implementations.
  */
-template <typename MutexType, typename DataType, typename TraitsType = DataTraits<DataType> >
+template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
 class SubManager : private boost::noncopyable {
 
 public :
 
-    typedef BlockAllocator<MutexType, DataType, TraitsType>   AllocatorType;
-    typedef Chunk<AllocatorType, DataType, TraitsType>        ChunkType;
-    typedef ChunkDescriptor<TraitsType::MAX_BLOCKS_PER_CHUNK> ChunkDescriptorType;
+    typedef BlockAllocator<MutexT, DataT, TraitsT>         Allocator;
+    typedef Chunk<Allocator, DataT, TraitsT>               Chunk;
+    typedef ChunkDescriptor<TraitsT::MAX_BLOCKS_PER_CHUNK> Descriptor;
 
     // -- fields ----------------
 
-    static uint32_t const NUM_CHUNKS = TraitsType::MAX_CHUNKS_PER_FOV * MAX_VISITS_IN_FLIGHT;
+    static uint32_t const NUM_CHUNKS = TraitsT::MAX_CHUNKS_PER_FOV * MAX_VISITS_IN_FLIGHT;
 
-    HashedSet<ChunkDescriptorType, NUM_CHUNKS> _chunks;
-    AllocatorType                              _allocator;
+    HashedSet<Descriptor, NUM_CHUNKS> _chunks;
+    Allocator                         _allocator;
 
     // -- methods ----------------
 
@@ -200,20 +200,20 @@ public :
     uint32_t space() const { return _chunks.space(); }
 
     void createOrRegisterInterest(
-        std::vector<ChunkType>       & toRead,
-        std::vector<ChunkType>       & toWaitFor,
-        int64_t                const   visitId,
-        std::vector<int64_t>   const & chunkIds
+        std::vector<Chunk>         & toRead,
+        std::vector<Chunk>         & toWaitFor,
+        int64_t              const   visitId,
+        std::vector<int64_t> const & chunkIds
     );
 
     bool checkForOwnership(
-        std::vector<ChunkType> & toRead,
-        std::vector<ChunkType> & toWaitFor,
-        int64_t const            visitId
+        std::vector<Chunk> & toRead,
+        std::vector<Chunk> & toWaitFor,
+        int64_t const        visitId
     );
 
     void getChunks(
-        std::vector<ChunkType>     & chunks,
+        std::vector<Chunk>         & chunks,
         std::vector<int64_t> const & chunkIds
     );
 
@@ -246,16 +246,16 @@ public :
  * shared memory.
  */
 template <
-    typename MutexType,
-    typename DataType,
-    typename TraitsType = DataTraits<DataType>
+    typename MutexT,
+    typename DataT,
+    typename TraitsT = DataTraits<DataT>
 >
 class ChunkManagerSingleImpl : private boost::noncopyable {
 
 public :
 
-    typedef SubManager<MutexType, DataType, TraitsType> ManagerType;
-    typedef typename ManagerType::ChunkType ChunkType;
+    typedef SubManager<MutexT, DataT, TraitsT> Manager;
+    typedef typename Manager::Chunk            Chunk;
 
 private :
 
@@ -271,7 +271,7 @@ public :
      * instance and it's associated pool of memory blocks.
      */
     static size_t size() {
-        return blocks() + ChunkType::BLOCK_SIZE * TraitsType::NUM_BLOCKS;
+        return blocks() + Chunk::BLOCK_SIZE * TraitsT::NUM_BLOCKS;
     }
 
     ChunkManagerSingleImpl();
@@ -281,21 +281,21 @@ public :
     void registerVisit  (int64_t const visitId);
 
     void startVisit(
-        std::vector<ChunkType>       & toRead,
-        std::vector<ChunkType>       & toWaitFor,
-        int64_t                const   visitId,
-        std::vector<int64_t>   const & chunkIds
+        std::vector<Chunk>         & toRead,
+        std::vector<Chunk>         & toWaitFor,
+        int64_t              const   visitId,
+        std::vector<int64_t> const & chunkIds
     );
 
     void waitForOwnership(
-        std::vector<ChunkType> & toRead,
-        std::vector<ChunkType> & toWaitFor,
-        int64_t          const   visitId,
-        TimeSpec         const & deadline
+        std::vector<Chunk> & toRead,
+        std::vector<Chunk> & toWaitFor,
+        int64_t      const   visitId,
+        TimeSpec     const & deadline
     );
 
     void getChunks(
-        std::vector<ChunkType>     & chunks,
+        std::vector<Chunk>         & chunks,
         std::vector<int64_t> const & chunkIds
     );
 
@@ -308,10 +308,10 @@ public :
 
 private :
 
-    mutable MutexType    _mutex;
-    Condition<MutexType> _ownerCondition;
-    VisitTracker         _visits;
-    ManagerType          _data;
+    mutable MutexT    _mutex;
+    Condition<MutexT> _ownerCondition;
+    VisitTracker      _visits;
+    Manager           _data;
 };
 
 

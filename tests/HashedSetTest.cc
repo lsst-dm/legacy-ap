@@ -41,7 +41,7 @@ struct TestEntry {
 };
 
 
-typedef std::vector<int64_t>                TestIds;
+typedef std::vector<int64_t>               TestIds;
 typedef detail::HashedSet<TestEntry, 8192> TestEntrySet;
 
 template class detail::HashedSet<TestEntry, 8192>;

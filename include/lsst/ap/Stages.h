@@ -38,7 +38,7 @@ namespace ap {
 
 #ifndef SWIG
 struct DiaSourceChunk {
-    typedef lsst::fw::DiaSource EntryType;
+    typedef lsst::fw::DiaSource Entry;
 };
 #endif
 
@@ -61,7 +61,7 @@ public :
 
 #ifndef SWIG
 
-    typedef SharedSimpleObjectChunkManager::SimpleObjectChunkType SimpleObjectChunk;
+    typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SimpleObjectChunk;
 
     typedef ZoneEntry<SimpleObjectChunk> SimpleObjectEntry;
     typedef ZoneEntry<DiaSourceChunk>    DiaSourceEntry;

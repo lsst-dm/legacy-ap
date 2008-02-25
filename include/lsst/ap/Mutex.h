@@ -25,8 +25,8 @@ namespace lsst {
 namespace ap {
 
 
-template <typename MutexType> class ScopedLock;
-template <typename MutexType> class Condition;
+template <typename MutexT> class ScopedLock;
+template <typename MutexT> class Condition;
 
 
 /** @brief A wrapper for a process private POSIX mutual exclusion lock. */
@@ -105,17 +105,14 @@ private :
 
 
 /** @brief Grants access to a mutex, enforcing the RAII principle. */
-template <typename MutexType>
+template <typename MutexT>
 class ScopedLock : private boost::noncopyable {
 
 public :
 
-    typedef ScopedLock<MutexType> ThisType;
-    typedef Condition<MutexType>  ConditionType;
-
     ScopedLock() : _mutex(0) {}
 
-    explicit ScopedLock(MutexType & m) : _mutex(&m) {
+    explicit ScopedLock(MutexT & m) : _mutex(&m) {
         m.acquire();
     }
 
@@ -127,7 +124,7 @@ public :
     }
 
     /// Acquires the given Mutex.
-    void acquire(MutexType & m) {
+    void acquire(MutexT & m) {
         assert(_mutex == 0);
         _mutex = &m;
         m.acquire();
@@ -139,7 +136,7 @@ public :
      * @pre     Any previously acquired Mutex was released
      * @return  @c true if the mutual exclusion lock was acquired, @c false otherwise.
      */
-    bool tryAcquire(MutexType & m) {
+    bool tryAcquire(MutexT & m) {
         assert(_mutex == 0);
         if (m.tryAcquire()) {
             _mutex = &m;
@@ -168,10 +165,10 @@ public :
     }
 
     // implicit conversion to "bool"
-    typedef MutexType * ThisType::* UnspecifiedBoolType;
+    typedef MutexT * ScopedLock::* UnspecifiedBoolType;
 
     operator UnspecifiedBoolType() const {
-        return _mutex == 0 ? 0 : &ThisType::_mutex;
+        return _mutex == 0 ? 0 : &ScopedLock::_mutex;
     }
 
     bool operator!() const {
@@ -180,13 +177,13 @@ public :
 
 private :
 
-    MutexType * _mutex;
+    MutexT * _mutex;
 
     pthread_mutex_t * getPosixMutex() {
         return &(_mutex->_mutex);
     }
 
-    friend class Condition<MutexType>;
+    friend class Condition<MutexT>;
 };
 
 

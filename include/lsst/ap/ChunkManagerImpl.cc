@@ -57,8 +57,8 @@ inline uint32_t hash(int32_t key) { return hash(static_cast<uint32_t>(key)); }
 inline uint32_t hash(int64_t key) { return hash(static_cast<uint64_t>(key)); }
 
 
-template <typename EntryType, uint32_t NumEntries>
-HashedSet<EntryType, NumEntries>::HashedSet() :
+template <typename EntryT, uint32_t NumEntries>
+HashedSet<EntryT, NumEntries>::HashedSet() :
     _free(0), _size(0)
 {
     for (uint32_t i = 0; i < 2*NumEntries; ++i) {
@@ -79,8 +79,8 @@ HashedSet<EntryType, NumEntries>::HashedSet() :
  * @param[in] id    The identifier of the entry to find.
  * @return          A pointer to the entry with the given identifier, or null if no such entry was found.
  */
-template <typename EntryType, uint32_t NumEntries>
-EntryType const * HashedSet<EntryType, NumEntries>::doFind(int64_t const id) const {
+template <typename EntryT, uint32_t NumEntries>
+EntryT const * HashedSet<EntryT, NumEntries>::doFind(int64_t const id) const {
     int i = _hashTable[hash(id) & (2*NumEntries - 1)];
     while (i >= 0) {
         if (id == _entries[i].getId()) {
@@ -101,8 +101,8 @@ EntryType const * HashedSet<EntryType, NumEntries>::doFind(int64_t const id) con
  *                  or null if either a preexisting entry with the given identifier was found or
  *                  no space for new entries remains.
  */
-template <typename EntryType, uint32_t NumEntries>
-EntryType * HashedSet<EntryType, NumEntries>::insert(int64_t const id) {
+template <typename EntryT, uint32_t NumEntries>
+EntryT * HashedSet<EntryT, NumEntries>::insert(int64_t const id) {
 
     // check that there is space for another entry
     if (_free < 0) {
@@ -134,7 +134,7 @@ EntryType * HashedSet<EntryType, NumEntries>::insert(int64_t const id) {
     }
 
     // basic entry initialization, then return
-    new (&_entries[c]) EntryType();
+    new (&_entries[c]) EntryT();
     _entries[c].setId(id);
     _entries[c].setNextInChain(-1);
     ++_size;
@@ -152,8 +152,8 @@ EntryType * HashedSet<EntryType, NumEntries>::insert(int64_t const id) {
  * @return          A pointer to the entry with the given id along with a boolean indicating
  *                  whether the entry was inserted (@c true) or found (@c false).
  */
-template <typename EntryType, uint32_t NumEntries>
-std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int64_t const id) {
+template <typename EntryT, uint32_t NumEntries>
+std::pair<EntryT *, bool> HashedSet<EntryT, NumEntries>::findOrInsert(int64_t const id) {
 
     uint32_t const bucket = hash(id) & (2*NumEntries - 1);
 
@@ -162,7 +162,7 @@ std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int6
 
     while (i >= 0) {
         if (id == _entries[i].getId()) {
-            return std::pair<EntryType *, bool>(&_entries[i], false); // found an entry with the given id
+            return std::pair<EntryT *, bool>(&_entries[i], false); // found an entry with the given id
         }
         last = i;
         i    = _entries[i].getNextInChain();
@@ -171,7 +171,7 @@ std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int6
     // check that there is a free chunk, if so use it
     int const c = _free;
     if (c < 0) {
-        return std::pair<EntryType *, bool>(0, true);
+        return std::pair<EntryT *, bool>(0, true);
     }
     _free = _entries[c].getNextInChain();
 
@@ -183,11 +183,11 @@ std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int6
     }
 
     // basic chunk initialization, then return
-    new (&_entries[c]) EntryType();
+    new (&_entries[c]) EntryT();
     _entries[c].setId(id);
     _entries[c].setNextInChain(-1);
     ++_size;
-    return std::pair<EntryType *, bool>(&_entries[c], true);
+    return std::pair<EntryT *, bool>(&_entries[c], true);
 }
 
 
@@ -197,8 +197,8 @@ std::pair<EntryType *, bool> HashedSet<EntryType, NumEntries>::findOrInsert(int6
  * @param[in] id    The id of the entry to erase.
  * @return          @c true if an entry with the given id was found (and erased).
  */
-template <typename EntryType, uint32_t NumEntries>
-bool HashedSet<EntryType, NumEntries>::erase(int64_t const id) {
+template <typename EntryT, uint32_t NumEntries>
+bool HashedSet<EntryT, NumEntries>::erase(int64_t const id) {
 
     uint32_t const bucket = hash(id) & (2*NumEntries - 1);
 
@@ -238,8 +238,8 @@ bool HashedSet<EntryType, NumEntries>::erase(int64_t const id) {
  *                      to be managed by this allocator instance, specified as an offset in bytes
  *                      relative to the @a reference address.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-BlockAllocator<MutexType, DataType, TraitsType>::BlockAllocator(
+template <typename MutexT, typename DataT, typename TraitsT>
+BlockAllocator<MutexT, DataT, TraitsT>::BlockAllocator(
     uint8_t const * const reference,
     size_t  const         offset
 ) :
@@ -259,10 +259,10 @@ BlockAllocator<MutexType, DataType, TraitsType>::BlockAllocator(
  *
  * @throw std::bad_alloc    Thrown if no free block was available.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-size_t BlockAllocator<MutexType, DataType, TraitsType>::allocate() {
+template <typename MutexT, typename DataT, typename TraitsT>
+size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
     int i[1];
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, 1)) {
         throw std::bad_alloc();
     }
@@ -279,17 +279,17 @@ size_t BlockAllocator<MutexType, DataType, TraitsType>::allocate() {
  *
  * @throw std::bad_alloc    Thrown if there were less than @a n free blocks available.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void BlockAllocator<MutexType, DataType, TraitsType>::allocate(
+template <typename MutexT, typename DataT, typename TraitsT>
+void BlockAllocator<MutexT, DataT, TraitsT>::allocate(
     size_t * const blockOffsets,
     uint32_t const n
 ) {
-    if (n < 0 || n > TraitsType::MAX_BLOCKS_PER_CHUNK) {
+    if (n < 0 || n > TraitsT::MAX_BLOCKS_PER_CHUNK) {
         LSST_AP_THROW(OutOfRange, "invalid number of memory blocks in allocation request");
     }
-    int i[TraitsType::MAX_BLOCKS_PER_CHUNK];
+    int i[TraitsT::MAX_BLOCKS_PER_CHUNK];
 
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, n)) {
         throw std::bad_alloc();
     }
@@ -306,25 +306,25 @@ void BlockAllocator<MutexType, DataType, TraitsType>::allocate(
  *                          the memory blocks to free are stored. Assumed to be of length at least @a n.
  * @param[in] n             The number of memory blocks to free.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void BlockAllocator<MutexType, DataType, TraitsType>::free(
+template <typename MutexT, typename DataT, typename TraitsT>
+void BlockAllocator<MutexT, DataT, TraitsT>::free(
     size_t   const * const blockOffsets,
     uint32_t const         n
 ) {
-    assert(n >= 0 && n <= TraitsType::MAX_BLOCKS_PER_CHUNK &&
+    assert(n >= 0 && n <= TraitsT::MAX_BLOCKS_PER_CHUNK &&
         "invalid number of memory blocks in free request");
 
     // translate block offsets to block indexes
-    int i[TraitsType::MAX_BLOCKS_PER_CHUNK];
+    int i[TraitsT::MAX_BLOCKS_PER_CHUNK];
     for (uint32_t j = 0; j < n; ++j) {
         size_t off = blockOffsets[j] - _offset;
-        assert(off < TraitsType::NUM_BLOCKS*BLOCK_SIZE && "block was not allocated by this allocator");
+        assert(off < TraitsT::NUM_BLOCKS*BLOCK_SIZE && "block was not allocated by this allocator");
         assert(off % BLOCK_SIZE == 0 && "invalid block address");
         i[j] = static_cast<int>(off/BLOCK_SIZE);
     }
 
     // clear bit corresponding to each block to free
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     _allocator.reset(i, n);
 }
 
@@ -396,16 +396,16 @@ void VisitTracker::print(int64_t const visitId, std::ostream & os) const {
  * @param[in]  chunkIds     A list of identifiers for chunks required by the visit.
  *                          Assumed to be duplicate free.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void SubManager<MutexType, DataType, TraitsType>::createOrRegisterInterest(
-    std::vector<ChunkType>       & toRead,
-    std::vector<ChunkType>       & toWaitFor,
-    int64_t                const   visitId,
-    std::vector<int64_t>   const & chunkIds
+template <typename MutexT, typename DataT, typename TraitsT>
+void SubManager<MutexT, DataT, TraitsT>::createOrRegisterInterest(
+    std::vector<Chunk>         & toRead,
+    std::vector<Chunk>         & toWaitFor,
+    int64_t              const   visitId,
+    std::vector<int64_t> const & chunkIds
 ) {
     std::vector<int64_t>::const_iterator const end = chunkIds.end();
     for (std::vector<int64_t>::const_iterator i = chunkIds.begin(); i != end; ++i) {
-        std::pair<ChunkDescriptorType *, bool> p(_chunks.findOrInsert(*i));
+        std::pair<Descriptor *, bool> p(_chunks.findOrInsert(*i));
         if (p.second) {
             // new chunk descriptor was allocated
             if (p.first == 0) {
@@ -413,12 +413,12 @@ void SubManager<MutexType, DataType, TraitsType>::createOrRegisterInterest(
             }
             p.first->_visitId = visitId;
             p.first->_usable  = false;
-            toRead.push_back(ChunkType(p.first, &_allocator));
+            toRead.push_back(Chunk(p.first, &_allocator));
         } else {
             // existing chunk descriptor was found
             assert(p.first != 0);
             p.first->_interestedParties.enqueue(visitId);
-            toWaitFor.push_back(ChunkType(p.first, &_allocator));
+            toWaitFor.push_back(Chunk(p.first, &_allocator));
         }
     }
 }
@@ -439,17 +439,17 @@ void SubManager<MutexType, DataType, TraitsType>::createOrRegisterInterest(
  * @return  @c true if and only if all the chunks initially in the @a toWaitFor list now
  *          belong to the given visit.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-bool SubManager<MutexType, DataType, TraitsType>::checkForOwnership(
-    std::vector<ChunkType> & toRead,
-    std::vector<ChunkType> & toWaitFor,
-    int64_t const            visitId
+template <typename MutexT, typename DataT, typename TraitsT>
+bool SubManager<MutexT, DataT, TraitsT>::checkForOwnership(
+    std::vector<Chunk> & toRead,
+    std::vector<Chunk> & toWaitFor,
+    int64_t const        visitId
 ) {
     size_t size   = toWaitFor.size();
     size_t i      = 0;
 
     while (i < size) {
-        ChunkType & c = toWaitFor[i];
+        Chunk & c = toWaitFor[i];
         if (c.getVisitId() != visitId) {
             ++i;
         } else {
@@ -478,16 +478,16 @@ bool SubManager<MutexType, DataType, TraitsType>::checkForOwnership(
  * @param[in]  chunkIds The list of chunk identifiers to return chunk instances for.
  *                      Assumed to be duplicate free.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void SubManager<MutexType, DataType, TraitsType>::getChunks(
-    std::vector<ChunkType>     & chunks,
+template <typename MutexT, typename DataT, typename TraitsT>
+void SubManager<MutexT, DataT, TraitsT>::getChunks(
+    std::vector<Chunk>         & chunks,
     std::vector<int64_t> const & chunkIds
 ) {
     std::vector<int64_t>::const_iterator const end = chunkIds.end();
     for (std::vector<int64_t>::const_iterator i = chunkIds.begin(); i != end; ++i) {
-        ChunkDescriptorType * d = _chunks.find(*i);
+        Descriptor * d = _chunks.find(*i);
         if (d != 0) {
-            chunks.push_back(ChunkType(d, &_allocator));
+            chunks.push_back(Chunk(d, &_allocator));
         }
     }
 }
@@ -506,15 +506,15 @@ void SubManager<MutexType, DataType, TraitsType>::getChunks(
  *
  * @return      @c true if any chunks changed hands.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-bool SubManager<MutexType, DataType, TraitsType>::relinquishOwnership(
+template <typename MutexT, typename DataT, typename TraitsT>
+bool SubManager<MutexT, DataT, TraitsT>::relinquishOwnership(
     int64_t      const   visitId,
     bool         const   rollback,
     VisitTracker const & tracker
 ) {
     bool change = false;
-    ChunkDescriptorType * const end = _chunks.end();
-    for (ChunkDescriptorType * i = _chunks.begin(); i != end; ++i) {
+    Descriptor * const end = _chunks.end();
+    for (Descriptor * i = _chunks.begin(); i != end; ++i) {
         if (i->getId() != -1 && i->_visitId == visitId) {
             bool foundSuccessor = false;
             while (!i->_interestedParties.empty()) {
@@ -527,7 +527,7 @@ bool SubManager<MutexType, DataType, TraitsType>::relinquishOwnership(
                 }
             }
             if (foundSuccessor) {
-                ChunkType c(i, &_allocator);
+                Chunk c(i, &_allocator);
                 if (rollback) {
                     c.rollback();
                 } else {
@@ -550,8 +550,8 @@ namespace {
         bool operator()(T const * t1, T const * t2) { return *t1 < *t2; }
     };
 
-    template <typename ChunkDescriptorType>
-    bool mergePrint(ChunkDescriptorType const * d1, ChunkDescriptorType const * d2) {
+    template <typename Descriptor>
+    bool mergePrint(Descriptor const * d1, Descriptor const * d2) {
         if (d1->_visitId != d1->_visitId || d1->_usable != d2->_usable) {
             return false;
         }
@@ -562,14 +562,14 @@ namespace {
                ZoneStripeChunkDecomposition::chunkToStripe(d2->_chunkId);
     }
 
-    template <typename ChunkDescriptorType>
-    void printChunks(std::ostream & os, std::vector<ChunkDescriptorType const *> const & v) {
+    template <typename Descriptor>
+    void printChunks(std::ostream & os, std::vector<Descriptor const *> const & v) {
 
         boost::format oneFmt ("        chunk  %1%     in stripe %2% %|32t|: %3%%4%\n");
         boost::format manyFmt("        chunks %1%-%2% in stripe %3% %|32t|: %4%%5%\n");
 
         uint32_t start = 0;
-        ChunkDescriptorType const * c = v[0];
+        Descriptor const * c = v[0];
 
         for (uint32_t i = 1; i <= v.size(); ++i) {
             if (i < v.size() && mergePrint(c, v[i])) {
@@ -602,17 +602,17 @@ namespace {
 } // end of anonymous namespace
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void SubManager<MutexType, DataType, TraitsType>::print(std::ostream & os) const {
-    ChunkDescriptorType const * const end = _chunks.end();
-    std::vector<ChunkDescriptorType const *> v;
+template <typename MutexT, typename DataT, typename TraitsT>
+void SubManager<MutexT, DataT, TraitsT>::print(std::ostream & os) const {
+    Descriptor const * const end = _chunks.end();
+    std::vector<Descriptor const *> v;
     v.reserve(_chunks.size());
-    for (ChunkDescriptorType const * beg = _chunks.begin(); beg != end; ++beg) {
+    for (Descriptor const * beg = _chunks.begin(); beg != end; ++beg) {
         if (beg->_chunkId != -1) {
             v.push_back(beg);
         }
     }
-    std::sort(v.begin(), v.end(), PtrLessThan<ChunkDescriptorType>());
+    std::sort(v.begin(), v.end(), PtrLessThan<Descriptor>());
     os << "    Chunks with an owner";
     if (v.empty()) {
         os << ": None";
@@ -625,12 +625,12 @@ void SubManager<MutexType, DataType, TraitsType>::print(std::ostream & os) const
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void SubManager<MutexType, DataType, TraitsType>::print(
+template <typename MutexT, typename DataT, typename TraitsT>
+void SubManager<MutexT, DataT, TraitsT>::print(
     int64_t const   chunkId,
     std::ostream  & os
 ) const {
-    ChunkDescriptorType const * c = _chunks.find(chunkId);
+    Descriptor const * c = _chunks.find(chunkId);
     os << "    [" << c->_chunkId << "] chunk " <<
           ZoneStripeChunkDecomposition::chunkToSequence(chunkId) << " in stripe " <<
           ZoneStripeChunkDecomposition::chunkToStripe(chunkId);
@@ -656,20 +656,20 @@ void SubManager<MutexType, DataType, TraitsType>::print(
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void SubManager<MutexType, DataType, TraitsType>::printVisit(
+template <typename MutexT, typename DataT, typename TraitsT>
+void SubManager<MutexT, DataT, TraitsT>::printVisit(
     int64_t const   visitId,
     std::ostream  & os
 ) const {
-    ChunkDescriptorType const * const end = _chunks.end();
-    std::vector<ChunkDescriptorType const *> v;
+    Descriptor const * const end = _chunks.end();
+    std::vector<Descriptor const *> v;
     v.reserve(_chunks.size());
-    for (ChunkDescriptorType const * beg = _chunks.begin(); beg != end; ++beg) {
+    for (Descriptor const * beg = _chunks.begin(); beg != end; ++beg) {
         if (beg->_chunkId != -1 && beg->_visitId == visitId) {
             v.push_back(beg);
         }
     }
-    std::sort(v.begin(), v.end(), PtrLessThan<ChunkDescriptorType>());
+    std::sort(v.begin(), v.end(), PtrLessThan<Descriptor>());
     os << "    Chunks belonging to visit " << visitId;
     if (v.empty()) {
         os << ": None";
@@ -683,16 +683,16 @@ void SubManager<MutexType, DataType, TraitsType>::printVisit(
 
 // -- ChunkManagerSingleImpl ----------------
 
-template <typename MutexType, typename DataType, typename TraitsType>
-ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::ChunkManagerSingleImpl() :
+template <typename MutexT, typename DataT, typename TraitsT>
+ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::ChunkManagerSingleImpl() :
     _data(reinterpret_cast<uint8_t *>(this), blocks())
 {}
 
 
 /// Returns @c true if the given visit is in-flight and has not been marked as failed.
-template <typename MutexType, typename DataType, typename TraitsType>
-bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::isVisitInFlight(int64_t const visitId) {
-    ScopedLock<MutexType> lock(_mutex);
+template <typename MutexT, typename DataT, typename TraitsT>
+bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::isVisitInFlight(int64_t const visitId) {
+    ScopedLock<MutexT> lock(_mutex);
     return _visits.isValid(visitId);
 }
 
@@ -701,9 +701,9 @@ bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::isVisitInFlight(in
  * Marks the given visit a failure. If the given visit has not been previously
  * registered, or has already been marked as failed, then the call has no effect.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::failVisit(int64_t const visitId) {
-    ScopedLock<MutexType> lock(_mutex);
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::failVisit(int64_t const visitId) {
+    ScopedLock<MutexT> lock(_mutex);
     Visit * v = _visits.find(visitId);
     if (v != 0) {
         v->setFailed();
@@ -712,9 +712,9 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::failVisit(int64_t 
 
 
 /// Registers the given visit as in-flight without performing any further action.
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::registerVisit(int64_t const visitId) {
-    ScopedLock<MutexType> lock(_mutex);
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::registerVisit(int64_t const visitId) {
+    ScopedLock<MutexT> lock(_mutex);
     if (_visits.find(visitId) != 0) {
         LSST_AP_THROW(
             InvalidParameter,
@@ -746,12 +746,12 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::registerVisit(int6
  * @param[in]  visitId     The visit to begin.
  * @param[in]  chunkIds    Identifiers for chunks to register an interest in or create.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::startVisit(
-    std::vector<ChunkType>       & toRead,
-    std::vector<ChunkType>       & toWaitFor,
-    int64_t                const   visitId,
-    std::vector<int64_t>   const & chunkIds
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::startVisit(
+    std::vector<Chunk>         & toRead,
+    std::vector<Chunk>         & toWaitFor,
+    int64_t              const   visitId,
+    std::vector<int64_t> const & chunkIds
 ) {
     toRead.clear();
     toWaitFor.clear();
@@ -760,7 +760,7 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::startVisit(
     toRead.reserve(chunkIds.size());
     toWaitFor.reserve(chunkIds.size());
 
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     // ensure internal resources necessary for success are available
     if (_data.space() < chunkIds.size()) {
         LSST_AP_THROW(LengthError, "requested additional chunks exceed chunk manager capacity");
@@ -794,17 +794,17 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::startVisit(
  * @throw Timeout   Thrown if the given visit deadline expired while
  *                  waiting to acquire the specified chunks.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::waitForOwnership(
-    std::vector<ChunkType> & toRead,
-    std::vector<ChunkType> & toWaitFor,
-    int64_t          const   visitId,
-    TimeSpec         const & deadline
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::waitForOwnership(
+    std::vector<Chunk> & toRead,
+    std::vector<Chunk> & toWaitFor,
+    int64_t      const   visitId,
+    TimeSpec     const & deadline
 ) {
     toRead.clear();
     toRead.reserve(toWaitFor.size());
 
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     while (true) {
         if (_data.checkForOwnership(toRead, toWaitFor, visitId)) {
             break; // all chunks belong to the visit - ok to proceed
@@ -823,12 +823,12 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::waitForOwnership(
  * @param[out] chunks   The list to store chunks in.
  * @param[in]  chunkIds The list of identifiers for which corresponding chunks are desired.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::getChunks(
-    std::vector<ChunkType>     & chunks,
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::getChunks(
+    std::vector<Chunk>         & chunks,
     std::vector<int64_t> const & chunkIds
 ) {
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     _data.getChunks(chunks, chunkIds);
 }
 
@@ -846,12 +846,12 @@ void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::getChunks(
  * @return  @c true if the visit existed, was not marked as a failure and was committed,
  *          @c false otherwise.
  */
-template <typename MutexType, typename DataType, typename TraitsType>
-bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::endVisit(
+template <typename MutexT, typename DataT, typename TraitsT>
+bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::endVisit(
     int64_t const visitId,
     bool    const rollback
 ) {
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     bool roll = rollback || !_visits.isValid(visitId);
     if (!_visits.erase(visitId)) {
         return false;
@@ -865,37 +865,37 @@ bool ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::endVisit(
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::printVisits(std::ostream & os) const {
-    ScopedLock<MutexType> lock(_mutex);
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printVisits(std::ostream & os) const {
+    ScopedLock<MutexT> lock(_mutex);
     _visits.print(os);
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::printChunks(std::ostream & os) const {
-    ScopedLock<MutexType> lock(_mutex);
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printChunks(std::ostream & os) const {
+    ScopedLock<MutexT> lock(_mutex);
     _data.print(os);
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::printVisit(
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printVisit(
     int64_t const   visitId,
     std::ostream  & os
 ) const {
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     _visits.print(visitId, os);
     _data.printVisit(visitId, os);
 }
 
 
-template <typename MutexType, typename DataType, typename TraitsType>
-void ChunkManagerSingleImpl<MutexType, DataType, TraitsType>::printChunk(
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printChunk(
     int64_t const   chunkId,
     std::ostream  & os
 ) const {
-    ScopedLock<MutexType> lock(_mutex);
+    ScopedLock<MutexT> lock(_mutex);
     _data.print(chunkId, os);
 }
 

@@ -122,30 +122,30 @@ static inline int populationCount(uint8_t const val)
  * @return     @c true if @a numBitsToSet zero bits were found and set to one in @a words,
  *             @c false otherwise.
  */
-template <typename Word>
+template <typename WordT>
 bool set(
     int        * const indexes,
-    Word       * const words,
+    WordT      * const words,
     int  const         numBitsToSet,
     int  const         numBits
 ) {
     assert(words   != 0 && numBits > 0 && "null or empty bitset");
     assert(indexes != 0 && numBitsToSet > 0 && "null or empty index array");
 
-    bool const special = (numBits & (BitTraits<Word>::BITS_PER_WORD - 1)) > 0;
-    Word const last    = ~(maskForBit<Word>(numBits) - 1);
-    int  const nwords  = (numBits + (BitTraits<Word>::BITS_PER_WORD - 1)) >>
-                         BitTraits<Word>::BITS_PER_WORD_LOG2;
+    bool  const special = (numBits & (BitTraits<WordT>::BITS_PER_WORD - 1)) > 0;
+    WordT const last    = ~(maskForBit<WordT>(numBits) - 1);
+    int   const nwords  = (numBits + (BitTraits<WordT>::BITS_PER_WORD - 1)) >>
+                         BitTraits<WordT>::BITS_PER_WORD_LOG2;
 
     int zeroes = numBitsToSet;
     int i;
     for (i = 0; i < nwords - special && zeroes > 0; ++i) {
-        zeroes -= BitTraits<Word>::BITS_PER_WORD -
-                  populationCount(static_cast<Word>(words[i] & BitTraits<Word>::WORD_MASK));
+        zeroes -= BitTraits<WordT>::BITS_PER_WORD -
+                  populationCount(static_cast<WordT>(words[i] & BitTraits<WordT>::WORD_MASK));
     }
     if (zeroes > 0 && special) {
-        zeroes -= BitTraits<Word>::BITS_PER_WORD -
-                  populationCount(static_cast<Word>((words[i] & BitTraits<Word>::WORD_MASK) | last));
+        zeroes -= BitTraits<WordT>::BITS_PER_WORD -
+                  populationCount(static_cast<WordT>((words[i] & BitTraits<WordT>::WORD_MASK) | last));
     }
     if (zeroes > 0) {
         // didn't find enough zeroes
@@ -154,14 +154,14 @@ bool set(
 
     zeroes = 0;
     for (int i = 0; zeroes < numBitsToSet; ++i) {
-        Word w = words[i] & BitTraits<Word>::WORD_MASK;
-        if (w == BitTraits<Word>::WORD_MASK) {
+        WordT w = words[i] & BitTraits<WordT>::WORD_MASK;
+        if (w == BitTraits<WordT>::WORD_MASK) {
             continue;
         }
-        Word mask = 1;
-        for (int j = 0; j < BitTraits<Word>::BITS_PER_WORD; ++j, mask <<= 1) {
+        WordT mask = 1;
+        for (int j = 0; j < BitTraits<WordT>::BITS_PER_WORD; ++j, mask <<= 1) {
             if ((w & mask) == 0) {
-                indexes[zeroes++] = (i << BitTraits<Word>::BITS_PER_WORD_LOG2) + j;
+                indexes[zeroes++] = (i << BitTraits<WordT>::BITS_PER_WORD_LOG2) + j;
                 w |= mask;
                 if (zeroes == numBitsToSet) {
                     break;
@@ -185,9 +185,9 @@ bool set(
  * @param[in]     numBitsToReset    The number of bits to reset (to zero)
  * @param[in]     numBits           The number of bits in @a words
  */
-template <typename Word>
+template <typename WordT>
 void reset(
-    Word      * const words,
+    WordT     * const words,
     int const * const indexes,
     int const         numBitsToReset,
     int const         numBits
@@ -198,7 +198,7 @@ void reset(
     for (int i = 0; i < numBitsToReset; ++i) {
         int const j = indexes[i];
         assert(j >= 0 && j < numBits);
-        words[wordForBit<Word>(j)] &= ~ maskForBit<Word>(j);
+        words[wordForBit<WordT>(j)] &= ~ maskForBit<WordT>(j);
     }
 }
 

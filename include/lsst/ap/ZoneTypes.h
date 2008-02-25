@@ -27,72 +27,72 @@ namespace ap {
  * A pointer to the underlying data object gives access to ancillary fields (e.g. colors,
  * magnitudes, etc...).
  */
-template <typename C>
+template <typename ChunkT>
 class ZoneEntry {
 
 public :
 
-    typedef C                     ChunkType;
-    typedef typename C::EntryType DataType;
+    typedef ChunkT                 Chunk;
+    typedef typename ChunkT::Entry Data;
 
-    DataType *  _data;  ///< Pointer to the corresponding data object
-    uint32_t    _ra;    ///< scaled right ascension of entity position
-    int32_t     _dec;   ///< scaled declination of entity position
-    uint32_t    _flags; ///< Reserved
-    int32_t     _index; ///< Index of the data object in the chunk
-    ChunkType * _chunk; ///< Pointer to chunk containing the data object
-    double      _x;     ///< unit vector x coordinate of entity position
-    double      _y;     ///< unit vector y coordinate of entity position
-    double      _z;     ///< unit vector z coordinate of entity position
+    Data *   _data;  ///< Pointer to the corresponding data object
+    uint32_t _ra;    ///< scaled right ascension of entity position
+    int32_t  _dec;   ///< scaled declination of entity position
+    uint32_t _flags; ///< Reserved
+    int32_t  _index; ///< Index of the data object in the chunk
+    Chunk *  _chunk; ///< Pointer to chunk containing the data object
+    double   _x;     ///< unit vector x coordinate of entity position
+    double   _y;     ///< unit vector y coordinate of entity position
+    double   _z;     ///< unit vector z coordinate of entity position
 
-    ZoneEntry(DataType * const data, ChunkType * const chunk, int32_t const index);
+    ZoneEntry(Data * const data, Chunk * const chunk, int32_t const index);
 };
 
-template <typename C>
-inline bool operator< (ZoneEntry<C> const & a, ZoneEntry<C> const & b) {
+template <typename ChunkT>
+inline bool operator< (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
     return a._ra < b._ra;
 }
 
-template <typename C>
-inline bool operator== (ZoneEntry<C> const & a, ZoneEntry<C> const & b) {
+template <typename ChunkT>
+inline bool operator== (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
     return a._ra == b._ra;
 }
 
-template <typename C>
-inline bool operator< (uint32_t const a, ZoneEntry<C> const & b) {
+template <typename ChunkT>
+inline bool operator< (uint32_t const a, ZoneEntry<ChunkT> const & b) {
     return a < b._ra;
 }
 
-template <typename C>
-inline bool operator< (ZoneEntry<C> const & a, uint32_t const b) {
+template <typename ChunkT>
+inline bool operator< (ZoneEntry<ChunkT> const & a, uint32_t const b) {
     return a._ra < b;
 }
 
-template <typename C>
-inline bool operator== (uint32_t const a, ZoneEntry<C> const & b) {
+template <typename ChunkT>
+inline bool operator== (uint32_t const a, ZoneEntry<ChunkT> const & b) {
     return a == b._ra;
 }
 
-template <typename C>
-inline bool operator== (ZoneEntry<C> const & a, uint32_t const b) {
+template <typename ChunkT>
+inline bool operator== (ZoneEntry<ChunkT> const & a, uint32_t const b) {
     return a._ra == b;
 }
 
 
 /** @brief  Contains entries inside a single zone (a narrow declination stripe). */
-template <typename EntryType>
+template <typename EntryT>
 class Zone {
 
 public :
 
-    typedef typename EntryType::ChunkType ChunkType;
-    typedef typename EntryType::DataType  DataType;
+    typedef typename EntryT::Chunk Chunk;
+    typedef typename EntryT::Data  Data;
 
-    EntryType * _entries;
-    int32_t     _size;
-    int32_t     _capacity;
-    int32_t     _zone;
-    uint32_t    _deltaRa;
+    EntryT * _entries;
+    int32_t  _size;
+    int32_t  _capacity;
+    int32_t  _zone;
+    uint32_t _deltaRa;
 
     Zone();
     ~Zone();
@@ -100,12 +100,12 @@ public :
     void init(int32_t const capacity);
 
     /// Inserts the given data item into the zone.
-    void insert(DataType * const data, ChunkType * const chunk, int32_t const index) {
+    void insert(Data * const data, Chunk * const chunk, int32_t const index) {
         int32_t const sz = _size;
         if (sz == _capacity) {
             grow();
         }
-        new(&_entries[sz]) EntryType(data, chunk, index);
+        new(&_entries[sz]) EntryT(data, chunk, index);
         _size = sz + 1;
     }
 
@@ -121,8 +121,8 @@ public :
 
     /// Finds the last entry with ra less than or equal to the specified value.
     int32_t findLte(uint32_t const ra) {
-        EntryType const * const entries = _entries;
-        int32_t   const         last    = _size - 1;
+        EntryT  const * const entries = _entries;
+        int32_t const         last    = _size - 1;
 
         int32_t sz = last + 1;
         int32_t i  = last;
@@ -142,8 +142,8 @@ public :
 
     /// Finds the first entry with ra greater than or equal to the specified value.
     int32_t findGte(uint32_t const ra) const {
-        EntryType const * const entries = _entries;
-        int32_t   const         end     = _size;
+        EntryT  const * const entries = _entries;
+        int32_t const         end     = _size;
 
         int32_t sz = end;
         int32_t i  = 0;
@@ -169,7 +169,7 @@ public :
 
 
 /** @brief  Container for a sequence of adjacent zones. */
-template <typename EntryType>
+template <typename EntryT>
 class ZoneIndex :
     public  lsst::mwi::data::Citizen,
     private boost::noncopyable
@@ -177,9 +177,9 @@ class ZoneIndex :
 
 public :
 
-    typedef typename EntryType::ChunkType ChunkType;
-    typedef typename EntryType::DataType  DataType;
-    typedef Zone<EntryType>               ZoneType;
+    typedef typename EntryT::Chunk Chunk;
+    typedef typename EntryT::Data  Data;
+    typedef Zone<EntryT>           Zone;
 
     ZoneIndex(
         int32_t const zonesPerDegree,
@@ -201,7 +201,7 @@ public :
     template <typename FunctionType> void   apply(FunctionType & function);
 
     /// Inserts the given data item from the given chunk into the index.
-    void insert(DataType * const data, ChunkType * const chunk, int32_t const index) {
+    void insert(Data * const data, Chunk * const chunk, int32_t const index) {
         int32_t const zone = _zsc.decToZone(data->getDec());
         if (zone >= _minZone && zone <= _maxZone) {
             _zones[zone - _minZone].insert(data, chunk, index);
@@ -215,7 +215,7 @@ public :
     int32_t getMaxZone() const { return _maxZone; }
 
     /// Returns a pointer to the zone with the given id, or 0 if the requested zone isn't in the index.
-    ZoneType * getZone(int32_t const zone) {
+    Zone * getZone(int32_t const zone) {
         if (zone >= _minZone && zone <= _maxZone) {
             return &_zones[zone - _minZone];
         }
@@ -226,7 +226,7 @@ public :
      * Returns a pointer to the first zone in the index within the given id range,
      * or 0 if there is no such zone.
      */
-    ZoneType * firstZone(int32_t const minZone, int32_t const maxZone) {
+    Zone * firstZone(int32_t const minZone, int32_t const maxZone) {
         if (maxZone < _minZone || minZone > _maxZone) {
             return 0;
         }
@@ -240,7 +240,7 @@ public :
      * Returns a pointer to the zone following the last zone in the index within the given id range,
      * or 0 if there is no such zone.
      */
-    ZoneType * endZone(int32_t const minZone, int32_t const maxZone) {
+    Zone * endZone(int32_t const minZone, int32_t const maxZone) {
         if (maxZone < _minZone || minZone > _maxZone) {
             return 0;
         }
@@ -256,8 +256,8 @@ public :
 
 private :
 
-    ZoneStripeChunkDecomposition  _zsc;
-    boost::scoped_array<ZoneType> _zones;
+    ZoneStripeChunkDecomposition _zsc;
+    boost::scoped_array<Zone>    _zones;
     int32_t _capacity;
     int32_t _minZone;
     int32_t _maxZone;

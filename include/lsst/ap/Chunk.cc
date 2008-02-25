@@ -50,8 +50,8 @@ void ChunkDescriptor<MaxBlocksPerChunk>::initialize() {
 // -- Chunk ----------------
 
 /** Ensures the chunk has space to hold at least @a n entries. */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::reserve(uint32_t const n) {
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::reserve(uint32_t const n) {
     if (n > capacity()) {
         if (n > 0x3fffffff) {
             LSST_AP_THROW(LengthError, "requested chunk capacity is too large");
@@ -62,9 +62,9 @@ void Chunk<AllocatorType, DataType, TraitsType>::reserve(uint32_t const n) {
         // zero out the newly allocated blocks
         for (; b < nb; ++b) {
             std::memset(
-                map(_descriptor->_blocks[b] + (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2)),
+                map(_descriptor->_blocks[b] + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)),
                 0,
-                sizeof(DataType) << ENTRIES_PER_BLOCK_LOG2
+                sizeof(DataT) << ENTRIES_PER_BLOCK_LOG2
             );
         }
         _descriptor->_numBlocks = nb;
@@ -73,10 +73,10 @@ void Chunk<AllocatorType, DataType, TraitsType>::reserve(uint32_t const n) {
 
 
 /** Inserts the entry into the chunk, allocating memory if necessary. */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::insert(
-    DataType           const & data,
-    ChunkEntryFlagType const   flags
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::insert(
+    DataT          const & data,
+    ChunkEntryFlag const   flags
 ) {
    uint32_t const block = _descriptor->_nextBlock;
    size_t   off = _descriptor->_curBlockOffset;
@@ -91,9 +91,9 @@ void Chunk<AllocatorType, DataType, TraitsType>::insert(
            off = _allocator->allocate();
            // zero out the newly allocated block
            std::memset(
-               map(off + (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2)),
+               map(off + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)),
                0,
-               sizeof(DataType) << ENTRIES_PER_BLOCK_LOG2
+               sizeof(DataT) << ENTRIES_PER_BLOCK_LOG2
            );
            _descriptor->_blocks[block] = off;
            _descriptor->_numBlocks     = block + 1;
@@ -106,10 +106,10 @@ void Chunk<AllocatorType, DataType, TraitsType>::insert(
    }
 
    // copy in data
-   size_t const addr = off + i*sizeof(DataType) + (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2);
-   new (reinterpret_cast<DataType *>(map(addr))) DataType(data);
+   size_t const addr = off + i*sizeof(DataT) + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
+   new (reinterpret_cast<DataT *>(map(addr))) DataT(data);
 
-   *reinterpret_cast<ChunkEntryFlagType *>(map(off + i*sizeof(ChunkEntryFlagType))) = flags;
+   *reinterpret_cast<ChunkEntryFlag *>(map(off + i*sizeof(ChunkEntryFlag))) = flags;
    _descriptor->_index = i + 1;
    ++_descriptor->_size;
 }
@@ -122,10 +122,10 @@ void Chunk<AllocatorType, DataType, TraitsType>::insert(
  * @param[in] i The index of the first entry to test for removal.
  * @return      @c true if any entries were removed
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
+template <typename AllocatorT, typename DataT, typename TraitsT>
+bool Chunk<AllocatorT, DataT, TraitsT>::pack(uint32_t const i) {
 
-    static uint32_t const fb = (sizeof(ChunkEntryFlagType) << ENTRIES_PER_BLOCK_LOG2);
+    static uint32_t const fb = (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
 
     assert (i < _descriptor->_size);
 
@@ -136,16 +136,16 @@ bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
     size_t   dEnd  = d + BLOCK_SIZE;
     uint32_t ib    = i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1);
 
-    ChunkEntryFlagType * __restrict df = map(d + ib*sizeof(ChunkEntryFlagType));
-    d += fb + ib*sizeof(DataType);
+    ChunkEntryFlag * __restrict df = map(d + ib*sizeof(ChunkEntryFlag));
+    d += fb + ib*sizeof(DataT);
 
     uint32_t sBlk = dBlk;
     size_t   s    = d;
     size_t   sEnd = dEnd;
-    ChunkEntryFlagType const * __restrict sf = df;
+    ChunkEntryFlag const * __restrict sf = df;
 
     while (true) {
-        for ( ; s < sEnd; s += sizeof(DataType), sf++) {
+        for ( ; s < sEnd; s += sizeof(DataT), sf++) {
             if ((*sf & DELETED) != 0) {
                 --sz;
                 continue;
@@ -153,14 +153,14 @@ bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
             if ((*sf & IN_DELTA) != 0 && delta == 0xffffffff) {
                 // set delta
                 delta = (dBlk << ENTRIES_PER_BLOCK_LOG2) +
-                        (d - _descriptor->_blocks[dBlk] - fb)/sizeof(DataType);
+                        (d - _descriptor->_blocks[dBlk] - fb)/sizeof(DataT);
             }
             if (df != sf) {
                 *df = *sf;
-                std::memcpy(map(d), map(s), sizeof(DataType));
+                std::memcpy(map(d), map(s), sizeof(DataT));
             }
             df++;
-            d += sizeof(DataType);
+            d += sizeof(DataT);
             if (d == dEnd) {
                 ++dBlk;
                 d    = _descriptor->_blocks[dBlk];
@@ -184,7 +184,7 @@ bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
         _descriptor->_curBlockOffset = cb;
         _descriptor->_nextBlock      = dBlk + 1;
         d -= cb + fb;
-        _descriptor->_index = d/sizeof(DataType);
+        _descriptor->_index = d/sizeof(DataT);
         _descriptor->_size  = sz;
         _descriptor->_delta = std::min(sz, delta);
         return true;
@@ -201,16 +201,16 @@ bool Chunk<AllocatorType, DataType, TraitsType>::pack(uint32_t const i) {
  * @param[in] i     The index of the first entry in block @a b for which the flag value is to be set.
  * @param[in] n     The number of block entries for which flag values are to be set.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::setFlags(
-    uint32_t           const b,
-    ChunkEntryFlagType const flags,
-    uint32_t           const i,
-    uint32_t           const n
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::setFlags(
+    uint32_t       const b,
+    ChunkEntryFlag const flags,
+    uint32_t       const i,
+    uint32_t       const n
 ) {
     assert(i + n <= (1u << ENTRIES_PER_BLOCK_LOG2));
 
-    ChunkEntryFlagType * __restrict df = getFlagBlock(b) + i;
+    ChunkEntryFlag * __restrict df = getFlagBlock(b) + i;
     std::memset(df, flags, n);
 }
 
@@ -220,18 +220,18 @@ void Chunk<AllocatorType, DataType, TraitsType>::setFlags(
  *
  * @return  @c true if there were any modifications to rollback
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-bool Chunk<AllocatorType, DataType, TraitsType>::rollback() {
-    bool mod  = false;
+template <typename AllocatorT, typename DataT, typename TraitsT>
+bool Chunk<AllocatorT, DataT, TraitsT>::rollback() {
+    bool mod = false;
 
     for (uint32_t b = 0; b < _descriptor->_nextBlock; ++b) {
 
         size_t const off = _descriptor->_blocks[b];
-        ChunkEntryFlagType * const __restrict flags = map(off);
+        ChunkEntryFlag * const __restrict flags = map(off);
         uint32_t const e = entries(b);
 
         for (uint32_t i = 0; i < e; ++i) {
-            ChunkEntryFlagType f = flags[i];
+            ChunkEntryFlag f = flags[i];
             if ((f & INSERTED) != 0) {
                 // remove all newly inserted entries
                 _descriptor->_nextBlock      = b + 1;
@@ -256,8 +256,8 @@ bool Chunk<AllocatorType, DataType, TraitsType>::rollback() {
  * @param[in] clearDelta    If set to @c true, then the IN_DELTA flag bit is
  *                          cleared for each entry.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::commit(bool clearDelta) {
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::commit(bool clearDelta) {
 
     uint32_t mask = UNCOMMITTED | INSERTED;
     if (clearDelta) {
@@ -267,7 +267,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::commit(bool clearDelta) {
 
     for (uint32_t b = 0; b < _descriptor->_nextBlock; ++b) {
         size_t const off = _descriptor->_blocks[b];
-        ChunkEntryFlagType * const __restrict flags = map(off);
+        ChunkEntryFlag * const __restrict flags = map(off);
         uint32_t const e = entries(b);
 
         for (uint32_t i = 0; i < e; ++i) {
@@ -289,8 +289,8 @@ void Chunk<AllocatorType, DataType, TraitsType>::commit(bool clearDelta) {
  * @param[in] numDeletes   The number of entries to mark as deleted.
  * @param[in] end          Valid entry indexes must be less than this value.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::applyDeletes(
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::applyDeletes(
     uint32_t const * const deletes,
     uint32_t const         numDeletes,
     uint32_t const         end
@@ -308,9 +308,9 @@ void Chunk<AllocatorType, DataType, TraitsType>::applyDeletes(
     // ok - apply deletes.
     for (uint32_t i = 0; i < numDeletes; ++i) {
         uint32_t d = deletes[i];
-        ChunkEntryFlagType * f = reinterpret_cast<ChunkEntryFlagType *>(map(
+        ChunkEntryFlag * f = reinterpret_cast<ChunkEntryFlag *>(map(
             _descriptor->_blocks[d >> ENTRIES_PER_BLOCK_LOG2] +
-            (d & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlagType)
+            (d & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
         ));
         *f |= DELETED;
     }
@@ -337,8 +337,8 @@ static void doRead(io::SequentialReader & reader, uint8_t * dst, size_t dstlen) 
  * @param name         The name of binary chunk file to read into memory
  * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::read(
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::read(
     std::string const & name,
     bool        const   compressed
 ) {
@@ -360,7 +360,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::read(
     doRead(*reader, reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
 
     // check for fishy smells ...
-    if (!header.isValid() || header._numDeletes != 0 || header._recordSize != sizeof(DataType)) {
+    if (!header.isValid() || header._numDeletes != 0 || header._recordSize != sizeof(DataT)) {
         // lo! blue-fin tuna
         LSST_AP_THROW(
             IoError,
@@ -382,7 +382,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::read(
     do {
         nd  = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
         nr -= nd;
-        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataType));
+        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
         setFlags(b, 0, 0, nd);
         ++b;
     } while (nr > 0);
@@ -405,8 +405,8 @@ void Chunk<AllocatorType, DataType, TraitsType>::read(
  * @param name         The name of binary chunk file to read into memory
  * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::readDelta(
     std::string const & name,
     bool        const   compressed
 ) {
@@ -426,7 +426,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
     BinChunkHeader header;
     doRead(*reader, reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
 
-    if (!header.isValid() || header._recordSize != sizeof(DataType)) {
+    if (!header.isValid() || header._recordSize != sizeof(DataT)) {
         LSST_AP_THROW(
             IoError,
             "Binary chunk delta file failed sanity checks - file is of the wrong format, "
@@ -454,7 +454,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
     uint32_t i  = _descriptor->_index;
     uint32_t nd = std::min((1u << ENTRIES_PER_BLOCK_LOG2) - i, nr);
     nr -= nd;
-    doRead(*reader, reinterpret_cast<uint8_t *>(&getBlock(b)[i]), nd*sizeof(DataType));
+    doRead(*reader, reinterpret_cast<uint8_t *>(&getBlock(b)[i]), nd*sizeof(DataT));
     setFlags(b, IN_DELTA, i, nd);
     nd += i;
     ++b;
@@ -463,7 +463,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
     while (nr > 0) {
         nd  = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
         nr -= nd;
-        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataType));
+        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
         setFlags(b, IN_DELTA, 0, nd);
         ++b;
     }
@@ -491,8 +491,8 @@ void Chunk<AllocatorType, DataType, TraitsType>::readDelta(
  *                     algorithm will be used.
  * @param withDelta    Should entries marked IN_DELTA be written out?
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::write(
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::write(
     std::string const & name,
     bool        const   overwrite,
     bool        const   compressed,
@@ -509,12 +509,12 @@ void Chunk<AllocatorType, DataType, TraitsType>::write(
     uint32_t nr = withDelta ? size() : delta();
     BinChunkHeader header;
     header._numRecords = nr;
-    header._recordSize = sizeof(DataType);
+    header._recordSize = sizeof(DataT);
 
     writer->write(reinterpret_cast<uint8_t const *>(&header), sizeof(BinChunkHeader));
     for (int32_t b = 0; nr > 0; ++b) {
         uint32_t const nd = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
-        writer->write(reinterpret_cast<uint8_t const *>(getBlock(b)), nd*sizeof(DataType));
+        writer->write(reinterpret_cast<uint8_t const *>(getBlock(b)), nd*sizeof(DataT));
         nr -= nd;
     }
     writer->finish();
@@ -533,8 +533,8 @@ void Chunk<AllocatorType, DataType, TraitsType>::write(
  * @param compressed   Should the binary chunk delta file contents be compressed (a gzip
  *                     compatible algorithm will be used)?
  */
-template <typename AllocatorType, typename DataType, typename TraitsType>
-void Chunk<AllocatorType, DataType, TraitsType>::writeDelta(
+template <typename AllocatorT, typename DataT, typename TraitsT>
+void Chunk<AllocatorT, DataT, TraitsT>::writeDelta(
     std::string const & name,
     bool        const   overwrite,
     bool        const   compressed
@@ -551,7 +551,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::writeDelta(
 
     uint32_t const nb = _descriptor->_nextBlock;
     for (uint32_t b = 0; b < nb; ++b) {
-        ChunkEntryFlagType const * const __restrict f = getFlagBlock(b);
+        ChunkEntryFlag const * const __restrict f = getFlagBlock(b);
         uint32_t const nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
         for (uint32_t i = 0; i < nd; ++i) {
             if ((f[i] & DELETED) != 0) {
@@ -565,7 +565,7 @@ void Chunk<AllocatorType, DataType, TraitsType>::writeDelta(
     BinChunkHeader header;
     header._numRecords = _descriptor->_size - fd;
     header._numDeletes = deletes.size();
-    header._recordSize = sizeof(DataType);
+    header._recordSize = sizeof(DataT);
     writer->write(reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
 
     // write array of delete indexes
@@ -578,10 +578,10 @@ void Chunk<AllocatorType, DataType, TraitsType>::writeDelta(
         uint32_t b = fd >> ENTRIES_PER_BLOCK_LOG2;
         fd &= (1u << ENTRIES_PER_BLOCK_LOG2) - 1;
         uint32_t nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
-        writer->write(reinterpret_cast<uint8_t *>(&getBlock(b)[fd]), (nd - fd)*sizeof(DataType));
+        writer->write(reinterpret_cast<uint8_t *>(&getBlock(b)[fd]), (nd - fd)*sizeof(DataT));
         for (++b; b < nb; ++b) {
             nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
-            writer->write(reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataType));
+            writer->write(reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
         }
     }
 

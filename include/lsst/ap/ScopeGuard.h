@@ -31,10 +31,10 @@ class LSST_AP_API ScopeGuard : public boost::function<void ()>, private boost::n
 
 public :
 
-    typedef boost::function<void ()> BaseType;
+    typedef boost::function<void ()> Base;
 
     template <typename F>
-    explicit ScopeGuard(F const & f) : BaseType(f), _dismissed(false) {
+    explicit ScopeGuard(F const & f) : Base(f), _dismissed(false) {
         ++_numGuards; // stop compiler from optimizing away entire object instances
     }
 

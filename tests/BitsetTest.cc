@@ -22,12 +22,12 @@
 using namespace lsst::ap;
 
 
-template <typename Word, int blen>
+template <typename WordT, int NumBits>
 void testBitset() {
 
-    Bitset<Word, blen> bs;
+    Bitset<WordT, NumBits> bs;
     bs.reset();
-    for (int i = 0; i < blen; ++i) {
+    for (int i = 0; i < NumBits; ++i) {
         BOOST_CHECK_EQUAL(bs.test(i), false);
         bs.set(i);
         BOOST_CHECK_EQUAL(bs.test(i), true);
@@ -35,64 +35,64 @@ void testBitset() {
         BOOST_CHECK_EQUAL(bs.test(i), false);
     }
 
-    for (int i = 0; i < blen; ++i) { bs.set(i, (i & 3) == 0); }
-    for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), (i & 3) == 0); }
+    for (int i = 0; i < NumBits; ++i) { bs.set(i, (i & 3) == 0); }
+    for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), (i & 3) == 0); }
 
     bs.set();
-    for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
+    for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
     bs.reset();
-    for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), false); }
+    for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), false); }
 }
 
 
-template <typename Word, int blen>
+template <typename WordT, int NumBits>
 void testAllocator() {
-    Bitset<Word, blen> bs;
-    int indexes[blen];
+    Bitset<WordT, NumBits> bs;
+    int indexes[NumBits];
     int nset = 0;
 
     bs.reset();
-    for (int i = 0; i < blen; ++i) {
+    for (int i = 0; i < NumBits; ++i) {
         bs.set(i, (i & 1) != 0);
         nset += (i & 1) != 0;
     }
 
-    BOOST_CHECK_EQUAL(bs.set(indexes, blen - nset + 1), false);
-    BOOST_CHECK_EQUAL(bs.set(indexes, blen - nset), true);
-    for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
+    BOOST_CHECK_EQUAL(bs.set(indexes, NumBits - nset + 1), false);
+    BOOST_CHECK_EQUAL(bs.set(indexes, NumBits - nset), true);
+    for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
 
     bs.reset();
     nset = 0;
-    for (int i = 0; i < blen; ++i) {
+    for (int i = 0; i < NumBits; ++i) {
         bs.set(i, (i & 3) != 0);
         nset += (i & 3) != 0;
     }
-    BOOST_CHECK_EQUAL(bs.set(indexes, blen - nset + 1), false);
-    if (0 < ((blen - nset)>>1)) {
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>1), true);
-        bs.reset(indexes, (blen - nset)>>1);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>1), true);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset) - ((blen - nset)>>1)), true);
-        for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
+    BOOST_CHECK_EQUAL(bs.set(indexes, NumBits - nset + 1), false);
+    if (0 < ((NumBits - nset)>>1)) {
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>1), true);
+        bs.reset(indexes, (NumBits - nset)>>1);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>1), true);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset) - ((NumBits - nset)>>1)), true);
+        for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
     }
     bs.reset();
     nset = 0;
-    for (int i = 0; i < blen; ++i) {
+    for (int i = 0; i < NumBits; ++i) {
         bs.set(i, i%2 == 0 || i%3 == 0 || i%7 == 0 || i%13 == 0);
         nset += i%2 == 0 || i%3 == 0 || i%7 == 0 || i%13 == 0;
     }
-    BOOST_CHECK_EQUAL(bs.set(indexes, blen - nset + 1), false);
-    if (0 < ((blen - nset)>>2)) {
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>2), true);
-        bs.reset(indexes, (blen - nset)>>2);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>2), true);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>2), true);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>2), true);
-        bs.reset(indexes, (blen - nset)>>2);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset)>>2), true);
-        BOOST_CHECK_EQUAL(bs.set(indexes, (blen - nset) - 3*((blen - nset)>>2)), true);
+    BOOST_CHECK_EQUAL(bs.set(indexes, NumBits - nset + 1), false);
+    if (0 < ((NumBits - nset)>>2)) {
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>2), true);
+        bs.reset(indexes, (NumBits - nset)>>2);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>2), true);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>2), true);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>2), true);
+        bs.reset(indexes, (NumBits - nset)>>2);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset)>>2), true);
+        BOOST_CHECK_EQUAL(bs.set(indexes, (NumBits - nset) - 3*((NumBits - nset)>>2)), true);
         BOOST_CHECK_EQUAL(bs.set(indexes, 1), false);
-        for (int i = 0; i < blen; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
+        for (int i = 0; i < NumBits; ++i) { BOOST_CHECK_EQUAL(bs.test(i), true); }
     }
 }
 

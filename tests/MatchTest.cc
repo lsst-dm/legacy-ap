@@ -112,17 +112,17 @@ void verifyMatchCount(std::vector<TestDatum> const & data) {
 
 // Don't need chunks for testing the match algorithm
 struct BogusChunk {
-    typedef TestDatum EntryType;
+    typedef TestDatum Entry;
 };
 
 
-typedef ZoneEntry<BogusChunk>      ZeType;
-typedef Ellipse<TestDatum>         EllType;
-typedef PassthroughFilter<ZeType>  FiltType;
-typedef PassthroughFilter<EllType> EllFiltType;
-typedef MatchWithDistance<ZeType>  MatchType;
-typedef ZoneIndex<ZeType>      ZiType;
-typedef EllipseList<TestDatum> EllListType;
+typedef ZoneEntry<BogusChunk>  Ze;
+typedef Ellipse<TestDatum>     Ell;
+typedef PassthroughFilter<Ze>  Filt;
+typedef PassthroughFilter<Ell> EllFilt;
+typedef MatchWithDistance<Ze>  Match;
+typedef ZoneIndex<Ze>          Zi;
+typedef EllipseList<TestDatum> EllList;
 
 } // end of anonymous namespace
 
@@ -130,8 +130,8 @@ typedef EllipseList<TestDatum> EllListType;
 // explicit instantiations
 template class ZoneEntry<BogusChunk>;
 template class Ellipse<TestDatum>;
-template class Zone<ZeType>;
-template class ZoneIndex<ZeType>;
+template class Zone<Ze>;
+template class ZoneIndex<Ze>;
 template class EllipseList<TestDatum>;
 
 
@@ -139,18 +139,18 @@ namespace {
 
 // Scrutinizes incoming match lists and validates them
 struct MlProcessor {
-    typedef MatchWithDistance<ZeType> MatchType;
-    typedef std::vector<MatchType>::iterator MatchIteratorType;
+    typedef MatchWithDistance<Ze>        Match;
+    typedef std::vector<Match>::iterator MatchIterator;
 
     double _matchDist;
 
     MlProcessor(double const d) : _matchDist(d) {}
 
-    void operator()(ZeType & entry, MatchIteratorType begin, MatchIteratorType end);
+    void operator()(Ze & entry, MatchIterator begin, MatchIterator end);
 };
 
 
-void MlProcessor::operator()(ZeType & entry, MatchIteratorType begin, MatchIteratorType end) {
+void MlProcessor::operator()(Ze & entry, MatchIterator begin, MatchIterator end) {
 
     TestDatum * p = entry._data;
     BOOST_CHECK_MESSAGE(p->_expected == end - begin, "incorrect number of matches for " << *p <<
@@ -173,11 +173,11 @@ void MlProcessor::operator()(ZeType & entry, MatchIteratorType begin, MatchItera
 
 // Scrutinizes incoming match pairs and validates them
 struct MpProcessor {
-    void operator()(EllType & e, ZeType & z);
+    void operator()(Ell & e, Ze & z);
 };
 
 
-void MpProcessor::operator()(EllType & e, ZeType & z) {
+void MpProcessor::operator()(Ell & e, Ze & z) {
     TestDatum * p = e._data;
     TestDatum * s = z._data;
 
@@ -191,14 +191,14 @@ void MpProcessor::operator()(EllType & e, ZeType & z) {
 
 // Scrutinizes incoming ellipse match lists and validates them
 struct EmlProcessor {
-    typedef ZeType * MatchType;
-    typedef std::vector<MatchType>::iterator MatchIteratorType;
+    typedef Ze *                         Match;
+    typedef std::vector<Match>::iterator MatchIterator;
 
-    void operator()(EllType & entry, MatchIteratorType begin, MatchIteratorType end);
+    void operator()(Ell & entry, MatchIterator begin, MatchIterator end);
 };
 
 
-void EmlProcessor::operator()(EllType & e, MatchIteratorType begin, MatchIteratorType end) {
+void EmlProcessor::operator()(Ell & e, MatchIterator begin, MatchIterator end) {
 
     TestDatum * p = e._data;
     BOOST_CHECK_MESSAGE(p->_expected == end - begin, "incorrect number of matches for " << *p <<
@@ -219,28 +219,28 @@ void EmlProcessor::operator()(EllType & e, MatchIteratorType begin, MatchIterato
 
 // explicit instantiations of match routines
 
-template size_t distanceMatch<ZeType, ZeType, FiltType, FiltType, MlProcessor>(
-    ZiType &,
-    ZiType &,
+template size_t distanceMatch<Ze, Ze, Filt, Filt, MlProcessor>(
+    Zi &,
+    Zi &,
     double const,
-    FiltType &,
-    FiltType &,
+    Filt &,
+    Filt &,
     MlProcessor &
 );
 
-template size_t ellipseMatch<TestDatum, ZeType, EllFiltType, FiltType, MpProcessor>(
-    EllListType &,
-    ZiType &,
-    EllFiltType &,
-    FiltType &,
+template size_t ellipseMatch<TestDatum, Ze, EllFilt, Filt, MpProcessor>(
+    EllList &,
+    Zi &,
+    EllFilt &,
+    Filt &,
     MpProcessor &
 );
 
-template size_t ellipseGroupedMatch<TestDatum, ZeType, EllFiltType, FiltType, EmlProcessor>(
-    EllListType &,
-    ZiType &,
-    EllFiltType &,
-    FiltType &,
+template size_t ellipseGroupedMatch<TestDatum, Ze, EllFilt, Filt, EmlProcessor>(
+    EllList &,
+    Zi &,
+    EllFilt &,
+    Filt &,
     EmlProcessor &
 );
 
@@ -251,8 +251,8 @@ namespace {
 void buildPoints(
     std::vector<TestDatum> & first,
     std::vector<TestDatum> & second,
-    ZiType &                 fzi,
-    ZiType &                 szi,
+    Zi                     & fzi,
+    Zi                     & szi,
     double const             decMin,
     double const             decMax,
     double const             radius
@@ -346,8 +346,8 @@ void buildPoints(
 void buildEllipsesAndPoints(
     std::vector<TestDatum> & first,
     std::vector<TestDatum> & second,
-    EllListType            & ells,
-    ZiType &                 szi,
+    EllList                & ells,
+    Zi                     & szi,
     double const             decMin,
     double const             decMax,
     double const             radius
@@ -449,8 +449,8 @@ void buildEllipsesAndPoints(
 
 BOOST_AUTO_TEST_CASE(distanceMatchTest1) {
     BOOST_TEST_MESSAGE("    - Distance match test, near north pole");
-    ZiType fzi(60, 60, 1024);
-    ZiType szi(60, 60, 1024);
+    Zi fzi(60, 60, 1024);
+    Zi szi(60, 60, 1024);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
     first.reserve(65536);
@@ -459,7 +459,7 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest1) {
     buildPoints(first, second, fzi, szi, 88.0, 90.0, rad);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " points to " << second.size() << " points ...");
     MlProcessor mlp(rad);
-    FiltType    f;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = distanceMatch(fzi, szi, rad, f, f, mlp);
     watch.stop();
@@ -471,8 +471,8 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest1) {
 
 BOOST_AUTO_TEST_CASE(distanceMatchTest2) {
     BOOST_TEST_MESSAGE("    - Distance match test, near south pole");
-    ZiType fzi(120, 60, 1024);
-    ZiType szi(30, 45, 1024);
+    Zi fzi(120, 60, 1024);
+    Zi szi(30, 45, 1024);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
     first.reserve(65536);
@@ -481,7 +481,7 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest2) {
     buildPoints(first, second, fzi, szi, -90.0, -88.0, rad);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " points to " << second.size() << " points ...");
     MlProcessor mlp(rad);
-    FiltType    f;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = distanceMatch(fzi, szi, rad, f, f, mlp);
     watch.stop();
@@ -493,8 +493,8 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest2) {
 
 BOOST_AUTO_TEST_CASE(distanceMatchTest3) {
     BOOST_TEST_MESSAGE("    - Distance match test, near equator");
-    ZiType fzi(59, 60, 1024);
-    ZiType szi(44, 60, 1024);
+    Zi fzi(59, 60, 1024);
+    Zi szi(44, 60, 1024);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
     double const rad = 0.05;
@@ -503,7 +503,7 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest3) {
     buildPoints(first, second, fzi, szi, -1.0, 1.0, rad);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " points to " << second.size() << " points ...");
     MlProcessor mlp(rad);
-    FiltType    f;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = distanceMatch(fzi, szi, rad, f, f, mlp);
     watch.stop();
@@ -515,17 +515,17 @@ BOOST_AUTO_TEST_CASE(distanceMatchTest3) {
 
 BOOST_AUTO_TEST_CASE(ellipseMatchTest1) {
     BOOST_TEST_MESSAGE("    - Ellipse match test, near north pole");
-    ZiType                 szi(240, 60, 128);
+    Zi                     szi(240, 60, 128);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, 89.0, 90.0, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     MpProcessor mpp;
-    EllFiltType ef;
-    FiltType    f;
+    EllFilt     ef;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = ellipseMatch(ells, szi, ef, f, mpp);
     watch.stop();
@@ -537,17 +537,17 @@ BOOST_AUTO_TEST_CASE(ellipseMatchTest1) {
 
 BOOST_AUTO_TEST_CASE(ellipseMatchTest2) {
     BOOST_TEST_MESSAGE("    - Ellipse match test, near south pole");
-    ZiType                 szi(240, 60, 128);
+    Zi                     szi(240, 60, 128);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, -90.0, -89.0, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     MpProcessor mpp;
-    EllFiltType ef;
-    FiltType    f;
+    EllFilt     ef;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = ellipseMatch(ells, szi, ef, f, mpp);
     watch.stop();
@@ -559,17 +559,17 @@ BOOST_AUTO_TEST_CASE(ellipseMatchTest2) {
 
 BOOST_AUTO_TEST_CASE(ellipseMatchTest3) {
     BOOST_TEST_MESSAGE("    - Ellipse match test, near equator");
-    ZiType                 szi(240, 60, 512);
+    Zi                     szi(240, 60, 512);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, -0.5, 0.5, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     MpProcessor mpp;
-    EllFiltType ef;
-    FiltType    f;
+    EllFilt     ef;
+    Filt        f;
     Stopwatch   watch(true);
     size_t      nm = ellipseMatch(ells, szi, ef, f, mpp);
     watch.stop();
@@ -581,17 +581,17 @@ BOOST_AUTO_TEST_CASE(ellipseMatchTest3) {
 
 BOOST_AUTO_TEST_CASE(ellipseGroupedMatchTest1) {
     BOOST_TEST_MESSAGE("    - Ellipse grouped match test, near north pole");
-    ZiType                 szi(240, 60, 128);
+    Zi                     szi(240, 60, 128);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, 89.0, 90.0, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     EmlProcessor mlp;
-    EllFiltType  ef;
-    FiltType     f;
+    EllFilt      ef;
+    Filt         f;
     Stopwatch    watch(true);
     size_t       nm = ellipseGroupedMatch(ells, szi, ef, f, mlp);
     watch.stop();
@@ -603,17 +603,17 @@ BOOST_AUTO_TEST_CASE(ellipseGroupedMatchTest1) {
 
 BOOST_AUTO_TEST_CASE(ellipseGroupedMatchTest2) {
     BOOST_TEST_MESSAGE("    - Ellipse grouped match test, near south pole");
-    ZiType                 szi(240, 60, 128);
+    Zi                     szi(240, 60, 128);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, -90.0, -89.0, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     EmlProcessor mlp;
-    EllFiltType  ef;
-    FiltType     f;
+    EllFilt      ef;
+    Filt         f;
     Stopwatch    watch(true);
     size_t       nm = ellipseGroupedMatch(ells, szi, ef, f, mlp);
     watch.stop();
@@ -625,17 +625,17 @@ BOOST_AUTO_TEST_CASE(ellipseGroupedMatchTest2) {
 
 BOOST_AUTO_TEST_CASE(ellipseGroupedMatchTest3) {
     BOOST_TEST_MESSAGE("    - Ellipse grouped match test, near equator");
-    ZiType                 szi(240, 60, 512);
+    Zi                     szi(240, 60, 512);
     std::vector<TestDatum> first;
     std::vector<TestDatum> second;
-    EllListType            ells;
+    EllList                ells;
     first.reserve(65536);
     second.reserve(65536);
     buildEllipsesAndPoints(first, second, ells, szi, -0.5, 0.5, 0.01666666667);
     BOOST_TEST_MESSAGE("      matching " << first.size() << " ellipses to " << second.size() << " points ...");
     EmlProcessor mlp;
-    EllFiltType  ef;
-    FiltType     f;
+    EllFilt      ef;
+    Filt         f;
     Stopwatch    watch(true);
     size_t       nm = ellipseGroupedMatch(ells, szi, ef, f, mlp);
     watch.stop();

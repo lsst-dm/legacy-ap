@@ -25,15 +25,15 @@ class LSST_AP_API SharedSimpleObjectChunkManager {
 
 private :
 
-    typedef detail::ChunkManagerSingleImpl<SharedMutex, SimpleObject> ManagerType;
+    typedef detail::ChunkManagerSingleImpl<SharedMutex, SimpleObject> Manager;
 
-    ManagerType * _manager;
+    Manager * _manager;
 
-    static LSST_AP_LOCAL ManagerType * instance(std::string const & name);
+    static LSST_AP_LOCAL Manager * instance(std::string const & name);
 
 public :
 
-    typedef ManagerType::ChunkType SimpleObjectChunkType;
+    typedef Manager::Chunk SimpleObjectChunk;
 
     SharedSimpleObjectChunkManager(std::string const & name);
 
@@ -42,26 +42,26 @@ public :
     void failVisit      (int64_t const visitId) { _manager->failVisit(visitId);              }
 
     void startVisit(
-        std::vector<SimpleObjectChunkType>       & toRead,
-        std::vector<SimpleObjectChunkType>       & toWaitFor,
-        int64_t                            const   visitId,
-        std::vector<int64_t>               const & chunkIds
+        std::vector<SimpleObjectChunk> & toRead,
+        std::vector<SimpleObjectChunk> & toWaitFor,
+        int64_t                  const   visitId,
+        std::vector<int64_t>     const & chunkIds
     ) {
         _manager->startVisit(toRead, toWaitFor, visitId, chunkIds);
     }
 
     void waitForOwnership(
-        std::vector<SimpleObjectChunkType> & toRead,
-        std::vector<SimpleObjectChunkType> & toWaitFor,
-        int64_t                      const   visitId,
-        TimeSpec                     const & deadline
+        std::vector<SimpleObjectChunk> & toRead,
+        std::vector<SimpleObjectChunk> & toWaitFor,
+        int64_t                  const   visitId,
+        TimeSpec                 const & deadline
     ) {
         _manager->waitForOwnership(toRead, toWaitFor, visitId, deadline);
     }
 
     void getChunks(
-        std::vector<SimpleObjectChunkType> & chunks,
-        std::vector<int64_t>         const & chunkIds
+        std::vector<SimpleObjectChunk> & chunks,
+        std::vector<int64_t>     const & chunkIds
     ) {
         _manager->getChunks(chunks, chunkIds);
     }

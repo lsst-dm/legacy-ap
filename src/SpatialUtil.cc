@@ -266,7 +266,8 @@ LSST_AP_API double maxAlpha(
 /**
  * Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
  * the given region and belong to the specified worker. Chunks belonging to a stripe @c s such
- * that @code s % numWorkers == workerId @endcode belong to the worker identified by @a workerId.
+ * that the euclidian remainder of @c s/numWorkers is @c workerId belong to the worker identified
+ * by @a workerId. 
  *
  * @param[out] chunkIds     The list in which to store the computed chunk identifiers.
  * @param[in]  region       The region for which overlapping chunks are to be computed.
@@ -352,7 +353,8 @@ LSST_AP_API void computeChunkIds(
 /**
  * Computes identifiers for all chunks in the given ZoneStripeChunkDecomposition that overlap
  * the given region and belong to the specified worker. Chunks belonging to a stripe @c s such
- * that @code s % numWorkers == workerId @endcode belong to the worker identified by @a workerId.
+ * that the euclidian remainder of @c s/numWorkers is @c workerId belong to the worker identified
+ * by @a workerId.
  *
  * @param[out] chunkIds     The list in which to store the computed chunk identifiers.
  * @param[in]  region       The region for which overlapping chunks are to be computed.

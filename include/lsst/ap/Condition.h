@@ -24,12 +24,12 @@ namespace lsst {
 namespace ap {
 
 /** @brief  Encapsulates a POSIX condition variable. */
-template <typename MutexType>
+template <typename MutexT>
 class Condition : private boost::noncopyable {
 
 public :
 
-    typedef ScopedLock<MutexType> LockType;
+    typedef ScopedLock<MutexT> Lock;
 
     Condition();
 
@@ -44,7 +44,7 @@ public :
      *
      * @pre     @a lock has been successfully acquired
      */
-    void wait(LockType & lock) {
+    void wait(Lock & lock) {
         assert(lock.isAcquired());
         int result = ::pthread_cond_wait(&_condition, lock.getPosixMutex());
         assert(result == 0);
@@ -56,7 +56,7 @@ public :
      * @pre     @a lock has been successfully acquired
      */
     template <typename P>
-    void wait(LockType & lock, P predicate)
+    void wait(Lock & lock, P predicate)
     {
         assert(lock.isAcquired());
         while (!predicate()) {
@@ -73,7 +73,7 @@ public :
      * @pre     @a lock has been successfully acquired
      * @return  @c false if the deadline was missed, and @c true otherwise.
      */
-    bool wait(LockType & lock, TimeSpec const & ts) {
+    bool wait(Lock & lock, TimeSpec const & ts) {
         assert(lock.isAcquired());
         int result = ::pthread_cond_timedwait(&_condition, lock.getPosixMutex(), &ts);
         if (result == ETIMEDOUT) {
@@ -92,7 +92,7 @@ public :
      *          and @c false if the deadline was missed.
      */
     template <typename P>
-    bool wait(LockType & lock, P predicate, TimeSpec const & deadline) {
+    bool wait(Lock & lock, P predicate, TimeSpec const & deadline) {
         assert(lock.isAcquired());
         while (!predicate()) {
             int result = ::pthread_cond_timedwait(&_condition, lock.getPosixMutex(), &deadline);

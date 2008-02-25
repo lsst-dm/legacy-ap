@@ -34,11 +34,11 @@ namespace ap {
 
 // -- ZoneEntry<C> ----------------
 
-template <typename C>
-ZoneEntry<C>::ZoneEntry(
-    DataType  * const data,
-    ChunkType * const chunk,
-    int32_t     const index
+template <typename ChunkT>
+ZoneEntry<ChunkT>::ZoneEntry(
+    Data  * const data,
+    Chunk * const chunk,
+    int32_t const index
 ) :
     _data(data),
     _flags(0),
@@ -58,14 +58,14 @@ ZoneEntry<C>::ZoneEntry(
 }
 
 
-// -- Zone<EntryType> ----------------
+// -- Zone<EntryT> ----------------
 
-template <typename EntryType>
-Zone<EntryType>::Zone() : _entries(0), _size(0), _capacity(0), _zone(0), _deltaRa(0) {}
+template <typename EntryT>
+Zone<EntryT>::Zone() : _entries(0), _size(0), _capacity(0), _zone(0), _deltaRa(0) {}
 
 
-template <typename EntryType>
-Zone<EntryType>::~Zone() {
+template <typename EntryT>
+Zone<EntryT>::~Zone() {
     if (_entries != 0) {
         std::free(_entries);
         _entries = 0;
@@ -74,11 +74,11 @@ Zone<EntryType>::~Zone() {
 
 
 /// Initializes the zone, allocating space for the given number of entries.
-template <typename EntryType>
-void Zone<EntryType>::init(int32_t const capacity) {
+template <typename EntryT>
+void Zone<EntryT>::init(int32_t const capacity) {
     if (capacity > 0) {
-        size_t const nb = sizeof(EntryType) * capacity;
-        EntryType * entries = static_cast<EntryType *>(std::malloc(nb));
+        size_t const nb = sizeof(EntryT) * capacity;
+        EntryT * entries = static_cast<EntryT *>(std::malloc(nb));
         if (entries == 0) {
             throw std::bad_alloc();
         }
@@ -89,18 +89,18 @@ void Zone<EntryType>::init(int32_t const capacity) {
 
 
 /// Sorts the zone entries on ra.
-template <typename EntryType>
-void Zone<EntryType>::sort() {
+template <typename EntryT>
+void Zone<EntryT>::sort() {
     std::sort(_entries, _entries + _size);
 }
 
 
 /// Increases the size of the underlying array of entries by roughly 25% (and by at least 1).
-template <typename EntryType>
-void Zone<EntryType>::grow() {
+template <typename EntryT>
+void Zone<EntryT>::grow() {
     int32_t cap = _capacity >> 2;
     cap = _capacity + (64 > cap ? 64 : cap);
-    EntryType * entries  = static_cast<EntryType *>(std::realloc(_entries, sizeof(EntryType)*cap));
+    EntryT * entries  = static_cast<EntryT *>(std::realloc(_entries, sizeof(EntryT)*cap));
     if (entries == 0) {
         throw std::bad_alloc();
     }
@@ -110,8 +110,8 @@ void Zone<EntryType>::grow() {
 
 
 /// Prepares for a distance based match with the given radius
-template <typename EntryType>
-void Zone<EntryType>::computeMatchParams(
+template <typename EntryT>
+void Zone<EntryT>::computeMatchParams(
     ZoneStripeChunkDecomposition const & zsc,
     double                       const   radius
 ) {
@@ -122,14 +122,14 @@ void Zone<EntryType>::computeMatchParams(
 
 
 /**
- * Given a functor that implements @code bool operator()(EntryType const &) @endcode ,
+ * Given a functor that implements @code bool operator()(EntryT const &) @endcode ,
  * removes any entry @a e where @c filter(e) returns @c false from the zone.
  *
  * @return     the number of entries that were removed.
  */
-template <typename EntryType>
-    template <typename FilterType>
-size_t Zone<EntryType>::pack(FilterType & filter) {
+template <typename EntryT>
+    template <typename FilterT>
+size_t Zone<EntryT>::pack(FilterT & filter) {
     int32_t src = 0;
     int32_t dst = 0;
 
@@ -148,22 +148,22 @@ size_t Zone<EntryType>::pack(FilterType & filter) {
 
 
 /**
- * Given a functor that implements @code void operator()(EntryType const &) @endcode ,
+ * Given a functor that implements @code void operator()(EntryT const &) @endcode ,
  * applies it to every entry in the zone.
  */
-template <typename EntryType>
-    template <typename FunctionType>
-void Zone<EntryType>::apply(FunctionType & function) {
+template <typename EntryT>
+    template <typename FunctionT>
+void Zone<EntryT>::apply(FunctionT & function) {
     for (int32_t i = 0; i < _size; ++i) {
         function(_entries[i]);
     }
 }
 
 
-// -- ZoneIndex<EntryType> ----------------
+// -- ZoneIndex<EntryT> ----------------
 
-template <typename EntryType>
-ZoneIndex<EntryType>::ZoneIndex(
+template <typename EntryT>
+ZoneIndex<EntryT>::ZoneIndex(
     int32_t const zonesPerDegree,
     int32_t const zonesPerStripe,
     int32_t const maxEntriesPerZoneEstimate
@@ -178,8 +178,8 @@ ZoneIndex<EntryType>::ZoneIndex(
 
 
 /// Removes all entries from every zone in the index.
-template <typename EntryType>
-void ZoneIndex<EntryType>::clear() {
+template <typename EntryT>
+void ZoneIndex<EntryT>::clear() {
     for (int32_t i = 0; i < _capacity; ++i) {
         _zones[i].clear();
     }
@@ -187,8 +187,8 @@ void ZoneIndex<EntryType>::clear() {
 
 
 /// Returns the number of entries in the index.
-template <typename EntryType>
-int32_t ZoneIndex<EntryType>::size() const {
+template <typename EntryT>
+int32_t ZoneIndex<EntryT>::size() const {
     int32_t sz = 0;
     for (int32_t i = 0; i <= _maxZone - _minZone; ++i) {
         sz += _zones[i].size();
@@ -198,8 +198,8 @@ int32_t ZoneIndex<EntryType>::size() const {
 
 
 /// Sets the range of declination values the index will accept data for.
-template <typename EntryType>
-void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec) {
+template <typename EntryT>
+void ZoneIndex<EntryT>::setDecBounds(double const minDec, double const maxDec) {
     int32_t minZone = _zsc.decToZone(minDec);
     int32_t maxZone = _zsc.decToZone(maxDec);
     if (maxZone < minZone) {
@@ -208,7 +208,7 @@ void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec
     int32_t const cap = maxZone - minZone + 1;
     if (cap >= _capacity) {
         int32_t const worst = _zsc.getMaxEntriesPerZoneEstimate();
-        boost::scoped_array<ZoneType> zones(new ZoneType[cap]);
+        boost::scoped_array<Zone> zones(new Zone[cap]);
         int32_t i = 0;
         for ( ; i < _capacity; ++i) {
             zones[i] = _zones[i];
@@ -241,8 +241,8 @@ void ZoneIndex<EntryType>::setDecBounds(double const minDec, double const maxDec
 
 
 /// Prepares for distance based matches of the given maximum radius
-template <typename EntryType>
-void ZoneIndex<EntryType>::computeMatchParams(double const radius) {
+template <typename EntryT>
+void ZoneIndex<EntryT>::computeMatchParams(double const radius) {
     int32_t const numZones = _maxZone - _minZone + 1;
     for (int32_t t = 0; t < numZones; ++t) {
         _zones[t].computeMatchParams(_zsc, radius);
@@ -251,8 +251,8 @@ void ZoneIndex<EntryType>::computeMatchParams(double const radius) {
 
 
 /// Sorts each zone in the index (on right ascension)
-template <typename EntryType>
-void ZoneIndex<EntryType>::sort() {
+template <typename EntryT>
+void ZoneIndex<EntryT>::sort() {
     int32_t const numZones = _maxZone - _minZone + 1;
 #if LSST_AP_HAVE_OPEN_MP
 #   pragma omp parallel for default(shared) \
@@ -265,14 +265,14 @@ void ZoneIndex<EntryType>::sort() {
 
 
 /**
- * Given a functor that implements @code bool operator()(EntryType const &) @endcode ,
+ * Given a functor that implements @code bool operator()(EntryT const &) @endcode ,
  * removes any entry @a e where @c filter(e) returns @c false from the index.
  *
  * @return     the number of entries that were removed.
  */
-template <typename EntryType>
-    template <typename FilterType>
-size_t ZoneIndex<EntryType>::pack(FilterType & filter) {
+template <typename EntryT>
+    template <typename FilterT>
+size_t ZoneIndex<EntryT>::pack(FilterT & filter) {
     size_t        numPacked = 0;
     int32_t const numZones  = _maxZone - _minZone + 1;
 #if LSST_AP_HAVE_OPEN_MP
@@ -281,7 +281,7 @@ size_t ZoneIndex<EntryType>::pack(FilterType & filter) {
                schedule(static,8)
 #endif
     for (int32_t z = 0; z < numZones; ++z) {
-        size_t np = _zones[z].pack<FilterType>(filter);
+        size_t np = _zones[z].pack<FilterT>(filter);
         numPacked = numPacked + np;
     } // end of parallel for
     return numPacked;
@@ -289,15 +289,15 @@ size_t ZoneIndex<EntryType>::pack(FilterType & filter) {
 
 
 /**
- * Calls a functor implementing @code void operator()(EntryType const &) @endcode
+ * Calls a functor implementing @code void operator()(EntryT const &) @endcode
  * on every entry in the index.
  */
-template <typename EntryType>
-    template <typename FunctionType>
-void ZoneIndex<EntryType>::apply(FunctionType & function) {
+template <typename EntryT>
+    template <typename FunctionT>
+void ZoneIndex<EntryT>::apply(FunctionT & function) {
     int32_t const numZones = _maxZone - _minZone + 1;
     for (int32_t z = 0; z < numZones; ++z) {
-        _zones[z].apply<FunctionType>(function);
+        _zones[z].apply<FunctionT>(function);
     }
 }
 

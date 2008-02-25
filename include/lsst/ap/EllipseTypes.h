@@ -27,12 +27,12 @@ namespace ap {
  *
  * A pointer to the actual data object gives access to ancillary fields.
  */
-template <typename DataType>
+template <typename DataT>
 class Ellipse {
 
 public :
 
-    DataType * _data;        ///< pointer to data object
+    DataT   *  _data;        ///< pointer to data object
     Ellipse *  _next;        ///< pointer to next active ellipse in search
 
     int32_t    _minZone;     ///< minimum zone of ellipse bounding-box
@@ -51,7 +51,7 @@ public :
     double     _invMinor2;   ///< 1/(smia*smia), where smia is the ellipse semi-minor axis length (rad)
     double     _invMajor2;   ///< 1/(smaa*smaa), where smaa is the ellipse semi-major axis length (rad)
 
-    explicit Ellipse(DataType & data);
+    explicit Ellipse(DataT & data);
 
     /// Returns @c true if the ellipse contains the given unit vector
     bool contains(double const x, double const y, double const z) const {
@@ -66,47 +66,47 @@ public :
     }
 };
 
-template <typename DataType>
-inline void swap(Ellipse<DataType> & a, Ellipse<DataType> & b) {
+template <typename DataT>
+inline void swap(Ellipse<DataT> & a, Ellipse<DataT> & b) {
     a.swap(b);
 }
 
-template <typename DataType>
-inline bool operator< (Ellipse<DataType> const & a, Ellipse<DataType> const & b) {
+template <typename DataT>
+inline bool operator< (Ellipse<DataT> const & a, Ellipse<DataT> const & b) {
     return a._minZone < b._minZone;
 }
 
-template <typename DataType>
-inline bool operator== (Ellipse<DataType> const & a, Ellipse<DataType> const & b) {
+template <typename DataT>
+inline bool operator== (Ellipse<DataT> const & a, Ellipse<DataT> const & b) {
     return a._minZone == b._minZone;
 }
 
-template <typename DataType>
-inline bool operator< (int32_t const a, Ellipse<DataType> const & b) {
+template <typename DataT>
+inline bool operator< (int32_t const a, Ellipse<DataT> const & b) {
     return a < b._minZone;
 }
 
-template <typename DataType>
-inline bool operator< (Ellipse<DataType> const & a, int32_t const b) {
+template <typename DataT>
+inline bool operator< (Ellipse<DataT> const & a, int32_t const b) {
     return a._minZone < b;
 }
 
-template <typename DataType>
-inline bool operator== (int32_t const a, Ellipse<DataType> const & b) {
+template <typename DataT>
+inline bool operator== (int32_t const a, Ellipse<DataT> const & b) {
     return a == b._minZone;
 }
 
-template <typename DataType>
-inline bool operator== (Ellipse<DataType> const & a, int32_t const b) {
+template <typename DataT>
+inline bool operator== (Ellipse<DataT> const & a, int32_t const b) {
     return a._minZone == b;
 }
 
 /** @brief  Comparison functor for Ellipse pointers that orders ellipses by minimum overlapping zone. */
-template <typename DataType>
+template <typename DataT>
 struct EllipsePtrLessThan :
-    std::binary_function<Ellipse<DataType> const *, Ellipse<DataType> const *, bool>
+    std::binary_function<Ellipse<DataT> const *, Ellipse<DataT> const *, bool>
 {
-    bool operator() (Ellipse<DataType> const * a, Ellipse<DataType> const * b) {
+    bool operator() (Ellipse<DataT> const * a, Ellipse<DataT> const * b) {
         return a->_minZone < b->_minZone;
     }
 };
@@ -117,23 +117,23 @@ struct EllipsePtrLessThan :
  *
  * Supports the in-ellipse cross matching algorithms.
  */
-template <typename DataType>
+template <typename DataT>
 class EllipseList {
 
 public :
 
-    typedef Ellipse<DataType> EllipseType;
+    typedef Ellipse<DataT> Ellipse;
 
-    typedef typename std::vector<EllipseType>::iterator       iterator;
-    typedef typename std::vector<EllipseType>::const_iterator const_iterator;
-    typedef typename std::vector<EllipseType>::size_type      size_type;
+    typedef typename std::vector<Ellipse>::iterator       iterator;
+    typedef typename std::vector<Ellipse>::const_iterator const_iterator;
+    typedef typename std::vector<Ellipse>::size_type      size_type;
 
     EllipseList() : _ellipses() {}
 
     /// Creates a list of ellipses from the given data objects.
     EllipseList(
-        DataType * const begin,
-        DataType * const end
+        DataT * const begin,
+        DataT * const end
     );
 
     EllipseList(EllipseList const & list);
@@ -144,15 +144,15 @@ public :
     size_type capacity() const { return _ellipses.capacity(); }
     bool      empty()    const { return _ellipses.empty();    }
 
-    EllipseType const & operator[](size_type const i) const { return _ellipses[i]; }
-    EllipseType const * begin() const { return &_ellipses.front();    }
-    EllipseType const * end()   const { return &_ellipses.back() + 1; }
+    Ellipse const & operator[](size_type const i) const { return _ellipses[i]; }
+    Ellipse const * begin() const { return &_ellipses.front();    }
+    Ellipse const * end()   const { return &_ellipses.back() + 1; }
 
-    EllipseType & operator[](size_type const i) { return _ellipses[i]; }
-    EllipseType * begin() { return &_ellipses.front();    }
-    EllipseType * end()   { return &_ellipses.back() + 1; }
+    Ellipse & operator[](size_type const i) { return _ellipses[i]; }
+    Ellipse * begin() { return &_ellipses.front();    }
+    Ellipse * end()   { return &_ellipses.back() + 1; }
 
-    void push_back(DataType & data) { _ellipses.push_back(EllipseType(data)); }
+    void push_back(DataT & data)    { _ellipses.push_back(Ellipse(data)); }
     void pop_back()                 { _ellipses.pop_back();                   }
     void clear()                    { _ellipses.clear();                      }
     void reserve(size_type const n) { _ellipses.reserve(n);                   }
@@ -162,7 +162,7 @@ public :
 
 private :
 
-    std::vector<EllipseType> _ellipses;
+    std::vector<Ellipse> _ellipses;
 };
 
 
