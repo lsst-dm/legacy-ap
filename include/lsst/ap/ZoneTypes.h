@@ -163,8 +163,8 @@ public :
 
     void computeMatchParams(ZoneStripeChunkDecomposition const & zsc, double const radius);
 
-    template <typename FilterType>   size_t pack (FilterType   & filter);
-    template <typename FunctionType> void   apply(FunctionType & function);
+    template <typename FilterT>   size_t pack (FilterT   & filter);
+    template <typename FunctionT> void   apply(FunctionT & function);
 };
 
 
@@ -197,8 +197,8 @@ public :
 
     void sort();
 
-    template <typename FilterType>   size_t pack (FilterType   & filter);
-    template <typename FunctionType> void   apply(FunctionType & function);
+    template <typename FilterT>   size_t pack (FilterT   & filter);
+    template <typename FunctionT> void   apply(FunctionT & function);
 
     /// Inserts the given data item from the given chunk into the index.
     void insert(Data * const data, Chunk * const chunk, int32_t const index) {

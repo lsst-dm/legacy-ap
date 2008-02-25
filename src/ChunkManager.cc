@@ -100,13 +100,11 @@ BootstrapLock::~BootstrapLock() {
 }
 
 
-template <typename M>
-M * getSingleton(char const * const shmObjName, char const * const shmLockName) {
-
-    typedef M ManagerType;
+template <typename ManagerT>
+ManagerT * getSingleton(char const * const shmObjName, char const * const shmLockName) {
 
     static Mutex mutex;
-    static ManagerType * singleton = 0;
+    static ManagerT * singleton = 0;
 
     ScopedLock<Mutex> lck(mutex);
     if (singleton != 0) {
@@ -117,7 +115,7 @@ M * getSingleton(char const * const shmObjName, char const * const shmLockName) 
     BootstrapLock blck(shmLockName);
 
     size_t const pageSize  = static_cast<size_t>(::getpagesize());
-    size_t const numBytes  = (ManagerType::size() + pageSize - 1) & ~(pageSize - 1);
+    size_t const numBytes  = (ManagerT::size() + pageSize - 1) & ~(pageSize - 1);
 
     // 1. try to create shared memory object
     int fd = ::shm_open(shmObjName, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -152,7 +150,7 @@ M * getSingleton(char const * const shmObjName, char const * const shmLockName) 
                 errno
             );
         }
-        singleton = static_cast<ManagerType *>(mem);
+        singleton = static_cast<ManagerT *>(mem);
         g.dismiss();
 
     } else {
@@ -183,8 +181,8 @@ M * getSingleton(char const * const shmObjName, char const * const shmLockName) 
         }
         ScopeGuard g3(boost::bind(::munmap, mem, numBytes));
 
-        new (mem) ManagerType();
-        singleton = static_cast<ManagerType *>(mem);
+        new (mem) ManagerT();
+        singleton = static_cast<ManagerT *>(mem);
         g3.dismiss();
         g2.dismiss();
         g1.dismiss();

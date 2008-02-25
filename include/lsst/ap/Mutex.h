@@ -165,9 +165,9 @@ public :
     }
 
     // implicit conversion to "bool"
-    typedef MutexT * ScopedLock::* UnspecifiedBoolType;
+    typedef MutexT * ScopedLock::* UnspecifiedBool;
 
-    operator UnspecifiedBoolType() const {
+    operator UnspecifiedBool() const {
         return _mutex == 0 ? 0 : &ScopedLock::_mutex;
     }
 

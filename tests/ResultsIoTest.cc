@@ -116,7 +116,7 @@ DataProperty::PtrType createDbTestProps(std::string const & itemName) {
 }
 
 
-template <typename VecType>
+template <typename VecT>
 void doTestBoost(std::string const & name) {
     std::string           tempFile(makeTempFile());
     ScopeGuard            fileGuard(boost::bind(::unlink, tempFile.c_str()));
@@ -127,7 +127,7 @@ void doTestBoost(std::string const & name) {
 
     BOOST_TEST_MESSAGE("    - BoostStorage I/O test for " << name);
 
-    VecType vec;
+    VecT vec;
     initTestData(vec);
     // write out data
     {
@@ -141,11 +141,11 @@ void doTestBoost(std::string const & name) {
         storageList.push_back(pers->getRetrieveStorage("BoostStorage", loc));
         Persistable::Ptr p = pers->retrieve(name, storageList, props);
         BOOST_REQUIRE_MESSAGE(p.get() != 0, "Failed to retrieve Persistable");
-        typename VecType::Ptr v = boost::dynamic_pointer_cast<VecType, Persistable>(p);
-        BOOST_REQUIRE_MESSAGE(v, "Couldn't cast to " << typeid(VecType).name());
+        typename VecT::Ptr v = boost::dynamic_pointer_cast<VecT, Persistable>(p);
+        BOOST_REQUIRE_MESSAGE(v, "Couldn't cast to " << typeid(VecT).name());
         BOOST_CHECK_MESSAGE(
             *v == vec,
-            "persist()/retrieve() resulted in " << typeid(VecType).name() << " corruption"
+            "persist()/retrieve() resulted in " << typeid(VecT).name() << " corruption"
         );
     }
 }
@@ -165,7 +165,7 @@ struct LessThanHelper {
 };
 
 
-template <typename VecType>
+template <typename VecT>
 void doTestDb(
     std::string const & storageType,
     std::string const & itemName,
@@ -179,7 +179,7 @@ void doTestDb(
 
     BOOST_TEST_MESSAGE("    - " << storageType << " I/O test for " << name);
 
-    VecType vec;
+    VecT vec;
     initTestData(vec);
     // write out data
     {
@@ -194,13 +194,13 @@ void doTestDb(
         storageList.push_back(storage);
         Persistable::Ptr p = pers->retrieve(name, storageList, props);
         BOOST_REQUIRE_MESSAGE(p.get() != 0, "Failed to retrieve Persistable");
-        typename VecType::Ptr v = boost::dynamic_pointer_cast<VecType, Persistable>(p);
+        typename VecT::Ptr v = boost::dynamic_pointer_cast<VecT, Persistable>(p);
         std::sort(v->begin(),  v->end(),  LessThanHelper());
         std::sort(vec.begin(), vec.end(), LessThanHelper());
-        BOOST_REQUIRE_MESSAGE(v, "Couldn't cast to " << typeid(VecType).name());
+        BOOST_REQUIRE_MESSAGE(v, "Couldn't cast to " << typeid(VecT).name());
         BOOST_CHECK_MESSAGE(
             *v == vec,
-            "persist()/retrieve() resulted in " << typeid(VecType).name() << " corruption"
+            "persist()/retrieve() resulted in " << typeid(VecT).name() << " corruption"
         );
         DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
         BOOST_REQUIRE_MESSAGE(db != 0, "Didn't get DbStorage");

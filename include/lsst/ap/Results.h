@@ -115,8 +115,8 @@ public :
     explicit MatchPairVector(size_type sz);
     MatchPairVector(size_type sz, value_type const & val);
 
-    template <typename InputIterator>
-    MatchPairVector(InputIterator beg, InputIterator end) :
+    template <typename InputIteratorT>
+    MatchPairVector(InputIteratorT beg, InputIteratorT end) :
         lsst::mwi::data::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
@@ -138,8 +138,8 @@ public :
 
     void reserve(size_type const n) { _vec.reserve(n); }
 
-    template <typename InputIterator>
-    void assign(InputIterator beg, InputIterator end)      { _vec.assign(beg, end); }
+    template <typename InputIteratorT>
+    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
     void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
 
     reference       at        (size_type const i)       { return _vec.at(i); }
@@ -166,10 +166,10 @@ public :
     void pop_back () { _vec.pop_back();  }
     void clear()     { _vec.clear();     }
 
-    template <typename InputIterator>
-    void     insert(iterator pos, InputIterator beg, InputIterator end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)               { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)  { return _vec.insert(pos, n, val); }
+    template <typename InputIteratorT>
+    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
+    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
+    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
 
     iterator erase(iterator pos)               { return _vec.erase(pos);      }
     iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }
@@ -213,8 +213,8 @@ public :
     explicit IdPairVector(size_type sz);
     IdPairVector(size_type sz, value_type const & val);
 
-    template <typename InputIterator>
-    IdPairVector(InputIterator beg, InputIterator end) :
+    template <typename InputIteratorT>
+    IdPairVector(InputIteratorT beg, InputIteratorT end) :
         lsst::mwi::data::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
@@ -236,8 +236,8 @@ public :
 
     void reserve(size_type const n) { _vec.reserve(n); }
 
-    template <typename InputIterator>
-    void assign(InputIterator beg, InputIterator end)      { _vec.assign(beg, end); }
+    template <typename InputIteratorT>
+    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
     void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
 
     reference       at        (size_type const i)       { return _vec.at(i); }
@@ -264,10 +264,10 @@ public :
     void pop_back () { _vec.pop_back();  }
     void clear()     { _vec.clear();     }
 
-    template <typename InputIterator>
-    void     insert(iterator pos, InputIterator beg, InputIterator end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)               { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)  { return _vec.insert(pos, n, val); }
+    template <typename InputIteratorT>
+    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
+    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
+    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
 
     iterator erase(iterator pos)               { return _vec.erase(pos);      }
     iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }
@@ -311,8 +311,8 @@ public :
     explicit IdVector(size_type sz);
     IdVector(size_type sz, value_type const & val);
 
-    template <typename InputIterator>
-    IdVector(InputIterator beg, InputIterator end) :
+    template <typename InputIteratorT>
+    IdVector(InputIteratorT beg, InputIteratorT end) :
         lsst::mwi::data::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
@@ -334,8 +334,8 @@ public :
 
     void reserve(size_type const n) { _vec.reserve(n); }
 
-    template <typename InputIterator>
-    void assign(InputIterator beg, InputIterator end)      { _vec.assign(beg, end); }
+    template <typename InputIteratorT>
+    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
     void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
 
     reference       at        (size_type const i)       { return _vec.at(i); }
@@ -362,10 +362,10 @@ public :
     void pop_back () { _vec.pop_back();  }
     void clear()     { _vec.clear();     }
 
-    template <typename InputIterator>
-    void     insert(iterator pos, InputIterator beg, InputIterator end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)               { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)  { return _vec.insert(pos, n, val); }
+    template <typename InputIteratorT>
+    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
+    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
+    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
 
     iterator erase(iterator pos)               { return _vec.erase(pos);      }
     iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }

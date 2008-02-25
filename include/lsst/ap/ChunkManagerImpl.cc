@@ -550,8 +550,8 @@ namespace {
         bool operator()(T const * t1, T const * t2) { return *t1 < *t2; }
     };
 
-    template <typename Descriptor>
-    bool mergePrint(Descriptor const * d1, Descriptor const * d2) {
+    template <typename DescriptorT>
+    bool mergePrint(DescriptorT const * d1, DescriptorT const * d2) {
         if (d1->_visitId != d1->_visitId || d1->_usable != d2->_usable) {
             return false;
         }
@@ -562,14 +562,14 @@ namespace {
                ZoneStripeChunkDecomposition::chunkToStripe(d2->_chunkId);
     }
 
-    template <typename Descriptor>
-    void printChunks(std::ostream & os, std::vector<Descriptor const *> const & v) {
+    template <typename DescriptorT>
+    void printChunks(std::ostream & os, std::vector<DescriptorT const *> const & v) {
 
         boost::format oneFmt ("        chunk  %1%     in stripe %2% %|32t|: %3%%4%\n");
         boost::format manyFmt("        chunks %1%-%2% in stripe %3% %|32t|: %4%%5%\n");
 
         uint32_t start = 0;
-        Descriptor const * c = v[0];
+        DescriptorT const * c = v[0];
 
         for (uint32_t i = 1; i <= v.size(); ++i) {
             if (i < v.size() && mergePrint(c, v[i])) {
