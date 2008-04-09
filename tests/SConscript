@@ -11,7 +11,7 @@ env.Program('unittests',
              'MatchTest.cc',
              'ResultsIoTest.cc'
             ],
-            LIBS=env.getlibs('boost') + ['associate', 'afw', 'daf_data'])
+            LIBS=env.getlibs('boost') + ['associate', 'afw', 'pex_exceptions', 'daf_data'])
 
 env.Command('.tests/unittests', 'unittests', """
             @rm -f ${TARGET}.failed;
@@ -29,6 +29,7 @@ env.Clean('.tests/unittests', '.tests')
 
 import os
 import lsst.tests
+import lsst.pex.exceptions
 import lsst.daf.persistence
 
 tests = lsst.tests.Control(env, verbose = True)

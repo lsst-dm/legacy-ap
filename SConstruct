@@ -93,6 +93,7 @@ env = scons.makeEnv('associate',
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ['python', 'Python.h'],
                      ['daf_base', 'lsst/daf/base/Citizen.h', 'daf_base:C++'],
+                     ['pex_exceptions', 'lsst/pex/exceptions/Exception.h', 'pex_exceptions:C++'],
                      ['daf_data', 'lsst/daf/data/SupportFactory.h', 'daf_data:C++'],
                      ['afw', 'lsst/afw/detection/Source.h', 'afw:C++']
                     ])
