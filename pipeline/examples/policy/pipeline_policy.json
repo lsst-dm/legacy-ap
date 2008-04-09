@@ -6,12 +6,12 @@
     "shutdownTopic":    "shutdownAssociationEvent",
 
     "appStages":       ["lsst.ap.pipeline.LoadStage",
-                        "lsst.dps.IOStage.InputStage",
+                        "lsst.pex.harness.IOStage.InputStage",
                         "lsst.ap.pipeline.MatchDiaSourcesStage",
-                        "lsst.dps.IOStage.OutputStage",
-                        "lsst.dps.IOStage.InputStage",
+                        "lsst.pex.harness.IOStage.OutputStage",
+                        "lsst.pex.harness.IOStage.InputStage",
                         "lsst.ap.pipeline.MatchMopsPredsStage",
-                        "lsst.dps.IOStage.OutputStage",
+                        "lsst.pex.harness.IOStage.OutputStage",
                         "lsst.ap.pipeline.StoreStage"
                        ],
 

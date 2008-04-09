@@ -20,11 +20,10 @@
 #   include <boost/test/unit_test.hpp>
 #endif
 
-#include <lsst/mwi/data/DataProperty.h>
-#include <lsst/mwi/data/SupportFactory.h>
-#include <lsst/mwi/policy/Policy.h>
-#include <lsst/mwi/persistence/Persistence.h>
-#include <lsst/mwi/persistence/LogicalLocation.h>
+#include <lsst/daf/base/DataProperty.h>
+#include <lsst/pex/policy/Policy.h>
+#include <lsst/daf/persistence/Persistence.h>
+#include <lsst/daf/persistence/LogicalLocation.h>
 
 #include <lsst/ap/Common.h>
 #include <lsst/ap/Exceptions.h>
@@ -36,14 +35,13 @@
 #include <lsst/ap/io/ResultFormatters.h>
 
 
-using lsst::mwi::data::DataProperty;
-using lsst::mwi::data::SupportFactory;
-using lsst::mwi::policy::Policy;
-using lsst::mwi::persistence::LogicalLocation;
-using lsst::mwi::persistence::Persistence;
-using lsst::mwi::persistence::Persistable;
-using lsst::mwi::persistence::Storage;
-using lsst::mwi::persistence::DbStorage;
+using lsst::daf::base::DataProperty;
+using lsst::pex::policy::Policy;
+using lsst::daf::persistence::LogicalLocation;
+using lsst::daf::persistence::Persistence;
+using lsst::daf::persistence::Persistable;
+using lsst::daf::persistence::Storage;
+using lsst::daf::persistence::DbStorage;
 
 using namespace lsst::ap;
 
@@ -109,7 +107,7 @@ int64_t createVisitId() {
 
 
 DataProperty::PtrType createDbTestProps(std::string const & itemName) {
-    DataProperty::PtrType props = SupportFactory::createPropertyNode("root");
+    DataProperty::PtrType props = DataProperty::createPropertyNode("root");
     props->addProperty(DataProperty("visitId", createVisitId()));
     props->addProperty(DataProperty("itemName", itemName));
     return props;
@@ -121,7 +119,7 @@ void doTestBoost(std::string const & name) {
     std::string           tempFile(makeTempFile());
     ScopeGuard            fileGuard(boost::bind(::unlink, tempFile.c_str()));
     Policy::Ptr           policy(new Policy);
-    DataProperty::PtrType props(SupportFactory::createPropertyNode("root"));
+    DataProperty::PtrType props(DataProperty::createPropertyNode("root"));
     LogicalLocation       loc(tempFile);
     Persistence::Ptr      pers(Persistence::getPersistence(policy));
 

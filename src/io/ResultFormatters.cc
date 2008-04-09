@@ -9,10 +9,10 @@
 
 #include <memory>
 
-#include <lsst/mwi/persistence/BoostStorage.h>
-#include <lsst/mwi/persistence/DbStorage.h>
-#include <lsst/mwi/persistence/DbTsvStorage.h>
-#include <lsst/mwi/persistence/FormatterImpl.h>
+#include <lsst/daf/persistence/BoostStorage.h>
+#include <lsst/daf/persistence/DbStorage.h>
+#include <lsst/daf/persistence/DbTsvStorage.h>
+#include <lsst/daf/persistence/FormatterImpl.h>
 
 #include <boost/any.hpp>
 #include <boost/format.hpp>
@@ -32,8 +32,8 @@ namespace lsst {
 namespace ap {
 namespace io {
 
-using lsst::mwi::persistence::BoostStorage;
-using lsst::mwi::persistence::DbTsvStorage;
+using lsst::daf::persistence::BoostStorage;
+using lsst::daf::persistence::DbTsvStorage;
 
 // -- MatchPairVectorFormatter ----------------
 

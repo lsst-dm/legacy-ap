@@ -168,7 +168,7 @@ ZoneIndex<EntryT>::ZoneIndex(
     int32_t const zonesPerStripe,
     int32_t const maxEntriesPerZoneEstimate
 ) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _zsc(zonesPerDegree, zonesPerStripe, maxEntriesPerZoneEstimate),
     _zones(),
     _capacity(0),

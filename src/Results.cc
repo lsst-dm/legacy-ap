@@ -17,19 +17,19 @@ namespace ap {
 // -- MatchPairVector ----------------
 
 MatchPairVector::MatchPairVector() :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec()
 {}
 
 
 MatchPairVector::MatchPairVector(size_type n) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n)
 {}
 
 
 MatchPairVector::MatchPairVector(size_type n, value_type const & val) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n, val)
 {}
 
@@ -38,13 +38,13 @@ MatchPairVector::~MatchPairVector() {}
 
 
 MatchPairVector::MatchPairVector(MatchPairVector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v._vec)
 {}
 
 
 MatchPairVector::MatchPairVector(Vector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v)
 {}
 
@@ -65,19 +65,19 @@ MatchPairVector & MatchPairVector::operator=(Vector const & v) {
 // -- IdPairVector ----------------
 
 IdPairVector::IdPairVector() :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec()
 {}
 
 
 IdPairVector::IdPairVector(size_type n) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n)
 {}
 
 
 IdPairVector::IdPairVector(size_type n, value_type const & val) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n, val)
 {}
 
@@ -86,13 +86,13 @@ IdPairVector::~IdPairVector() {}
 
 
 IdPairVector::IdPairVector(IdPairVector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v._vec)
 {}
 
 
 IdPairVector::IdPairVector(Vector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v)
 {}
 
@@ -113,19 +113,19 @@ IdPairVector & IdPairVector::operator=(Vector const & v) {
 // -- IdVector ----------------
 
 IdVector::IdVector() :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec()
 {}
 
 
 IdVector::IdVector(size_type n) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n)
 {}
 
 
 IdVector::IdVector(size_type n, value_type const & val) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(n, val)
 {}
 
@@ -134,13 +134,13 @@ IdVector::~IdVector() {}
 
 
 IdVector::IdVector(IdVector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v._vec)
 {}
 
 
 IdVector::IdVector(Vector const & v) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _vec(v)
 {}
 

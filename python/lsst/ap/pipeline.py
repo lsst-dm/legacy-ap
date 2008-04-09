@@ -17,17 +17,17 @@ import os.path
 import re
 import subprocess
 
-import lsst.mwi.exceptions
-import lsst.mwi.persistence
-import lsst.mwi.utils
-import lsst.dps.Stage
-import lsst.fw.Core.fwCatalog
+import lsst.pex.exceptions
+import lsst.daf.persistence
+import lsst.pex.logging
+import lsst.pex.harness.Stage
+import lsst.afw.image
 import lsst.ap.interface as ap
 
 
 # ----------------------------------------------------------------
 
-class LoadStage(lsst.dps.Stage.Stage):
+class LoadStage(lsst.pex.harness.Stage.Stage):
     """
     Stage that loads basic object data (id, position, variability probabilities)
     for a visit FOV.
@@ -40,7 +40,7 @@ class LoadStage(lsst.dps.Stage.Stage):
             self._policy.set('filterTableLocation', ftLoc)
 
     def __init__(self, stageId, policy):
-        lsst.dps.Stage.Stage.__init__(self, stageId, policy)
+        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
         self.firstVisit = True
 
     def makeVpContext(self):
@@ -71,7 +71,7 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -86,8 +86,8 @@ class LoadStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
-        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
+        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -101,13 +101,13 @@ class LoadStage(lsst.dps.Stage.Stage):
         Checks to make sure all worker slices successfully loaded their share of the
         objects for the visit FOV and builds an object index if so.
         """
-        lsst.mwi.utils.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
         ap.buildObjectIndex(self.vpContext)
 
 
 # --------------------------------------------------------------------------------
 
-class MatchDiaSourcesStage(lsst.dps.Stage.Stage):
+class MatchDiaSourcesStage(lsst.pex.harness.Stage.Stage):
     """
     Matches difference sources from the detection pipeline against objects
     within the visits FOV. Difference sources are expected to be found on the clipboard
@@ -117,12 +117,12 @@ class MatchDiaSourcesStage(lsst.dps.Stage.Stage):
     """
 
     def __init__(self, stageId=-1, policy=None):
-        lsst.dps.Stage.Stage.__init__(self, stageId, policy)
+        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
 
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -147,7 +147,7 @@ class MatchDiaSourcesStage(lsst.dps.Stage.Stage):
 
 # --------------------------------------------------------------------------------
 
-class MatchMopsPredsStage(lsst.dps.Stage.Stage):
+class MatchMopsPredsStage(lsst.pex.harness.Stage.Stage):
     """
     Matches moving object predictions for a visit against difference sources. The previous
     stage is assumed to have read the difference sources and produced an index for them (stored
@@ -159,12 +159,12 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
     key 'NewObjects'.
     """
     def __init__(self, stageId=-1, policy=None):
-        lsst.dps.Stage.Stage.__init__(self, stageId, policy)
+        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
 
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -173,7 +173,7 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
             event1 = clipboard.get('triggerAssociationEvent')
             event2 = clipboard.get('triggerMatchMopsPredsEvent')
             if event1.findUnique('visitId').getValueInt() != event2.findUnique('visitId').getValueInt():
-                raise lsst.mwi.exceptions.LsstRuntime(
+                raise lsst.pex.exceptions.LsstRuntime(
                     'triggerAssociationEvent.visitId != triggerMatchMopsPredsEvent.visitId'
                 )
             preds     = clipboard.get('MopsPreds')
@@ -201,7 +201,7 @@ class MatchMopsPredsStage(lsst.dps.Stage.Stage):
 
 # ----------------------------------------------------------------
 
-class StoreStage(lsst.dps.Stage.Stage):
+class StoreStage(lsst.pex.harness.Stage.Stage):
     """
     Stores new objects (created from unmatched difference sources) obtained during
     the visit into chunk delta files.
@@ -244,20 +244,20 @@ class StoreStage(lsst.dps.Stage.Stage):
         # Parse database location string
         dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
         if dbloc is None:
-            raise lsst.mwi.exceptions.LsstRuntime('invalid location string')
+            raise lsst.pex.exceptions.LsstRuntime('invalid location string')
         if dbloc.group(1) != 'mysql':
-            raise lsst.mwi.exceptions.LsstRuntime('database type %s not supported' % dbloc.group(1))
+            raise lsst.pex.exceptions.LsstRuntime('database type %s not supported' % dbloc.group(1))
         self.hostname = dbloc.group(2)
         self.port     = int(dbloc.group(3))
         self.database = dbloc.group(4)
 
     def __init__(self, stageId=-1, policy=None):
-        lsst.dps.Stage.Stage.__init__(self, stageId, policy)
-        if not lsst.mwi.persistence.DbAuth.available():
-            raise lsst.mwi.exceptions.LsstRuntime('missing credentials for database authorization')
+        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
+        if not lsst.daf.persistence.DbAuth.available():
+            raise lsst.pex.exceptions.LsstRuntime('missing credentials for database authorization')
         self.firstVisit    = True
-        self.username      = lsst.mwi.persistence.DbAuth.username()
-        self.password      = lsst.mwi.persistence.DbAuth.password()
+        self.username      = lsst.daf.persistence.DbAuth.username()
+        self.password      = lsst.daf.persistence.DbAuth.password()
         self.filterChars   = ('u','g','r','i','z','y')
         self.templateNames = ['StoreOutputsTemplate.sql',
                               'AppendTablesTemplate.sql',
@@ -303,8 +303,8 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
-        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
+        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
@@ -321,37 +321,37 @@ class StoreStage(lsst.dps.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.mwi.utils.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
         vpContext = clipboard.get('vpContext')
         event     = clipboard.get('triggerAssociationEvent')
         # get MJD of visit and convert to UTC string in ISO 8601 format for use in database queries
-        dt        = lsst.mwi.persistence.DateTime(event.findUnique('visitTime').getValueDouble())
+        dt        = lsst.daf.persistence.DateTime(event.findUnique('visitTime').getValueDouble())
         utcString = datetime.datetime.utcfromtimestamp(dt.nsecs()/1000000000).isoformat(' ')
         self._createSqlScripts(vpContext, utcString)
         if self.storeOutputs:
             if self._runSqlScript('StoreOutputsTemplate.sql') != 0:
                 ap.endVisit(vpContext, True)
-                raise lsst.mwi.exceptions.LsstRuntime(
+                raise lsst.pex.exceptions.LsstRuntime(
                     'Association pipeline failed: SQL script %s failed' %
                     self.scriptPaths['StoreOutputsTemplate.sql']
                 )
 
         if not ap.endVisit(vpContext, False):
-            raise lsst.mwi.exceptions.LsstRuntime('Association pipeline failed: visit not committed')
+            raise lsst.pex.exceptions.LsstRuntime('Association pipeline failed: visit not committed')
 
         if self.appendTables:
             if self._runSqlScript('AppendTablesTemplate.sql') != 0:
-                raise lsst.mwi.exceptions.LsstRuntime(
+                raise lsst.pex.exceptions.LsstRuntime(
                     'Association pipeline failed: SQL script %s failed' %
                     self.scriptPaths['AppendTablesTemplate.sql']
                 )
 
         if self.dropTables:
             if self._runSqlScript('DropTablesTemplate.sql') != 0:
-                raise lsst.mwi.exceptions.LsstRuntime(
+                raise lsst.pex.exceptions.LsstRuntime(
                     'Association pipeline failed to drop tables given in SQL script %s' %
                     self.scriptPaths['DropTablesTemplate.sql']
                 )

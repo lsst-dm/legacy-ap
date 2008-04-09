@@ -40,11 +40,11 @@
 #include <boost/format.hpp>
 #include <boost/scoped_array.hpp>
 
-#include <lsst/mwi/logging/Log.h>
+#include <lsst/pex/logging/Log.h>
 
-#include <lsst/fw/DiaSource.h>
-#include <lsst/fw/Filter.h>
-#include <lsst/fw/MovingObjectPrediction.h>
+#include <lsst/afw/detection/Source.h>
+#include <lsst/afw/image/Filter.h>
+#include <lsst/mops/MovingObjectPrediction.h>
 
 #include <lsst/ap/ChunkManager.h>
 #include <lsst/ap/ChunkToNameMappings.h>
@@ -57,9 +57,9 @@
 namespace lsst {
 namespace ap {
 
-using lsst::mwi::data::DataProperty;
-using lsst::mwi::logging::Log;
-using lsst::mwi::logging::Rec;
+using lsst::daf::base::DataProperty;
+using lsst::pex::logging::Log;
+using lsst::pex::logging::Rec;
 
 
 // -- Constants ----------------
@@ -498,12 +498,12 @@ template size_t ellipseMatch<
 // -- VisitProcessingContext ----------------
 
 VisitProcessingContext::VisitProcessingContext(
-    lsst::mwi::data::DataProperty::PtrType const & event,
+    lsst::daf::base::DataProperty::PtrType const & event,
     std::string                            const & runId,
     int const workerId,
     int const numWorkers
 ) :
-    lsst::mwi::data::Citizen(typeid(*this)),
+    lsst::daf::base::Citizen(typeid(*this)),
     _chunkIds(),
     _chunks(),
     _objectIndex(sZonesPerDegree, sZonesPerStripe, sMaxEntriesPerZoneEst),
@@ -517,7 +517,7 @@ VisitProcessingContext::VisitProcessingContext(
     _workerId(workerId),
     _numWorkers(numWorkers)
 {
-    lsst::mwi::data::DataProperty::PtrType dp = extractRequired(event, "FOVRA");
+    lsst::daf::base::DataProperty::PtrType dp = extractRequired(event, "FOVRA");
     double ra = boost::any_cast<double>(dp->getValue());
     dp = extractRequired(event, "FOVDec");
     double dec = boost::any_cast<double>(dp->getValue());
@@ -534,7 +534,7 @@ VisitProcessingContext::VisitProcessingContext(
     _deadline.tv_sec += 600;
     dp = extractRequired(event, "filterName");
     std::string filterName = boost::any_cast<std::string>(dp->getValue());
-    lsst::mwi::persistence::LogicalLocation location(sFilterTableLocation);
+    lsst::daf::persistence::LogicalLocation location(sFilterTableLocation);
     _filter = lsst::fw::Filter(location, filterName);
 }
 
@@ -542,14 +542,14 @@ VisitProcessingContext::VisitProcessingContext(
 VisitProcessingContext::~VisitProcessingContext() {}
 
 
-void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
+void VisitProcessingContext::setDiaSources(lsst::afw::detection::SourceVector & vec) {
     _diaSourceIndex.clear();
 
     Stopwatch watch(true);
-    lsst::fw::DiaSourceVector::size_type const sz = vec.size();
+    lsst::afw::detection::SourceVector::size_type const sz = vec.size();
     double minDec =  90.0;
     double maxDec = -90.0;
-    for (lsst::fw::DiaSourceVector::size_type i = 0; i < sz; ++i) {
+    for (lsst::afw::detection::SourceVector::size_type i = 0; i < sz; ++i) {
         double dec = vec[i].getDec();
         if (dec < minDec) {
             minDec = dec;
@@ -567,7 +567,7 @@ void VisitProcessingContext::setDiaSources(lsst::fw::DiaSourceVector & vec) {
         DataProperty("time", watch.seconds()) << Rec::endr;
     watch.start();
     try {
-        for (lsst::fw::DiaSourceVector::size_type i = 0; i < sz; ++i) {
+        for (lsst::afw::detection::SourceVector::size_type i = 0; i < sz; ++i) {
             _diaSourceIndex.insert(&vec[i], 0, 0);
         }
     } catch (...) {
@@ -598,7 +598,7 @@ void VisitProcessingContext::buildObjectIndex() {
  * Sets up all fundamental visit processing parameters using a policy and ensure
  * that a reference to the shared memory object used for chunk storage exists.
  */
-LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy, std::string const & runId) {
+LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::string const & runId) {
 
     volatile SharedSimpleObjectChunkManager manager(runId);
 
@@ -748,7 +748,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
                 DataProperty("time", watch.seconds()) << Rec::endr;
         }
 
-    } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
+    } catch (lsst::pex::exceptions::ExceptionStack & ex) {
         Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
         manager.failVisit(context.getVisitId());
     } catch (std::exception & ex) {
@@ -981,7 +981,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
             DataProperty("numChunks", static_cast<long>(chunks.size())) <<
             DataProperty("time", watch.seconds()) << Rec::endr;
 
-    } catch (lsst::mwi::exceptions::ExceptionStack & ex) {
+    } catch (lsst::pex::exceptions::ExceptionStack & ex) {
         Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
         manager.failVisit(context.getVisitId());
     } catch (std::exception & ex) {

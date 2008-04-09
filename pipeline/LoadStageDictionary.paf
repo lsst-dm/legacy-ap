@@ -144,7 +144,7 @@ definitions: {
     filterTableLocation: {
         description:"The location of the database containing the 'Filter' table (used to map
                      between filter ids and names). The string should be formatted according to
-                     the same rules expected by lsst::mwi::persistence::DbStorageLocation, i.e. 
+                     the same rules expected by lsst::daf::persistence::DbStorageLocation, i.e. 
                      'database_type://hostname:port/database'. The 'database' portion of the
                      location may optionally contain '%(runId)s' substrings which will be replaced
                      with a runId string at execution time."

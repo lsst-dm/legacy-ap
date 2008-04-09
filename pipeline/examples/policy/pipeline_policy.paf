@@ -7,8 +7,8 @@ activemqBroker: lsst8.ncsa.uiuc.edu
 shutdownTopic:  "shutdownAssociationEvent"
 
 appStages:      "lsst.ap.pipeline.LoadStage"
-appStages:      "lsst.dps.IOStage.InputStage" "lsst.ap.pipeline.MatchDiaSourcesStage" "lsst.dps.IOStage.OutputStage"
-appStages:      "lsst.dps.IOStage.InputStage" "lsst.ap.pipeline.MatchMopsPredsStage" "lsst.dps.IOStage.OutputStage"
+appStages:      "lsst.pex.harness.IOStage.InputStage" "lsst.ap.pipeline.MatchDiaSourcesStage" "lsst.pex.harness.IOStage.OutputStage"
+appStages:      "lsst.pex.harness.IOStage.InputStage" "lsst.ap.pipeline.MatchMopsPredsStage" "lsst.pex.harness.IOStage.OutputStage"
 appStages:      "lsst.ap.pipeline.StoreStage"
  
 eventTopics:    "triggerAssociationEvent"

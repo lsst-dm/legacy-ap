@@ -11,7 +11,7 @@
 
 #include <boost/any.hpp>
 
-#include <lsst/mwi/data/SupportFactory.h>
+#include <lsst/daf/data/SupportFactory.h>
 
 #include <lsst/ap/Exceptions.h>
 
@@ -25,7 +25,7 @@ namespace ap {
  * from which @a ex is to be thrown) to the given exception object.
  */
 LSST_AP_API void setOrigin(
-    lsst::mwi::exceptions::ExceptionStack & ex,
+    lsst::pex::exceptions::ExceptionStack & ex,
     int  const         line,
     char const * const file,
     char const * const function
@@ -38,7 +38,7 @@ LSST_AP_API void setOrigin(
                 oss << ": in function '" << function << '\'';
             }
             ex.getLast()->addProperty(
-                lsst::mwi::data::SupportFactory::createLeafProperty("origin", boost::any(oss.str()))
+                lsst::daf::data::SupportFactory::createLeafProperty("origin", boost::any(oss.str()))
             );
         } catch (...) {}
     }
@@ -49,10 +49,10 @@ LSST_AP_API void setOrigin(
  * Adds a DataProperty named "error" containing a system error code
  * value (as obtained from e.g. errno) to the given exception object.
  */
-LSST_AP_API void setSystemErrorCode(lsst::mwi::exceptions::ExceptionStack & ex, int const errorCode) throw() {
+LSST_AP_API void setSystemErrorCode(lsst::pex::exceptions::ExceptionStack & ex, int const errorCode) throw() {
     try {
         ex.getLast()->addProperty(
-            lsst::mwi::data::SupportFactory::createLeafProperty("error", boost::any(errorCode))
+            lsst::daf::data::SupportFactory::createLeafProperty("error", boost::any(errorCode))
         );
     } catch (...) {}
 }

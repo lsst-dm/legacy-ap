@@ -1,6 +1,6 @@
 #<?cfg paf policy ?>
 #
-# Example policy file for the lsst.dps.IOStage.OutputStage
+# Example policy file for the lsst.pex.harness.IOStage.OutputStage
 # that persists lsst.ap.pipeline.MatchDiaSourcesStage outputs
 
 AdditionalData: "visitId=triggerAssociationEvent.visitId"

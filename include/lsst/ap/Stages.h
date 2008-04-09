@@ -15,13 +15,13 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include <lsst/mwi/data/Citizen.h>
-#include <lsst/mwi/data/DataProperty.h>
-#include <lsst/mwi/policy/Policy.h>
+#include <lsst/daf/base/Citizen.h>
+#include <lsst/daf/base/DataProperty.h>
+#include <lsst/pex/policy/Policy.h>
 
-#include <lsst/fw/DiaSource.h>
-#include <lsst/fw/Filter.h>
-#include <lsst/fw/MovingObjectPrediction.h>
+#include <lsst/afw/detection/Source.h>
+#include <lsst/afw/image/Filter.h>
+#include <lsst/mops/MovingObjectPrediction.h>
 
 #include "Common.h"
 #include "ChunkManager.h"
@@ -38,18 +38,18 @@ namespace ap {
 
 #ifndef SWIG
 struct DiaSourceChunk {
-    typedef lsst::fw::DiaSource Entry;
+    typedef lsst::afw::detection::Source Entry;
 };
 #endif
 
 
 /** @brief  Container for inter-stage association pipeline state. */
-class LSST_AP_API VisitProcessingContext : public lsst::mwi::data::Citizen {
+class LSST_AP_API VisitProcessingContext : public lsst::daf::base::Citizen {
 
 public :
 
     VisitProcessingContext(
-        lsst::mwi::data::DataProperty::PtrType const & event,
+        lsst::daf::base::DataProperty::PtrType const & event,
         std::string const & runId,
         int         const   workerId,
         int         const   numWorkers
@@ -57,7 +57,7 @@ public :
 
     ~VisitProcessingContext();
 
-    void setDiaSources(lsst::fw::DiaSourceVector & vec);
+    void setDiaSources(lsst::afw::detection::SourceVector & vec);
 
 #ifndef SWIG
 
@@ -85,7 +85,7 @@ public :
     CircularRegion const & getFov()      const { return _fov;      }
     TimeSpec       const & getDeadline() const { return _deadline; }
 
-    lsst::fw::Filter getFilter() const { return _filter;      }
+    lsst::afw::image::Filter getFilter() const { return _filter;      }
 
 #endif
 
@@ -107,7 +107,7 @@ private :
     std::vector<SimpleObjectChunk> _chunks;
     SimpleObjectIndex              _objectIndex;
     DiaSourceIndex                 _diaSourceIndex;
-    lsst::fw::DiaSourceVector::Ptr _diaSources;
+    lsst::afw::detection::SourceVector::Ptr _diaSources;
 
     TimeSpec         _deadline;
     CircularRegion   _fov;
@@ -120,7 +120,7 @@ private :
 };
 
 
-LSST_AP_API void initialize(lsst::mwi::policy::Policy const * policy, std::string const & runId);
+LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::string const & runId);
 
 LSST_AP_API void registerVisit(VisitProcessingContext & context);
 

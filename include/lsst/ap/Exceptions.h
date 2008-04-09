@@ -11,7 +11,7 @@
 #ifndef LSST_AP_EXCEPTIONS_H
 #define LSST_AP_EXCEPTIONS_H
 
-#include <lsst/mwi/exceptions.h>
+#include <lsst/pex/exceptions.h>
 
 #include "Common.h"
 #include "CustomExceptions.h"
@@ -20,13 +20,13 @@
 namespace lsst {
 namespace ap {
 
-using lsst::mwi::exceptions::DomainError;
-using lsst::mwi::exceptions::InvalidParameter;
-using lsst::mwi::exceptions::LengthError;
-using lsst::mwi::exceptions::OutOfRange;
-using lsst::mwi::exceptions::Runtime;
-using lsst::mwi::exceptions::NotFound;
-using lsst::mwi::exceptions::Memory;
+using lsst::pex::exceptions::DomainError;
+using lsst::pex::exceptions::InvalidParameter;
+using lsst::pex::exceptions::LengthError;
+using lsst::pex::exceptions::OutOfRange;
+using lsst::pex::exceptions::Runtime;
+using lsst::pex::exceptions::NotFound;
+using lsst::pex::exceptions::Memory;
 
 
 #define LSST_AP_JOIN_IMPL(a,b)  a##b
@@ -77,14 +77,14 @@ using lsst::mwi::exceptions::Memory;
 
 
 LSST_AP_API void setOrigin(
-    lsst::mwi::exceptions::ExceptionStack & ex,
+    lsst::pex::exceptions::ExceptionStack & ex,
     int  const         line,
     char const * const file,
     char const * const function
 ) throw();
 
 
-LSST_AP_API void setSystemErrorCode(lsst::mwi::exceptions::ExceptionStack & ex, int const errorCode) throw();
+LSST_AP_API void setSystemErrorCode(lsst::pex::exceptions::ExceptionStack & ex, int const errorCode) throw();
 
 
 }} // end of namespace lsst::ap

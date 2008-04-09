@@ -92,8 +92,9 @@ env = scons.makeEnv('associate',
                         'boost_filesystem boost_regex boost_serialization boost_program_options:C++'],
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ['python', 'Python.h'],
-                     ['mwi', 'lsst/mwi/data.h', 'mwi:C++'],
-                     ['fw', 'lsst/fw/DiaSource.h', 'fw:C++']
+                     ['daf_base', 'lsst/daf/base/Citizen.h', 'daf_base:C++'],
+                     ['daf_data', 'lsst/daf/data/SupportFactory.h', 'daf_data:C++'],
+                     ['afw', 'lsst/afw/detection/Source.h', 'afw:C++']
                     ])
 
 #

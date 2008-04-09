@@ -80,8 +80,8 @@ int main(int argc, char * argv[]) {
 
         return EXIT_SUCCESS;
 
-    } catch (lsst::mwi::exceptions::ExceptionStack & exs) {
-        std::cout << "Caught lsst::mwi::exceptions::ExceptionStack\n\t" <<
+    } catch (lsst::pex::exceptions::ExceptionStack & exs) {
+        std::cout << "Caught lsst::pex::exceptions::ExceptionStack\n\t" <<
                      exs.what() << '\n' << exs.getStack()->toString("", true) << std::endl;
     } catch (std::exception & ex) {
         std::cout << "Caught std::exception\n\t" << ex.what() << std::endl;

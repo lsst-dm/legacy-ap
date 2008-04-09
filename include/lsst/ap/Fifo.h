@@ -54,7 +54,7 @@ public :
     /**
      * Inserts the given integer into the Fifo.
      *
-     * @throw lsst::mwi::exceptions::LengthError    Thrown if the Fifo is full.
+     * @throw lsst::pex::exceptions::LengthError    Thrown if the Fifo is full.
      */
     void enqueue(int64_t const elt) {
         int sz = _size;
@@ -70,7 +70,7 @@ public :
     /**
      * Removes the least recently inserted integer from the Fifo.
      *
-     * @throw lsst::mwi::exceptions::LengthError   Thrown if the Fifo is empty.
+     * @throw lsst::pex::exceptions::LengthError   Thrown if the Fifo is empty.
      */
     int64_t dequeue() {
         int sz = _size;

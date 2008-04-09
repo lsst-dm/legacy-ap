@@ -171,7 +171,7 @@ public :
 /** @brief  Container for a sequence of adjacent zones. */
 template <typename EntryT>
 class ZoneIndex :
-    public  lsst::mwi::data::Citizen,
+    public  lsst::daf::base::Citizen,
     private boost::noncopyable
 {
 

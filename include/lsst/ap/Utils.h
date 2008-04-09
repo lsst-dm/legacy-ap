@@ -16,8 +16,8 @@
 #include <boost/static_assert.hpp>
 #include <boost/type_traits/is_integral.hpp>
 
-#include <lsst/mwi/data/DataProperty.h>
-#include <lsst/mwi/policy/Policy.h>
+#include <lsst/daf/base/DataProperty.h>
+#include <lsst/pex/policy/Policy.h>
 
 #include "Common.h"
 
@@ -26,19 +26,19 @@ namespace lsst {
 namespace ap {
 
 
-LSST_AP_API lsst::mwi::data::DataProperty::PtrType extractRequired(
-    lsst::mwi::data::DataProperty::PtrType const & properties,
+LSST_AP_API lsst::daf::base::DataProperty::PtrType extractRequired(
+    lsst::daf::base::DataProperty::PtrType const & properties,
     std::string                            const & key
 );
 
 LSST_AP_API std::string const getTableName(
-    lsst::mwi::policy::Policy::Ptr         const & policy,
-    lsst::mwi::data::DataProperty::PtrType const & properties
+    lsst::pex::policy::Policy::Ptr         const & policy,
+    lsst::daf::base::DataProperty::PtrType const & properties
 );
 
 LSST_AP_API std::string const getTableTemplateName(
-    lsst::mwi::policy::Policy::Ptr         const & policy,
-    lsst::mwi::data::DataProperty::PtrType const & properties
+    lsst::pex::policy::Policy::Ptr         const & policy,
+    lsst::daf::base::DataProperty::PtrType const & properties
 );
 
 LSST_AP_API void verifyPathName(std::string const & name);

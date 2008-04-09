@@ -19,11 +19,11 @@ namespace lsst {
 namespace ap {
 
 
-LSST_AP_API lsst::mwi::data::DataProperty::PtrType extractRequired(
-    lsst::mwi::data::DataProperty::PtrType const & properties,
+LSST_AP_API lsst::daf::base::DataProperty::PtrType extractRequired(
+    lsst::daf::base::DataProperty::PtrType const & properties,
     std::string                            const & key
 ) {
-    lsst::mwi::data::DataProperty::PtrType dp = properties->findUnique(key);
+    lsst::daf::base::DataProperty::PtrType dp = properties->findUnique(key);
     if (!dp) {
         LSST_AP_THROW(NotFound, boost::format("\"%1%\" property not found") % key);
     }
@@ -34,11 +34,11 @@ LSST_AP_API lsst::mwi::data::DataProperty::PtrType extractRequired(
 static char const * const sDefaultVisitNamePat = "_visit%1%";
 
 
-static int64_t extractVisitId(lsst::mwi::data::DataProperty::PtrType const & properties) {
+static int64_t extractVisitId(lsst::daf::base::DataProperty::PtrType const & properties) {
     if (!properties) {
         LSST_AP_THROW(InvalidParameter, "null DataProperty");
     }
-    lsst::mwi::data::DataProperty::PtrType dp = extractRequired(properties, "visitId");
+    lsst::daf::base::DataProperty::PtrType dp = extractRequired(properties, "visitId");
     int64_t visitId = anyToInteger<int64_t>(dp->getValue());
     if (visitId < 0) {
         LSST_AP_THROW(Runtime, "\"visitId\" property value is negative");
@@ -47,17 +47,17 @@ static int64_t extractVisitId(lsst::mwi::data::DataProperty::PtrType const & pro
 }
 
 
-static std::string const extractItemName(lsst::mwi::data::DataProperty::PtrType const & properties) {
+static std::string const extractItemName(lsst::daf::base::DataProperty::PtrType const & properties) {
     if (!properties) {
         LSST_AP_THROW(InvalidParameter, "null DataProperty");
     }
-    lsst::mwi::data::DataProperty::PtrType dp = extractRequired(properties, "itemName");
+    lsst::daf::base::DataProperty::PtrType dp = extractRequired(properties, "itemName");
     return boost::any_cast<std::string>(dp->getValue());
 }
 
 
 static std::string const extractPolicyString(
-    lsst::mwi::policy::Policy::Ptr const & policy,
+    lsst::pex::policy::Policy::Ptr const & policy,
     std::string const & key,
     std::string const & def
 ) {
@@ -74,8 +74,8 @@ static std::string const extractPolicyString(
  * integer-valued property named "visitId" and a string-valued property named "itemName".
  */
 LSST_AP_API std::string const getTableName(
-    lsst::mwi::policy::Policy::Ptr         const & policy,
-    lsst::mwi::data::DataProperty::PtrType const & properties
+    lsst::pex::policy::Policy::Ptr         const & policy,
+    lsst::daf::base::DataProperty::PtrType const & properties
 ) {
     std::string   itemName(extractItemName(properties));
     int64_t       visitId = extractVisitId(properties);
@@ -96,8 +96,8 @@ LSST_AP_API std::string const getTableName(
  * to create tables for a particular item.
  */
 LSST_AP_API std::string const getTableTemplateName(
-    lsst::mwi::policy::Policy::Ptr         const & policy,
-    lsst::mwi::data::DataProperty::PtrType const & properties
+    lsst::pex::policy::Policy::Ptr         const & policy,
+    lsst::daf::base::DataProperty::PtrType const & properties
 ) {
     std::string itemName(extractItemName(properties));
     return extractPolicyString(policy, itemName + ".templateTableName", itemName);

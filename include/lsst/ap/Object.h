@@ -10,9 +10,9 @@
 #ifndef LSST_AP_OBJECT_H
 #define LSST_AP_OBJECT_H
 
-#include <lsst/mwi/persistence/DateTime.h>
+#include <lsst/daf/persistence/DateTime.h>
 
-#include <lsst/fw/Filter.h>
+#include <lsst/afw/image/Filter.h>
 
 #include "Common.h"
 #include "Bitset.h"
@@ -196,8 +196,8 @@ public :
     double  _cyErr;          // DOUBLE      NULL
     double  _cz;             // DOUBLE      NULL
     double  _czErr;          // DOUBLE      NULL
-    lsst::mwi::persistence::DateTime _earliestObsTime; // DATETIME NULL
-    lsst::mwi::persistence::DateTime _latestObsTime;   // DATETIME NULL
+    lsst::daf::persistence::DateTime _earliestObsTime; // DATETIME NULL
+    lsst::daf::persistence::DateTime _latestObsTime;   // DATETIME NULL
     float   _parallax;       // FLOAT(0)    NULL
     float   _parallaxErr;    // FLOAT(0)    NULL
     float   _redshift;       // FLOAT(0)    NULL

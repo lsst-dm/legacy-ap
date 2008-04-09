@@ -15,8 +15,8 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include <lsst/mwi/data/Citizen.h>
-#include <lsst/mwi/persistence/Persistable.h>
+#include <lsst/daf/base/Citizen.h>
+#include <lsst/daf/persistence/Persistable.h>
 
 #include "Common.h"
 
@@ -92,8 +92,8 @@ typedef std::pair<int64_t, int64_t> IdPair;
 
 /** @brief  A persistable container of MatchPair instances, implemented using std::vector. */
 class LSST_AP_API MatchPairVector :
-    public lsst::mwi::persistence::Persistable,
-    public lsst::mwi::data::Citizen
+    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Citizen
 {
 public :
 
@@ -117,7 +117,7 @@ public :
 
     template <typename InputIteratorT>
     MatchPairVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::mwi::data::Citizen(typeid(*this)),
+        lsst::daf::base::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
 
@@ -190,8 +190,8 @@ private :
 
 /** @brief  A persistable container of IdPair identifiers, implemented using std::vector. */
 class LSST_AP_API IdPairVector :
-    public lsst::mwi::persistence::Persistable,
-    public lsst::mwi::data::Citizen
+    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Citizen
 {
 public :
 
@@ -215,7 +215,7 @@ public :
 
     template <typename InputIteratorT>
     IdPairVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::mwi::data::Citizen(typeid(*this)),
+        lsst::daf::base::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
 
@@ -288,8 +288,8 @@ private :
 
 /** @brief  A persistable container of integer (int64_t) identifiers, implemented using std::vector. */
 class LSST_AP_API IdVector :
-    public lsst::mwi::persistence::Persistable,
-    public lsst::mwi::data::Citizen
+    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Citizen
 {
 public :
 
@@ -313,7 +313,7 @@ public :
 
     template <typename InputIteratorT>
     IdVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::mwi::data::Citizen(typeid(*this)),
+        lsst::daf::base::Citizen(typeid(*this)),
         _vec(beg, end)
     {}
 

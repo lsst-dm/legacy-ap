@@ -26,5 +26,5 @@ env.SharedLibrary('associate',
     map(lambda str: '../src/io/' + str,
         ['FileIo.cc',
          'ResultFormatters.cc']),
-    LIBS=env.getlibs('boost mwi fw') + sysLibs)
+    LIBS=env.getlibs('boost daf_data afw') + sysLibs)
 

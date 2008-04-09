@@ -28,7 +28,7 @@ using namespace boost::unit_test;
 
 namespace {
 
-using lsst::mwi::exceptions::ExceptionStack;
+using lsst::pex::exceptions::ExceptionStack;
 
 void translator(ExceptionStack const & ex) {
     std::cerr << '\n' << ex.what() << '\n'
@@ -36,7 +36,7 @@ void translator(ExceptionStack const & ex) {
               << '\n' << std::endl;
     throw boost::execution_exception(
         boost::execution_exception::cpp_exception_error,
-        "Caught lsst::mwi::exceptions::ExceptionStack"
+        "Caught lsst::pex::exceptions::ExceptionStack"
     );
 }
 

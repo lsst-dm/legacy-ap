@@ -6,7 +6,7 @@ Run with:
    python TestCleanup.py
 """
 
-import lsst.mwi.persistence
+import lsst.daf.persistence
 
 
 def swallow(function):
@@ -18,8 +18,8 @@ def swallow(function):
 
 def cleanup():
     """Cleans up after a test run of the association pipeline"""
-    loc = lsst.mwi.persistence.LogicalLocation('mysql://lsst10.ncsa.uiuc.edu:3306/test')
-    db  = lsst.mwi.persistence.DbStorage()
+    loc = lsst.daf.persistence.LogicalLocation('mysql://lsst10.ncsa.uiuc.edu:3306/test')
+    db  = lsst.daf.persistence.DbStorage()
     db.setPersistLocation(loc)
     db.startTransaction()
     swallow(lambda : db.dropTable('DiaSourceToObjectMatches_visit1'))

@@ -1,4 +1,5 @@
->merge: fw
->merge: dps
->merge: events
+>merge: afw
+>merge: detection
+>merge: pex_harness
+>merge: ctrl_events
 >self

@@ -14,10 +14,10 @@ import pdb
 import unittest
 import random
 import time
-import lsst.mwi.data as data
-import lsst.mwi.policy as policy
-import lsst.mwi.persistence as persistence
-import lsst.mwi.tests as tests
+import lsst.daf.base as dafBase
+import lsst.pex.policy as policy
+import lsst.daf.persistence as persistence
+import lsst.utils.tests as tests
 import lsst.ap.interface as ap
 
 
@@ -93,9 +93,9 @@ class MatchPairVecTestCase(unittest.TestCase):
             pol  = policy.PolicyPtr()
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = data.SupportFactory.createPropertyNode("root")
-            dp.addProperty(data.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(data.DataProperty("itemName", "MatchPair"))
+            dp   = dafBase.DataProperty.createPropertyNode("root")
+            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
+            dp.addProperty(dafBase.DataProperty("itemName", "MatchPair"))
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
             pers.persist(self.mpv1, stl, dp)
@@ -175,9 +175,9 @@ class IdPairVecTestCase(unittest.TestCase):
             pol  = policy.PolicyPtr()
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = data.SupportFactory.createPropertyNode("root")
-            dp.addProperty(data.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(data.DataProperty("itemName", "IdPair"))
+            dp   = dafBase.DataProperty.createPropertyNode("root")
+            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
+            dp.addProperty(dafBase.DataProperty("itemName", "IdPair"))
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
             pers.persist(self.ipv1, stl, dp)
@@ -258,9 +258,9 @@ class IdVecTestCase(unittest.TestCase):
             pol  = policy.PolicyPtr()
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = data.SupportFactory.createPropertyNode("root")
-            dp.addProperty(data.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(data.DataProperty("itemName", "Id"))
+            dp   = dafBase.DataProperty.createPropertyNode("root")
+            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
+            dp.addProperty(dafBase.DataProperty("itemName", "Id"))
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
             pers.persist(self.idv1, stl, dp)

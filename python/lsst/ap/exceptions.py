@@ -1,8 +1,8 @@
-import lsst.mwi.exceptions
+import lsst.pex.exceptions
 
-class LsstIoError(lsst.mwi.exceptions.LsstExceptionStack):
+class LsstIoError(lsst.pex.exceptions.LsstExceptionStack):
     pass
 
-class LsstTimeout(lsst.mwi.exceptions.LsstExceptionStack):
+class LsstTimeout(lsst.pex.exceptions.LsstExceptionStack):
     pass
 

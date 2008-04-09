@@ -13,7 +13,7 @@ Access to association pipeline persistable result objects and implementation met
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
-#include <lsst/mwi/persistence/Persistence.h>
+#include <lsst/daf/persistence/Persistence.h>
 #include "lsst/ap/Exceptions.h"
 #include "lsst/ap/Results.h"
 #include "lsst/ap/io/ResultFormatters.h"
@@ -30,19 +30,21 @@ namespace boost { namespace filesystem {} }
 
 %pythoncode %{
 import lsst.ap.exceptions
-import lsst.fw.exceptions
+import lsst.afw.exceptions
+import lsst.pex.exceptions
 %}
 
-%include "lsst/mwi/p_lsstSwig.i"
-%include "lsst/mwi/persistenceMacros.i"
+%include "lsst/utils/p_lsstSwig.i"
+%include "lsst/daf/base/persistenceMacros.i"
 
-%import "lsst/mwi/data/Citizen.h"
-%import "lsst/mwi/persistence/Persistable.h"
-%import "lsst/mwi/data/DataProperty.h"
-%import "lsst/mwi/policy/Policy.h"
-%import "lsst/mwi/persistence/LogicalLocation.h"
-%import "lsst/mwi/persistence/Persistence.h"
-%import "lsst/mwi/persistence/Storage.h"
+%import "lsst/daf/base/Citizen.h"
+%import "lsst/pex/exceptions.h"           // RAA added
+%import "lsst/daf/persistence/Persistable.h"
+%import "lsst/daf/base/DataProperty.h"
+%import "lsst/pex/policy/Policy.h"
+%import "lsst/daf/persistence/LogicalLocation.h"
+%import "lsst/daf/persistence/Persistence.h"
+%import "lsst/daf/persistence/Storage.h"
 
 %include <stdint.i>
 %include <typemaps.i>
@@ -180,7 +182,7 @@ MatchPair.__str__ = MatchPair.toString
     namespace lsst {
     namespace ap {
 
-    class UnqualifiedType : public lsst::mwi::persistence::Persistable {
+    class UnqualifiedType : public lsst::daf::persistence::Persistable {
     public:
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;
@@ -231,7 +233,7 @@ MatchPair.__str__ = MatchPair.toString
 
 
 // Make sure SWIG generates type information for certain types that are wrapped in other modules
-%types(boost::shared_ptr<lsst::mwi::persistence::Persistable> *);
+%types(boost::shared_ptr<lsst::daf::persistence::Persistable> *);
 
 namespace lsst {
 namespace fw {
@@ -239,8 +241,8 @@ namespace fw {
     class MovingObjectPredictionVector;
 }}
 
-%types(boost::shared_ptr<lsst::fw::DiaSourceVector> *);
-%types(boost::shared_ptr<lsst::fw::MovingObjectPredictionVector> *);
+%types(boost::shared_ptr<lsst::afw::detection::SourceVector> *);
+%types(boost::shared_ptr<lsst::mops::MovingObjectPredictionVector> *);
 
 
 // Export instantiations of boost::shared_ptr for persistable data vectors
@@ -272,12 +274,12 @@ def MatchPairVecPtr(*args):
 namespace lsst {
 namespace ap {
     std::string const getTableName(
-        boost::shared_ptr<lsst::mwi::policy::Policy> const &,
-        boost::shared_ptr<lsst::mwi::data::DataProperty> const &
+        boost::shared_ptr<lsst::pex::policy::Policy> const &,
+        boost::shared_ptr<lsst::daf::base::DataProperty> const &
     );
     std::string const getTableTemplateName(
-        boost::shared_ptr<lsst::mwi::policy::Policy> const &,
-        boost::shared_ptr<lsst::mwi::data::DataProperty> const &
+        boost::shared_ptr<lsst::pex::policy::Policy> const &,
+        boost::shared_ptr<lsst::daf::base::DataProperty> const &
     );
 }}
 

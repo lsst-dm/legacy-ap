@@ -10,7 +10,7 @@
 #ifndef LSST_AP_DATA_TRAITS_H
 #define LSST_AP_DATA_TRAITS_H
 
-#include <lsst/fw/DiaSource.h>
+#include <lsst/afw/detection/Source.h>
 
 #include "Common.h"
 #include "Object.h"
