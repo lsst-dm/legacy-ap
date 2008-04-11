@@ -93,9 +93,13 @@ env = scons.makeEnv('associate',
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ['python', 'Python.h'],
                      ['daf_base', 'lsst/daf/base/Citizen.h', 'daf_base:C++'],
+                     ['daf_data', None , 'daf_data:C++'], # needed by final libap.so build 
                      ['pex_exceptions', 'lsst/pex/exceptions/Exception.h', 'pex_exceptions:C++'],
-                     ['daf_data', 'lsst/daf/data/SupportFactory.h', 'daf_data:C++'],
-                     ['afw', 'lsst/afw/detection/Source.h', 'afw:C++']
+                     ['daf_persistence', 'lsst/daf/persistence/LogicalLocation.h', 'daf_persistence:C++'],  # needed by afw/image/Filter.h
+                     ['pex_policy', 'lsst/pex/policy/Policy.h', 'pex_policy:C++'],  # needed by afw/image/Filter.h
+                     ['pex_logging', 'lsst/pex/logging/Log.h', 'pex_logging:C++'],  # needed by src/Stages.cc
+                     ['mops', 'lsst/mops/MovingObjectPrediction.h'],  # needed by src/Stages.cc
+                     ['afw', 'lsst/afw/detection/Source.h', 'afw:C++'],
                     ])
 
 #

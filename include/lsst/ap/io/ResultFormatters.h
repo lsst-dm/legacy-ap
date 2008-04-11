@@ -27,7 +27,7 @@ namespace io {
 
 using lsst::daf::persistence::Formatter;
 using lsst::daf::persistence::FormatterRegistration;
-using lsst::daf::persistence::Persistable;
+using lsst::daf::base::Persistable;
 using lsst::daf::persistence::Storage;
 using lsst::daf::persistence::DbStorage;
 using lsst::pex::policy::Policy;

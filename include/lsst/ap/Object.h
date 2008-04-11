@@ -10,7 +10,7 @@
 #ifndef LSST_AP_OBJECT_H
 #define LSST_AP_OBJECT_H
 
-#include <lsst/daf/persistence/DateTime.h>
+#include <lsst/daf/base/DateTime.h>
 
 #include <lsst/afw/image/Filter.h>
 
@@ -35,13 +35,13 @@ public :
     int64_t _objectId;
     double  _ra;
     double  _decl;
-    int16_t  _varProb[lsst::fw::Filter::NUM_FILTERS];
+    int16_t  _varProb[lsst::afw::image::Filter::NUM_FILTERS];
 
     int64_t getId()  const { return _objectId; }
     double  getRa()  const { return _ra;       }
     double  getDec() const { return _decl;     }
 
-    int16_t  getVarProb(lsst::fw::Filter const f) const { return _varProb[f]; }
+    int16_t  getVarProb(lsst::afw::image::Filter const f) const { return _varProb[f]; }
 };
 
 LSST_AP_API bool operator==(SimpleObject const & o1, SimpleObject const & o2);
@@ -196,8 +196,8 @@ public :
     double  _cyErr;          // DOUBLE      NULL
     double  _cz;             // DOUBLE      NULL
     double  _czErr;          // DOUBLE      NULL
-    lsst::daf::persistence::DateTime _earliestObsTime; // DATETIME NULL
-    lsst::daf::persistence::DateTime _latestObsTime;   // DATETIME NULL
+    lsst::daf::base::DateTime _earliestObsTime; // DATETIME NULL
+    lsst::daf::base::DateTime _latestObsTime;   // DATETIME NULL
     float   _parallax;       // FLOAT(0)    NULL
     float   _parallaxErr;    // FLOAT(0)    NULL
     float   _redshift;       // FLOAT(0)    NULL
@@ -217,7 +217,7 @@ public :
 
     Bitset<uint8_t, NUM_NULLABLE_FIELDS> _nulls;
 
-    PerFilterObjectData _filters[lsst::fw::Filter::NUM_FILTERS];
+    PerFilterObjectData _filters[lsst::afw::image::Filter::NUM_FILTERS];
 
     // methods
 
@@ -225,15 +225,15 @@ public :
     double  getRa() const  { return _ra;       }
     double  getDec() const { return _decl;     }
 
-    int8_t  getVarProb(lsst::fw::Filter const f) const { return _filters[f]._varProb; }
+    int8_t  getVarProb(lsst::afw::image::Filter const f) const { return _filters[f]._varProb; }
 
-    PerFilterObjectData const & getFilter(lsst::fw::Filter const f) const {
-        assert(f >= 0 && f < lsst::fw::Filter::NUM_FILTERS);
+    PerFilterObjectData const & getFilter(lsst::afw::image::Filter const f) const {
+        assert(f >= 0 && f < lsst::afw::image::Filter::NUM_FILTERS);
         return _filters[f];
     }
 
-    PerFilterObjectData & getFilter(lsst::fw::Filter const f) {
-        assert(f >= 0 && f < lsst::fw::Filter::NUM_FILTERS);
+    PerFilterObjectData & getFilter(lsst::afw::image::Filter const f) {
+        assert(f >= 0 && f < lsst::afw::image::Filter::NUM_FILTERS);
         return _filters[f];
     }
 

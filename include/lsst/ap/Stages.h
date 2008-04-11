@@ -114,7 +114,7 @@ private :
     std::string      _runId;
     int64_t          _visitId;
     double           _matchRadius;
-    lsst::fw::Filter _filter;
+    lsst::afw::image::Filter _filter;
     int              _workerId;
     int              _numWorkers;
 };
@@ -137,7 +137,7 @@ LSST_AP_API void matchMops(
     boost::shared_ptr<MatchPairVector>     & matches,
     boost::shared_ptr<IdPairVector>        & newObjects,
     VisitProcessingContext                 & context,
-    lsst::fw::MovingObjectPredictionVector & predictions
+    lsst::mops::MovingObjectPredictionVector & predictions
 );
 
 LSST_AP_API void storeSliceObjects(VisitProcessingContext & context);

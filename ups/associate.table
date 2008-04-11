@@ -1,10 +1,6 @@
-setupRequired(scons)
-setupRequired(swig)
-setupRequired(boost)
 setupRequired(mysqlclient)
-setupRequired(pex_exceptions)
-setupRequired(afw)
 setupRequired(detection)
+setupRequired(mops)
 
 setupOptional(doxygen)
 setupOptional(pex_harness)

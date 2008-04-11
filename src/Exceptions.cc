@@ -8,10 +8,11 @@
  */
 
 #include <iostream>
+#include <sstream>
 
 #include <boost/any.hpp>
 
-#include <lsst/daf/data/SupportFactory.h>
+#include <lsst/daf/base/DataProperty.h>
 
 #include <lsst/ap/Exceptions.h>
 
@@ -38,7 +39,7 @@ LSST_AP_API void setOrigin(
                 oss << ": in function '" << function << '\'';
             }
             ex.getLast()->addProperty(
-                lsst::daf::data::SupportFactory::createLeafProperty("origin", boost::any(oss.str()))
+                lsst::daf::base::DataProperty("origin", boost::any(oss.str()))
             );
         } catch (...) {}
     }
@@ -52,7 +53,7 @@ LSST_AP_API void setOrigin(
 LSST_AP_API void setSystemErrorCode(lsst::pex::exceptions::ExceptionStack & ex, int const errorCode) throw() {
     try {
         ex.getLast()->addProperty(
-            lsst::daf::data::SupportFactory::createLeafProperty("error", boost::any(errorCode))
+            lsst::daf::base::DataProperty("error", boost::any(errorCode))
         );
     } catch (...) {}
 }

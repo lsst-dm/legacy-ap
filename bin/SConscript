@@ -5,5 +5,5 @@ sysLibs = ['z', 'pthread']
 if env['PLATFORM'] == 'posix':
     sysLibs += ['rt']
 
-env.Program('ap_shmem_admin', ['../util/SharedMemoryAdmin.cc'], LIBS=env.getlibs('boost mwi associate') + sysLibs)
-env.Program('dumpObjects', ['../util/dumpObjects.cc'], LIBS = env.getlibs("mysqlclient mwi"))
+env.Program('ap_shmem_admin', ['../util/SharedMemoryAdmin.cc'], LIBS=env.getlibs('boost afw associate') + sysLibs)
+env.Program('dumpObjects', ['../util/dumpObjects.cc'], LIBS = env.getlibs("mysqlclient afw"))

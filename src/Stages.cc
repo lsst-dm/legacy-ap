@@ -134,7 +134,7 @@ static std::string sObjDeltaFilePattern(DEF_OBJ_DELTA_PATTERN);
  * "known variable". DiaSources matching "known variables" are not considered when matching against
  * predicted positions of moving objects.
  */
-static int8_t sVarProbThreshold[lsst::fw::Filter::NUM_FILTERS] = {
+static int8_t sVarProbThreshold[lsst::afw::image::Filter::NUM_FILTERS] = {
     DEF_VP_THRESH,
     DEF_VP_THRESH,
     DEF_VP_THRESH,
@@ -159,7 +159,7 @@ typedef std::vector<SimpleObjectChunk>  SimpleObjectChunkVector;
 typedef ZoneEntry<SimpleObjectChunk>    SimpleObjectEntry;
 typedef ZoneEntry<DiaSourceChunk>       DiaSourceEntry;
 
-typedef Ellipse<lsst::fw::MovingObjectPrediction> MovingObjectEllipse;
+typedef Ellipse<lsst::mops::MovingObjectPrediction> MovingObjectEllipse;
 
 } // end of namespace detail
 
@@ -176,8 +176,8 @@ template class Zone<detail::DiaSourceEntry>;
 template class ZoneIndex<detail::SimpleObjectEntry>;
 template class ZoneIndex<detail::DiaSourceEntry>;
 
-template class Ellipse<lsst::fw::MovingObjectPrediction>;
-template class EllipseList<lsst::fw::MovingObjectPrediction>;
+template class Ellipse<lsst::mops::MovingObjectPrediction>;
+template class EllipseList<lsst::mops::MovingObjectPrediction>;
 /// @endcond
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility pop
@@ -198,12 +198,12 @@ public :
     typedef typename std::vector<Match>::iterator MatchIterator;
 
     MatchPairVector        & _matches;
-    lsst::fw::Filter const   _filter;
+    lsst::afw::image::Filter const   _filter;
     int8_t           const   _threshold;
 
     ObjectMatchProcessor(
         MatchPairVector        & matches,
-        lsst::fw::Filter const   filter
+        lsst::afw::image::Filter const   filter
     ) :
         _matches(matches),
         _filter(filter),
@@ -261,7 +261,7 @@ struct LSST_AP_LOCAL DiscardKnownVariableFilter {
 
 /** @brief  Filter which discards predicted moving objects with large position error ellipses. */
 struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
-    bool operator()(lsst::fw::MovingObjectPrediction const & p) {
+    bool operator()(lsst::mops::MovingObjectPrediction const & p) {
         return p.getSemiMajorAxisLength() < sSemiMajorAxisThreshold;
     }
 };
@@ -277,14 +277,14 @@ struct LSST_AP_LOCAL NewObjectCreator {
     IdPairVector                       & _results;
     ZoneStripeChunkDecomposition const & _zsc;
     ChunkMap                             _chunks;
-    lsst::fw::Filter const               _filter;
+    lsst::afw::image::Filter const               _filter;
     int64_t          const               _idNamespace;
 
     explicit NewObjectCreator(
         IdPairVector                       & results,
         SimpleObjectChunkVector            & chunks,
         ZoneStripeChunkDecomposition const & zsc,
-        lsst::fw::Filter             const   filter
+        lsst::afw::image::Filter             const   filter
     ) :
         _results(results),
         _zsc(zsc),
@@ -315,12 +315,12 @@ struct LSST_AP_LOCAL NewObjectCreator {
             obj._objectId           = id | _idNamespace;
             obj._ra                 = entry._data->getRa();
             obj._decl               = entry._data->getDec();
-            obj._varProb[lsst::fw::Filter::U] = 0;
-            obj._varProb[lsst::fw::Filter::G] = 0;
-            obj._varProb[lsst::fw::Filter::R] = 0;
-            obj._varProb[lsst::fw::Filter::I] = 0;
-            obj._varProb[lsst::fw::Filter::Z] = 0;
-            obj._varProb[lsst::fw::Filter::Y] = 0;
+            obj._varProb[lsst::afw::image::Filter::U] = 0;
+            obj._varProb[lsst::afw::image::Filter::G] = 0;
+            obj._varProb[lsst::afw::image::Filter::R] = 0;
+            obj._varProb[lsst::afw::image::Filter::I] = 0;
+            obj._varProb[lsst::afw::image::Filter::Z] = 0;
+            obj._varProb[lsst::afw::image::Filter::Y] = 0;
             obj._varProb[_filter]   = 100;
 
             _results.push_back(IdPair(id, obj._objectId));
@@ -477,13 +477,13 @@ template size_t distanceMatch<
 );
 
 template size_t ellipseMatch<
-    lsst::fw::MovingObjectPrediction,
+    lsst::mops::MovingObjectPrediction,
     detail::DiaSourceEntry,
     PassthroughFilter<detail::MovingObjectEllipse>,
     PassthroughFilter<detail::DiaSourceEntry>,
     detail::MovingObjectPredictionMatchProcessor
 >(
-    EllipseList<lsst::fw::MovingObjectPrediction> &,
+    EllipseList<lsst::mops::MovingObjectPrediction> &,
     ZoneIndex<detail::DiaSourceEntry> &,
     PassthroughFilter<detail::MovingObjectEllipse> &,
     PassthroughFilter<detail::DiaSourceEntry> &,
@@ -535,7 +535,7 @@ VisitProcessingContext::VisitProcessingContext(
     dp = extractRequired(event, "filterName");
     std::string filterName = boost::any_cast<std::string>(dp->getValue());
     lsst::daf::persistence::LogicalLocation location(sFilterTableLocation);
-    _filter = lsst::fw::Filter(location, filterName);
+    _filter = lsst::afw::image::Filter(location, filterName);
 }
 
 
@@ -626,12 +626,12 @@ LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::strin
         sObjDeltaFilePattern = policy->getString("objectDeltaChunkFileNamePattern", DEF_OBJ_DELTA_PATTERN);
         sFilterTableLocation = policy->getString("filterTableLocation",             DEF_DB_LOCATION);
 
-        sVarProbThreshold[lsst::fw::Filter::U] = policy->getInt("uVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::fw::Filter::G] = policy->getInt("gVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::fw::Filter::R] = policy->getInt("rVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::fw::Filter::I] = policy->getInt("iVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::fw::Filter::Z] = policy->getInt("zVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::fw::Filter::Y] = policy->getInt("yVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::U] = policy->getInt("uVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::G] = policy->getInt("gVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::R] = policy->getInt("rVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::I] = policy->getInt("iVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::Z] = policy->getInt("zVarProbThreshold", DEF_VP_THRESH);
+        sVarProbThreshold[lsst::afw::image::Filter::Y] = policy->getInt("yVarProbThreshold", DEF_VP_THRESH);
     }
 }
 
@@ -859,7 +859,7 @@ LSST_AP_API void matchMops(
     boost::shared_ptr<MatchPairVector>     & matches,
     boost::shared_ptr<IdPairVector>        & newObjects,
     VisitProcessingContext                 & context,
-    lsst::fw::MovingObjectPredictionVector & predictions
+    lsst::mops::MovingObjectPredictionVector & predictions
 ) {
     SharedSimpleObjectChunkManager manager(context.getRunId());
 
@@ -884,11 +884,11 @@ LSST_AP_API void matchMops(
 
         // build ellipses required for matching from predictions
         watch.start();
-        EllipseList<lsst::fw::MovingObjectPrediction> ellipses;
+        EllipseList<lsst::mops::MovingObjectPrediction::MovingObjectPrediction> ellipses;
         ellipses.reserve(predictions.size());
         detail::DiscardLargeEllipseFilter elf;
-        lsst::fw::MovingObjectPredictionVector::iterator const end = predictions.end();
-        for (lsst::fw::MovingObjectPredictionVector::iterator i = predictions.begin(); i != end; ++i) {
+        lsst::mops::MovingObjectPredictionVector::iterator const end = predictions.end();
+        for (lsst::mops::MovingObjectPredictionVector::iterator i = predictions.begin(); i != end; ++i) {
             if (elf(*i)) {
                 // clamp error ellipses if necessary
                 if (sSemiMajorAxisClamp > 0.0 && i->getSemiMajorAxisLength() > sSemiMajorAxisClamp) {
@@ -910,7 +910,7 @@ LSST_AP_API void matchMops(
         PassthroughFilter<detail::DiaSourceEntry>      pdf;
         watch.start();
         size_t nm = ellipseMatch<
-            lsst::fw::MovingObjectPrediction,
+            lsst::mops::MovingObjectPrediction::MovingObjectPrediction,
             detail::DiaSourceEntry,
             PassthroughFilter<detail::MovingObjectEllipse>,
             PassthroughFilter<detail::DiaSourceEntry>,

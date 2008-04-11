@@ -19,7 +19,7 @@ except:
 
 # Find and remove compiler optimization flags
 swigccflags = re.sub('-O\d', '', str(ccflags), 1)
-env.CheckSwig("python", ilang="c++", includedProducts="daf_base daf_data")
+env.CheckSwig("python", ilang="c++", includedProducts="utils daf_base daf_data")
 
 # Append app specific SWIG flags to the environment
 env.Append(SWIGFLAGS = swigflags)

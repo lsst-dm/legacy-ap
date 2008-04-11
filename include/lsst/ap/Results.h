@@ -16,7 +16,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <lsst/daf/base/Citizen.h>
-#include <lsst/daf/persistence/Persistable.h>
+#include <lsst/daf/base/Persistable.h>
 
 #include "Common.h"
 
@@ -92,7 +92,7 @@ typedef std::pair<int64_t, int64_t> IdPair;
 
 /** @brief  A persistable container of MatchPair instances, implemented using std::vector. */
 class LSST_AP_API MatchPairVector :
-    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :
@@ -190,7 +190,7 @@ private :
 
 /** @brief  A persistable container of IdPair identifiers, implemented using std::vector. */
 class LSST_AP_API IdPairVector :
-    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :
@@ -288,7 +288,7 @@ private :
 
 /** @brief  A persistable container of integer (int64_t) identifiers, implemented using std::vector. */
 class LSST_AP_API IdVector :
-    public lsst::daf::persistence::Persistable,
+    public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :

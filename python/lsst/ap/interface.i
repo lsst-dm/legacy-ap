@@ -19,6 +19,7 @@ Access to association pipeline persistable result objects and implementation met
 #include "lsst/ap/io/ResultFormatters.h"
 #include "lsst/ap/Stages.h"
 #include "lsst/ap/Utils.h"
+#include <sstream>
 %}
 
 %inline %{
@@ -30,16 +31,16 @@ namespace boost { namespace filesystem {} }
 
 %pythoncode %{
 import lsst.ap.exceptions
-import lsst.afw.exceptions
+import lsst.afw.image.imageExceptions
 import lsst.pex.exceptions
 %}
 
-%include "lsst/utils/p_lsstSwig.i"
+%include "lsst/p_lsstSwig.i"
 %include "lsst/daf/base/persistenceMacros.i"
 
 %import "lsst/daf/base/Citizen.h"
 %import "lsst/pex/exceptions.h"           // RAA added
-%import "lsst/daf/persistence/Persistable.h"
+%import "lsst/daf/base/Persistable.h"
 %import "lsst/daf/base/DataProperty.h"
 %import "lsst/pex/policy/Policy.h"
 %import "lsst/daf/persistence/LogicalLocation.h"
@@ -182,7 +183,7 @@ MatchPair.__str__ = MatchPair.toString
     namespace lsst {
     namespace ap {
 
-    class UnqualifiedType : public lsst::daf::persistence::Persistable {
+    class UnqualifiedType : public lsst::base::persistence::Persistable {
     public:
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;
@@ -233,7 +234,7 @@ MatchPair.__str__ = MatchPair.toString
 
 
 // Make sure SWIG generates type information for certain types that are wrapped in other modules
-%types(boost::shared_ptr<lsst::daf::persistence::Persistable> *);
+%types(boost::shared_ptr<lsst::base::persistence::Persistable> *);
 
 namespace lsst {
 namespace fw {

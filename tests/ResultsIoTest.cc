@@ -39,7 +39,7 @@ using lsst::daf::base::DataProperty;
 using lsst::pex::policy::Policy;
 using lsst::daf::persistence::LogicalLocation;
 using lsst::daf::persistence::Persistence;
-using lsst::daf::persistence::Persistable;
+using lsst::daf::base::Persistable;
 using lsst::daf::persistence::Storage;
 using lsst::daf::persistence::DbStorage;
 

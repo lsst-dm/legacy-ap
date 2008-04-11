@@ -257,20 +257,20 @@ int main(int argc, char** argv) {
     // Retrieved object.
     lsst::ap::SimpleObject obj;
     // Result binding array.
-    MYSQL_BIND resultArray[3 + lsst::fw::Filter::NUM_FILTERS];
+    MYSQL_BIND resultArray[3 + lsst::afw::image::Filter::NUM_FILTERS];
     // Null flags for object fields.
-    my_bool isNull[3 + lsst::fw::Filter::NUM_FILTERS];
+    my_bool isNull[3 + lsst::afw::image::Filter::NUM_FILTERS];
     // Error flags for object fields.
-    my_bool error[3 + lsst::fw::Filter::NUM_FILTERS];
+    my_bool error[3 + lsst::afw::image::Filter::NUM_FILTERS];
 
     // Initialize object to junk values to help detect bugs.
     obj._objectId = 0xcafefeeddeadbeefLL;
     obj._ra = -100.0;
     obj._decl = -1234567890.0;
-    for (int i = 0; i < lsst::fw::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
         obj._varProb[i] = -1;
     }
-    for (int i = 0; i < 3 + lsst::fw::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < 3 + lsst::afw::image::Filter::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
 
@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
     resultArray[2].is_unsigned = false;
     resultArray[2].error = &error[2];
 
-    for (int i = 0; i < lsst::fw::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
         resultArray[3 + i].buffer_type = MYSQL_TYPE_SHORT;
         resultArray[3 + i].buffer = &(obj._varProb[i]);
         resultArray[3 + i].buffer_length = sizeof(obj._varProb[i]);
