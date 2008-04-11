@@ -9,7 +9,7 @@ m4_dnl  For a simple external package that follows the configure-make pattern,
 m4_dnl  it may only be necessary to update the values of the following macros.
 m4_dnl  Only m4_PACKAGE and m4_VERSION are required.  
 m4_dnl
-m4_define([m4_PACKAGE], [associate])m4_dnl
+m4_define([m4_PACKAGE], [ap])m4_dnl
 m4_define([m4_VERSION], [3.0])m4_dnl
 m4_define([m4_TARBALL], [m4_PACKAGE-m4_VERSION.tar.gz])m4_dnl
 # 
