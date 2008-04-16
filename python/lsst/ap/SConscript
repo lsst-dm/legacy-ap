@@ -19,7 +19,7 @@ except:
 
 # Find and remove compiler optimization flags
 swigccflags = re.sub('-O\d', '', str(ccflags), 1)
-env.CheckSwig("python", ilang="c++", includedProducts="utils daf_base daf_data")
+env.CheckSwig("python", ilang="c++", includedProducts="utils daf_base daf_data daf_persistence pex_exceptions pex_logging pex_policy security afw")
 
 # Append app specific SWIG flags to the environment
 env.Append(SWIGFLAGS = swigflags)
@@ -27,7 +27,7 @@ env.Append(SWIGFLAGS = swigflags)
 # Make sure generated code is compiled without optimization and with strict aliasing turned off
 env.Replace(CCFLAGS = swigccflags + ' -fno-strict-aliasing')
 
-env.LoadableModuleIncomplete("_interface", Split("interface.i"), LIBS=env.getlibs("associate daf_base daf_data"))
+env.LoadableModuleIncomplete("_interface", Split("interface.i"), LIBS=env.getlibs("wcslib utils daf_base daf_data daf_persistence pex_exceptions pex_logging pex_policy afw ap"))
 
 # Restore standard CCFLAGS for other code
 env.Replace(CCFLAGS = ccflags)

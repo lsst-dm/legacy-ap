@@ -5,7 +5,7 @@ sysLibs = ['z', 'pthread']
 if env['PLATFORM'] == 'posix':
     sysLibs += ['rt']
 
-env.SharedLibrary('associate',
+env.SharedLibrary('ap',
     map(lambda str: '../src/' + str,
         ['Time.cc',
          'Random.cc',
@@ -26,5 +26,5 @@ env.SharedLibrary('associate',
     map(lambda str: '../src/io/' + str,
         ['FileIo.cc',
          'ResultFormatters.cc']),
-    LIBS=env.getlibs('boost daf_data afw') + sysLibs)
+    LIBS=env.getlibs('boost wcslib utils daf_base daf_data daf_persistence pex_exceptions pex_logging pex_policy security afw') + sysLibs)
 

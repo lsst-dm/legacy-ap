@@ -39,7 +39,7 @@ import lsst.pex.exceptions
 %include "lsst/daf/base/persistenceMacros.i"
 
 %import "lsst/daf/base/Citizen.h"
-%import "lsst/pex/exceptions.h"           // RAA added
+%import "lsst/pex/exceptions.h"
 %import "lsst/daf/base/Persistable.h"
 %import "lsst/daf/base/DataProperty.h"
 %import "lsst/pex/policy/Policy.h"
@@ -183,7 +183,7 @@ MatchPair.__str__ = MatchPair.toString
     namespace lsst {
     namespace ap {
 
-    class UnqualifiedType : public lsst::base::persistence::Persistable {
+    class UnqualifiedType : public lsst::daf::base::Persistable {
     public:
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;
@@ -234,13 +234,20 @@ MatchPair.__str__ = MatchPair.toString
 
 
 // Make sure SWIG generates type information for certain types that are wrapped in other modules
-%types(boost::shared_ptr<lsst::base::persistence::Persistable> *);
+%types(boost::shared_ptr<lsst::daf::base::Persistable> *);
 
 namespace lsst {
-namespace fw {
+
+namespace afw {
+namespace detection {
     class DiaSourceVector;
-    class MovingObjectPredictionVector;
 }}
+
+namespace mops {
+    class MovingObjectPredictionVector;
+}
+
+}
 
 %types(boost::shared_ptr<lsst::afw::detection::SourceVector> *);
 %types(boost::shared_ptr<lsst::mops::MovingObjectPredictionVector> *);

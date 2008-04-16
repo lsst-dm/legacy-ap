@@ -11,7 +11,7 @@ env.Program('unittests',
              'MatchTest.cc',
              'ResultsIoTest.cc'
             ],
-            LIBS=env.getlibs('boost') + ['associate', 'afw', 'pex_exceptions', 'daf_data'])
+            LIBS=env.getlibs('boost wcslib') + ['utils', 'daf_base', 'daf_data', 'daf_persistence', 'pex_exceptions', 'pex_logging', 'pex_policy', 'security', 'afw', 'ap'])
 
 env.Command('.tests/unittests', 'unittests', """
             @rm -f ${TARGET}.failed;
