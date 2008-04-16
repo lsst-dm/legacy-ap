@@ -6,7 +6,7 @@ Access to association pipeline persistable result objects and implementation met
 %enddef
 
 %feature("autodoc", "1");
-%module(package="lsst.ap", docstring=ap_DOCSTRING) interface
+%module(package="lsst.ap", docstring=ap_DOCSTRING) apLib
 
 // Suppress swig complaints
 #pragma SWIG nowarn=314                 // print is a python keyword (--> _print)

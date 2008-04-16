@@ -47,7 +47,7 @@ import lsst.pex.exceptions
 import lsst.daf.persistence
 import lsst.pex.policy
 import lsst.pex.logging
-import lsst.ap.interface
+import lsst.ap
 import lsst.ap.pipeline
 import TestCleanup
 

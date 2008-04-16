@@ -11,7 +11,7 @@ env.Program('unittests',
              'MatchTest.cc',
              'ResultsIoTest.cc'
             ],
-            LIBS=env.getlibs('boost wcslib') + ['utils', 'daf_base', 'daf_data', 'daf_persistence', 'pex_exceptions', 'pex_logging', 'pex_policy', 'security', 'afw', 'ap'])
+            LIBS=env.getlibs('ap'))
 
 env.Command('.tests/unittests', 'unittests', """
             @rm -f ${TARGET}.failed;
@@ -27,18 +27,19 @@ env.Command('.tests/unittests', 'unittests', """
 
 env.Clean('.tests/unittests', '.tests')
 
-import os
-import lsst.tests
-import lsst.pex.exceptions
-import lsst.daf.persistence
+if not env.CleanFlagIsSet():
+    import os
+    import lsst.tests
+    import lsst.pex.exceptions
+    import lsst.daf.persistence
 
-tests = lsst.tests.Control(env, verbose = True)
+    tests = lsst.tests.Control(env, verbose = True)
 
-if lsst.daf.persistence.DbAuth.available():
-    env["ENV"]["SEAL_PLUGINS"] = os.environ["SEAL_PLUGINS"]
-    if os.environ.has_key('LSST_DB_AUTH'):
-        env['ENV']['LSST_DB_AUTH'] = os.environ['LSST_DB_AUTH']
+    if lsst.daf.persistence.DbAuth.available():
+        env["ENV"]["SEAL_PLUGINS"] = os.environ["SEAL_PLUGINS"]
+        if os.environ.has_key('LSST_DB_AUTH'):
+            env['ENV']['LSST_DB_AUTH'] = os.environ['LSST_DB_AUTH']
 
-for target in tests.run("ResultsTest.py"):
-    env.Depends(target, "../python/lsst/ap/_interface%s" % env['LDMODULESUFFIX'])
+    for target in tests.run("ResultsTest.py"):
+        env.Depends(target, "../python/lsst/ap/_apLib%s" % env['LDMODULESUFFIX'])
 

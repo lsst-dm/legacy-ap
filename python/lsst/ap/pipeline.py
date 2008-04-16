@@ -22,7 +22,7 @@ import lsst.daf.persistence
 import lsst.pex.logging
 import lsst.pex.harness.Stage
 import lsst.afw.image
-import lsst.ap.interface as ap
+import lsst.ap as ap
 
 
 # ----------------------------------------------------------------

@@ -105,6 +105,9 @@ env = scons.makeEnv('ap',
                      ['security', 'lsst/security/Security.h', 'security:C++']
                     ])
 
+# Libraries needed to link libraries/executables
+env.libs['ap'] += env.getlibs('boost wcslib utils daf_base daf_data daf_persistence pex_exceptions pex_logging pex_policy security afw')
+
 #
 # Run configure tests
 #

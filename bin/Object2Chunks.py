@@ -10,7 +10,7 @@ import optparse
 import subprocess
 import sys
 
-import lsst.ap.interface as ap
+import lsst.ap as ap
 
 
 def main():
