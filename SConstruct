@@ -91,7 +91,7 @@ env = scons.makeEnv('ap',
                     [['boost', 'boost/version.hpp',
                         'boost_filesystem boost_regex boost_serialization boost_program_options:C++'],
                      ['mysqlclient', 'mysql/mysql.h', 'mysqlclient:C++'],
-                     ['wcslib', 'wcslib/wcs.h', 'wcs'],
+                     ['wcslib', 'wcslib/wcs.h', 'm wcs'],
                      ['python', 'Python.h'],
                      ['daf_base', 'lsst/daf/base/Citizen.h', 'daf_base:C++'],
                      ['daf_data', None , 'daf_data:C++'], # needed by final libap.so build 
