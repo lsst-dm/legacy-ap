@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import lsst.daf.base
-import lsst.daf.persistence
 import lsst.ctrl.events
 import time
 
@@ -11,7 +10,7 @@ if __name__ == "__main__":
     evTransmitter2 = lsst.ctrl.events.EventTransmitter('lsst8.ncsa.uiuc.edu', 'triggerMatchMopsPredsEvent')
     evTransmitter3 = lsst.ctrl.events.EventTransmitter('lsst8.ncsa.uiuc.edu', 'shutdownAssociationEvent')
 
-    dt        = lsst.daf.persistence.DateTime(long(time.time())*1000000000)
+    dt        = lsst.daf.base.DateTime(long(time.time())*1000000000)
     visitTime = dt.utc2mjd()
     triggerAssociationEvent = lsst.daf.base.DataProperty.createPropertyNode('root')
     triggerAssociationEvent.addProperty(lsst.daf.base.DataProperty('visitId', 708125))

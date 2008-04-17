@@ -7,7 +7,7 @@
 --
 
 -- Set objectId of each difference source to the id of the closest matching object
-CREATE TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPairTemplate;
+CREATE TEMPORARY TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPairTemplate;
 INSERT INTO BestMatch_visit%(visitId)d
     SELECT first, second, MIN(distance)
     FROM DiaSourceToObjectMatches_visit%(visitId)d
@@ -15,7 +15,6 @@ INSERT INTO BestMatch_visit%(visitId)d
 UPDATE DiaSources_visit%(visitId)d AS s, BestMatch_visit%(visitId)d AS m
     SET s.objectId = m.second
     WHERE s.diaSourceId = m.first;
-DROP TABLE BestMatch_visit%(visitId)d;
 
 -- Set objectId of each difference source used to create an object
 UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
@@ -26,7 +25,7 @@ UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
 INSERT INTO %(diaSourceTable)s SELECT * FROM DiaSources_visit%(visitId)d;
 
 -- Create list of matched object ids without duplicates
-CREATE TABLE MatchedObjects_visit%(visitId)d LIKE InMemoryIdTemplate;
+CREATE TEMPORARY TABLE MatchedObjects_visit%(visitId)d LIKE InMemoryIdTemplate;
 INSERT INTO MatchedObjects_visit%(visitId)d
     SELECT DISTINCT(second) FROM DiaSourceToObjectMatches_visit%(visitId)d;
 
@@ -39,11 +38,10 @@ UPDATE %(nonVarObjectTable)s AS o, MatchedObjects_visit%(visitId)d AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
-DROP TABLE MatchedObjects_visit%(visitId)d;
 
 -- Create new objects from difference sources in an in-memory table. This provides both
 -- a debugging aid and allows different filters to be handled with a single script.
-CREATE TABLE NewObjects_visit%(visitId)d LIKE InMemoryObjectTemplate;
+CREATE TEMPORARY TABLE NewObjects_visit%(visitId)d LIKE InMemoryObjectTemplate;
 
 -- Insert records (all filter-specific fields set to NULL)
 INSERT INTO NewObjects_visit%(visitId)d
@@ -115,6 +113,4 @@ UPDATE NewObjects_visit%(visitId)d       AS o,
 
 -- Finally, append the in-memory temp table to the variable object partition
 INSERT INTO %(varObjectTable)s SELECT * FROM NewObjects_visit%(visitId)d;
-
-DROP TABLE NewObjects_visit%(visitId)d;
 

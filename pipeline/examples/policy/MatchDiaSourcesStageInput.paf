@@ -7,8 +7,8 @@ AdditionalData: "visitId=triggerAssociationEvent.visitId"
 RunMode: "preprocess"
 InputItems: {
     DiaSources: {
-        Type: "DiaSourceVector"
-        PythonType: "lsst.fw.Core.fwCatalog.DiaSourceVec"
+        Type: "SourceVector"
+        PythonType: "lsst.afw.detection.SourceVec"
         StoragePolicy: {
             Storage:  "DbTsvStorage"
             Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"

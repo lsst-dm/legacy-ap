@@ -8,7 +8,7 @@ RunMode: "preprocess"
 InputItems: {
     MopsPreds: {
         Type: "MovingObjectPredictionVector"
-        PythonType: "lsst.fw.Core.fwCatalog.MopsPredVec"
+        PythonType: "lsst.mops.MopsPredVec"
         StoragePolicy: {
             Storage:  "DbTsvStorage"
             Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"

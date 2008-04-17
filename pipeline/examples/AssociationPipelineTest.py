@@ -61,7 +61,7 @@ def runOneVisit():
     lsst.pex.logging.ScreenLog.createDefaultLog(True, lsst.pex.logging.Log.INFO)
 
     # Read in stage policies
-    policyDir          = os.path.join(os.environ['ASSOCIATE_DIR'], 'pipeline', 'examples', 'policy')
+    policyDir          = os.path.join(os.environ['AP_DIR'], 'pipeline', 'examples', 'policy')
     loadPolicy         = lsst.pex.policy.Policy.createPolicy(os.path.join(policyDir,'LoadStage.paf'))
     match1InputPolicy  = lsst.pex.policy.Policy.createPolicy(os.path.join(policyDir,'MatchDiaSourcesStageInput.paf'))
     match1OutputPolicy = lsst.pex.policy.Policy.createPolicy(os.path.join(policyDir,'MatchDiaSourcesStageOutput.paf'))
@@ -185,7 +185,7 @@ def runOneVisit():
     workerStoreStage.setUniverseSize(2)
 
     # Create the TCS event triggering a single visit
-    dt        = lsst.daf.persistence.DateTime(long(time.time())*1000000000)
+    dt        = lsst.daf.base.DateTime(long(time.time())*1000000000)
     visitTime = dt.utc2mjd()
     triggerAssociationEvent = lsst.daf.base.DataProperty.createPropertyNode('root')
     triggerAssociationEvent.addProperty(lsst.daf.base.DataProperty('visitId', 708125))

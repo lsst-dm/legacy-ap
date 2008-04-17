@@ -71,7 +71,7 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -86,8 +86,8 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
-        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
+        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
 
         if self.firstVisit:
             self._massagePolicy()
@@ -101,7 +101,7 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         Checks to make sure all worker slices successfully loaded their share of the
         objects for the visit FOV and builds an object index if so.
         """
-        lsst.pex.logging.Trace('associate.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
         ap.buildObjectIndex(self.vpContext)
 
 
@@ -122,7 +122,7 @@ class MatchDiaSourcesStage(lsst.pex.harness.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -164,7 +164,7 @@ class MatchMopsPredsStage(lsst.pex.harness.Stage.Stage):
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
@@ -266,9 +266,9 @@ class StoreStage(lsst.pex.harness.Stage.Stage):
         self.scriptPaths   = {}
         self.templateDict  = {}
         # read in templates
-        associateDir = os.environ['ASSOCIATE_DIR']
+        apDir = os.environ['AP_DIR']
         for i in self.templateNames:
-            inPath = os.path.join(associateDir, "sql", i)
+            inPath = os.path.join(apDir, "sql", i)
             with file(inPath, 'r') as inFile:
                 self.templates[i] = inFile.read()
         # set default policy parameters
@@ -303,8 +303,8 @@ class StoreStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
-        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
+        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
@@ -321,14 +321,14 @@ class StoreStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('associate.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
+        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
 
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
         vpContext = clipboard.get('vpContext')
         event     = clipboard.get('triggerAssociationEvent')
         # get MJD of visit and convert to UTC string in ISO 8601 format for use in database queries
-        dt        = lsst.daf.persistence.DateTime(event.findUnique('visitTime').getValueDouble())
+        dt        = lsst.daf.base.DateTime(event.findUnique('visitTime').getValueDouble())
         utcString = datetime.datetime.utcfromtimestamp(dt.nsecs()/1000000000).isoformat(' ')
         self._createSqlScripts(vpContext, utcString)
         if self.storeOutputs:

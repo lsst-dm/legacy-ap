@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import lsst.daf.base
-import lsst.daf.persistence
 import lsst.ctrl.events
 
 if __name__ == "__main__":
