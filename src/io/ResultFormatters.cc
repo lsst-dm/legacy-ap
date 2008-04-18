@@ -65,7 +65,6 @@ void MatchPairVectorFormatter::delegateSerialize(
     Persistable *      persistable
 ) {
     MatchPairVector * p = dynamic_cast<MatchPairVector *>(persistable);
-    archive & boost::serialization::base_object<Persistable>(*p);
     MatchPairVector::size_type sz;
 
     if (Archive::is_loading::value) {
@@ -231,7 +230,6 @@ void IdPairVectorFormatter::delegateSerialize(
     Persistable *      persistable
 ) {
     IdPairVector * p = dynamic_cast<IdPairVector *>(persistable);
-    archive & boost::serialization::base_object<Persistable>(*p);
     IdPairVector::size_type sz;
 
     if (Archive::is_loading::value) {
@@ -400,7 +398,6 @@ void IdVectorFormatter::delegateSerialize(
     Persistable *      persistable
 ) {
     IdVector * p = dynamic_cast<IdVector *>(persistable);
-    archive & boost::serialization::base_object<Persistable>(*p);
     IdVector::size_type sz;
 
     if (Archive::is_loading::value) {
