@@ -544,9 +544,11 @@ VisitProcessingContext::~VisitProcessingContext() {}
 
 void VisitProcessingContext::setDiaSources(lsst::afw::detection::SourceVector & vec) {
     _diaSourceIndex.clear();
-
-    Stopwatch watch(true);
     lsst::afw::detection::SourceVector::size_type const sz = vec.size();
+    if (sz == 0) {
+        return;
+    }
+    Stopwatch watch(true);
     double minDec =  90.0;
     double maxDec = -90.0;
     for (lsst::afw::detection::SourceVector::size_type i = 0; i < sz; ++i) {
