@@ -8,10 +8,14 @@
 
 -- Set objectId of each difference source to the id of the closest matching object
 CREATE TEMPORARY TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPairTemplate;
+ALTER TABLE DiaSourceToObjectMatches_visit%(visitId)d ADD INDEX (first, distance);
 INSERT INTO BestMatch_visit%(visitId)d
-    SELECT first, second, MIN(distance)
-    FROM DiaSourceToObjectMatches_visit%(visitId)d
-    GROUP BY first;
+    SELECT a.first, a.second, a.distance
+    FROM DiaSourceToObjectMatches_visit%(visitId)d AS a LEFT OUTER JOIN
+         DiaSourceToObjectMatches_visit%(visitId)d AS b ON
+         a.first = b.first AND (b.distance < a.distance OR
+                                (b.distance = a.distance AND b.second < a.second))
+    WHERE b.first IS NULL;
 UPDATE DiaSources_visit%(visitId)d AS s, BestMatch_visit%(visitId)d AS m
     SET s.objectId = m.second
     WHERE s.diaSourceId = m.first;
@@ -24,17 +28,12 @@ UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
 -- Finally, append difference sources to the historical DiaSource table
 INSERT INTO %(diaSourceTable)s SELECT * FROM DiaSources_visit%(visitId)d;
 
--- Create list of matched object ids without duplicates
-CREATE TEMPORARY TABLE MatchedObjects_visit%(visitId)d LIKE InMemoryIdTemplate;
-INSERT INTO MatchedObjects_visit%(visitId)d
-    SELECT DISTINCT(second) FROM DiaSourceToObjectMatches_visit%(visitId)d;
-
 -- Update latest observation time and observation count for objects with matches
-UPDATE %(varObjectTable)s AS o, MatchedObjects_visit%(visitId)d AS m
+UPDATE %(varObjectTable)s AS o, BestMatch_visit%(visitId)d AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
-UPDATE %(nonVarObjectTable)s AS o, MatchedObjects_visit%(visitId)d AS m
+UPDATE %(nonVarObjectTable)s AS o, BestMatch_visit%(visitId)d AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
