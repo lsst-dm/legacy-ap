@@ -83,6 +83,12 @@ def CustomLinkCheck(context, message, source, extension = '.c'):
     context.Result(result)
     return result
 
+def IsGccBelow4(context):
+    context.Message("Checking if CC is a version of gcc prior to 4.x ...")
+    result = context.TryAction(["%s -dumpversion | grep \"^[0-3]\\..*\"" % env['CC']])[0]
+    context.Result(result)
+    return result
+
 #
 # Setup our environment
 #
@@ -114,7 +120,8 @@ env.libs['ap'] += env.getlibs('boost wcslib utils daf_base daf_data daf_persiste
 if not env.CleanFlagIsSet():
     conf = Configure(env, custom_tests = {'CustomCompilerFlag' : CustomCompilerFlag,
                                           'CustomCompileCheck' : CustomCompileCheck,
-                                          'CustomLinkCheck'    : CustomLinkCheck})
+                                          'CustomLinkCheck'    : CustomLinkCheck,
+                                          'IsGccBelow4'        : IsGccBelow4})
     if env['PLATFORM'] == 'posix':
         # POSIX platforms have AIO functionality in librt
         if not conf.CheckLibWithHeader('rt', 'aio.h', 'C'):
@@ -134,7 +141,8 @@ if not env.CleanFlagIsSet():
     # Indicate that shared libraries are being built
     conf.env.Append(CPPFLAGS = ' -DLSST_AP_SHARED_LIBRARY_BUILD=1')
     # compiler flags and features
-    conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
+    if not conf.IsGccBelow4():
+        conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
     if conf.CustomCompileCheck('Checking for __attribute__((visibility)) support... ', visCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
     if conf.CustomCompileCheck('Checking for __builtin_popcount... ', popcountCheckSrc):
