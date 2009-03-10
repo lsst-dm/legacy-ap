@@ -10,16 +10,15 @@
 #ifndef LSST_AP_FIFO_H
 #define LSST_AP_FIFO_H
 
-#include <boost/noncopyable.hpp>
-#include <boost/static_assert.hpp>
+#include "boost/noncopyable.hpp"
+#include "boost/static_assert.hpp"
+
+#include "lsst/pex/exceptions.h"
 
 #include "Common.h"
-#include "Exceptions.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 /** @brief  A First In, First Out (FIFO) queue of fixed capacity. */
 template <int NumEntries>
@@ -32,7 +31,6 @@ public :
 
     /// Creates an empty Fifo.
     Fifo() { clear(); }
-
 
     /// Empties the Fifo.
     void clear() {
@@ -56,15 +54,16 @@ public :
      *
      * @throw lsst::pex::exceptions::LengthError    Thrown if the Fifo is full.
      */
-    void enqueue(int64_t const elt) {
+    void enqueue(boost::int64_t const elt) {
         int sz = _size;
         if (sz == NumEntries) {
-            LSST_AP_THROW(LengthError, "unable to insert element into full FIFO");
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+                              "unable to insert element into full FIFO");
         }
-        int i      = _back;
+        int i = _back;
         _buffer[i] = elt;
-        _back      = (i + 1) & (NumEntries - 1);
-        _size      = sz + 1;
+        _back = (i + 1) & (NumEntries - 1);
+        _size = sz + 1;
     }
 
     /**
@@ -72,24 +71,25 @@ public :
      *
      * @throw lsst::pex::exceptions::LengthError   Thrown if the Fifo is empty.
      */
-    int64_t dequeue() {
+    boost::int64_t dequeue() {
         int sz = _size;
         if (sz == 0) {
-            LSST_AP_THROW(LengthError, "unable to remove element from empty FIFO");
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+                              "unable to remove element from empty FIFO");
         }
-        int     i   = _front;
-        int64_t elt = _buffer[i];
-        _front      = (i + 1) & (NumEntries - 1);
-        _size       = sz - 1;
+        int i = _front;
+        boost::int64_t elt = _buffer[i];
+        _front = (i + 1) & (NumEntries - 1);
+        _size = sz - 1;
         return elt;
     }
 
 private :
 
-    int64_t _buffer[NumEntries];
-    int     _size;
-    int     _back;
-    int     _front;
+    boost::int64_t _buffer[NumEntries];
+    int _size;
+    int _back;
+    int _front;
 };
 
 

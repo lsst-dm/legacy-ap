@@ -28,24 +28,24 @@
 
 using namespace lsst::ap;
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SObjChunk;
+typedef SharedObjectChunkManager::ObjectChunk ObjChunk;
 
 
 BOOST_AUTO_TEST_CASE(disjointVisitsTest) {
 
     BOOST_TEST_MESSAGE("    - ChunkManager test: sequence of disjoint visits");
-    SharedSimpleObjectChunkManager mgr("test");
+    SharedObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance("test");
+    SharedObjectChunkManager::destroyInstance("test");
 
     // Process a series of non-overlapping visits
     static int64_t const numVisits = 50;
     for (int64_t visitId = 1; visitId < numVisits; ++visitId) {
 
-        ScopeGuard v1(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, visitId - 1, false));
-        ScopeGuard v2(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, visitId, false));
-        std::vector<SObjChunk> toRead;
-        std::vector<SObjChunk> toWaitFor;
+        ScopeGuard v1(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId - 1, false));
+        ScopeGuard v2(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId, false));
+        std::vector<ObjChunk> toRead;
+        std::vector<ObjChunk> toWaitFor;
         std::vector<int64_t>   chunkIds;
 
         mgr.registerVisit(visitId);
@@ -68,18 +68,18 @@ BOOST_AUTO_TEST_CASE(disjointVisitsTest) {
 BOOST_AUTO_TEST_CASE(overlappingVisitsTest) {
 
     BOOST_TEST_MESSAGE("    - ChunkManager test: sequence of overlapping visits");
-    SharedSimpleObjectChunkManager mgr("test");
+    SharedObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance("test");
+    SharedObjectChunkManager::destroyInstance("test");
 
     // Process a series of overlapping visits
     static int64_t const numVisits = 50;
     for (int64_t visitId = 1; visitId < numVisits; ++visitId) {
 
-        ScopeGuard v1(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, visitId - 1, false));
-        ScopeGuard v2(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, visitId, false));
-        std::vector<SObjChunk> toRead;
-        std::vector<SObjChunk> toWaitFor;
+        ScopeGuard v1(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId - 1, false));
+        ScopeGuard v2(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId, false));
+        std::vector<ObjChunk> toRead;
+        std::vector<ObjChunk> toWaitFor;
         std::vector<int64_t>   chunkIds;
 
         mgr.registerVisit(visitId);

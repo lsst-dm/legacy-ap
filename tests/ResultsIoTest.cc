@@ -26,7 +26,6 @@
 #include <lsst/daf/persistence/LogicalLocation.h>
 
 #include <lsst/ap/Common.h>
-#include <lsst/ap/Exceptions.h>
 #include <lsst/ap/Random.h>
 #include <lsst/ap/Results.h>
 #include <lsst/ap/ScopeGuard.h>

@@ -13,26 +13,16 @@
 #include <string>
 #include <vector>
 
-#include <lsst/daf/base/DataProperty.h>
-#include <lsst/pex/policy/Policy.h>
-#include <lsst/daf/persistence/Formatter.h>
-#include <lsst/daf/persistence/DbStorage.h>
+#include "lsst/daf/base/Persistable.h"
+#include "lsst/daf/base/PropertySet.h"
+#include "lsst/pex/policy/Policy.h"
+#include "lsst/daf/persistence/Formatter.h"
+#include "lsst/daf/persistence/DbStorage.h"
 
 #include "../Results.h"
 
 
-namespace lsst {
-namespace ap {
-namespace io {
-
-using lsst::daf::persistence::Formatter;
-using lsst::daf::persistence::FormatterRegistration;
-using lsst::daf::base::Persistable;
-using lsst::daf::persistence::Storage;
-using lsst::daf::persistence::DbStorage;
-using lsst::pex::policy::Policy;
-using lsst::daf::base::DataProperty;
-
+namespace lsst { namespace ap { namespace io {
 
 /**
  * @brief  Formatter for MatchPairVector instances.
@@ -42,25 +32,41 @@ using lsst::daf::base::DataProperty;
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API MatchPairVectorFormatter : public Formatter {
+class LSST_AP_API MatchPairVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~MatchPairVectorFormatter();
 
-    virtual void write(Persistable const *, Storage::Ptr, DataProperty::PtrType);
-    virtual Persistable * read(Storage::Ptr, DataProperty::PtrType);
-    virtual void update(Persistable *, Storage::Ptr, DataProperty::PtrType);
+    virtual void write(
+        lsst::daf::base::Persistable const *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual lsst::daf::base::Persistable * read(
+        lsst::daf::persistence::Storage::Ptr, 
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual void update(
+        lsst::daf::base::Persistable *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
 
-    template <class Archive> static void delegateSerialize(Archive &, unsigned int const, Persistable *);
+    template <class Archive>
+    static void delegateSerialize(
+        Archive &,
+        unsigned int const,
+        lsst::daf::base::Persistable *
+    );
 
 private:
 
-    Policy::Ptr _policy;
+    lsst::pex::policy::Policy::Ptr _policy;
 
-    MatchPairVectorFormatter(Policy::Ptr const &);
+    explicit MatchPairVectorFormatter(lsst::pex::policy::Policy::Ptr const);
 
-    static Formatter::Ptr createInstance(Policy::Ptr);
-    static FormatterRegistration registration;
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::FormatterRegistration registration;
 };
 
 
@@ -72,25 +78,41 @@ private:
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API IdPairVectorFormatter : public Formatter {
+class LSST_AP_API IdPairVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~IdPairVectorFormatter();
 
-    virtual void write(Persistable const *, Storage::Ptr, DataProperty::PtrType);
-    virtual Persistable * read(Storage::Ptr, DataProperty::PtrType);
-    virtual void update(Persistable *, Storage::Ptr, DataProperty::PtrType);
+    virtual void write(
+        lsst::daf::base::Persistable const *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual lsst::daf::base::Persistable * read(
+        lsst::daf::persistence::Storage::Ptr, 
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual void update(
+        lsst::daf::base::Persistable *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
 
-    template <class Archive> static void delegateSerialize(Archive &, unsigned int const, Persistable *);
+    template <class Archive>
+    static void delegateSerialize(
+        Archive &,
+        unsigned int const,
+        lsst::daf::base::Persistable *
+    );
 
 private:
 
-    Policy::Ptr _policy;
+    lsst::pex::policy::Policy::Ptr _policy;
 
-    IdPairVectorFormatter(Policy::Ptr const &);
+    explicit IdPairVectorFormatter(lsst::pex::policy::Policy::Ptr const);
 
-    static Formatter::Ptr createInstance(Policy::Ptr);
-    static FormatterRegistration registration;
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::FormatterRegistration registration;
 };
 
 
@@ -102,25 +124,41 @@ private:
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API IdVectorFormatter : public Formatter {
+class LSST_AP_API IdVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~IdVectorFormatter();
 
-    virtual void write(Persistable const *, Storage::Ptr, DataProperty::PtrType);
-    virtual Persistable * read(Storage::Ptr, DataProperty::PtrType);
-    virtual void update(Persistable *, Storage::Ptr, DataProperty::PtrType);
+    virtual void write(
+        lsst::daf::base::Persistable const *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual lsst::daf::base::Persistable * read(
+        lsst::daf::persistence::Storage::Ptr, 
+        lsst::daf::base::PropertySet::Ptr
+    );
+    virtual void update(
+        lsst::daf::base::Persistable *,
+        lsst::daf::persistence::Storage::Ptr,
+        lsst::daf::base::PropertySet::Ptr
+    );
 
-    template <class Archive> static void delegateSerialize(Archive &, unsigned int const, Persistable *);
+    template <class Archive>
+    static void delegateSerialize(
+        Archive &,
+        unsigned int const,
+        lsst::daf::base::Persistable *
+    );
 
 private:
 
-    Policy::Ptr _policy;
+    lsst::pex::policy::Policy::Ptr _policy;
 
-    IdVectorFormatter(Policy::Ptr const &);
+    explicit IdVectorFormatter(lsst::pex::policy::Policy::Ptr const);
 
-    static Formatter::Ptr createInstance(Policy::Ptr);
-    static FormatterRegistration registration;
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::FormatterRegistration registration;
 };
 
 

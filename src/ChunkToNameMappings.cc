@@ -10,21 +10,17 @@
 #include <stdexcept>
 #include <sstream>
 
-#include <lsst/ap/ChunkToNameMappings.h>
-
-
-namespace lsst {
-namespace ap {
+#include "lsst/ap/ChunkToNameMappings.h"
 
 
 // -- ChunkToNameMapping ----------------
 
-ChunkToNameMapping::~ChunkToNameMapping() {}
+lsst::ap::ChunkToNameMapping::~ChunkToNameMapping() {}
 
 
 // -- ChunkToFileNameMapping ----------------
 
-ChunkToFileNameMapping::ChunkToFileNameMapping(std::string const & pattern) :
+lsst::ap::ChunkToFileNameMapping::ChunkToFileNameMapping(std::string const & pattern) :
     _format(pattern)
 {
     // OK to have a pattern that does not use all arguments
@@ -32,22 +28,19 @@ ChunkToFileNameMapping::ChunkToFileNameMapping(std::string const & pattern) :
 }
 
 
-ChunkToFileNameMapping::~ChunkToFileNameMapping() {}
+lsst::ap::ChunkToFileNameMapping::~ChunkToFileNameMapping() {}
 
 
-std::string const ChunkToFileNameMapping::getName(
+std::string const lsst::ap::ChunkToFileNameMapping::getName(
     std::string                  const & runId,
     ZoneStripeChunkDecomposition const & zsc,
-    int64_t                      const   chunkId,
+    boost::int64_t               const   chunkId,
     int                          const   version
 ) {
-    int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(chunkId);
-    int32_t const sequence = ZoneStripeChunkDecomposition::chunkToSequence(chunkId);
+    int const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(chunkId);
+    int const sequence = ZoneStripeChunkDecomposition::chunkToSequence(chunkId);
     _format.clear();
     _format % runId % stripeId % sequence % version;
     return _format.str();
 }
-
-
-}}  // end of namespace lsst::ap
 

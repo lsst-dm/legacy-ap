@@ -11,20 +11,19 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include <lsst/ap/Exceptions.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "lsst/pex/exceptions.h"
 
+#include "lsst/ap/SpatialUtil.h"
 
-namespace lsst {
-namespace ap {
+namespace ex = lsst::pex::exceptions;
 
 
 // -- ZoneStripeChunkDecomposition ----------------
 
-ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
-    int32_t const zonesPerDegree,
-    int32_t const zonesPerStripe,
-    int32_t const maxEntriesPerZoneEstimate
+lsst::ap::ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
+    int const zonesPerDegree,
+    int const zonesPerStripe,
+    int const maxEntriesPerZoneEstimate
 ) :
     _chunksPerStripe(),
     _zonesPerDegree(zonesPerDegree),
@@ -32,13 +31,16 @@ ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
     _maxEntriesPerZoneEstimate(maxEntriesPerZoneEstimate)
 {
     if (zonesPerDegree < 1 || zonesPerDegree > 3600) {
-        LSST_AP_THROW(OutOfRange, "zone height must be between 1 arc-second and 1 degree");
+        throw LSST_EXCEPT(ex::RangeErrorException,
+                          "zone height must be between 1 arc-second and 1 degree");
     }
     if (zonesPerStripe < 1) {
-        LSST_AP_THROW(OutOfRange, "there must be at least 1 zone per stripe");
+        throw LSST_EXCEPT(ex::RangeErrorException,
+                          "there must be at least 1 zone per stripe");
     }
     if (maxEntriesPerZoneEstimate < 1) {
-        LSST_AP_THROW(OutOfRange, "the max entries per zone estimate must be at least 1");
+        throw LSST_EXCEPT(ex::RangeErrorException,
+                          "the max entries per zone estimate must be at least 1");
     }
     _minZone         = -90*zonesPerDegree;
     _maxZone         = 90*zonesPerDegree - 1;
@@ -46,28 +48,30 @@ ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
 
     // C89/C++ standard says: rounding direction of division when either operand is negative
     // is implementation defined. Therefore, implement round to -Infinity by hand.
-    int32_t const quo = (-_minZone) / zonesPerStripe;
-    int32_t const rem = (-_minZone) % zonesPerStripe;
-    _minStripe        = (rem == 0) ? -quo : -1 - quo;
-    _maxStripe        = _maxZone/zonesPerStripe;
+    int const quo = (-_minZone) / zonesPerStripe;
+    int const rem = (-_minZone) % zonesPerStripe;
+    _minStripe    = (rem == 0) ? -quo : -1 - quo;
+    _maxStripe    = _maxZone/zonesPerStripe;
 
-    int32_t const numStripes = _maxStripe - _minStripe + 1;
-    double  const minWidth   = static_cast<double>(zonesPerStripe)/_zonesPerDegree;
+    int const numStripes = _maxStripe - _minStripe + 1;
+    double const minWidth = static_cast<double>(zonesPerStripe)/_zonesPerDegree;
     if (numStripes >= 32768) {
-        LSST_AP_THROW(OutOfRange, "Requested spatial parameters result in more than 32767 stripes");
+        throw LSST_EXCEPT(ex::RangeErrorException,
+                          "Requested spatial parameters result in more than 32767 stripes");
     }
     if (getNumChunksPerStripe(0, minWidth) >= 32768) {
-        LSST_AP_THROW(OutOfRange, "Requested spatial parameters result in more than 32767 chunks per stripe");
+        throw LSST_EXCEPT(ex::RangeErrorException,
+                          "Requested spatial parameters result in more than 32767 chunks per stripe");
     }
 
     _chunksPerStripe.reserve(numStripes);
-    for (int32_t i = 0; i < numStripes; ++i) {
+    for (int i = 0; i < numStripes; ++i) {
         _chunksPerStripe.push_back(getNumChunksPerStripe(i + _minStripe, minWidth));
     }
 }
 
 
-ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(ZoneStripeChunkDecomposition const & zsc) :
+lsst::ap::ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(ZoneStripeChunkDecomposition const & zsc) :
     _chunksPerStripe(zsc._chunksPerStripe),
     _zonesPerDegree (zsc._zonesPerDegree),
     _maxZoneAsDouble(zsc._maxZoneAsDouble),
@@ -80,7 +84,7 @@ ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(ZoneStripeChunkDecomp
 {}
 
 
-void ZoneStripeChunkDecomposition::swap(ZoneStripeChunkDecomposition & zsc) {
+void lsst::ap::ZoneStripeChunkDecomposition::swap(ZoneStripeChunkDecomposition & zsc) {
     using std::swap;
 
     if (this != &zsc) {
@@ -106,9 +110,9 @@ void ZoneStripeChunkDecomposition::swap(ZoneStripeChunkDecomposition & zsc) {
  * @param[in] stripeId  the stripe to determine a chunk count for
  * @param[in] minWidth  the minimum width of a chunk (in degrees)
  */
-int32_t ZoneStripeChunkDecomposition::getNumChunksPerStripe(
-    int32_t const stripeId,
-    double const  minWidth
+int lsst::ap::ZoneStripeChunkDecomposition::getNumChunksPerStripe(
+    int const stripeId,
+    double const minWidth
 ) const {
     assert(stripeId >= _minStripe && stripeId <= _maxStripe && "stripe id out of range");
     assert(minWidth > 0.0 && minWidth < 90.0 && "chunk width out of range");
@@ -126,7 +130,7 @@ int32_t ZoneStripeChunkDecomposition::getNumChunksPerStripe(
     if (cosWidth < 0) {
         return 1;
     }
-    return static_cast<int32_t>(std::floor(TWO_PI/std::acos(cosWidth)));
+    return static_cast<int>(std::floor(TWO_PI/std::acos(cosWidth)));
 }
 
 
@@ -143,11 +147,11 @@ int32_t ZoneStripeChunkDecomposition::getNumChunksPerStripe(
  * @return  alpha, such that points in the intersection of the input circle and stripe
  *          have right ascensions between [cenRa - alpha, cenRa + alpha].
  */
-double ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
-    int32_t const stripeId,
-    double  const cenRa,
-    double  const cenDec,
-    double  const rad
+double lsst::ap::ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
+    int    const stripeId,
+    double const cenRa,
+    double const cenDec,
+    double const rad
 ) const {
     assert(stripeId >= _minStripe && stripeId <= _maxStripe && "stripe id out of range");
 
@@ -216,7 +220,7 @@ double ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
  * @return  alpha, the largest right ascension of the two points in the intersection
  *          of the input circle with the input plane.
  */
-LSST_AP_API double alpha(
+LSST_AP_API double lsst::ap::alpha(
     double const theta,
     double const centerDec,
     double const dec
@@ -247,7 +251,7 @@ LSST_AP_API double alpha(
  *
  * @return  the largest right ascension of any point on the input circle
  */
-LSST_AP_API double maxAlpha(
+LSST_AP_API double lsst::ap::maxAlpha(
     double const theta,
     double const centerDec
 ) {
@@ -276,27 +280,25 @@ LSST_AP_API double maxAlpha(
  *                          workers).
  * @param[in]  numWorkers   The number of parallel workers.
  */
-LSST_AP_API void computeChunkIds(
-    std::vector<int64_t>               & chunkIds,
+LSST_AP_API void lsst::ap::computeChunkIds(
+    std::vector<int>                   & chunkIds,
     CircularRegion               const & region,
     ZoneStripeChunkDecomposition const & zsc,
     int                          const   workerId,
     int                          const   numWorkers
 ) {
     if (numWorkers < 1) {
-        LSST_AP_THROW(InvalidParameter, "number of workers must be positive");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "number of workers must be positive");
     }
     if (workerId < 0 || workerId >= numWorkers) {
-        LSST_AP_THROW(
-            InvalidParameter,
-            "Worker id must be between 0 and N - 1, where N is the total number of workers"
-        );
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+            "Worker id must be between 0 and N - 1, where N is the total number of workers");
     }
 
-    for (int32_t s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
+    for (int s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
 
         // round-robin stripes to workers
-        int32_t rem = s % numWorkers;
+        int rem = s % numWorkers;
         if (rem < 0) {
             rem += numWorkers;
         }
@@ -304,8 +306,8 @@ LSST_AP_API void computeChunkIds(
             continue;
         }
 
-        int32_t const fc = zsc.getFirstChunkForStripe(s);
-        int32_t const nc = zsc.getNumChunksPerStripe(s);
+        int const fc = zsc.getFirstChunkForStripe(s);
+        int const nc = zsc.getNumChunksPerStripe(s);
         double a = zsc.stripeAndCircleToRaRange(s,
             region.getCenterRa(), region.getCenterDec(), region.getRadius());
         double raMin = region.getCenterRa() - a;
@@ -320,11 +322,11 @@ LSST_AP_API void computeChunkIds(
             raMax -= 360.0;
             wrap   = true;
         }
-        int32_t maxChunk = static_cast<int32_t>(std::floor((raMax/360.0)*nc));
+        int maxChunk = static_cast<int>(std::floor((raMax/360.0)*nc));
         if (maxChunk == nc) {
             --maxChunk;
         }
-        int32_t chunk = static_cast<int32_t>(std::floor((raMin/360.0)*nc));
+        int chunk = static_cast<int>(std::floor((raMin/360.0)*nc));
         if (chunk == nc) {
             --chunk;
         }
@@ -363,28 +365,29 @@ LSST_AP_API void computeChunkIds(
  *                          workers).
  * @param[in]  numWorkers   The number of parallel workers.
  */
-LSST_AP_API void computeChunkIds(
-    std::vector<int64_t>               & chunkIds,
+LSST_AP_API void lsst::ap::computeChunkIds(
+    std::vector<int>                   & chunkIds,
     RectangularRegion            const & region,
     ZoneStripeChunkDecomposition const & zsc,
-    int32_t                      const   workerId,
-    int32_t                      const   numWorkers
+    int                          const   workerId,
+    int                          const   numWorkers
 ) {
     if (numWorkers < 1) {
-        LSST_AP_THROW(InvalidParameter, "number of workers must be positive");
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "number of workers must be positive");
     }
     if (workerId < 0 || workerId >= numWorkers) {
-        LSST_AP_THROW(InvalidParameter,
-                      "Worker id must be between 0 and N - 1, where N is the total number of workers");
+       throw LSST_EXCEPT(ex::InvalidParameterException,
+                         "Worker id must be between 0 and N - 1, where N is the total number of workers");
     }
 
     double const raMin = region.getMinRa();
     double const raMax = region.getMaxRa();
 
-    for (int32_t s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
+    for (int s = zsc.decToStripe(region.getMinDec()); s <= zsc.decToStripe(region.getMaxDec()); ++s) {
 
         // round-robin stripes to workers
-        int32_t rem = s % numWorkers;
+        int rem = s % numWorkers;
         if (rem < 0) {
             rem += numWorkers;
         }
@@ -392,11 +395,11 @@ LSST_AP_API void computeChunkIds(
             continue;
         }
 
-        int32_t const fc = zsc.getFirstChunkForStripe(s);
-        int32_t const nc = zsc.getNumChunksPerStripe(s);
+        int const fc = zsc.getFirstChunkForStripe(s);
+        int const nc = zsc.getNumChunksPerStripe(s);
 
-        int32_t maxChunk = fc + static_cast<int32_t>(std::floor((raMax*nc)/360.0)) % nc;
-        int32_t chunk    = fc + static_cast<int32_t>(std::floor((raMin*nc)/360.0)) % nc;
+        int maxChunk = fc + static_cast<int>(std::floor((raMax*nc)/360.0)) % nc;
+        int chunk    = fc + static_cast<int>(std::floor((raMin*nc)/360.0)) % nc;
 
         if (raMax < raMin) {
             if (chunk == maxChunk) {
@@ -416,5 +419,3 @@ LSST_AP_API void computeChunkIds(
     }
 }
 
-
-}} // end of namespace lsst::ap

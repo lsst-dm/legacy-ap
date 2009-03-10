@@ -9,10 +9,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#if LSST_AP_HAVE_DIRECTIO
-#   include <sys/fcntl.h> // for ::directio()
-#endif
-#include <fcntl.h>
 #include <aio.h>
 #include <errno.h>
 
@@ -24,85 +20,50 @@
 #include <cstring>
 #include <algorithm>
 
-#include <boost/bind.hpp>
+#include "boost/bind.hpp"
+#include "boost/format.hpp"
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Exceptions.h>
-#include <lsst/ap/ScopeGuard.h>
-#include <lsst/ap/Time.h>
-#include <lsst/ap/io/FileIo.h>
+#include "lsst/pex/exceptions.h"
 
+#include "lsst/ap/Common.h"
+#include "lsst/ap/ScopeGuard.h"
+#include "lsst/ap/Time.h"
+#include "lsst/ap/io/FileIo.h"
 
-namespace lsst {
-namespace ap {
-namespace io {
+namespace ex = lsst::pex::exceptions;
 
-namespace {
+namespace lsst { namespace ap { namespace io { namespace {
 
 int openFile(
     std::string const & fileName,
-    bool        const   direct,
     int         const   oflag,
     ::mode_t    const   mode = 0
 ) {
-
-    int o = oflag;
-//#if LSST_AP_HAVE_O_NOATIME // Linux: turn off last-access-time updates for the file (save on seeks)
-//    o |= O_NOATIME;
-//#endif
-
-    // Open file
-    int fd = ::open(fileName.c_str(), o, mode);
-
+    int fd = ::open(fileName.c_str(), oflag, mode);
     if (fd == -1) {
         if (errno != ENOENT || (oflag & O_WRONLY) != 0) {
-            LSST_AP_THROW_ERR(IoError, boost::format("open(): failed to open file %1%, flags: %2%, errno: %3%") % fileName % oflag % errno, errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                (boost::format("open() failed on file %1%, flags: %2%, errno: %3%") %
+                    fileName % oflag % errno).str());
         }
         // file didn't exist (ok when opening for reading)
-        return -1;
     }
-    ScopeGuard fdGuard(boost::bind(::close, fd));
-
-#if LSST_AP_HAVE_DIRECTIO
-    if (direct) {
-        // Solaris: enable direct io
-        if (::directio(fd, DIRECTIO_ON) != 0) {
-            LSST_AP_THROW_ERR(
-                IoError,
-                boost::format("directio(): failed to enable direct IO on file %1%") % fileName,
-                errno
-            );
-        }
-    }
-#elif LSST_AP_HAVE_F_NOCACHE
-    if (direct) {
-        // Darwin: disable file caching
-        if (::fcntl(fd, F_NOCACHE, 1) == -1) {
-            LSST_AP_THROW_ERR(
-                IoError,
-                boost::format("fcntl(): failed to disable caching for file %1%") % fileName,
-                errno
-            );
-        }
-    }
-#endif
-    fdGuard.dismiss();
     return fd;
 }
 
-} // end of anonymous namespace
+}}}} // end of anonymous namespace
 
 
 // -- SequentialIoBase ----------------
 
-SequentialIoBase::SequentialIoBase() : _state(IN_PROGRESS) {}
+lsst::ap::io::SequentialIoBase::SequentialIoBase() : _state(IN_PROGRESS) {}
 
-SequentialIoBase::~SequentialIoBase() {}
+lsst::ap::io::SequentialIoBase::~SequentialIoBase() {}
 
 
 // -- SequentialFileReader ----------------
 
-SequentialFileReader::SequentialFileReader(
+lsst::ap::io::SequentialFileReader::SequentialFileReader(
     std::string const & fileName
 ) :
     _fd(-1)
@@ -116,10 +77,10 @@ SequentialFileReader::SequentialFileReader(
 }
 
 
-SequentialFileReader::~SequentialFileReader() { cleanup(); }
+lsst::ap::io::SequentialFileReader::~SequentialFileReader() { cleanup(); }
 
 
-void SequentialFileReader::cleanup() {
+void lsst::ap::io::SequentialFileReader::cleanup() {
     if (_fd != -1) {
         ::close(_fd);
         _fd = -1;
@@ -127,33 +88,39 @@ void SequentialFileReader::cleanup() {
 }
 
 
-size_t SequentialFileReader::read(uint8_t * const buf, size_t const len) {
+std::size_t lsst::ap::io::SequentialFileReader::read(
+    unsigned char * const buf,
+    std::size_t const len
+) {
     if (len == 0) {
         return 0;
     }
     if (buf == 0) {
-        LSST_AP_THROW(InvalidParameter, "null pointer to read destination");
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "null pointer to read destination");
     }
     if (_state == FAILED) {
-        LSST_AP_THROW(IoError, "read() called on a failed SequentialFileReader");
+        throw LSST_EXCEPT(ex::IoErrorException,
+                          "read() called on a failed SequentialFileReader");
     } else if (_state == FINISHED) {
         return 0;
     }
 
-    ssize_t n = ::read(_fd, buf, len);
+    ::ssize_t n = ::read(_fd, buf, len);
     if (n < 0) {
         cleanup(FAILED);
-        LSST_AP_THROW_ERR(IoError, "read(): failed", errno);
+        throw LSST_EXCEPT(ex::IoErrorException,
+                          (boost::format("read() failed, errno: %1%") % errno).str());
     } else if (n == 0) {
         cleanup(FINISHED);
     }
-    return static_cast<size_t>(n);
+    return static_cast<std::size_t>(n);
 }
 
 
 // -- SequentialFileWriter ----------------
 
-SequentialFileWriter::SequentialFileWriter(
+lsst::ap::io::SequentialFileWriter::SequentialFileWriter(
     std::string const & fileName,
     bool        const   overwrite
 ) :
@@ -161,7 +128,6 @@ SequentialFileWriter::SequentialFileWriter(
 {
     int const fd = openFile(
         fileName,
-        false,
         O_WRONLY | O_CREAT | O_APPEND | (overwrite ? O_TRUNC : O_EXCL),
         S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
     );
@@ -170,34 +136,40 @@ SequentialFileWriter::SequentialFileWriter(
 }
 
 
-SequentialFileWriter::~SequentialFileWriter() { cleanup(); }
+lsst::ap::io::SequentialFileWriter::~SequentialFileWriter() { cleanup(); }
 
 
-void SequentialFileWriter::cleanup() {
+void lsst::ap::io::SequentialFileWriter::cleanup() {
     if (_fd != -1) {
         ::close(_fd);
     }
 }
 
 
-void SequentialFileWriter::write(uint8_t const * const buf, size_t const len) {
+void lsst::ap::io::SequentialFileWriter::write(
+    unsigned char const * const buf,
+    std::size_t const len
+) {
     if (len == 0) {
         return;
     }
     if (buf == 0) {
-        LSST_AP_THROW(InvalidParameter, "null pointer to bytes to write");
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "null pointer to bytes to write");
     }
     if (_state != IN_PROGRESS) {
-        LSST_AP_THROW(IoError, "write() called on a finished or failed SequentialFileWriter");
+        throw LSST_EXCEPT(ex::IoErrorException,
+                          "write() called on a finished or failed SequentialFileWriter");
     }
 
-    uint8_t const * dst = buf;
-    size_t          nb  = len;
+    unsigned char const * dst = buf;
+    std::size_t nb = len;
     do {
-        ssize_t n = ::write(_fd, dst, nb);
+        ::ssize_t n = ::write(_fd, dst, nb);
         if (n < 0) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "write(): failed", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                              (boost::format("write() failed, errno: %1%") % errno).str());
         }
         dst += n;
         nb  -= n;
@@ -205,16 +177,18 @@ void SequentialFileWriter::write(uint8_t const * const buf, size_t const len) {
 }
 
 
-void SequentialFileWriter::finish() {
+void lsst::ap::io::SequentialFileWriter::finish() {
     if (_state != IN_PROGRESS) {
-        LSST_AP_THROW(IoError, "finish() called on a finished or failed SequentialFileWriter");
+        throw LSST_EXCEPT(ex::IoErrorException,
+                          "finish() called on a finished or failed SequentialFileWriter");
     }
 
     // Flush userland and kernel buffers
     while (fsync(_fd) != 0) {
         if (errno != EINTR) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "fsync(): failed", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                              (boost::format("fsync() failed, errno: %1%") % errno).str());
         }
         errno = 0;
     }
@@ -224,10 +198,9 @@ void SequentialFileWriter::finish() {
 
 // -- CompressedFileReader ----------------
 
-CompressedFileReader::CompressedFileReader(
+lsst::ap::io::CompressedFileReader::CompressedFileReader(
     std::string const & fileName,
-    bool        const   direct,
-    size_t      const   blockSize
+    std::size_t const   blockSize
 ) :
     _memory(0),
     _buffers(0),
@@ -237,23 +210,21 @@ CompressedFileReader::CompressedFileReader(
     _fd(-1)
 {
     if (blockSize < 1024 || blockSize > 16777216 || (blockSize & (blockSize - 1)) != 0) {
-        LSST_AP_THROW(
-            InvalidParameter,
-            "I/O block size must be a power of 2 between 1024 and 16777216 bytes"
-        );
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "I/O block size must be a power of 2 between 2^10 and 2^24 bytes");
     }
 
     std::memset(&_stream,  0, sizeof(::z_stream));
     std::memset(&_request, 0, sizeof(::aiocb));
     _request.aio_fildes = -1;
 
-    // allocate IO buffers
-    boost::scoped_array<uint8_t> mem(new uint8_t[2*blockSize + 8192]);
-    size_t buf = reinterpret_cast<size_t>(mem.get());
-    _buffers = reinterpret_cast<uint8_t *>((buf + 8191) & ~static_cast<size_t>(8191));
+    // allocate IO buffers, store pointer to 8k aligned location inside buffer
+    boost::scoped_array<unsigned char> mem(new unsigned char[2*blockSize + 8192]);
+    std::size_t buf = reinterpret_cast<std::size_t>(mem.get());
+    _buffers = reinterpret_cast<unsigned char *>((buf + 8191) & ~static_cast<std::size_t>(8191));
 
     // open file
-    int const fd = openFile(fileName, direct, O_RDONLY);
+    int const fd = openFile(fileName, O_RDONLY);
     if (fd == -1) {
         _state = FINISHED;
         return;
@@ -263,13 +234,10 @@ CompressedFileReader::CompressedFileReader(
     // determine file size
     struct stat sb;
     if (::fstat(fd, &sb) != 0) {
-        LSST_AP_THROW_ERR(
-            IoError,
-            boost::format("fstat(): failed on file %1%") % fileName,
-            errno
-        );
+        throw LSST_EXCEPT(ex::IoErrorException,
+            (boost::format("fstat() failed on file %1%, errno: %2%") % fileName % errno).str());
     }
-    _fileSize = static_cast<size_t>(sb.st_size);
+    _fileSize = static_cast<std::size_t>(sb.st_size);
     if (_fileSize == 0) {
         _state = FINISHED;
         return;
@@ -278,21 +246,20 @@ CompressedFileReader::CompressedFileReader(
 
     // setup zlib (specify auto-detection of zlib/gzip header)
     if (inflateInit2(&_stream, MAX_WBITS + 32) != Z_OK) {
-        LSST_AP_THROW(Runtime, "[zlib] inflateInit2(): failed to initialize decompression stream");
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          "[zlib] inflateInit2() failed to initialize decompression stream");
     }
     ScopeGuard zlibGuard(boost::bind(::inflateEnd, &_stream));
 
     // issue first async read
-    size_t const nb = std::min(blockSize, _fileSize);
+    std::size_t const nb = std::min(blockSize, _fileSize);
     _request.aio_fildes = fd;
     _request.aio_buf    = _buffers;
     _request.aio_nbytes = nb;
-    if (aio_read(&_request) != 0) {
-        LSST_AP_THROW_ERR(
-            IoError,
-            boost::format("aio_read(): failed to enqueue IO request for file %1%") % fileName,
-            errno
-        );
+    if (::aio_read(&_request) != 0) {
+        throw LSST_EXCEPT(ex::IoErrorException,
+            (boost::format("aio_read() failed to enqueue IO request for file %1%, errno: %2%") %
+                fileName % errno).str());
     }
     _fd = fd;
     using std::swap;
@@ -302,10 +269,12 @@ CompressedFileReader::CompressedFileReader(
 }
 
 
-CompressedFileReader::~CompressedFileReader() { cleanup(); }
+lsst::ap::io::CompressedFileReader::~CompressedFileReader() {
+    cleanup();
+}
 
 
-void CompressedFileReader::cleanup() {
+void lsst::ap::io::CompressedFileReader::cleanup() {
     if (_fd != -1) {
         if (_state == IN_PROGRESS) {
             ::aio_cancel(_fd, 0);
@@ -317,16 +286,18 @@ void CompressedFileReader::cleanup() {
 }
 
 
-size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
-
+std::size_t lsst::ap::io::CompressedFileReader::read(
+    unsigned char * const buf,
+    std::size_t const len
+) {
     if (len == 0) {
         return 0;
     }
     if (buf == 0) {
-        LSST_AP_THROW(InvalidParameter, "null pointer to read destination");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "null pointer to read destination");
     }
     if (_state == FAILED) {
-        LSST_AP_THROW(IoError, "read() called on a failed CompressedFileReader");
+        throw LSST_EXCEPT(ex::IoErrorException, "read() called on a failed CompressedFileReader");
     } else if (_state == FINISHED) {
         return 0;
     }
@@ -340,11 +311,13 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
         if (zret == Z_STREAM_END) {
             if (_remaining != 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW(Runtime, "[zlib] inflate(): unexpected end of stream");
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                                  "[zlib] inflate(): unexpected end of stream");
             }
             if (_stream.avail_in != 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW(Runtime, "[zlib] inflate(): failed to consume input");
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                                  "[zlib] inflate() failed to consume input");
             }
             cleanup(FINISHED);
             return len - _stream.avail_out;
@@ -353,15 +326,18 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
                 return len;
             } else if (_remaining == 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW(Runtime, "[zlib] inflate(): expected end of stream");
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                                  "[zlib] inflate(): expected end of stream");
             } else if (_stream.avail_in != 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW(Runtime, "[zlib] inflate(): failed to consume input");
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                                  "[zlib] inflate() failed to consume input");
             }
             // user has space for even more data
         } else {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, boost::format("[zlib] inflate(): failed (error code %1%)") % zret);
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("[zlib] inflate() failed, return code: %1%") % zret).str());
         }
     }
 
@@ -374,10 +350,11 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
             if (errno != EINTR) {
                 if (errno == EAGAIN) {
                     cleanup(FAILED);
-                    LSST_AP_THROW(Timeout, "aio_read(): timed out");
+                    throw LSST_EXCEPT(ex::TimeoutException, "aio_read() timed out");
                 } else {
                     cleanup(FAILED);
-                    LSST_AP_THROW_ERR(IoError, "aio_suspend(): failed", errno);
+                    throw LSST_EXCEPT(ex::IoErrorException,
+                        (boost::format("aio_suspend() failed, errno: %1%") % errno).str());
                 }
             }
             errno = 0;
@@ -388,22 +365,24 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
     int const nb = ::aio_return(&_request);
     if (nb < 0) {
         cleanup(FAILED);
-        LSST_AP_THROW_ERR(IoError, "aio_read(): read failed", aio_error(&_request));
+        throw LSST_EXCEPT(ex::IoErrorException,
+            (boost::format("aio_read() failed, errno: %1%") % ::aio_error(&_request)).str());
     } else if (nb == 0) {
         cleanup(FAILED);
-        LSST_AP_THROW(IoError, "aio_read(): unexpected end of file reached");
+        throw LSST_EXCEPT(ex::IoErrorException, "aio_read(): unexpected end of file reached");
     }
 
-    uint8_t * ready = static_cast<uint8_t *>(const_cast<void *>(_request.aio_buf));
-    _remaining -= static_cast<size_t>(nb);
+    unsigned char * ready = static_cast<unsigned char *>(const_cast<void *>(_request.aio_buf));
+    _remaining -= static_cast<std::size_t>(nb);
     if (_remaining > 0) {
         // issue prefetch for the next block
         _request.aio_buf     = (ready == _buffers) ? ready + _blockSize : _buffers;
         _request.aio_offset  = _fileSize - _remaining;
         _request.aio_nbytes  = std::min(_blockSize, _remaining);
-        if (aio_read(&_request) != 0) {
+        if (::aio_read(&_request) != 0) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "aio_read(): failed to enqueue IO request", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                (boost::format("aio_read() failed to enqueue IO request, errno: %1%") % errno).str());
         }
     }
 
@@ -414,23 +393,28 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
     if (zret == Z_STREAM_END) {
         if (_remaining != 0) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, "[zlib] inflate(): unexpected end of stream");
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                              "[zlib] inflate(): unexpected end of stream");
         }
         if (_stream.avail_in != 0) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, "[zlib] inflate(): failed to consume input");
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                              "[zlib] inflate() failed to consume input");
         }
         cleanup(FINISHED);
     } else if (zret != Z_OK) {
         cleanup(FAILED);
-        LSST_AP_THROW(Runtime, boost::format("[zlib] inflate(): failed (error code %1%)") % zret);
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+            (boost::format("[zlib] inflate() failed, return code: %1%") % zret).str());
     } else if (_stream.avail_out != 0) {
         if (_remaining == 0) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, "[zlib] inflate(): expected end of stream");
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                              "[zlib] inflate(): expected end of stream");
         } else if (_stream.avail_in != 0) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, "[zlib] inflate(): failed to consume input");
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                              "[zlib] inflate() failed to consume input");
         }
     }
     return len - _stream.avail_out;
@@ -439,11 +423,10 @@ size_t CompressedFileReader::read(uint8_t * const buf, size_t const len) {
 
 // -- CompressedFileWriter ----------------
 
-CompressedFileWriter::CompressedFileWriter(
+lsst::ap::io::CompressedFileWriter::CompressedFileWriter(
     std::string const & fileName,
     bool        const   overwrite,
-    bool        const   direct,
-    size_t      const   blockSize
+    std::size_t const   blockSize
 ) :
     _memory(0),
     _buffers(0),
@@ -452,22 +435,22 @@ CompressedFileWriter::CompressedFileWriter(
     _started(false)
 {
     if (blockSize < 1024 || blockSize > 16777216) {
-        LSST_AP_THROW(InvalidParameter, "I/O block size must be between 1024 and 16777216 bytes");
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "I/O block size must be a power of 2 between 2^10 and 2^24 bytes");
     }
 
     std::memset(&_stream,  0, sizeof(::z_stream));
     std::memset(&_request, 0, sizeof(::aiocb));
     _request.aio_fildes = -1;
 
-    // allocate IO buffers
-    boost::scoped_array<uint8_t> mem(new uint8_t[2*blockSize + 8192]);
-    size_t buf = reinterpret_cast<size_t>(mem.get());
-    _buffers = reinterpret_cast<uint8_t *>((buf + 8191) & ~static_cast<size_t>(8191));
+    // allocate IO buffers, store pointer to 8k aligned location inside buffer
+    boost::scoped_array<unsigned char> mem(new unsigned char[2*blockSize + 8192]);
+    std::size_t buf = reinterpret_cast<std::size_t>(mem.get());
+    _buffers = reinterpret_cast<unsigned char *>((buf + 8191) & ~static_cast<std::size_t>(8191));
 
     // open file
     int const fd = openFile(
         fileName,
-        direct,
         O_WRONLY | O_CREAT | O_APPEND | (overwrite ? O_TRUNC : O_EXCL),
         S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
     );
@@ -476,7 +459,8 @@ CompressedFileWriter::CompressedFileWriter(
 
     // setup zlib (15 window bits, add 16 to indicate a gzip compatible header is desired)
     if (deflateInit2(&_stream, 1, Z_DEFLATED, MAX_WBITS + 16, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY) != Z_OK) {
-        LSST_AP_THROW(Runtime, "[zlib] deflateInit2(): failed to initialize decompression stream");
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          "[zlib] deflateInit2() failed to initialize compression stream");
     }
 
     _request.aio_fildes = fd;
@@ -489,10 +473,10 @@ CompressedFileWriter::CompressedFileWriter(
 }
 
 
-CompressedFileWriter::~CompressedFileWriter() { cleanup(); }
+lsst::ap::io::CompressedFileWriter::~CompressedFileWriter() { cleanup(); }
 
 
-void CompressedFileWriter::cleanup() {
+void lsst::ap::io::CompressedFileWriter::cleanup() {
     if (_fd != -1) {
         if (_started) {
             ::aio_cancel(_fd, 0);
@@ -504,23 +488,27 @@ void CompressedFileWriter::cleanup() {
 }
 
 
-void CompressedFileWriter::write(uint8_t const * const buf, size_t const len) {
-
+void lsst::ap::io::CompressedFileWriter::write(
+    unsigned char const * const buf,
+    std::size_t const len
+) {
     if (len == 0) {
         return;
     }
     if (buf == 0) {
-        LSST_AP_THROW(InvalidParameter, "null pointer to read destination");
+        throw LSST_EXCEPT(ex::InvalidParameterException,
+                          "null pointer to read destination");
     }
     if (_state != IN_PROGRESS) {
-        LSST_AP_THROW(IoError, "write() called on a finished or failed CompressedFileWriter");
+        throw LSST_EXCEPT(ex::IoErrorException,
+                          "write() called on a finished or failed CompressedFileWriter");
     }
 
-    _stream.next_in   = const_cast<Bytef *>(buf);
-    _stream.avail_in  = len;
+    _stream.next_in  = const_cast<Bytef *>(buf);
+    _stream.avail_in = len;
     if (_stream.avail_out == 0) {
-        uint8_t * buf     = static_cast<uint8_t *>(const_cast<void *>(_request.aio_buf));
-        _stream.next_out  = (buf == _buffers) ? buf + _blockSize : _buffers;
+        unsigned char * buf = static_cast<unsigned char *>(const_cast<void *>(_request.aio_buf));
+        _stream.next_out = (buf == _buffers) ? buf + _blockSize : _buffers;
         _stream.avail_out = _blockSize;
     }
 
@@ -530,12 +518,14 @@ void CompressedFileWriter::write(uint8_t const * const buf, size_t const len) {
         int const zret = ::deflate(&_stream, Z_NO_FLUSH);
         if (zret != Z_OK) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, boost::format("[zlib] deflate(): failed (error code %1%)") % zret);
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("[zlib] deflate() failed, return code: %1%") % zret).str());
         }
         if (_stream.avail_out != 0) {
             if (_stream.avail_in != 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW(Runtime, "[zlib] deflate(): failed to consume input");
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                                  "[zlib] deflate() failed to consume input");
             }
             break;
         }
@@ -551,10 +541,11 @@ void CompressedFileWriter::write(uint8_t const * const buf, size_t const len) {
                         if (errno != EINTR) {
                             if (errno == EAGAIN) {
                                 cleanup(FAILED);
-                                LSST_AP_THROW(Timeout, "aio_write(): timed out");
+                                throw LSST_EXCEPT(ex::TimeoutException, "aio_write() timed out");
                             } else {
                                 cleanup(FAILED);
-                                LSST_AP_THROW_ERR(IoError, "aio_suspend(): failed", errno);
+                                throw LSST_EXCEPT(ex::IoErrorException,
+                                    (boost::format("aio_suspend() failed, errno: %1%") % errno).str());
                             }
                         }
                         errno = 0;
@@ -563,35 +554,40 @@ void CompressedFileWriter::write(uint8_t const * const buf, size_t const len) {
                 // check status of the write that just completed
                 if (::aio_return(&_request) != static_cast<int>(_blockSize)) {
                     cleanup(FAILED);
-                    LSST_AP_THROW_ERR(IoError, "aio_write(): write failed", aio_error(&_request));
+                    throw LSST_EXCEPT(ex::IoErrorException,
+                        (boost::format("aio_write() failed, errno: %1%") %
+                            ::aio_error(&_request)).str());
                 }
             }
-            uint8_t * buf     = static_cast<uint8_t *>(const_cast<void *>(_request.aio_buf));
+            unsigned char * buf = static_cast<unsigned char *>(const_cast<void *>(_request.aio_buf));
             _request.aio_buf  = _stream.next_out - _blockSize;
             _stream.next_out  = buf;
             _stream.avail_out = _blockSize;
             // issue asynchronous write
             if (aio_write(&_request) != 0) {
                 cleanup(FAILED);
-                LSST_AP_THROW_ERR(IoError, "aio_write() failed to enqueue IO request", errno);
+                throw LSST_EXCEPT(ex::IoErrorException,
+                    (boost::format("aio_write() failed to enqueue IO request") % errno).str());
             }
             _started = true;
         } else if (_stream.avail_in != 0) {
-            LSST_AP_THROW(Runtime, "[zlib] deflate(): failed to consume input");
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                              "[zlib] deflate() failed to consume input");
         }
 
     } while(_stream.avail_in != 0);
 }
 
 
-void CompressedFileWriter::finish() {
+void lsst::ap::io::CompressedFileWriter::finish() {
 
     if (_state != IN_PROGRESS) {
-        LSST_AP_THROW(IoError, "finish() called on a finished or failed CompressedFileWriter");
+        throw LSST_EXCEPT(ex::IoErrorException,
+            "finish() called on a finished or failed CompressedFileWriter");
     }
 
     if (_stream.avail_out == 0) {
-        uint8_t * buf     = static_cast<uint8_t *>(const_cast<void *>(_request.aio_buf));
+        unsigned char * buf = static_cast<unsigned char *>(const_cast<void *>(_request.aio_buf));
         _stream.next_out  = (buf == _buffers) ? buf + _blockSize : _buffers;
         _stream.avail_out = _blockSize;
     }
@@ -601,7 +597,8 @@ void CompressedFileWriter::finish() {
         int const zret = ::deflate(&_stream, Z_FINISH);
         if (zret != Z_STREAM_END && zret != Z_OK) {
             cleanup(FAILED);
-            LSST_AP_THROW(Runtime, boost::format("[zlib] deflate(): failed (error code %1%)") % zret);
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("[zlib] deflate() failed, return code: %1%") % zret).str());
         }
         if (_started) {
             while (::aio_error(&_request) == EINPROGRESS) {
@@ -612,10 +609,11 @@ void CompressedFileWriter::finish() {
                      if (errno != EINTR) {
                          if (errno == EAGAIN) {
                              cleanup(FAILED);
-                             LSST_AP_THROW(Timeout, "aio_write(): timed out");
+                             throw LSST_EXCEPT(ex::TimeoutException, "aio_write() timed out");
                          } else {
                              cleanup(FAILED);
-                             LSST_AP_THROW_ERR(IoError, "aio_suspend(): failed", errno);
+                             throw LSST_EXCEPT(ex::IoErrorException,
+                                 (boost::format("aio_suspend() failed, errno: %1%") % errno).str());
                          }
                      }
                      errno = 0;
@@ -624,48 +622,51 @@ void CompressedFileWriter::finish() {
             // check status of the write that just completed
             if (::aio_return(&_request) != static_cast<int>(_blockSize)) {
                 cleanup(FAILED);
-                LSST_AP_THROW_ERR(IoError, "aio_write(): write failed", aio_error(&_request));
+                throw LSST_EXCEPT(ex::IoErrorException,
+                    (boost::format("aio_write() failed, errno: %1%") %
+                        ::aio_error(&_request)).str());
             }
         }
         if (zret == Z_STREAM_END) {
             break;
         }
 
-        uint8_t * buf = static_cast<uint8_t *>(const_cast<void *>(_request.aio_buf));
+        unsigned char * buf = static_cast<unsigned char *>(const_cast<void *>(_request.aio_buf));
         _stream.next_out  = buf;
         _stream.avail_out = _blockSize;
         // issue asynchronous write of the deflated data
         _request.aio_buf = (buf == _buffers) ? buf + _blockSize : _buffers;
-        if (aio_write(&_request) != 0) {
+        if (::aio_write(&_request) != 0) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "aio_write() failed to enqueue IO request", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                (boost::format("aio_write() failed to enqueue IO request") % errno).str());
         }
         _started = true;
 
     }
 
     // no outstanding IO remains, perform final (blocking) write
-    size_t    bytesRemaining = _blockSize - _stream.avail_out;
-    uint8_t * buf            = _stream.next_out - bytesRemaining;
+    std::size_t bytesRemaining = _blockSize - _stream.avail_out;
+    unsigned char * buf = _stream.next_out - bytesRemaining;
     while (bytesRemaining > 0) {
-        ssize_t nb = ::write(_fd, buf, bytesRemaining);
+        ::ssize_t nb = ::write(_fd, buf, bytesRemaining);
         if (nb < 0) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "write(): failed", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                              (boost::format("write() failed, errno: %1%") % errno).str());
         }
-        bytesRemaining -= static_cast<size_t>(nb);
-        buf            += nb;
+        bytesRemaining -= static_cast<std::size_t>(nb);
+        buf += nb;
     }
     // flush both userland and kernel buffers
-    while (fsync(_fd) != 0) {
+    while (::fsync(_fd) != 0) {
         if (errno != EINTR) {
             cleanup(FAILED);
-            LSST_AP_THROW_ERR(IoError, "fsync(): failed", errno);
+            throw LSST_EXCEPT(ex::IoErrorException,
+                              (boost::format("fsync() failed, errno: %1%") % errno).str());
         }
         errno = 0;
     }
     cleanup(FINISHED);
 }
 
-
-}}} // end of namespace lsst::ap::io

@@ -35,7 +35,7 @@ using namespace lsst::ap;
 
 namespace {
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SObjChunk;
+typedef SharedObjectChunkManager::ObjectChunk SObjChunk;
 
 
 static std::string const makeTempFile() {
@@ -53,9 +53,9 @@ static std::string const makeTempFile() {
 
 // Creates a single, initially empty, chunk belonging to visit 1.
 static SObjChunk const createChunk() {
-    SharedSimpleObjectChunkManager mgr("test");
+    SharedObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
-    SharedSimpleObjectChunkManager::destroyInstance("test");
+    SharedObjectChunkManager::destroyInstance("test");
 
     std::vector<int64_t>   chunkIds;
     std::vector<SObjChunk> toWaitFor;
@@ -85,7 +85,7 @@ static void pickIds(std::vector<int64_t> & ids, size_t const num, int64_t const 
 
 
 static void appendObjects(SObjChunk & chunk, size_t const num) {
-    SimpleObject obj;
+    Object obj;
     int64_t      id = static_cast<int64_t>(chunk.size());
     for (size_t i = 0; i < num; ++i, ++id) {
         obj._objectId = id;
@@ -101,10 +101,10 @@ static void appendObjects(SObjChunk & chunk, size_t const num) {
 }
 
 
-static boost::shared_array<SimpleObject> const copyData(SObjChunk & chunk) {
+static boost::shared_array<Object> const copyData(SObjChunk & chunk) {
     uint32_t sz = chunk.size();
-    boost::shared_array<SimpleObject> copy(new SimpleObject[sz]);
-    std::memset(copy.get(), 0, sz*sizeof(SimpleObject));
+    boost::shared_array<Object> copy(new Object[sz]);
+    std::memset(copy.get(), 0, sz*sizeof(Object));
     for (uint32_t i = 0; i < sz; ++ i) {
         copy[i] = chunk.get(i);
     }
@@ -206,11 +206,11 @@ static void verifyChunk(
 }
 
 
-static void verifyData(SObjChunk const & chunk, boost::shared_array<SimpleObject> const & data) {
+static void verifyData(SObjChunk const & chunk, boost::shared_array<Object> const & data) {
     uint32_t size = chunk.size();
     for (uint32_t i = 0, b = 0; i < size; ++b) {
         uint32_t n = chunk.entries(b);
-        int cmp = std::memcmp(chunk.getBlock(b), &(data[i]), sizeof(SimpleObject)*n);
+        int cmp = std::memcmp(chunk.getBlock(b), &(data[i]), sizeof(Object)*n);
         i += n;
         BOOST_CHECK_MESSAGE(cmp ==  0, "chunk IO resulted in data corruption");
     }
@@ -219,7 +219,7 @@ static void verifyData(SObjChunk const & chunk, boost::shared_array<SimpleObject
 
 static void verifyPackedData(
     SObjChunk                         const & chunk,
-    boost::shared_array<SimpleObject> const & data,
+    boost::shared_array<Object> const & data,
     std::vector<int64_t>              const & deletes
 ) {
     uint32_t size = chunk.size();
@@ -297,8 +297,8 @@ static void wrdCycle(
 
 BOOST_AUTO_TEST_CASE(chunkIoTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (without delta)");
-    SharedSimpleObjectChunkManager mgr("test");
-    ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
+    SharedObjectChunkManager mgr("test");
+    ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
     SObjChunk c(createChunk());
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(chunkIoTest) {
     BOOST_CHECK_MESSAGE(c.delta() == 0, "freshly created chunk delta should be 0");
     verifyChunk(c, v, false, false);
 
-    boost::shared_array<SimpleObject> data(copyData(c));
+    boost::shared_array<Object> data(copyData(c));
     std::string name(makeTempFile());
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
     wrCycle(c, v, name, false);
@@ -319,15 +319,15 @@ BOOST_AUTO_TEST_CASE(chunkIoTest) {
 
 BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (with delta and no deletes)");
-    SharedSimpleObjectChunkManager mgr("test");
-    ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
+    SharedObjectChunkManager mgr("test");
+    ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
     SObjChunk c(createChunk());
     appendObjects(c, static_cast<size_t>(uniformRandom()*16384.0) + 1024);
     verifyChunk(c, v, false, false);
 
-    boost::shared_array<SimpleObject> data(copyData(c));
+    boost::shared_array<Object> data(copyData(c));
     std::string name(makeTempFile());
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
 
@@ -355,15 +355,15 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
 
 BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
     BOOST_TEST_MESSAGE("    - Chunk IO test (with delta and deletes)");
-    SharedSimpleObjectChunkManager mgr("test");
-    ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
+    SharedObjectChunkManager mgr("test");
+    ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
     SObjChunk c(createChunk());
     appendObjects(c, static_cast<size_t>(uniformRandom()*65536.0) + 1024);
     verifyChunk(c, v, false, false);
 
-    boost::shared_array<SimpleObject> data(copyData(c));
+    boost::shared_array<Object> data(copyData(c));
     std::string name(makeTempFile());
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
 
@@ -401,14 +401,14 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
 
 BOOST_AUTO_TEST_CASE(emptyChunkTest) {
     BOOST_TEST_MESSAGE("    - Empty chunk IO test");
-    SharedSimpleObjectChunkManager mgr("test");
-    ScopeGuard forMgr(boost::bind(&SharedSimpleObjectChunkManager::endVisit, &mgr, 1, true));
+    SharedObjectChunkManager mgr("test");
+    ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
     std::vector<int64_t> v;
     SObjChunk c(createChunk());
     verifyChunk(c, v, false, false);
 
-    boost::shared_array<SimpleObject> data;
+    boost::shared_array<Object> data;
     std::string name(makeTempFile());
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
 

@@ -12,26 +12,22 @@
 
 #include <string>
 
-#include <boost/format.hpp>
+#include "boost/format.hpp"
 
 #include "SpatialUtil.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 /** @brief  Interface for mapping chunk ids to names. */
 class LSST_AP_LOCAL ChunkToNameMapping {
-
 public :
-
     virtual ~ChunkToNameMapping();
 
     virtual std::string const getName(
         std::string                  const & runId,
         ZoneStripeChunkDecomposition const & zsc,
-        int64_t                      const   chunkId,
+        boost::int64_t               const   chunkId,
         int                          const   version = 0
     ) = 0;
 };
@@ -49,9 +45,7 @@ public :
  * </ol>
  */
 class LSST_AP_LOCAL ChunkToFileNameMapping : public ChunkToNameMapping {
-
 public :
-
     ChunkToFileNameMapping(std::string const & pattern);
 
     virtual ~ChunkToFileNameMapping();
@@ -59,12 +53,10 @@ public :
     virtual std::string const getName(
         std::string                  const & runId,
         ZoneStripeChunkDecomposition const & zsc,
-        int64_t                      const   chunkId,
+        boost::int64_t               const   chunkId,
         int                          const   version = 0
     );
-
 private :
-
     boost::format _format;
 };
 

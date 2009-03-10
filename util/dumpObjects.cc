@@ -255,7 +255,7 @@ int main(int argc, char** argv) {
     // Set up the result bindings.
 
     // Retrieved object.
-    lsst::ap::SimpleObject obj;
+    lsst::ap::Object obj;
     // Result binding array.
     MYSQL_BIND resultArray[3 + lsst::afw::image::Filter::NUM_FILTERS];
     // Null flags for object fields.

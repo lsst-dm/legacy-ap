@@ -9,16 +9,18 @@
 
 #include <climits>
 
-#include <lsst/ap/Bitset.h>
+#include "lsst/ap/Bitset.h"
 
+using boost::uint8_t;
+using boost::uint16_t;
+using boost::uint32_t;
+using boost::uint64_t;
 
-namespace lsst {
-namespace ap {
-namespace detail {
+namespace lsst { namespace ap { namespace detail { namespace {
 
 #if LSST_AP_HAVE_BUILTIN_POPCOUNT
 
-static inline int populationCount(uint64_t const val) {
+inline int populationCount(uint64_t const val) {
 #   if ULLONG_MAX == 0xffffffffffffffff
     return __builtin_popcountll(val);
 #   elif ULONG_MAX == 0xffffffffffffffff
@@ -28,7 +30,7 @@ static inline int populationCount(uint64_t const val) {
 #   endif
 }
 
-static inline int populationCount(uint32_t const val) {
+inline int populationCount(uint32_t const val) {
 #   if ULONG_MAX == 0xffffffff
     return __builtin_popcountl(val);
 #   elif UINT_MAX == 0xffffffff
@@ -38,12 +40,12 @@ static inline int populationCount(uint32_t const val) {
 #   endif
 }
 
-static inline int populationCount(uint16_t const val) { return __builtin_popcount(val); }
-static inline int populationCount(uint8_t  const val) { return __builtin_popcount(val); }
+inline int populationCount(uint16_t const val) { return __builtin_popcount(val); }
+inline int populationCount(uint8_t  const val) { return __builtin_popcount(val); }
 
 #else
 
-static uint64_t const sFreedMagic64[6] = {
+uint64_t const sFreedMagic64[6] = {
     UINT64_C(0x5555555555555555),
     UINT64_C(0x3333333333333333),
     UINT64_C(0x0F0F0F0F0F0F0F0F),
@@ -52,7 +54,7 @@ static uint64_t const sFreedMagic64[6] = {
     UINT64_C(0x00000000FFFFFFFF)
 };
 
-static uint32_t const sFreedMagic32[5] = {
+uint32_t const sFreedMagic32[5] = {
     0x55555555,
     0x33333333,
     0x0F0F0F0F,
@@ -62,8 +64,7 @@ static uint32_t const sFreedMagic32[5] = {
 
 // count bits with sideways addition using Freed's binary magic numbers
 
-static inline int populationCount(uint64_t const val)
-{
+inline int populationCount(uint64_t const val) {
     uint64_t v = val;
     v = ((v >>  1) & sFreedMagic64[0]) + (v & sFreedMagic64[0]);
     v = ((v >>  2) & sFreedMagic64[1]) + (v & sFreedMagic64[1]);
@@ -74,8 +75,7 @@ static inline int populationCount(uint64_t const val)
     return v;
 }
 
-static inline int populationCount(uint32_t const val)
-{
+inline int populationCount(uint32_t const val) {
     uint32_t v = val;
     v = ((v >>  1) & sFreedMagic32[0]) + (v & sFreedMagic32[0]);
     v = ((v >>  2) & sFreedMagic32[1]) + (v & sFreedMagic32[1]);
@@ -85,8 +85,7 @@ static inline int populationCount(uint32_t const val)
     return v;
 }
 
-static inline int populationCount(uint16_t const val)
-{
+inline int populationCount(uint16_t const val) {
     uint32_t v = val;
     v = ((v >>  1) & sFreedMagic32[0]) + (v & sFreedMagic32[0]);
     v = ((v >>  2) & sFreedMagic32[1]) + (v & sFreedMagic32[1]);
@@ -95,8 +94,7 @@ static inline int populationCount(uint16_t const val)
     return v;
 }
 
-static inline int populationCount(uint8_t const val)
-{
+inline int populationCount(uint8_t const val) {
     uint32_t v = val;
     v = ((v >>  1) & sFreedMagic32[0]) + (v & sFreedMagic32[0]);
     v = ((v >>  2) & sFreedMagic32[1]) + (v & sFreedMagic32[1]);
@@ -105,6 +103,8 @@ static inline int populationCount(uint8_t const val)
 }
 
 #endif
+
+}}}} // end of namespace lsst::ap::detail::<anonymous>
 
 
 /**
@@ -123,11 +123,11 @@ static inline int populationCount(uint8_t const val)
  *             @c false otherwise.
  */
 template <typename WordT>
-bool set(
-    int        * const indexes,
-    WordT      * const words,
-    int  const         numBitsToSet,
-    int  const         numBits
+bool lsst::ap::detail::setBits(
+    int * const indexes,
+    WordT * const words,
+    int const numBitsToSet,
+    int const numBits
 ) {
     assert(words   != 0 && numBits > 0 && "null or empty bitset");
     assert(indexes != 0 && numBitsToSet > 0 && "null or empty index array");
@@ -186,11 +186,11 @@ bool set(
  * @param[in]     numBits           The number of bits in @a words
  */
 template <typename WordT>
-void reset(
-    WordT     * const words,
+void lsst::ap::detail::resetBits(
+    WordT * const words,
     int const * const indexes,
-    int const         numBitsToReset,
-    int const         numBits
+    int const numBitsToReset,
+    int const numBits
 ) {
     assert(words != 0 && numBits > 0 && "null or empty bitset");
     assert(indexes != 0 && numBitsToReset >= 0 && "null or empty index array");
@@ -202,18 +202,15 @@ void reset(
     }
 }
 
-
 // Explicit instantiations
 /// @cond
-template bool set(int * const, uint8_t  * const, int const, int const);
-template bool set(int * const, uint16_t * const, int const, int const);
-template bool set(int * const, uint32_t * const, int const, int const);
-template bool set(int * const, uint64_t * const, int const, int const);
-template void reset(uint8_t  * const, int const * const, int const, int const);
-template void reset(uint16_t * const, int const * const, int const, int const);
-template void reset(uint32_t * const, int const * const, int const, int const);
-template void reset(uint64_t * const, int const * const, int const, int const);
+#define INSTANTIATE(t) \
+    template bool lsst::ap::detail::setBits(int * const, t * const, int const, int const); \
+    template void lsst::ap::detail::resetBits(t * const, int const * const, int const, int const);
+
+INSTANTIATE(uint8_t)
+INSTANTIATE(uint16_t)
+INSTANTIATE(uint32_t)
+INSTANTIATE(uint64_t)
+
 /// @endcond
-
-}}} // end of namespace lsst::ap::detail
-

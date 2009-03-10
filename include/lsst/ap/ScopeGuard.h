@@ -10,16 +10,14 @@
 #ifndef LSST_AP_SCOPE_GUARD_H
 #define LSST_AP_SCOPE_GUARD_H
 
-#include <boost/noncopyable.hpp>
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include "boost/noncopyable.hpp"
+#include "boost/function.hpp"
+#include "boost/scoped_ptr.hpp"
 
 #include "Common.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 /**
  * @brief   Utility class for automatically invoking a function when leaving a scope.
@@ -47,8 +45,12 @@ public :
         } catch (...) {}
     }
 
-    bool dismissed() const throw() { return _dismissed; }
-    void dismiss()         throw() { _dismissed = true; }
+    bool dismissed() const throw() {
+        return _dismissed;
+    }
+    void dismiss() throw() {
+        _dismissed = true;
+    }
 
 private :
 
@@ -56,7 +58,6 @@ private :
 
     static int volatile _numGuards;
 };
-
 
 }} // end of namespace lsst::ap
 

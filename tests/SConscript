@@ -36,7 +36,6 @@ if not env.CleanFlagIsSet():
     tests = lsst.tests.Control(env, verbose = True)
 
     if lsst.daf.persistence.DbAuth.available():
-        env["ENV"]["SEAL_PLUGINS"] = os.environ["SEAL_PLUGINS"]
         if os.environ.has_key('LSST_DB_AUTH'):
             env['ENV']['LSST_DB_AUTH'] = os.environ['LSST_DB_AUTH']
 

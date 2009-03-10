@@ -14,11 +14,11 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include <boost/noncopyable.hpp>
-#include <boost/static_assert.hpp>
-// #include <boost/type_traits/has_trivial_assign.hpp>
-// #include <boost/type_traits/has_trivial_copy.hpp>
-// #include <boost/type_traits/has_trivial_destructor.hpp>
+#include "boost/noncopyable.hpp"
+#include "boost/static_assert.hpp"
+// #include "boost/type_traits/has_trivial_assign.hpp"
+// #include "boost/type_traits/has_trivial_copy.hpp"
+// #include "boost/type_traits/has_trivial_destructor.hpp"
 
 #include "Common.h"
 #include "DataTraits.h"
@@ -32,12 +32,12 @@ namespace ap {
 /** @brief  Simple header for binary chunk files -- allows some sanity checking at read time. */
 struct BinChunkHeader {
 
-    static uint32_t const MAGIC = 0xdecade14;
+    static boost::uint32_t const MAGIC = 0xdecade14;
 
-    uint32_t _magic;
-    uint32_t _numRecords;
-    uint32_t _numDeletes;
-    uint32_t _recordSize;
+    boost::uint32_t _magic;
+    int _numRecords;
+    int _numDeletes;
+    int _recordSize;
 
     BinChunkHeader() :
         _magic(MAGIC),
@@ -58,32 +58,31 @@ struct BinChunkHeader {
  * State is data and memory type agnostic (that is, the structure contains no
  * pointers and can therefore safely be placed in shared memory).
  */
-template <uint32_t MaxBlocksPerChunk>
+template <int MaxBlocksPerChunk>
 class ChunkDescriptor : private boost::noncopyable {
-
 public :
 
-    int64_t  _chunkId;   ///< Identifier for the chunk
-    int64_t  _visitId;   ///< Identifier for the visit that currently owns the chunk
-    int      _nextChunk; ///< Index of the next chunk in the same hash bucket as this one
+    int _chunkId;   ///< Identifier for the chunk
+    int _visitId;   ///< Identifier for the visit that currently owns the chunk
+    int _nextChunk; ///< Index of the next chunk in the same hash bucket as this one
 
     /**
      * Flag indicating whether the chunk is in a usable state. A chunk is usable once
      * its data has been successfully and completely read from permanent storage.
      */
-    bool     _usable;
+    bool _usable;
 
-    uint32_t _numBlocks;      ///< Number of memory blocks allocated
-    uint32_t _nextBlock;      ///< Index of the next block to insert into
-    uint32_t _index;          ///< Index of the next free entry in the current block
-    uint32_t _size;           ///< Total number of entries
-    uint32_t _delta;          ///< Index of first entry marked IN_DELTA
-    size_t   _curBlockOffset; ///< Offset of the current block
+    int _numBlocks; ///< Number of memory blocks allocated
+    int _nextBlock; ///< Index of the next block to insert into
+    int _index;     ///< Index of the next free entry in the current block
+    int _size;      ///< Total number of entries
+    int _delta;     ///< Index of first entry marked IN_DELTA
+    std::size_t _curBlockOffset; ///< Offset of the current block
 
     /// FIFO of visits to a FOV that overlaps the chunk
     Fifo<MAX_VISITS_IN_FLIGHT> _interestedParties;
     /// List of memory block offsets for allocated blocks
-    size_t _blocks[MaxBlocksPerChunk];
+    std::size_t _blocks[MaxBlocksPerChunk];
 
 
     ChunkDescriptor() { initialize(); }
@@ -103,10 +102,10 @@ public :
     }
 
     // detail::HashedSet requirements
-    int64_t getId()          const           { return _chunkId;   }
-    int     getNextInChain() const           { return _nextChunk; }
-    void    setId         (int64_t const id) { _chunkId   = id;   }
-    void    setNextInChain(int     const id) { _nextChunk = id;   }
+    int getId() const { return _chunkId; }
+    int getNextInChain() const { return _nextChunk; }
+    void setId(int const id) { _chunkId = id; }
+    void setNextInChain(int const id) { _nextChunk = id; }
 };
 
 
@@ -117,7 +116,7 @@ public :
  * can fit. This typedef controls the size of the flag word -- simply using an array of
  * Chunk::EntryFlag values results in sizeof(int) bytes per flag, which is excessive.
  */
-typedef uint8_t ChunkEntryFlag;
+typedef unsigned char ChunkEntryFlag;
 
 
 /**
@@ -221,7 +220,7 @@ typedef uint8_t ChunkEntryFlag;
  * to record a small number of incremental modifications.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class Chunk {
+class ChunkRef {
 
 //    BOOST_STATIC_ASSERT(boost::has_trivial_assign<DataT>::value);
 //    BOOST_STATIC_ASSERT(boost::has_trivial_copy<DataT>::value);
@@ -238,173 +237,181 @@ public  :
         DELETED          = 0x08
     };
 
-    static uint32_t const ENTRIES_PER_BLOCK_LOG2 = TraitsT::ENTRIES_PER_BLOCK_LOG2;
-    static uint32_t const MAX_BLOCKS             = TraitsT::MAX_BLOCKS_PER_CHUNK;
-    static size_t   const BLOCK_SIZE =
+    static int const ENTRIES_PER_BLOCK_LOG2 = TraitsT::ENTRIES_PER_BLOCK_LOG2;
+    static int const MAX_BLOCKS = TraitsT::MAX_BLOCKS_PER_CHUNK;
+    static std::size_t const BLOCK_SIZE =
         (sizeof(DataT) + sizeof(ChunkEntryFlag)) << ENTRIES_PER_BLOCK_LOG2;
 
     typedef ChunkDescriptor<MAX_BLOCKS> Descriptor;
 
-    Chunk(Descriptor * desc, AllocatorT * all) : _descriptor(desc), _allocator(all) {}
+    ChunkRef(Descriptor * desc, AllocatorT * all) : _descriptor(desc), _allocator(all) {}
 
-    ~Chunk() {
+    ~ChunkRef() {
         _descriptor = 0;
         _allocator  = 0;
     }
 
-    int64_t getVisitId() const { return _descriptor->_visitId; }
-    int64_t getId()      const { return _descriptor->_chunkId; }
-    bool    isUsable()   const { return _descriptor->_usable;  }
-    void    setUsable()        { _descriptor->_usable = true;  }
+    boost::int64_t getId() const {
+        return _descriptor->_chunkId;
+    }
+    int getVisitId() const {
+        return _descriptor->_visitId;
+    }
+    bool isUsable() const {
+        return _descriptor->_usable;
+    }
+    void setUsable() {
+        _descriptor->_usable = true;
+    }
 
-    /// Returns a reference to the @a i-th chunk entry.
-    DataT const & get(uint32_t const i) const {
-        assert(i < _descriptor->_size);
+    /** Returns a reference to the @a i-th chunk entry. */
+    DataT const & get(int const i) const {
+        assert(i >= 0 && i < _descriptor->_size);
         return *reinterpret_cast<DataT const *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
-            sizeof(ChunkEntryFlag)*(1u << ENTRIES_PER_BLOCK_LOG2) +
-            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(DataT)
+            sizeof(ChunkEntryFlag)*(1 << ENTRIES_PER_BLOCK_LOG2) +
+            (i & ((1 << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(DataT)
         ));
     }
 
-    /// Returns a pointer to the @a b-th data block.
-    DataT const * getBlock(uint32_t const b) const {
-        assert(b < _descriptor->_numBlocks);
+    /** Returns a pointer to the @a b-th data block. */
+    DataT const * getBlock(int const b) const {
+        assert(b >= 0 && b < _descriptor->_numBlocks);
         return reinterpret_cast<DataT const *>(map(
             _descriptor->_blocks[b] + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)
         ));
     }
 
-    DataT * getBlock(uint32_t const b) {
-        assert(b < _descriptor->_numBlocks);
+    /** Returns a pointer to the @a b-th data block. */
+    DataT * getBlock(int const b) {
+        assert(b >= 0 && b < _descriptor->_numBlocks);
         return reinterpret_cast<DataT *>(map(
             _descriptor->_blocks[b] + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2)
         ));
     }
 
-    /// Returns the value of the @a i-th flag word.
-    ChunkEntryFlag getFlag(uint32_t const i) const {
-        assert(i < _descriptor->_size);
+    /** Returns the value of the @a i-th flag word. */
+    ChunkEntryFlag getFlag(int const i) const {
+        assert(i >= 0 && i < _descriptor->_size);
         return *reinterpret_cast<ChunkEntryFlag const *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
             (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
         ));
     }
 
-    /// Returns a pointer to the @a b-th flag block.
-    ChunkEntryFlag const * getFlagBlock(uint32_t const b) const {
-        assert(b < _descriptor->_numBlocks);
+    /** Returns a pointer to the @a b-th flag block. */
+    ChunkEntryFlag const * getFlagBlock(int const b) const {
+        assert(b >= 0 && b < _descriptor->_numBlocks);
         return reinterpret_cast<ChunkEntryFlag const *>(map(_descriptor->_blocks[b]));
     }
 
-    ChunkEntryFlag * getFlagBlock(uint32_t const i) {
-        assert(i < _descriptor->_numBlocks);
-        return reinterpret_cast<ChunkEntryFlag *>(map(_descriptor->_blocks[i]));
+    /** Returns a pointer to the @a b-th flag block. */
+    ChunkEntryFlag * getFlagBlock(int const b) {
+        assert(b >= 0 && b < _descriptor->_numBlocks);
+        return reinterpret_cast<ChunkEntryFlag *>(map(_descriptor->_blocks[b]));
     }
 
-    /// Inserts the given data entry into the chunk, allocating memory if necessary.
-    void insert(DataT const & data) { insert(data, IN_DELTA | UNCOMMITTED | INSERTED); }
+    /** Inserts the given data entry into the chunk, allocating memory if necessary. */
+    void insert(DataT const & data) {
+        insert(data, IN_DELTA | UNCOMMITTED | INSERTED);
+    }
 
-    /// Marks the i-th entry in the chunk as removed. Never throws.
-    void remove(uint32_t const i) {
-        assert(i < _descriptor->_size);
+    /** Marks the i-th entry in the chunk as removed. Never throws. */
+    void remove(int const i) {
+        assert(i >= 0 && i < _descriptor->_size);
         ChunkEntryFlag * f = reinterpret_cast<ChunkEntryFlag *>(map(
             _descriptor->_blocks[i >> ENTRIES_PER_BLOCK_LOG2] +
-            (i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
+            (i & ((1 << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
         ));
         if ((*f & DELETED) == 0) { // removing an entry that is already deleted is a no-op
             *f |= DELETED | UNCOMMITTED;
         }
     }
 
-    /// Returns the number of entries in the chunk
-    uint32_t size() const { return _descriptor->_size; }
-
-    /**
-     * Returns the index of the first record in the chunk delta or some value greater than or
-     * equal to size() if there are none.
-     */
-    uint32_t delta() const { return _descriptor->_delta; }
-
-    /// Returns the total number of entries that can be placed in the chunk
-    uint32_t capacity() const { return _descriptor->_numBlocks << ENTRIES_PER_BLOCK_LOG2; }
-
-    /// Returns the number of non-empty blocks in the chunk
-    uint32_t blocks() const { return _descriptor->_nextBlock; }
-
-    /// Returns the number of entries in the i-th block
-    uint32_t entries(uint32_t const i) const {
-        assert(i < _descriptor->_nextBlock);
-        return (i < _descriptor->_nextBlock - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
+    /** Returns the number of entries in the chunk */
+    int size() const {
+        return _descriptor->_size;
     }
 
-    /// Empties the chunk (without deallocating/shrinking memory).
-    void clear() { _descriptor->clear(); }
+    /** Returns the index of the first record in the chunk delta or size() if there are none. */
+    int delta() const {
+        return _descriptor->_delta;
+    }
 
-    void reserve(uint32_t const n);
+    /** Returns the total number of entries that can be placed in the chunk */
+    int capacity() const {
+        return _descriptor->_numBlocks << ENTRIES_PER_BLOCK_LOG2;
+    }
 
-    bool pack(uint32_t const i = 0);
+    /** Returns the number of non-empty blocks in the chunk */
+    int blocks() const {
+        return _descriptor->_nextBlock;
+    }
 
+    /** Returns the number of entries in the b-th block */
+    int entries(int const b) const {
+        assert(b >= 0 && b < _descriptor->_nextBlock);
+        return (b < _descriptor->_nextBlock - 1) ? (1 << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
+    }
+
+    /** Empties the chunk (without deallocating/shrinking memory). */
+    void clear() {
+        _descriptor->clear();
+    }
+
+    void reserve(int const n);
+    bool pack(int const i = 0);
     bool rollback();
-
     void commit(bool clearDelta = false);
 
-    void read(
-        std::string const & name,
-        bool        const   compressed
-    );
-
-    void readDelta(
-        std::string const & name,
-        bool        const   compressed
-    );
+    void read(std::string const & name, bool const compressed);
+    void readDelta(std::string const & name, bool const compressed);
 
     void write(
         std::string const & name,
         bool        const   overwrite,
         bool        const   compressed,
         bool        const   withDelta = true
-    );
-
+    ) const;
     void writeDelta(
         std::string const & name,
         bool        const   overwrite,
         bool        const   compressed
-    );
+    ) const;
 
 private :
 
+    // Ensure number of entries per-block is a power of 2 greater than 512.
+    // This avoids alignment issues for chunk entries and guarantees that
+    // flags and chunk entries live on different cachelines.
     BOOST_STATIC_ASSERT(TraitsT::ENTRIES_PER_BLOCK_LOG2 >= 9);
 
     Descriptor * _descriptor;
     AllocatorT * _allocator;
 
-    /// Maps the given offset to an actual address.
-    uint8_t * map(size_t const off) {
-        return reinterpret_cast<uint8_t *>(_allocator) + off;
+    /** Maps the given offset to an actual address. */
+    unsigned char * map(std::size_t const off) {
+        return reinterpret_cast<unsigned char *>(_allocator) + off;
     }
 
-    /// Maps the given offset to an actual address.
-    uint8_t const * map(size_t const off) const {
-        return reinterpret_cast<uint8_t const *>(_allocator) + off;
+    /** Maps the given offset to an actual address. */
+    unsigned char const * map(std::size_t const off) const {
+        return reinterpret_cast<unsigned char const *>(_allocator) + off;
     }
 
     void applyDeletes(
-        uint32_t const * const deletes,
-        uint32_t const         numDeletes,
-        uint32_t const         end
+        int const * const deletes,
+        int const numDeletes,
+        int const end
     );
 
-    void insert(
-        DataT          const & data,
-        ChunkEntryFlag const   flags
-    );
+    void insert(DataT const & data, ChunkEntryFlag const flags);
 
     void setFlags(
-        uint32_t       const b,
+        int const b,
         ChunkEntryFlag const flags,
-        uint32_t       const i = 0,
-        uint32_t       const n = (1u << ENTRIES_PER_BLOCK_LOG2)
+        int const i = 0,
+        int const n = (1 << ENTRIES_PER_BLOCK_LOG2)
     );
 };
 

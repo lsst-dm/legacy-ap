@@ -39,9 +39,12 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
             ftLoc = self._policy.get('filterTableLocation') % runDict
             self._policy.set('filterTableLocation', ftLoc)
 
-    def __init__(self, stageId, policy):
-        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
-        self.firstVisit = True
+    def __init__(self, stageId, stagePolicy):
+        lsst.pex.harness.Stage.Stage.__init__(self, stageId, stagePolicy)
+        self._policy = stagePolicy
+        self._firstVisit = True
+        if stagePolicy is None:
+            raise RuntimeError, "Cannot create a lsst.ap.LoadStage without a policy"
 
     def makeVpContext(self):
         """
@@ -57,10 +60,10 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         - [optionally] a match radius given by the 'matchRadius' key (with a double
           precision value in units of arc-seconds).
         """
-        clipboard      = self.inputQueue.getNextDataset()
-        event          = clipboard.get('triggerAssociationEvent')
+        clipboard = self.inputQueue.getNextDataset()
+        event = clipboard.get('triggerAssociationEvent')
         self.vpContext = ap.VisitProcessingContext(
-            event, self.getRun(), self.getRank(), self.getUniverseSize() - 1
+            self.policy, event, self.getRun(), self.getRank(), self.getUniverseSize() - 1
         )
         clipboard.put('vpContext', self.vpContext)
         self.outputQueue.addDataset(clipboard)
@@ -69,14 +72,14 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         """
         Registers the incoming visit with the shared memory chunk manager.
         """
-        assert self.inputQueue.size()  == 1
+        assert self.inputQueue.size() == 1
         assert self.outputQueue.size() == 0
         lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
 
-        if self.firstVisit:
+        if self._firstVisit:
             self._massagePolicy()
-            ap.initialize(self._policy, str(self.getRun()))
-            self.firstVisit = False
+            ap.initialize(str(self.getRun()))
+            self._firstVisit = False
         self.makeVpContext()
         ap.registerVisit(self.vpContext)
 
@@ -91,7 +94,7 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
 
         if self.firstVisit:
             self._massagePolicy()
-            ap.initialize(self._policy, str(self.getRun()))
+            ap.initialize(str(self.getRun()))
             self.firstVisit = False
         self.makeVpContext()
         ap.loadSliceObjects(self.vpContext)

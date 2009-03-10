@@ -1,30 +1,12 @@
 # -*- python -*-
 Import('env')
+import os, fnmatch
 
-sysLibs = ['z', 'pthread']
-if env['PLATFORM'] == 'posix':
-    sysLibs += ['rt']
-
-env.SharedLibrary('ap',
-    map(lambda str: '../src/' + str,
-        ['Time.cc',
-         'Random.cc',
-         'SpatialUtil.cc',
-         'ChunkToNameMappings.cc',
-         'CircularRegion.cc',
-         'RectangularRegion.cc',
-         'Mutex.cc',
-         'Condition.cc',
-         'Exceptions.cc',
-         'ScopeGuard.cc',
-         'Bitset.cc',
-         'Object.cc',
-         'Results.cc',
-         'Utils.cc',
-         'ChunkManager.cc',
-         'Stages.cc']) +
-    map(lambda str: '../src/io/' + str,
-        ['FileIo.cc',
-         'ResultFormatters.cc']),
-    LIBS=filter(lambda x: x != 'ap', env.getlibs('ap')) + sysLibs)
+pkg = env["eups_product"]
+sources = []
+for root, dirs, files in os.walk("../src"):
+    sources += [os.path.join(root, f) for f in fnmatch.filter(files, "*.cc")]
+    dirs = [d for d in dirs if not fnmatch.fnmatch(d, ".*")]
+env.SharedLibrary(pkg, sources,
+    LIBS=filter(lambda x: x != pkg, env.getlibs(pkg)))
 

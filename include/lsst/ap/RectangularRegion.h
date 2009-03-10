@@ -11,13 +11,10 @@
 #define LSST_AP_RECTANGULAR_REGION_H
 
 #include "Common.h"
+#include "CircularRegion.h"
 
 
-namespace lsst {
-namespace ap {
-
-
-class CircularRegion;
+namespace lsst { namespace ap {
 
 /** @brief  A rectangular region (in right ascension and declination) of the unit sphere. */
 class LSST_AP_API RectangularRegion {

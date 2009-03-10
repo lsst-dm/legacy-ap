@@ -13,15 +13,16 @@
 #include <string>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
+#include "boost/noncopyable.hpp"
+#include "boost/shared_ptr.hpp"
 
-#include <lsst/daf/base/Citizen.h>
-#include <lsst/daf/base/DataProperty.h>
-#include <lsst/pex/policy/Policy.h>
+#include "lsst/daf/base/Citizen.h"
+#include "lsst/daf/base/PropertySet.h"
+#include "lsst/pex/policy/Policy.h"
 
-#include <lsst/afw/detection/Source.h>
-#include <lsst/afw/image/Filter.h>
-#include <lsst/mops/MovingObjectPrediction.h>
+#include "lsst/afw/detection/DiaSource.h"
+#include "lsst/afw/image/Filter.h"
+#include "lsst/mops/MovingObjectPrediction.h"
 
 #include "Common.h"
 #include "ChunkManager.h"
@@ -32,95 +33,122 @@
 #include "ZoneTypes.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 #ifndef SWIG
 struct DiaSourceChunk {
-    typedef lsst::afw::detection::Source Entry;
+    typedef lsst::afw::detection::DiaSource Entry;
 };
 #endif
 
 
 /** @brief  Container for inter-stage association pipeline state. */
-class LSST_AP_API VisitProcessingContext : public lsst::daf::base::Citizen {
-
+class LSST_AP_API VisitProcessingContext :
+    public  lsst::daf::base::Citizen,
+    private boost::noncopyable
+{
 public :
-
     VisitProcessingContext(
-        lsst::daf::base::DataProperty::PtrType const & event,
+        lsst::pex::policy::Policy::Ptr const policy,
+        lsst::daf::base::PropertySet::Ptr const event,
         std::string const & runId,
-        int         const   workerId,
-        int         const   numWorkers
+        int const workerId,
+        int const numWorkers
     );
 
     ~VisitProcessingContext();
 
-    void setDiaSources(lsst::afw::detection::SourceVector & vec);
+    void setDiaSources(lsst::afw::detection::PersistableDiaSourceVector::Ptr diaSources);
 
 #ifndef SWIG
 
-    typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SimpleObjectChunk;
+    typedef SharedObjectChunkManager::ObjectChunk ObjectChunk;
 
-    typedef ZoneEntry<SimpleObjectChunk> SimpleObjectEntry;
-    typedef ZoneEntry<DiaSourceChunk>    DiaSourceEntry;
-    typedef ZoneIndex<SimpleObjectEntry> SimpleObjectIndex;
-    typedef ZoneIndex<DiaSourceEntry>    DiaSourceIndex;
+    typedef ZoneEntry<ObjectChunk> ObjectEntry;
+    typedef ZoneEntry<DiaSourceChunk> DiaSourceEntry;
+    typedef ZoneIndex<ObjectEntry> ObjectIndex;
+    typedef ZoneIndex<DiaSourceEntry> DiaSourceIndex;
 
-    std::vector<int64_t>           const & getChunkIds() const { return _chunkIds; }
-    std::vector<SimpleObjectChunk> const & getChunks()   const { return _chunks;   }
-    std::vector<int64_t>                 & getChunkIds()       { return _chunkIds; }
-    std::vector<SimpleObjectChunk>       & getChunks()         { return _chunks;   }
+    std::vector<int> const & getChunkIds() const {
+        return _chunkIds;
+    }
+    std::vector<ObjectChunk> const & getChunks() const {
+        return _chunks;
+    }
+    std::vector<int> & getChunkIds() {
+        return _chunkIds;
+    }
+    std::vector<ObjectChunk> & getChunks() {
+        return _chunks;
+    }
 
-    SimpleObjectIndex & getObjectIndex()    { return _objectIndex;    }
-    DiaSourceIndex    & getDiaSourceIndex() { return _diaSourceIndex; }
+    ObjectIndex & getObjectIndex() {
+        return _objectIndex;
+    }
+    DiaSourceIndex & getDiaSourceIndex() {
+        return _diaSourceIndex;
+    }
 
     void buildObjectIndex();
 
     ZoneStripeChunkDecomposition const & getDecomposition() const {
         return _objectIndex.getDecomposition();
     }
-
-    CircularRegion const & getFov()      const { return _fov;      }
-    TimeSpec       const & getDeadline() const { return _deadline; }
-
-    lsst::afw::image::Filter getFilter() const { return _filter;      }
+    CircularRegion const & getFov() const {
+        return _fov;
+    }
+    TimeSpec const & getDeadline() const {
+        return _deadline;
+    }
+    lsst::afw::image::Filter getFilter() const {
+        return _filter;
+    }
 
 #endif
 
-    std::string const & getRunId() const { return _runId; }
-
-    int64_t getVisitId()     const { return _visitId;        }
-    double  getMatchRadius() const { return _matchRadius;    }
-    int     getFilterId()    const { return _filter.getId(); }
-    int     getWorkerId()    const { return _workerId;       }
-    int     getNumWorkers()  const { return _numWorkers;     }
+    lsst::pex::policy::Policy::Ptr getPipelinePolicy() {
+        return _policy;
+    }
+    std::string const & getRunId() const {
+        return _runId;
+    }
+    double getMatchRadius() const {
+        return _matchRadius;
+    }
+    int getVisitId() const {
+        return _visitId;
+    }
+    int getFilterId() const {
+        return _filter.getId();
+    }
+    int getWorkerId() const {
+        return _workerId;
+    }
+    int getNumWorkers() const {
+        return _numWorkers;
+    }
 
 private :
 
-    // inhibit copy construction and assignment
-    VisitProcessingContext(VisitProcessingContext const &);
-    VisitProcessingContext & operator=(VisitProcessingContext const &);
+    lsst::pex::policy::Policy::Ptr _policy;
+    std::vector<int> _chunkIds;
+    std::vector<ObjectChunk> _chunks;
+    ObjectIndex _objectIndex;
+    DiaSourceIndex _diaSourceIndex;
+    std::vector<lsst::afw::detection::DiaSource::Ptr> _diaSources;
 
-    std::vector<int64_t>           _chunkIds;
-    std::vector<SimpleObjectChunk> _chunks;
-    SimpleObjectIndex              _objectIndex;
-    DiaSourceIndex                 _diaSourceIndex;
-    lsst::afw::detection::SourceVector::Ptr _diaSources;
-
-    TimeSpec         _deadline;
-    CircularRegion   _fov;
-    std::string      _runId;
-    int64_t          _visitId;
-    double           _matchRadius;
+    TimeSpec _deadline;
+    CircularRegion _fov;
+    std::string _runId;
+    int _visitId;
+    double _matchRadius;
     lsst::afw::image::Filter _filter;
-    int              _workerId;
-    int              _numWorkers;
+    int _workerId;
+    int _numWorkers;
 };
 
 
-LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::string const & runId);
+LSST_AP_API void initialize(std::string const & runId);
 
 LSST_AP_API void registerVisit(VisitProcessingContext & context);
 
@@ -130,13 +158,13 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context);
 
 LSST_AP_API void matchDiaSources(
     boost::shared_ptr<MatchPairVector> & matches,
-    VisitProcessingContext             & context
+    VisitProcessingContext & context
 );
 
 LSST_AP_API void matchMops(
-    boost::shared_ptr<MatchPairVector>     & matches,
-    boost::shared_ptr<IdPairVector>        & newObjects,
-    VisitProcessingContext                 & context,
+    boost::shared_ptr<MatchPairVector> & matches,
+    boost::shared_ptr<IdPairVector> & newObjects,
+    VisitProcessingContext & context,
     lsst::mops::MovingObjectPredictionVector & predictions
 );
 

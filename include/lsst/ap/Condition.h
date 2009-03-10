@@ -14,14 +14,13 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <boost/noncopyable.hpp>
+#include "boost/noncopyable.hpp"
 
 #include "Mutex.h"
 #include "Time.h"
 
 
-namespace lsst {
-namespace ap {
+namespace lsst { namespace ap {
 
 /** @brief  Encapsulates a POSIX condition variable. */
 template <typename MutexT>

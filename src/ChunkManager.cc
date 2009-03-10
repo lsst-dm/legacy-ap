@@ -2,7 +2,7 @@
 
 /**
  * @file
- * @brief   Implementation of shared memory chunk manager for SimpleObject instances.
+ * @brief   Implementation of shared memory chunk manager for Object instances.
  *
  * @ingroup associate
  */
@@ -13,39 +13,40 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <stdexcept>
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/format.hpp>
+#include "boost/bind.hpp"
+#include "boost/format.hpp"
 
-#include <lsst/ap/Chunk.cc>
-#include <lsst/ap/ChunkManagerImpl.cc>
-#include <lsst/ap/ChunkManager.h>
-#include <lsst/ap/ScopeGuard.h>
-#include <lsst/ap/SpatialUtil.h>
+#include "lsst/pex/exceptions.h"
+
+#include "lsst/ap/Chunk.cc"
+#include "lsst/ap/ChunkManagerImpl.cc"
+#include "lsst/ap/ChunkManager.h"
+#include "lsst/ap/ScopeGuard.h"
+#include "lsst/ap/SpatialUtil.h"
+
+namespace ex = lsst::pex::exceptions;
 
 
-namespace lsst {
-namespace ap {
-namespace detail {
+namespace lsst { namespace ap { namespace detail {
 
 // -- Explicit instantiations ----------------
 
-typedef BlockAllocator<SharedMutex, SimpleObject> SimpleObjectAllocator;
+typedef BlockAllocator<SharedMutex, Object> ObjAllocator;
 
 /// @cond
-template class BlockAllocator<SharedMutex, SimpleObject>;
-template class SubManager<SharedMutex, SimpleObject>;
-template class ChunkManagerSingleImpl<SharedMutex, SimpleObject>;
+template class BlockAllocator<SharedMutex, Object>;
+template class SubManager<SharedMutex, Object>;
+template class ChunkManagerImpl<SharedMutex, Object>;
 /// @endcond
 
-typedef ChunkManagerSingleImpl<SharedMutex, SimpleObject> SSObjChunkMgr;
+typedef ChunkManagerImpl<SharedMutex, Object> ObjChunkMgr;
 
 } // end of namespace detail
 
 ///@ cond
-template class Chunk<detail::SimpleObjectAllocator, SimpleObject>;
+template class ChunkRef<detail::ObjAllocator, Object>;
 ///@ endcond
 
 
@@ -82,7 +83,8 @@ BootstrapLock::BootstrapLock(char const * const name) : _name(name), _fd(-1) {
 
     while ((fd = ::shm_open(name, O_RDONLY | O_CREAT | O_EXCL, S_IRUSR | S_IRGRP | S_IROTH)) == -1) {
         if (tries == 0) {
-            LSST_AP_THROW(Timeout, boost::format("Unable to obtain shared memory bootstrap lock %1%") % name);
+            throw LSST_EXCEPT(ex::TimeoutException,
+                (boost::format("Unable to obtain shared memory bootstrap lock %1%") % name).str());
         }
         ::nanosleep(&ts, 0);
         ts += ts; // exponential backoff
@@ -114,8 +116,8 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
     // Block interference from other processes
     BootstrapLock blck(shmLockName);
 
-    size_t const pageSize  = static_cast<size_t>(::getpagesize());
-    size_t const numBytes  = (ManagerT::size() + pageSize - 1) & ~(pageSize - 1);
+    std::size_t const pageSize  = static_cast<std::size_t>(::getpagesize());
+    std::size_t const numBytes  = (ManagerT::size() + pageSize - 1) & ~(pageSize - 1);
 
     // 1. try to create shared memory object
     int fd = ::shm_open(shmObjName, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -124,31 +126,21 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
 
         // failed ...
         if (errno != EEXIST) {
-            LSST_AP_THROW_ERR(
-                Runtime,
-                boost::format("shm_open(): failed to create shared memory object %1%") % shmObjName,
-                errno
-            );
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("shm_open(): failed to create shared memory object %1%, errno: %2%") % shmObjName % errno).str());
         }
         // because the shared memory object already exists -- so try to open existing object instead
         fd = ::shm_open(shmObjName, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (fd == -1) {
-            LSST_AP_THROW_ERR(
-                Runtime,
-                boost::format("shm_open(): failed to open existing shared memory object %1%") % shmObjName,
-                errno
-            );
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("shm_open(): failed to open existing shared memory object %1%, errno: %2%") % shmObjName % errno).str());
         }
         ScopeGuard g(boost::bind(::close, fd));
 
         void * mem = ::mmap(0, numBytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (mem == 0) {
-            LSST_AP_THROW_ERR(
-                Runtime,
-                boost::format("mmap(): failed to map %1% bytes of shared memory object %2%") %
-                    numBytes % shmObjName,
-                errno
-            );
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%") % numBytes % shmObjName % errno).str());
         }
         singleton = static_cast<ManagerT *>(mem);
         g.dismiss();
@@ -161,23 +153,15 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
 
         // set size of shared memory object
         if (::ftruncate(fd, numBytes) != 0) {
-            LSST_AP_THROW_ERR(
-                Runtime,
-                boost::format("ftruncate(): failed to set size of shared memory object %1% to %2% bytes") %
-                    shmObjName % numBytes,
-                errno
-            );
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("ftruncate(): failed to set size of shared memory object %1% to %2% bytes, errno: %3%") % shmObjName % numBytes % errno).str());
         }
 
         // map shared memory object
         void * mem = ::mmap(0, numBytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (mem == 0) {
-            LSST_AP_THROW_ERR(
-                Runtime,
-                boost::format("mmap(): failed to map %1% bytes of shared memory object %2%") %
-                    numBytes % shmObjName,
-                errno
-            );
+            throw LSST_EXCEPT(ex::RuntimeErrorException,
+                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%") % numBytes % shmObjName % errno).str());
         }
         ScopeGuard g3(boost::bind(::munmap, mem, numBytes));
 
@@ -205,7 +189,7 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
-template SSObjChunkMgr * getSingleton<SSObjChunkMgr>(char const * const, char const * const);
+template ObjChunkMgr * getSingleton<ObjChunkMgr>(char const * const, char const * const);
 /// @endcond
 #if defined(__GNUC__) && __GNUC__ > 3
 #   pragma GCC visibility pop
@@ -219,15 +203,15 @@ static char const * const sSharedObjLock = "/ap_shlck";
 static char const * const sSharedPrefix  = "/ap_";
 
 
-// -- SharedSimpleObjectChunkManager ----------------
+// -- SharedObjectChunkManager ----------------
 
-SharedSimpleObjectChunkManager::SharedSimpleObjectChunkManager(std::string const & name) : _manager(instance(name)) {}
+SharedObjectChunkManager::SharedObjectChunkManager(std::string const & name) : _manager(instance(name)) {}
 
 
-LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance(std::string const & name) {
+LSST_AP_LOCAL detail::ObjChunkMgr * SharedObjectChunkManager::instance(std::string const & name) {
     std::string actualName(sSharedPrefix);
     actualName += name;
-    return detail::getSingleton<detail::SSObjChunkMgr>(actualName.c_str(), sSharedObjLock);
+    return detail::getSingleton<detail::ObjChunkMgr>(actualName.c_str(), sSharedObjLock);
 }
 
 
@@ -235,7 +219,7 @@ LSST_AP_LOCAL detail::SSObjChunkMgr * SharedSimpleObjectChunkManager::instance(s
  * Unlinks the shared memory object underlying all manager instances. The associated memory
  * is not returned to the system until all client processes have relinquished references to it.
  */
-void SharedSimpleObjectChunkManager::destroyInstance(std::string const & name) {
+void SharedObjectChunkManager::destroyInstance(std::string const & name) {
     std::string actualName(sSharedPrefix);
     actualName += name;
     int res = ::shm_unlink(actualName.c_str());
@@ -243,17 +227,14 @@ void SharedSimpleObjectChunkManager::destroyInstance(std::string const & name) {
     // EINVAL (rather than ENOENT) is returned when trying to shm_unlink a non-existant shared
     // memory object.
     if (res != 0 && errno != ENOENT && errno != EINVAL) {
-        LSST_AP_THROW_ERR(
-            Runtime,
-            boost::format("shm_unlink(): failed to unlink shared memory object %1%") % name,
-            errno
-        );
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+            (boost::format("shm_unlink(): failed to unlink shared memory object %1%, errno: %2%") % name % errno).str());
     }
 }
 
 
 /// Returns the size in bytes of the underlying chunk manager and pool of memory blocks.
-size_t SharedSimpleObjectChunkManager::size() { return detail::SSObjChunkMgr::size(); }
+std::size_t SharedObjectChunkManager::size() { return detail::ObjChunkMgr::size(); }
 
 
 }} // end of namespace lsst::ap

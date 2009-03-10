@@ -15,16 +15,13 @@
 
 #include <string>
 
-#include <boost/noncopyable.hpp>
-#include <boost/scoped_array.hpp>
+#include "boost/noncopyable.hpp"
+#include "boost/scoped_array.hpp"
 
 #include "../Common.h"
 
 
-namespace lsst {
-namespace ap {
-namespace io {
-
+namespace lsst { namespace ap { namespace io {
 
 /** @brief  Abstract base class for sequential I/O classes. */
 class LSST_AP_API SequentialIoBase {
@@ -65,7 +62,7 @@ public :
      * Reads up to @a len bytes from an underlying storage device into @a buf
      * and returns the number of bytes actually read.
      */
-    virtual size_t read(uint8_t * const buf, size_t const len) = 0;
+    virtual std::size_t read(unsigned char * const buf, std::size_t const len) = 0;
 };
 
 
@@ -75,7 +72,7 @@ class LSST_AP_API SequentialWriter : public SequentialIoBase {
 public :
 
     /// Writes @a len bytes from @a buf to the underlying storage device.
-    virtual void write(uint8_t const * const buf, size_t const len) = 0;
+    virtual void write(unsigned char const * const buf, std::size_t const len) = 0;
 
     /// Moves modified data to the underlying storage device and marks the SequentialWriter as finished.
     virtual void finish() = 0;
@@ -93,7 +90,7 @@ public:
     explicit SequentialFileReader(std::string const & fileName);
 
     virtual ~SequentialFileReader();
-    virtual size_t read(uint8_t * const buf, size_t const size);
+    virtual std::size_t read(unsigned char * const buf, std::size_t const size);
 
 private :
 
@@ -121,7 +118,7 @@ public :
     );
 
     virtual ~SequentialFileWriter();
-    virtual void write(uint8_t const * const buf, size_t const len);
+    virtual void write(unsigned char const * const buf, std::size_t const len);
     virtual void finish();
 
 private :
@@ -148,26 +145,24 @@ public :
 
     explicit CompressedFileReader(
         std::string const & fileName,
-        bool        const   direct    = true,
-        size_t      const   blockSize = 262144
+        std::size_t const   blockSize = 262144
     );
 
     virtual ~CompressedFileReader();
-    virtual size_t read(uint8_t * const buf, size_t const size);
+    virtual std::size_t read(unsigned char * const buf, std::size_t const size);
 
-    size_t getBlockSize() const { return _blockSize; }
+    std::size_t getBlockSize() const { return _blockSize; }
 
 private :
 
-    boost::scoped_array<uint8_t> _memory;
-    uint8_t *                    _buffers; ///< aligned input buffers
-
-    ::z_stream   _stream;       ///< zlib state
-    ::aiocb      _request;      ///< Outstanding IO request
-    size_t const _blockSize;    ///< read granularity
-    size_t       _fileSize;     ///< Size of the file being read
-    size_t       _remaining;    ///< Bytes that haven't yet been read
-    int          _fd;           ///< file descriptor
+    boost::scoped_array<unsigned char> _memory;
+    unsigned char *   _buffers;   ///< aligned input buffers
+    ::z_stream        _stream;    ///< zlib state
+    ::aiocb           _request;   ///< Outstanding IO request
+    std::size_t const _blockSize; ///< read granularity
+    std::size_t       _fileSize;  ///< Size of the file being read
+    std::size_t       _remaining; ///< Bytes that haven't yet been read
+    int               _fd;        ///< file descriptor
 
     void cleanup();
     void cleanup(State const state) {
@@ -190,27 +185,25 @@ public :
     explicit CompressedFileWriter(
         std::string const & fileName,
         bool        const   overwrite = false,
-        bool        const   direct    = true,
-        size_t      const   blockSize = 262144
+        std::size_t const   blockSize = 262144
     );
 
     virtual ~CompressedFileWriter();
 
-    virtual void write(uint8_t const * const buf, size_t const size);
+    virtual void write(unsigned char const * const buf, std::size_t const size);
     virtual void finish();
 
-    size_t getBlockSize() const { return _blockSize; }
+    std::size_t getBlockSize() const { return _blockSize; }
 
 private :
 
-    boost::scoped_array<uint8_t> _memory;
-    uint8_t *                    _buffers; ///< aligned output buffers
-
-    ::z_stream   _stream;       ///< zlib state
-    ::aiocb      _request;      ///< Outstanding IO request
-    size_t const _blockSize;    ///< read granularity
-    int          _fd;
-    bool         _started;
+    boost::scoped_array<unsigned char> _memory;
+    unsigned char *   _buffers;   ///< aligned output buffers
+    ::z_stream        _stream;    ///< zlib state
+    ::aiocb           _request;   ///< Outstanding IO request
+    std::size_t const _blockSize; ///< read granularity
+    int               _fd;
+    bool              _started;
 
     void cleanup();
     void cleanup(State const state) {

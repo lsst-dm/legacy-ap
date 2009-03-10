@@ -21,22 +21,20 @@
 
 #include <iostream>
 
-#include <lsst/ap/Exceptions.h>
+#include "lsst/pex/exceptions.h"
 
 
 using namespace boost::unit_test;
 
 namespace {
 
-using lsst::pex::exceptions::ExceptionStack;
+using lsst::pex::exceptions::Exception;
 
-void translator(ExceptionStack const & ex) {
-    std::cerr << '\n' << ex.what() << '\n'
-              << const_cast<ExceptionStack &>(ex).getStack()->toString("", true)
-              << '\n' << std::endl;
+void translator(Exception const & ex) {
+    std::cerr << '\n' << ex.what() << std::endl;
     throw boost::execution_exception(
         boost::execution_exception::cpp_exception_error,
-        "Caught lsst::pex::exceptions::ExceptionStack"
+        "Caught lsst::pex::exceptions::Exception"
     );
 }
 

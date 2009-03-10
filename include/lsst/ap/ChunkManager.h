@@ -2,7 +2,7 @@
 
 /**
  * @file
- * @brief   Class for managing chunks of SimpleObject instances in shared memory.
+ * @brief   Class for managing chunks of Object instances in shared memory.
  *
  * @ingroup associate
  */
@@ -16,16 +16,14 @@
 #include "Object.h"
 
 
-namespace lsst {
-namespace ap {
+namespace lsst { namespace ap {
 
-
-/** @brief  A manager for SimpleObject chunks that exist in shared memory. */
-class LSST_AP_API SharedSimpleObjectChunkManager {
+/** @brief  A manager for Object chunks that exist in shared memory. */
+class LSST_AP_API SharedObjectChunkManager {
 
 private :
 
-    typedef detail::ChunkManagerSingleImpl<SharedMutex, SimpleObject> Manager;
+    typedef detail::ChunkManagerImpl<SharedMutex, Object> Manager;
 
     Manager * _manager;
 
@@ -33,51 +31,65 @@ private :
 
 public :
 
-    typedef Manager::Chunk SimpleObjectChunk;
+    typedef Manager::Chunk ObjectChunk;
 
-    SharedSimpleObjectChunkManager(std::string const & name);
+    SharedObjectChunkManager(std::string const & name);
 
-    bool isVisitInFlight(int64_t const visitId) { return _manager->isVisitInFlight(visitId); }
-    void registerVisit  (int64_t const visitId) { _manager->registerVisit(visitId);          }
-    void failVisit      (int64_t const visitId) { _manager->failVisit(visitId);              }
+    bool isVisitInFlight(int const visitId) {
+        return _manager->isVisitInFlight(visitId);
+    }
+    void registerVisit(int const visitId) {
+        _manager->registerVisit(visitId);
+    }
+    void failVisit(int const visitId) {
+        _manager->failVisit(visitId);
+    }
 
     void startVisit(
-        std::vector<SimpleObjectChunk> & toRead,
-        std::vector<SimpleObjectChunk> & toWaitFor,
-        int64_t                  const   visitId,
-        std::vector<int64_t>     const & chunkIds
+        std::vector<ObjectChunk> & toRead,
+        std::vector<ObjectChunk> & toWaitFor,
+        int const visitId,
+        std::vector<int> const & chunkIds
     ) {
         _manager->startVisit(toRead, toWaitFor, visitId, chunkIds);
     }
 
     void waitForOwnership(
-        std::vector<SimpleObjectChunk> & toRead,
-        std::vector<SimpleObjectChunk> & toWaitFor,
-        int64_t                  const   visitId,
-        TimeSpec                 const & deadline
+        std::vector<ObjectChunk> & toRead,
+        std::vector<ObjectChunk> & toWaitFor,
+        int const visitId,
+        TimeSpec const & deadline
     ) {
         _manager->waitForOwnership(toRead, toWaitFor, visitId, deadline);
     }
 
     void getChunks(
-        std::vector<SimpleObjectChunk> & chunks,
-        std::vector<int64_t>     const & chunkIds
+        std::vector<ObjectChunk> & chunks,
+        std::vector<int> const & chunkIds
     ) {
         _manager->getChunks(chunks, chunkIds);
     }
 
-    bool endVisit(int64_t const visitId, bool const rollback) {
+    bool endVisit(int const visitId, bool const rollback) {
         return _manager->endVisit(visitId, rollback);
     }
 
-    void printVisits(std::ostream & os) const { _manager->printVisits(os); }
-    void printChunks(std::ostream & os) const { _manager->printChunks(os); }
-    void printVisit(int64_t const visitId, std::ostream & os) const { _manager->printVisit(visitId, os); }
-    void printChunk(int64_t const chunkId, std::ostream & os) const { _manager->printChunk(chunkId, os); }
+    void printVisits(std::ostream & os) const {
+        _manager->printVisits(os);
+    }
+    void printChunks(std::ostream & os) const {
+        _manager->printChunks(os);
+    }
+    void printVisit(int const visitId, std::ostream & os) const {
+        _manager->printVisit(visitId, os);
+    }
+    void printChunk(int const chunkId, std::ostream & os) const {
+        _manager->printChunk(chunkId, os);
+    }
 
     static void destroyInstance(std::string const & name);
 
-    static size_t size();
+    static std::size_t size();
 };
 
 

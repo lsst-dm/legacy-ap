@@ -20,7 +20,7 @@ death of the pipeline process(es). The ap_shmem_admin tool in the bin/ subdirect
 pipeline can then be used to query the chunk manager (--help for details). For this kind of debugging,
 the line reading:
 
-    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
+    SharedObjectChunkManager::destroyInstance(context.getRunId());
 
 inside the
 

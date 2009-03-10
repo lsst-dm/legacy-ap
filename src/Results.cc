@@ -7,156 +7,77 @@
  * @ingroup associate
  */
 
-#include <lsst/ap/Results.h>
+#include "lsst/ap/Results.h"
 
 
-namespace lsst {
-namespace ap {
+// -- PersistableMatchPairVector ----------------
 
-
-// -- MatchPairVector ----------------
-
-MatchPairVector::MatchPairVector() :
+lsst::ap::PersistableMatchPairVector::PersistableMatchPairVector() :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec()
+    _matchPairs()
 {}
 
 
-MatchPairVector::MatchPairVector(size_type n) :
+lsst::ap::PersistableMatchPairVector::PersistableMatchPairVector(lsst::ap::MatchPairVector const & matchPairs) :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n)
+    _matchPairs(matchPairs)
 {}
 
 
-MatchPairVector::MatchPairVector(size_type n, value_type const & val) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n, val)
-{}
+lsst::ap::PersistableMatchPairVector::~PersistableMatchPairVector() {} 
 
-
-MatchPairVector::~MatchPairVector() {}
-
-
-MatchPairVector::MatchPairVector(MatchPairVector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v._vec)
-{}
-
-
-MatchPairVector::MatchPairVector(Vector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v)
-{}
-
-
-MatchPairVector & MatchPairVector::operator=(MatchPairVector const & v) {
-    if (this != &v) {
-        _vec = v._vec;
+bool lsst::ap::PersistableMatchPairVector::operator==(lsst::ap::MatchPairVector const & other) const {
+    if (_matchPairs.size() != other.size()) {
+        return false;
     }
-    return *this;
-}
-
-MatchPairVector & MatchPairVector::operator=(Vector const & v) {
-    _vec = v;
-    return *this;
+    return std::equal(_matchPairs.begin(), _matchPairs.end(), other.begin());
 }
 
 
-// -- IdPairVector ----------------
+// -- PersistableIdPairVector ----------------
 
-IdPairVector::IdPairVector() :
+lsst::ap::PersistableIdPairVector::PersistableIdPairVector() :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec()
+    _idPairs()
 {}
 
 
-IdPairVector::IdPairVector(size_type n) :
+lsst::ap::PersistableIdPairVector::PersistableIdPairVector(lsst::ap::IdPairVector const & idPairs) :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n)
+    _idPairs(idPairs)
 {}
 
 
-IdPairVector::IdPairVector(size_type n, value_type const & val) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n, val)
-{}
+lsst::ap::PersistableIdPairVector::~PersistableIdPairVector() {}
 
-
-IdPairVector::~IdPairVector() {}
-
-
-IdPairVector::IdPairVector(IdPairVector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v._vec)
-{}
-
-
-IdPairVector::IdPairVector(Vector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v)
-{}
-
-
-IdPairVector & IdPairVector::operator=(IdPairVector const & v) {
-    if (this != &v) {
-        _vec = v._vec;
+bool lsst::ap::PersistableIdPairVector::operator==(lsst::ap::IdPairVector const & other) const {
+    if (_idPairs.size() != other.size()) {
+        return false;
     }
-    return *this;
-}
-
-IdPairVector & IdPairVector::operator=(Vector const & v) {
-    _vec = v;
-    return *this;
+    return std::equal(_idPairs.begin(), _idPairs.end(), other.begin());
 }
 
 
 // -- IdVector ----------------
 
-IdVector::IdVector() :
+lsst::ap::PersistableIdVector::PersistableIdVector() :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec()
+    _ids()
 {}
 
-
-IdVector::IdVector(size_type n) :
+    
+lsst::ap::PersistableIdVector::PersistableIdVector(lsst::ap::IdVector const & ids) :
     lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n)
+    _ids(ids)
 {}
 
+    
+lsst::ap::PersistableIdVector::~PersistableIdVector() {}
 
-IdVector::IdVector(size_type n, value_type const & val) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(n, val)
-{}
-
-
-IdVector::~IdVector() {}
-
-
-IdVector::IdVector(IdVector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v._vec)
-{}
-
-
-IdVector::IdVector(Vector const & v) :
-    lsst::daf::base::Citizen(typeid(*this)),
-    _vec(v)
-{}
-
-
-IdVector & IdVector::operator=(IdVector const & v) {
-    if (this != &v) {
-        _vec = v._vec;
+bool lsst::ap::PersistableIdVector::operator==(lsst::ap::IdVector const & other) const {
+    if (_ids.size() != other.size()) {
+        return false;
     }
-    return *this;
+    return std::equal(_ids.begin(), _ids.end(), other.begin());
 }
-
-IdVector & IdVector::operator=(Vector const & v) {
-    _vec = v;
-    return *this;
-}
-
-
-}} // end of namespace lsst::ap
 
