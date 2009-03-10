@@ -1,5 +1,5 @@
 # -*- python -*-
-import glob, os.path, re, os
+import glob, os.path, re, os, sys
 import lsst.SConsUtils as scons
 
 # Custom configure tests

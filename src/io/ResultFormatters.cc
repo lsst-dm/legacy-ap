@@ -45,7 +45,7 @@ namespace fmt = lsst::afw::formatters;
 
 // -- MatchPairVectorFormatter ----------------
 
-lsst::ap::io::MatchPairVectorFormatter::MatchPairVectorFormatter(Policy::Ptr const policy) :
+lsst::ap::io::MatchPairVectorFormatter::MatchPairVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
@@ -61,7 +61,7 @@ FormatterRegistration lsst::ap::io::MatchPairVectorFormatter::registration(
 );
 
 
-Formatter::Ptr lsst::ap::io::MatchPairVectorFormatter::createInstance(Policy::Ptr const policy) {
+Formatter::Ptr lsst::ap::io::MatchPairVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new MatchPairVectorFormatter(policy));
 }
 
@@ -220,7 +220,7 @@ void lsst::ap::io::MatchPairVectorFormatter::update(Persistable *, Storage::Ptr,
 
 // -- IdPairVectorFormatter ----------------
 
-lsst::ap::io::IdPairVectorFormatter::IdPairVectorFormatter(Policy::Ptr const policy) :
+lsst::ap::io::IdPairVectorFormatter::IdPairVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
@@ -236,7 +236,7 @@ FormatterRegistration lsst::ap::io::IdPairVectorFormatter::registration(
 );
 
 
-Formatter::Ptr lsst::ap::io::IdPairVectorFormatter::createInstance(Policy::Ptr const policy) {
+Formatter::Ptr lsst::ap::io::IdPairVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new IdPairVectorFormatter(policy));
 }
 
@@ -391,7 +391,7 @@ void lsst::ap::io::IdPairVectorFormatter::update(Persistable *, Storage::Ptr, Pr
 
 // -- IdVectorFormatter ----------------
 
-lsst::ap::io::IdVectorFormatter::IdVectorFormatter(Policy::Ptr const policy) :
+lsst::ap::io::IdVectorFormatter::IdVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
@@ -407,7 +407,7 @@ FormatterRegistration lsst::ap::io::IdVectorFormatter::registration(
 );
 
 
-Formatter::Ptr lsst::ap::io::IdVectorFormatter::createInstance(Policy::Ptr const policy) {
+Formatter::Ptr lsst::ap::io::IdVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new IdVectorFormatter(policy));
 }
 

@@ -15,59 +15,45 @@ Access to association pipeline persistable result objects and implementation met
 %{
 #include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
-#include "lsst/daf/persistence.h"
 #include "lsst/ap/Results.h"
-//#include "lsst/ap/io/ResultFormatters.h"
+#include "lsst/ap/io/ResultFormatters.h"
 #include "lsst/ap/Stages.h"
 #include "lsst/ap/Utils.h"
 #include <sstream>
 %}
 
-%inline %{
-namespace boost { namespace filesystem {} }
-%}
+namespace boost {
+#if defined(SWIGWORDSIZE64)
+    typedef long int64_t;
+#else
+    typedef long long int64_t;
+#endif
+}
 
+%include "std_pair.i"
 %include "lsst/p_lsstSwig.i"
 %include "lsst/daf/base/persistenceMacros.i"
 
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
 
-%include <stdint.i>
-%include <typemaps.i>
-%include <std_pair.i>
-%include <std_vector.i>
+%lsst_exceptions()
 
-%import  "lsst/ap/Common.h"
+SWIG_SHARED_PTR(PersistableIdVec, lsst::ap::PersistableIdVector);
+SWIG_SHARED_PTR(PersistableIdPairVec, lsst::ap::PersistableIdPairVector);
+SWIG_SHARED_PTR(PersistableMatchPairVec, lsst::ap::PersistableMatchPairVector);
 
-%rename(IdVec)        lsst::ap::IdVector;
-%rename(IdPairVec)    lsst::ap::IdPairVector;
-%rename(MatchPairVec) lsst::ap::MatchPairVector;
-
+%include "lsst/ap/Common.h"
 %include "lsst/ap/Results.h"
 
-
-%define %lsst_idpair(Type)
-    %template(IdPair) std::pair<Type, Type>;
-
-    %extend std::pair<Type, Type> {
-        std::string toString() {
-            std::ostringstream os;
-            os << "IdPair (" << $self->first << ", " << $self->second << ")";
-            return os.str();
-        }
-    };
-
-    %pythoncode %{
-    IdPair.__str__ = IdPair.toString
-    %}
-%enddef
-
-#if defined(SWIGWORDSIZE64)
-    %lsst_idpair(long);
-#else
-    %lsst_idpair(long long);
-#endif
+%template(IdPair) std::pair<boost::int64_t, boost::int64_t>;
+%extend std::pair<boost::int64_t, boost::int64_t> {
+    std::string toString() {
+        std::ostringstream os;
+        os << "IdPair (" << $self->first << ", " << $self->second << ")";
+        return os.str();
+    }
+};
 
 %extend lsst::ap::MatchPair {
     std::string toString() {
@@ -79,18 +65,23 @@ namespace boost { namespace filesystem {} }
 };
 
 %pythoncode %{
+IdPair.__str__ = IdPair.toString
 MatchPair.__str__ = MatchPair.toString
 %}
 
+%template(IdVec) std::vector<boost::int64_t>;
+%template(IdPairVec) std::vector<std::pair<boost::int64_t, boost::int64_t> >;
+%template(MatchPairVec) std::vector<lsst::ap::MatchPair>;
 
+%lsst_persistable(lsst::ap::PersistableIdVector);
+%lsst_persistable(lsst::ap::PersistableIdPairVector);
+%lsst_persistable(lsst::ap::PersistableMatchPairVector);
 
-// Export instantiations of boost::shared_ptr for persistable data vectors
-%lsst_persistable(lsst::ap::IdVector);
-%lsst_persistable(lsst::ap::IdPairVector);
-%lsst_persistable(lsst::ap::MatchPairVector);
-
-%include "lsst/ap/RectangularRegion.h"
 %include "lsst/ap/CircularRegion.h"
+%include "lsst/ap/RectangularRegion.h"
 %include "lsst/ap/SpatialUtil.h"
+
+SWIG_SHARED_PTR(VisitProcessingContext, lsst::ap::VisitProcessingContext);
+
 %include "lsst/ap/Stages.h"
 

@@ -63,9 +63,9 @@ private:
 
     lsst::pex::policy::Policy::Ptr _policy;
 
-    explicit MatchPairVectorFormatter(lsst::pex::policy::Policy::Ptr const);
+    explicit MatchPairVectorFormatter(lsst::pex::policy::Policy::Ptr);
 
-    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr);
     static lsst::daf::persistence::FormatterRegistration registration;
 };
 
@@ -109,9 +109,9 @@ private:
 
     lsst::pex::policy::Policy::Ptr _policy;
 
-    explicit IdPairVectorFormatter(lsst::pex::policy::Policy::Ptr const);
+    explicit IdPairVectorFormatter(lsst::pex::policy::Policy::Ptr);
 
-    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr);
     static lsst::daf::persistence::FormatterRegistration registration;
 };
 
@@ -155,9 +155,9 @@ private:
 
     lsst::pex::policy::Policy::Ptr _policy;
 
-    explicit IdVectorFormatter(lsst::pex::policy::Policy::Ptr const);
+    explicit IdVectorFormatter(lsst::pex::policy::Policy::Ptr);
 
-    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr const);
+    static lsst::daf::persistence::Formatter::Ptr createInstance(lsst::pex::policy::Policy::Ptr);
     static lsst::daf::persistence::FormatterRegistration registration;
 };
 
