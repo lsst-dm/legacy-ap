@@ -13,7 +13,7 @@
 #include <iostream>
 
 #include "lsst/ap/Common.h"
-#include "lsst/ap/Random.h"
+#include "lsst/ap/Point.h"
 #include "lsst/ap/SpatialUtil.h"
 #include "lsst/ap/Time.h"
 
