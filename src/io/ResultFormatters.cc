@@ -134,8 +134,8 @@ void lsst::ap::io::MatchPairVectorFormatter::write(
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name = fmt::getVisitSliceTableName(_policy, additionalData);
-        std::string model = _policy->getString(_policy->getString("itemName") + ".templateTableName");
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
         MatchPairVector const & v = p->getMatchPairs();
         if (typeid(*storage) == typeid(DbStorage)) {
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
@@ -187,7 +187,7 @@ Persistable * lsst::ap::io::MatchPairVectorFormatter::read(
         if (db == 0) {
             throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
-        db->setTableForQuery(fmt::getVisitSliceTableName(_policy, additionalData));
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
         MatchPair data;
         db->outParam("first",    &(data._first));
         db->outParam("second",   &(data._second));
@@ -230,8 +230,8 @@ lsst::ap::io::IdPairVectorFormatter::~IdPairVectorFormatter() {}
 
 
 FormatterRegistration lsst::ap::io::IdPairVectorFormatter::registration(
-    "IdPairVector",
-    typeid(IdPairVector),
+    "PersistableIdPairVector",
+    typeid(PersistableIdPairVector),
     createInstance
 );
 
@@ -310,8 +310,8 @@ void lsst::ap::io::IdPairVectorFormatter::write(
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name = fmt::getVisitSliceTableName(_policy, additionalData);
-        std::string model = _policy->getString(_policy->getString("itemName") + ".templateTableName");
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
         IdPairVector const & v = p->getIdPairs();
         if (typeid(*storage) == typeid(DbStorage)) { 
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
@@ -362,7 +362,7 @@ Persistable * lsst::ap::io::IdPairVectorFormatter::read(
             throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
 
-        db->setTableForQuery(fmt::getVisitSliceTableName(_policy, additionalData));
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
         IdPair data;
         db->outParam("first",  &data.first);
         db->outParam("second", &data.second);
@@ -401,8 +401,8 @@ lsst::ap::io::IdVectorFormatter::~IdVectorFormatter() {}
 
 
 FormatterRegistration lsst::ap::io::IdVectorFormatter::registration(
-    "IdVector",
-    typeid(IdVector),
+    "PersistableIdVector",
+    typeid(PersistableIdVector),
     createInstance
 );
 
@@ -479,8 +479,8 @@ void lsst::ap::io::IdVectorFormatter::write(
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name = fmt::getVisitSliceTableName(_policy, additionalData);
-        std::string model = _policy->getString(_policy->getString("itemName") + ".templateTableName");
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
         IdVector const & v = p->getIds();
         if (typeid(*storage) == typeid(DbStorage)) {
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
@@ -529,7 +529,7 @@ Persistable * lsst::ap::io::IdVectorFormatter::read(
             throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
 
-        db->setTableForQuery(fmt::getVisitSliceTableName(_policy, additionalData));
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
         boost::int64_t data;
         db->outParam("id", &data);
         db->query();

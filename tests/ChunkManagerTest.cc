@@ -10,20 +10,18 @@
 
 #include <vector>
 
-#include <boost/version.hpp>
-#include <boost/bind.hpp>
-#if BOOST_VERSION < 103400
-#   include <boost/test/auto_unit_test.hpp>
-#   define BOOST_TEST_MESSAGE BOOST_MESSAGE
-#else
-#   include <boost/test/unit_test.hpp>
-#endif
+#include "boost/bind.hpp"
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE ChunkManagerTest
+#include "boost/test/unit_test.hpp"
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Chunk.h>
-#include <lsst/ap/ChunkManager.h>
-#include <lsst/ap/ScopeGuard.h>
-#include <lsst/ap/Time.h>
+#include "lsst/pex/exceptions.h"
+
+#include "lsst/ap/Common.h"
+#include "lsst/ap/Chunk.h"
+#include "lsst/ap/ChunkManager.h"
+#include "lsst/ap/ScopeGuard.h"
+#include "lsst/ap/Time.h"
 
 
 using namespace lsst::ap;
@@ -39,14 +37,14 @@ BOOST_AUTO_TEST_CASE(disjointVisitsTest) {
     SharedObjectChunkManager::destroyInstance("test");
 
     // Process a series of non-overlapping visits
-    static int64_t const numVisits = 50;
-    for (int64_t visitId = 1; visitId < numVisits; ++visitId) {
+    static int const numVisits = 50;
+    for (int visitId = 1; visitId < numVisits; ++visitId) {
 
         ScopeGuard v1(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId - 1, false));
         ScopeGuard v2(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId, false));
         std::vector<ObjChunk> toRead;
         std::vector<ObjChunk> toWaitFor;
-        std::vector<int64_t>   chunkIds;
+        std::vector<int>      chunkIds;
 
         mgr.registerVisit(visitId);
         chunkIds.push_back(2*visitId);
@@ -73,14 +71,14 @@ BOOST_AUTO_TEST_CASE(overlappingVisitsTest) {
     SharedObjectChunkManager::destroyInstance("test");
 
     // Process a series of overlapping visits
-    static int64_t const numVisits = 50;
-    for (int64_t visitId = 1; visitId < numVisits; ++visitId) {
+    static int const numVisits = 50;
+    for (int visitId = 1; visitId < numVisits; ++visitId) {
 
         ScopeGuard v1(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId - 1, false));
         ScopeGuard v2(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, visitId, false));
         std::vector<ObjChunk> toRead;
         std::vector<ObjChunk> toWaitFor;
-        std::vector<int64_t>   chunkIds;
+        std::vector<int>      chunkIds;
 
         mgr.registerVisit(visitId);
         chunkIds.push_back(visitId);
@@ -94,7 +92,8 @@ BOOST_AUTO_TEST_CASE(overlappingVisitsTest) {
             TimeSpec deadline;
             deadline.systemTime();
             deadline += 0.02;
-            BOOST_CHECK_THROW(mgr.waitForOwnership(toRead, toWaitFor, visitId, deadline), Timeout);
+            BOOST_CHECK_THROW(mgr.waitForOwnership(toRead, toWaitFor, visitId, deadline),
+                              lsst::pex::exceptions::TimeoutException);
             // end the previous visit
             v1.dismiss();
             mgr.endVisit(visitId - 1, false);

@@ -23,6 +23,8 @@
 
 #include "boost/scoped_array.hpp"
 
+#include "lsst/pex/exceptions.h"
+
 #include "SpatialUtil.h"
 #include "ZoneTypes.h"
 

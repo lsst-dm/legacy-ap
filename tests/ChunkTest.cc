@@ -11,34 +11,56 @@
 
 #include <cstring>
 #include <algorithm>
+#include <iostream>
 #include <string>
 #include <vector>
 
-#include <boost/version.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_array.hpp>
-#if BOOST_VERSION < 103400
-#   include <boost/test/auto_unit_test.hpp>
-#   define BOOST_TEST_MESSAGE BOOST_MESSAGE
-#else
-#   include <boost/test/unit_test.hpp>
-#endif
+#include "boost/bind.hpp"
+#include "boost/shared_array.hpp"
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE ChunkTest
+#include "boost/test/unit_test.hpp"
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Chunk.h>
-#include <lsst/ap/ChunkManager.h>
-#include <lsst/ap/Random.h>
-#include <lsst/ap/ScopeGuard.h>
+#include "lsst/afw/math/Random.h"
 
+#include "lsst/ap/Common.h"
+#include "lsst/ap/Chunk.h"
+#include "lsst/ap/ChunkManager.h"
+#include "lsst/ap/Point.h"
+#include "lsst/ap/ScopeGuard.h"
+#include "lsst/ap/Time.h"
+
+
+using lsst::afw::math::Random;
 using namespace lsst::ap;
 
 
+typedef SharedObjectChunkManager::ObjectChunk ObjChunk;
+
 namespace {
 
-typedef SharedObjectChunkManager::ObjectChunk SObjChunk;
+Random & rng() {
+    static Random * generator = 0;
+    if (generator == 0) {
+        TimeSpec ts;
+        ts.systemTime();
+        generator = new Random(Random::MT19937, static_cast<unsigned long>(ts.tv_sec + ts.tv_nsec));
+        std::clog << "\n"
+            << "     /\n"
+            << "    | Note: Using random number seed " << generator->getSeed() << "\n"
+            << "    |       and algorithm " << generator->getAlgorithmName() << "\n"
+            << "     \\\n" << std::endl;    
+    }
+    return *generator;
+}
 
 
-static std::string const makeTempFile() {
+bool coinToss(double p) {
+    return rng().uniform() <= p;
+}
+
+
+std::string const makeTempFile() {
     char name[32];
     std::strncpy(name, "/tmp/ChunkTest.XXXXXX", 31);
     name[31] = 0;
@@ -52,18 +74,17 @@ static std::string const makeTempFile() {
 
 
 // Creates a single, initially empty, chunk belonging to visit 1.
-static SObjChunk const createChunk() {
+ObjChunk const createChunk() {
     SharedObjectChunkManager mgr("test");
     // unlink the shared memory object immediately (it remains available until the test process exits)
     SharedObjectChunkManager::destroyInstance("test");
 
-    std::vector<int64_t>   chunkIds;
-    std::vector<SObjChunk> toWaitFor;
-    std::vector<SObjChunk> toRead;
+    std::vector<int>      chunkIds;
+    std::vector<ObjChunk> toWaitFor;
+    std::vector<ObjChunk> toRead;
 
-    initRandom();
     mgr.registerVisit(1);
-    int64_t chunkId = static_cast<int64_t>(uniformRandom()*1.0e9);
+    int chunkId = static_cast<int>(rng().uniformInt(1000000000));
     chunkIds.push_back(chunkId);
     mgr.startVisit(toRead, toWaitFor, 1, chunkIds);
     BOOST_CHECK_MESSAGE(toWaitFor.size() == 0, "Chunk was already registered with the manager");
@@ -74,69 +95,71 @@ static SObjChunk const createChunk() {
 
 // Pick num ids at random, with values between min (inclusive) and max (exclusive).
 // Then sort the picks and remove duplicates.
-static void pickIds(std::vector<int64_t> & ids, size_t const num, int64_t const min, int64_t const max) {
+void pickIds(std::vector<int> & ids, int const num, int const min, int const max) {
     BOOST_REQUIRE(max > min && min >= 0);
-    for (size_t i = 0; i < num; ++i) {
-        ids.push_back(min + static_cast<int64_t>(uniformRandom()*(max - min)));
+    for (int i = 0; i < num; ++i) {
+        ids.push_back(static_cast<int>(rng().flat(min, max)));
     }
     std::sort(ids.begin(), ids.end());
     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
 }
 
 
-static void appendObjects(SObjChunk & chunk, size_t const num) {
+void appendObjects(ObjChunk & chunk, int const num) {
     Object obj;
-    int64_t      id = static_cast<int64_t>(chunk.size());
-    for (size_t i = 0; i < num; ++i, ++id) {
+    int id = chunk.size();
+    for (int i = 0; i < num; ++i, ++id) {
         obj._objectId = id;
         // don't care where objects are for this test - fill everything except id with random data
-        Point p   = Point::random();
-        obj._ra   = p._ra;
-        obj._decl = p._dec;
+        Point p     = Point::random(rng());
+        obj._ra     = p._ra;
+        obj._decl   = p._dec;
+        obj._pmRa   = rng().gaussian()*10.0;
+        obj._pmDecl = rng().gaussian()*10.0;
         for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
-            obj._varProb[i] = static_cast<int8_t>(uniformRandom()*100.0);
+            obj._varProb[i] = static_cast<boost::int16_t>(rng().uniformInt(100));
         }
         chunk.insert(obj);
     }
 }
 
 
-static boost::shared_array<Object> const copyData(SObjChunk & chunk) {
-    uint32_t sz = chunk.size();
+boost::shared_array<Object> const copyData(ObjChunk & chunk) {
+    int sz = chunk.size();
     boost::shared_array<Object> copy(new Object[sz]);
     std::memset(copy.get(), 0, sz*sizeof(Object));
-    for (uint32_t i = 0; i < sz; ++ i) {
+    for (int i = 0; i < sz; ++ i) {
         copy[i] = chunk.get(i);
     }
     return copy;
 }
 
 
-static bool isInDelta(SObjChunk const & chunk, uint32_t const i, uint32_t const off = 0) {
-    return (chunk.getFlag(i - off) & SObjChunk::IN_DELTA) != 0;
+bool isInDelta(ObjChunk const & chunk, int const i, int const off = 0) {
+    return (chunk.getFlag(i - off) & ObjChunk::IN_DELTA) != 0;
 }
 
-static bool isUncommitted(SObjChunk const & chunk, uint32_t const i, uint32_t const off = 0) {
-    return (chunk.getFlag(i - off) & SObjChunk::UNCOMMITTED) != 0;
+bool isUncommitted(ObjChunk const & chunk, int const i, int const off = 0) {
+    return (chunk.getFlag(i - off) & ObjChunk::UNCOMMITTED) != 0;
 }
 
-static bool isInserted(SObjChunk const & chunk, uint32_t const i, uint32_t const off = 0) {
-    return (chunk.getFlag(i - off) & SObjChunk::INSERTED) != 0;
+bool isInserted(ObjChunk const & chunk, int const i, int const off = 0) {
+    return (chunk.getFlag(i - off) & ObjChunk::INSERTED) != 0;
 }
 
-static bool isDeleted(SObjChunk const & chunk, uint32_t const i, uint32_t const off = 0) {
-    return (chunk.getFlag(i - off) & SObjChunk::DELETED) != 0;
+bool isDeleted(ObjChunk const & chunk, int const i, int const off = 0) {
+    return (chunk.getFlag(i - off) & ObjChunk::DELETED) != 0;
 }
 
 
-static void verifyChunk(
-    SObjChunk            const & chunk,
-    std::vector<int64_t> const & deletes,
-    bool                 const   packed,
-    bool                 const   committed
+void verifyChunk(
+    ObjChunk         const & chunk,
+    std::vector<int> const & deletes,
+    bool             const   packed,
+    bool             const   committed
 ) {
-    uint32_t size  = chunk.size();
-    uint32_t delta = chunk.delta();
+    int size  = chunk.size();
+    int delta = chunk.delta();
     if (packed) {
         if (delta < size) {
             delta += std::lower_bound(deletes.begin(), deletes.end(), chunk.get(delta).getId()) - deletes.begin();
@@ -146,13 +169,13 @@ static void verifyChunk(
         size += deletes.size();
     }
 
-    std::vector<int64_t>::const_iterator gap(deletes.begin());
-    int64_t  nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int64_t>::max();
-    uint32_t off     = 0;
-    bool     foundInsert = false;
+    std::vector<int>::const_iterator gap(deletes.begin());
+    int nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int>::max();
+    int off = 0;
+    bool foundInsert = false;
 
     // loop over normal entries
-    for (uint32_t i = 0; i < delta; ++i) {
+    for (int i = 0; i < delta; ++i) {
         if (i == nextGap) {
             if (packed) {
                 if (i - off < chunk.size()) {
@@ -167,7 +190,7 @@ static void verifyChunk(
                     BOOST_CHECK_MESSAGE(!isUncommitted(chunk, i, off), "found uncommitted entry");
                 }
             }
-            nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int64_t>::max();
+            nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int>::max();
         } else {
             BOOST_CHECK_MESSAGE(!isInDelta(chunk, i, off), "entry marked IN_DELTA is below the chunk delta index");
             BOOST_CHECK_MESSAGE(!isInserted(chunk, i, off), "INSERTED entry not marked IN_DELTA");
@@ -177,18 +200,18 @@ static void verifyChunk(
     }
 
     // then loop over entries in the chunk delta
-    for (uint32_t i = delta; i < size; ++i) {
+    for (int i = delta; i < size; ++i) {
         if (i == nextGap) {
             if (packed) {
                 if (i - off < chunk.size()) {
                     BOOST_CHECK_MESSAGE(chunk.get(i - off).getId() > i, "deleted entry wasn't packed");
                 }
                 ++off;
-                nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int64_t>::max();
+                nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int>::max();
                 continue;
             }
             BOOST_CHECK_MESSAGE(isDeleted(chunk, i, off), "deleted entry wasn't marked DELETED");
-            nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int64_t>::max();
+            nextGap = (gap != deletes.end()) ? *gap++ : std::numeric_limits<int>::max();
         } else {
             BOOST_CHECK_MESSAGE(!isDeleted(chunk, i, off), "entry incorrectly marked as DELETED");
         }
@@ -206,10 +229,10 @@ static void verifyChunk(
 }
 
 
-static void verifyData(SObjChunk const & chunk, boost::shared_array<Object> const & data) {
-    uint32_t size = chunk.size();
-    for (uint32_t i = 0, b = 0; i < size; ++b) {
-        uint32_t n = chunk.entries(b);
+void verifyData(ObjChunk const & chunk, boost::shared_array<Object> const & data) {
+    int size = chunk.size();
+    for (int i = 0, b = 0; i < size; ++b) {
+        int n = chunk.entries(b);
         int cmp = std::memcmp(chunk.getBlock(b), &(data[i]), sizeof(Object)*n);
         i += n;
         BOOST_CHECK_MESSAGE(cmp ==  0, "chunk IO resulted in data corruption");
@@ -217,14 +240,14 @@ static void verifyData(SObjChunk const & chunk, boost::shared_array<Object> cons
 }
 
 
-static void verifyPackedData(
-    SObjChunk                         const & chunk,
+void verifyPackedData(
+    ObjChunk                    const & chunk,
     boost::shared_array<Object> const & data,
-    std::vector<int64_t>              const & deletes
+    std::vector<int>            const & deletes
 ) {
-    uint32_t size = chunk.size();
-    std::vector<int64_t>::const_iterator gap(deletes.begin());
-    for (uint32_t i = 0, j = 0; i < size; ++j) {
+    int size = chunk.size();
+    std::vector<int>::const_iterator gap(deletes.begin());
+    for (int i = 0, j = 0; i < size; ++j) {
         if (gap != deletes.end() && *gap == j) {
             ++gap;
             continue;
@@ -236,9 +259,9 @@ static void verifyPackedData(
 }
 
 
-static void wrCycle(SObjChunk & c, std::vector<int64_t> & d, std::string const & name, bool const compress) {
-    uint32_t const size  = c.size();
-    uint32_t const delta = c.delta();
+void wrCycle(ObjChunk & c, std::vector<int> & d, std::string const & name, bool const compress) {
+    int const size  = c.size();
+    int const delta = c.delta();
 
     c.write(name, true, compress);
     if (coinToss(0.5)) {
@@ -257,17 +280,17 @@ static void wrCycle(SObjChunk & c, std::vector<int64_t> & d, std::string const &
 }
 
 
-static void wrdCycle(
-    SObjChunk            & c,
-    std::vector<int64_t> & d,
-    std::string    const & name,
-    bool           const   packed,
-    bool           const   compress
+void wrdCycle(
+    ObjChunk          & c,
+    std::vector<int>  & d,
+    std::string const & name,
+    bool        const   packed,
+    bool        const   compress
 ) {
-    uint32_t const size  = c.size();
-    uint32_t const delta = c.delta();
-    std::string    deltaName(makeTempFile());
-    ScopeGuard     guard(boost::bind(::unlink, deltaName.c_str()));
+    int const size  = c.size();
+    int const delta = c.delta();
+    std::string deltaName(makeTempFile());
+    ScopeGuard guard(boost::bind(::unlink, deltaName.c_str()));
 
     verifyChunk(c, d, packed, false);
     c.writeDelta(deltaName, true, compress);
@@ -300,10 +323,10 @@ BOOST_AUTO_TEST_CASE(chunkIoTest) {
     SharedObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
-    std::vector<int64_t> v;
-    SObjChunk c(createChunk());
+    std::vector<int> v;
+    ObjChunk c(createChunk());
     BOOST_CHECK_MESSAGE(c.size() == 0,  "freshly created chunk isn't empty");
-    appendObjects(c, static_cast<size_t>(uniformRandom()*32768.0) + 1024);
+    appendObjects(c, static_cast<int>(rng().flat(1024, 32768)));
     BOOST_CHECK_MESSAGE(c.delta() == 0, "freshly created chunk delta should be 0");
     verifyChunk(c, v, false, false);
 
@@ -322,9 +345,9 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
     SharedObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
-    std::vector<int64_t> v;
-    SObjChunk c(createChunk());
-    appendObjects(c, static_cast<size_t>(uniformRandom()*16384.0) + 1024);
+    std::vector<int> v;
+    ObjChunk c(createChunk());
+    appendObjects(c, static_cast<int>(rng().flat(1024, 16384)));
     verifyChunk(c, v, false, false);
 
     boost::shared_array<Object> data(copyData(c));
@@ -333,12 +356,12 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
 
     wrCycle(c, v, name, false);
     verifyData(c, data);
-    uint32_t size = c.size();
-    appendObjects(c, static_cast<size_t>(uniformRandom()*8192.0));
+    int size = c.size();
+    appendObjects(c, static_cast<int>(rng().flat(0, 8192)));
     c.rollback();
     BOOST_CHECK(c.size()  == size);
     BOOST_CHECK(c.delta() == size);
-    appendObjects(c, static_cast<size_t>(uniformRandom()*8192.0));
+    appendObjects(c, static_cast<int>(rng().flat(0, 8192)));
     data  = copyData(c);
     wrdCycle(c, v, name, false, false);
     verifyData(c, data);
@@ -346,7 +369,7 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaTest) {
     // repeat test, this time with compression
     wrCycle(c, v, name, true);
     verifyData(c, data);
-    appendObjects(c, static_cast<size_t>(uniformRandom()*8192.0));
+    appendObjects(c, static_cast<int>(rng().flat(0, 8192)));
     data  = copyData(c);
     wrdCycle(c, v, name, false, true);
     verifyData(c, data);
@@ -358,9 +381,9 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
     SharedObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
-    std::vector<int64_t> v;
-    SObjChunk c(createChunk());
-    appendObjects(c, static_cast<size_t>(uniformRandom()*65536.0) + 1024);
+    std::vector<int> v;
+    ObjChunk c(createChunk());
+    appendObjects(c, static_cast<int>(rng().flat(1024, 65536)));
     verifyChunk(c, v, false, false);
 
     boost::shared_array<Object> data(copyData(c));
@@ -368,20 +391,20 @@ BOOST_AUTO_TEST_CASE(chunkIoDeltaDelTest) {
     ScopeGuard  guard(boost::bind(::unlink, name.c_str()));
 
     wrCycle(c, v, name, false);
-    uint32_t size = c.size();
+    int size = c.size();
     verifyData(c, data);
-    appendObjects(c, static_cast<size_t>(uniformRandom()*8192.0));
+    appendObjects(c, static_cast<int>(rng().flat(0, 8192)));
     data  = copyData(c);
-    uint32_t deltaSize = c.size() - size;
+    int deltaSize = c.size() - size;
     wrdCycle(c, v, name, false, false);
     verifyData(c, data);
 
     // pick ids (== index in chunk) of objects to delete
-    pickIds(v, static_cast<size_t>(static_cast<double>(size)*0.25*uniformRandom()), 0, size);
-    pickIds(v, static_cast<size_t>(static_cast<double>(deltaSize)*0.25*uniformRandom()), size, size + deltaSize);
+    pickIds(v, static_cast<int>(static_cast<double>(size)*0.25*rng().uniform()), 0, size);
+    pickIds(v, static_cast<int>(static_cast<double>(deltaSize)*0.25*rng().uniform()), size, size + deltaSize);
 
     // and delete those objects
-    for (std::vector<int64_t>::const_iterator i = v.begin(); i != v.end(); ++i) {
+    for (std::vector<int>::const_iterator i = v.begin(); i != v.end(); ++i) {
         c.remove(*i);
     }
     verifyChunk(c, v, false, false);
@@ -404,8 +427,8 @@ BOOST_AUTO_TEST_CASE(emptyChunkTest) {
     SharedObjectChunkManager mgr("test");
     ScopeGuard forMgr(boost::bind(&SharedObjectChunkManager::endVisit, &mgr, 1, true));
 
-    std::vector<int64_t> v;
-    SObjChunk c(createChunk());
+    std::vector<int> v;
+    ObjChunk c(createChunk());
     verifyChunk(c, v, false, false);
 
     boost::shared_array<Object> data;

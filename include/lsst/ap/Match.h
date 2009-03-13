@@ -379,8 +379,6 @@ std::size_t ellipseMatch(
     SecondFilterT            & secondFilter,
     MatchPairProcessorT      & matchPairProcessor
 ) {
-
-    typedef Ellipse<FirstEntryT> Ellipse;
     typedef typename ZoneIndex<SecondEntryT>::Zone SecondZone;
 
     int const minZone = second.getMinZone();
@@ -389,10 +387,10 @@ std::size_t ellipseMatch(
 
     first.prepareForMatch(second.getDecomposition());
 
-    Ellipse * activeHead = 0;
-    Ellipse * activeTail = 0;
-    Ellipse * searchHead = &(*first.begin());
-    Ellipse * const end = &(*first.end());
+    Ellipse<FirstEntryT> * activeHead = 0;
+    Ellipse<FirstEntryT> * activeTail = 0;
+    Ellipse<FirstEntryT> * searchHead = &(*first.begin());
+    Ellipse<FirstEntryT> * const end = &(*first.end());
 
     // initialize the linked list of active ellipses (those that intersect minZone)
     while (searchHead < end && searchHead->_minZone <= minZone) {
@@ -420,8 +418,8 @@ std::size_t ellipseMatch(
         ++szi;
 
         // Traverse the active ellipse list
-        Ellipse * active = activeHead;
-        Ellipse * prev   = 0;
+        Ellipse<FirstEntryT> * active = activeHead;
+        Ellipse<FirstEntryT> * prev   = 0;
 
         while (active != 0) {
 
@@ -530,9 +528,8 @@ std::size_t ellipseGroupedMatch(
     SecondFilterT            & secondFilter,
     MatchListProcessorT      & matchListProcessor
 ) {
-    typedef typename EllipseList<FirstEntryT>::Ellipse Ellipse;
-    typedef typename ZoneIndex<SecondEntryT>::Zone     SecondZone;
-    typedef typename MatchListProcessorT::Match        Match;
+    typedef typename ZoneIndex<SecondEntryT>::Zone SecondZone;
+    typedef typename MatchListProcessorT::Match Match;
 
     std::size_t const numEllipses   = first.size();
     std::size_t       numMatchPairs = 0;
@@ -559,8 +556,8 @@ std::size_t ellipseGroupedMatch(
                 continue; // ellipse was filtered out
             }
 
-            Ellipse    * const __restrict ell   = &first[i];
-            SecondZone *       __restrict sz    = second.firstZone(ell->_minZone, ell->_maxZone);
+            Ellipse<FirstEntryT> * const __restrict ell = &first[i];
+            SecondZone * __restrict sz = second.firstZone(ell->_minZone, ell->_maxZone);
             SecondZone * const __restrict szend = second.endZone(ell->_minZone, ell->_maxZone);
 
             boost::uint32_t const ra          = ell->_ra;

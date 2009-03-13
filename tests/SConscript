@@ -1,44 +1,22 @@
 # -*- python -*-
 Import('env')
+import glob, os
 
-env.Program('unittests',
-            ['BitsetTest.cc',
-             'ChunkTest.cc',
-             'ChunkManagerTest.cc',
-             'FileIoTest.cc',
-             'HashedSetTest.cc',
-             'Main.cc',
-             'MatchTest.cc',
-             'ResultsIoTest.cc'
-            ],
-            LIBS=env.getlibs('ap'))
-
-env.Command('.tests/unittests', 'unittests', """
-            @rm -f ${TARGET}.failed;
-            @rm -f ${TARGET}.fifo;
-            @mkfifo ${TARGET}.fifo;
-            @(tee ${TARGET} < ${TARGET}.fifo; rm -f ${TARGET}.fifo) &
-            @if $SOURCES --log_level=message > ${TARGET}.fifo 2>&1 ; then \
-               echo "Hurray!" >> $TARGET; \
-            else \
-               mv $TARGET ${TARGET}.failed; \
-            fi;
-            """)
-
-env.Clean('.tests/unittests', '.tests')
+for src in glob.glob("*.cc"):
+    env.Program(src, LIBS=env.getlibs(env["eups_product"]))
 
 if not env.CleanFlagIsSet():
-    import os
     import lsst.tests
-    import lsst.pex.exceptions
     import lsst.daf.persistence
 
     tests = lsst.tests.Control(env, verbose = True)
 
-    if lsst.daf.persistence.DbAuth.available():
-        if os.environ.has_key('LSST_DB_AUTH'):
-            env['ENV']['LSST_DB_AUTH'] = os.environ['LSST_DB_AUTH']
+    envKeys = ['LSST_DB_AUTH', 'LSST_RNG_SEED', 'LSST_RNG_ALGORITHM']
+    for key in envKeys:
+        if os.environ.has_key(key):
+            env['ENV'][key] = os.environ[key]
 
-    for target in tests.run("ResultsTest.py"):
+    tests.run("*.cc")
+    for target in tests.run("*.py"):
         env.Depends(target, "../python/lsst/ap/_apLib%s" % env['LDMODULESUFFIX'])
 

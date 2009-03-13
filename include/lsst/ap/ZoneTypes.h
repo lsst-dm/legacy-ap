@@ -13,6 +13,8 @@
 #include "boost/noncopyable.hpp"
 #include "boost/scoped_array.hpp"
 
+#include "lsst/daf/base/Citizen.h"
+
 #include "Common.h"
 #include "SpatialUtil.h"
 

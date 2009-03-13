@@ -68,6 +68,14 @@ public :
         _distance = distance;
     }
 
+    bool operator==(MatchPair const & mp) const {
+        return _first == mp.getFirst() && _second == mp.getSecond();
+    }
+
+    bool operator!=(MatchPair const & mp) const {
+        return !operator==(mp);
+    }
+
 private :
 
     boost::int64_t _first;
@@ -84,14 +92,6 @@ private :
     friend class boost::serialization::access;
     friend class io::MatchPairVectorFormatter;
 };
-
-inline bool operator==(MatchPair const & mp1, MatchPair const & mp2) {
-    return mp1.getFirst() == mp2.getFirst() && mp1.getSecond() == mp2.getSecond();
-}
-
-inline bool operator!=(MatchPair const & d1, MatchPair const & d2) {
-    return !(d1 == d2);
-}
 
 
 /** @brief  Holds a pair of ids. */

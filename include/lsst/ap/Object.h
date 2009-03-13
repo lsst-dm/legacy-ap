@@ -32,7 +32,7 @@ struct LSST_AP_API Object {
     double _ra;
     double _decl;
     double _pmRa;
-    double _pmDec;
+    double _pmDecl;
     boost::int16_t _varProb[lsst::afw::image::Filter::NUM_FILTERS];
 
     boost::int64_t getId() const {

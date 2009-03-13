@@ -87,7 +87,7 @@ lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma, dou
 
     // perturb in this direction by a random angle that is normally
     // distributed with a standard deviation of sigma degrees
-    double mag  = radians(rng.gaussian(sigma));
+    double mag  = radians(rng.gaussian()*sigma);
     double smag = std::sin(mag);
     double cmag = std::cos(mag);
 
