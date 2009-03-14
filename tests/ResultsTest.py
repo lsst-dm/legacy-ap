@@ -10,15 +10,51 @@ or
    >>> import unittest; T=load("ResultTest"); unittest.TextTestRunner(verbosity=1).run(T.suite())
 """
 
+import itertools
 import pdb
-import unittest
 import random
 import time
-import lsst.daf.base as dafBase
+import unittest
+
+import lsst.daf.base as base
 import lsst.pex.policy as policy
 import lsst.daf.persistence as persistence
+import lsst.afw.detection as detection
 import lsst.utils.tests as tests
 import lsst.ap as ap
+
+def _seqEqual(seq0, seq1):
+    if len(seq0) != len(seq1):
+        return False
+    for e0, e1 in itertools.izip(seq0, seq1):
+        if e0 != e1:
+            return False
+    return True
+
+def _insertErase(vec, vecType, elemType):
+    front = vec[:8]
+    back = vec[8:]
+    copy = vecType()
+    for e in front:
+        copy.append(e)
+    e = elemType()
+    for i in xrange(4):
+        copy.append(e)
+    for e in back:
+        copy.append(e)
+    del copy[8]
+    del copy[8:11]
+    assert _seqEqual(copy, vec)
+
+def _copy(vec, vecType, elemType):
+    copy0 = vecType(vec)
+    copy1 = vecType(copy0)
+    copy1.push_back(elemType())
+    assert _seqEqual(copy0, vec)
+    assert not _seqEqual(copy1, vec)
+    copy0.swap(copy1)
+    assert _seqEqual(copy1, vec)
+    assert not _seqEqual(copy0, vec)
 
 
 # ----------------------------------------------------------------
@@ -27,61 +63,34 @@ class MatchPairVecTestCase(unittest.TestCase):
 
     def setUp(self):
         n = 16 + random.randint(0,16)
-        self.mpv1 = ap.MatchPairVec(n)
-        self.mpv2 = ap.MatchPairVec()
-
+        self.vec = ap.MatchPairVec()
         for i in xrange(n):
-            self.mpv1[i].setFirst(i)
             mp = ap.MatchPair()
             mp.setFirst(i)
             mp.setSecond(i*20)
             mp.setDistance(random.random())
-            self.mpv2.push_back(mp)
+            self.vec.push_back(mp)
 
     def tearDown(self):
-        del self.mpv1
-        del self.mpv2
+        del self.vec
 
     def testIterable(self):
         """Tests that MatchPairVec instances can be iterated over"""
         j = 0
-        for i in self.mpv1:
+        for i in self.vec:
             assert i.getFirst() == j
             j += 1
 
-    def testCopyAndCompare(self):
-        """Tests copying, assignment and comparison of MatchPairVec instances"""
-        mpv1Copy = ap.MatchPairVec(self.mpv1)
-        mpv2Copy = ap.MatchPairVec(self.mpv2)
-        assert mpv1Copy == self.mpv1
-        assert mpv2Copy == self.mpv2
-        mpv1Copy.swap(mpv2Copy)
-        assert mpv1Copy == self.mpv2
-        assert mpv2Copy == self.mpv1
-        mpv1Copy.swap(mpv2Copy)
-        if mpv1Copy.size() == 0:
-            mpv1Copy.push_back(ap.MatchPair())
-        else:
-            mpv1Copy.pop_back()
-        mp = ap.MatchPair()
-        mp.setFirst(123456789876543210)
-        mp.setSecond(876543210123456789)
-        mp.setDistance(6.66)
-        mpv2Copy.push_back(mp)
-        assert mpv1Copy != self.mpv1
-        assert mpv2Copy != self.mpv2
+    def testCopy(self):
+        """Tests copying and assignment of MatchPairVec instances"""
+        _copy(self.vec, ap.MatchPairVec, ap.MatchPair)
 
     def testInsertErase(self):
         """Tests inserting and erasing MatchPairVec elements"""
-        mpv1Copy = ap.MatchPairVec(self.mpv1)
-        mpv1Copy.insert(mpv1Copy.begin() + 5, ap.MatchPair())
-        mpv1Copy.insert(mpv1Copy.begin() + 6, 4, ap.MatchPair())
-        mpv1Copy.erase(mpv1Copy.begin() + 5)
-        mpv1Copy.erase(mpv1Copy.begin() + 5, mpv1Copy.begin() + 9)
-        assert mpv1Copy == self.mpv1
+        _insertErase(self.vec, ap.MatchPairVec, ap.MatchPair)
 
     def testSlice(self):
-        slice = self.mpv1[1:5]
+        slice = self.vec[1:5]
         j = 1
         for i in slice:
             print i
@@ -89,25 +98,28 @@ class MatchPairVecTestCase(unittest.TestCase):
             j += 1
 
     def testPersistence(self):
-        if persistence.DbAuth.available():
-            pol  = policy.PolicyPtr()
+        if persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
+            pol  = policy.Policy()
+            root = "Formatter.PersistableMatchPairVector"
+            pol.set(root + ".MatchPair.templateTableName", "_tmpl_MatchPair")
+            pol.set(root + ".MatchPair.tableNamePattern", "_tmp_v%(visitId)_MP")
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = dafBase.DataProperty.createPropertyNode("root")
-            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(dafBase.DataProperty("itemName", "MatchPair"))
+            ps   = base.PropertySet()
+            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
+            ps.add("itemName", "MatchPair")
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
-            pers.persist(self.mpv1, stl, dp)
+            pers.persist(ap.PersistableMatchPairVector(self.vec), stl, ps)
             stl = persistence.StorageList()
             stl.push_back(pers.getRetrieveStorage("DbStorage", loc))
-            res = ap.MatchPairVecSharedPtr(pers.retrieve("MatchPairVector", stl, dp))
+            res = ap.PersistableMatchPairVector.swigConvert(pers.unsafeRetrieve("PersistableMatchPairVector", stl, ps))
             db = persistence.DbStorage()
             db.setPersistLocation(loc)
             db.startTransaction()
-            db.dropTable(ap.getTableName(pol, dp))
+            db.dropTable(detection.getTableName(pol.getPolicy(root), ps))
             db.endTransaction()
-            assert(res == self.mpv1)
+            assert _seqEqual(res.getMatchPairs(), self.vec)
 
 
 # ----------------------------------------------------------------
@@ -116,54 +128,30 @@ class IdPairVecTestCase(unittest.TestCase):
 
     def setUp(self):
         n = 16 + random.randint(0,16)
-        self.ipv1 = ap.IdPairVec(n)
-        self.ipv2 = ap.IdPairVec()
-
+        self.vec = ap.IdPairVec()
         for i in xrange(n):
-            self.ipv1[i] = (i, 35)
-            self.ipv2.push_back((i, -i))
+            self.vec.push_back((i, -i))
 
     def tearDown(self):
-        del self.ipv1
-        del self.ipv2
+        del self.vec
 
     def testIterable(self):
         """Tests that IdPairVec instances can be iterated over"""
         j = 0
-        for i in self.ipv1:
+        for i in self.vec:
             assert i[0] == j
             j += 1
 
-    def testCopyAndCompare(self):
-        """Tests copying, assignment and comparison of IdPairVec instances"""
-        ipv1Copy = ap.IdPairVec(self.ipv1)
-        ipv2Copy = ap.IdPairVec(self.ipv2)
-        assert ipv1Copy == self.ipv1
-        assert ipv2Copy == self.ipv2
-        ipv1Copy.swap(ipv2Copy)
-        assert ipv1Copy == self.ipv2
-        assert ipv2Copy == self.ipv1
-        ipv1Copy.swap(ipv2Copy)
-        if ipv1Copy.size() == 0:
-            ipv1Copy.push_back(ap.IdPair())
-        else:
-            ipv1Copy.pop_back()
-        ip = ap.IdPair()
-        ipv2Copy.push_back((123456789876543210, 876543210123456789))
-        assert ipv1Copy != self.ipv1
-        assert ipv2Copy != self.ipv2
+    def testCopy(self):
+        """Tests copying and assignment of IdPairVec instances"""
+        _copy(self.vec, ap.IdPairVec, ap.IdPair)
 
     def testInsertErase(self):
         """Tests inserting and erasing IdPairVec elements"""
-        ipv1Copy = ap.IdPairVec(self.ipv1)
-        ipv1Copy.insert(ipv1Copy.begin() + 7, ap.IdPair())
-        ipv1Copy.insert(ipv1Copy.begin() + 8, 3, ap.IdPair())
-        ipv1Copy.erase(ipv1Copy.begin() + 7)
-        ipv1Copy.erase(ipv1Copy.begin() + 7, ipv1Copy.begin() + 10)
-        assert ipv1Copy == self.ipv1
+        _insertErase(self.vec, ap.IdPairVec, ap.IdPair)
 
     def testSlice(self):
-        slice = self.ipv1[3:9]
+        slice = self.vec[3:9]
         j = 3
         for i in slice:
             print i
@@ -171,25 +159,28 @@ class IdPairVecTestCase(unittest.TestCase):
             j += 1
 
     def testPersistence(self):
-        if persistence.DbAuth.available():
-            pol  = policy.PolicyPtr()
+        if persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
+            pol  = policy.Policy()
+            root = "Formatter.PersistableIdPairVector"
+            pol.set(root + ".IdPair.templateTableName", "_tmpl_IdPair")
+            pol.set(root + ".IdPair.tableNamePattern", "_tmp_v%(visitId)_IP")
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = dafBase.DataProperty.createPropertyNode("root")
-            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(dafBase.DataProperty("itemName", "IdPair"))
+            ps   = base.PropertySet()
+            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
+            ps.add("itemName", "IdPair")
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
-            pers.persist(self.ipv1, stl, dp)
+            pers.persist(ap.PersistableIdPairVector(self.vec), stl, ps)
             stl = persistence.StorageList()
             stl.push_back(pers.getRetrieveStorage("DbStorage", loc))
-            res = ap.IdPairVecSharedPtr(pers.retrieve("IdPairVector", stl, dp))
+            res = ap.PersistableIdPairVector.swigConvert(pers.unsafeRetrieve("PersistableIdPairVector", stl, ps))
             db = persistence.DbStorage()
             db.setPersistLocation(loc)
             db.startTransaction()
-            db.dropTable(ap.getTableName(pol, dp))
+            db.dropTable(detection.getTableName(pol.getPolicy(root), ps))
             db.endTransaction()
-            assert(res == self.ipv1)
+            assert _seqEqual(res.getIdPairs(), self.vec)
 
 
 # ----------------------------------------------------------------
@@ -198,55 +189,30 @@ class IdVecTestCase(unittest.TestCase):
 
     def setUp(self):
         n = 16 + random.randint(0,16)
-        self.idv1 = ap.IdVec(n)
-        self.idv2 = ap.IdVec()
-
+        self.vec = ap.IdVec()
         for i in xrange(n):
-            self.idv1[i] = i
-            j = (i*17) % 13
-            self.idv2.push_back(j)
+            self.vec.push_back(i)
 
     def tearDown(self):
-        del self.idv1
-        del self.idv2
+        del self.vec
 
     def testIterable(self):
         """Tests that IdVec instances can be iterated over"""
         j = 0
-        for i in self.idv1:
+        for i in self.vec:
             assert i == j
             j += 1
 
-    def testCopyAndCompare(self):
-        """Tests copying, assignment and comparison of IdVec instances"""
-        idv1Copy = ap.IdVec(self.idv1)
-        idv2Copy = ap.IdVec(self.idv2)
-        assert idv1Copy == self.idv1
-        assert idv2Copy == self.idv2
-        idv1Copy.swap(idv2Copy)
-        assert idv1Copy == self.idv2
-        assert idv2Copy == self.idv1
-        idv1Copy.swap(idv2Copy)
-        if idv1Copy.size() == 0:
-            idv1Copy.push_back(1409756109)
-        else:
-            idv1Copy.pop_back()
-        j = 876543210123456789
-        idv2Copy.push_back(j)
-        assert idv1Copy != self.idv1
-        assert idv2Copy != self.idv2
+    def testCopy(self):
+        """Tests copying and assignment of IdVec instances"""
+        _copy(self.vec, ap.IdVec, long)
 
     def testInsertErase(self):
         """Tests inserting and erasing IdVec elements"""
-        idv1Copy = ap.IdVec(self.idv1)
-        idv1Copy.insert(idv1Copy.begin() + 13, 95670927)
-        idv1Copy.insert(idv1Copy.begin() + 14, 1, 17465108724650197)
-        idv1Copy.erase(idv1Copy.begin() + 13)
-        idv1Copy.erase(idv1Copy.begin() + 13, idv1Copy.begin() + 14)
-        assert idv1Copy == self.idv1
+        _insertErase(self.vec, ap.IdVec, long)
 
     def testSlice(self):
-        slice = self.idv1[1:11]
+        slice = self.vec[1:11]
         j = 1
         for i in slice:
             print i
@@ -254,25 +220,28 @@ class IdVecTestCase(unittest.TestCase):
             j += 1
 
     def testPersistence(self):
-        if persistence.DbAuth.available():
-            pol  = policy.PolicyPtr()
+        if persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
+            pol  = policy.Policy()
+            root = "Formatter.PersistableIdVector"
+            pol.set(root + ".Id.templateTableName", "_tmpl_Id")
+            pol.set(root + ".Id.tableNamePattern", "_tmp_v%(visitId)_I")
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            dp   = dafBase.DataProperty.createPropertyNode("root")
-            dp.addProperty(dafBase.DataProperty("visitId", int(time.clock())*16384 + random.randint(0,16383)))
-            dp.addProperty(dafBase.DataProperty("itemName", "Id"))
+            ps   = base.PropertySet()
+            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
+            ps.add("itemName", "Id")
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
-            pers.persist(self.idv1, stl, dp)
+            pers.persist(ap.PersistableIdVector(self.vec), stl, ps)
             stl = persistence.StorageList()
             stl.push_back(pers.getRetrieveStorage("DbStorage", loc))
-            res = ap.IdVecSharedPtr(pers.retrieve("IdVector", stl, dp))
+            res = ap.PersistableIdVector.swigConvert(pers.unsafeRetrieve("PersistableIdVector", stl, ps))
             db = persistence.DbStorage()
             db.setPersistLocation(loc)
             db.startTransaction()
-            db.dropTable(ap.getTableName(pol, dp))
+            db.dropTable(detection.getTableName(pol.getPolicy(root), ps))
             db.endTransaction()
-            assert(res == self.idv1)
+            assert _seqEqual(res.getIds(), self.vec)
 
 
 # ----------------------------------------------------------------
