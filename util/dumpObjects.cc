@@ -38,6 +38,10 @@ static char const* SVNid __attribute__((unused)) = "$Id$";
 #include "lsst/daf/persistence/DbStorageLocation.h"
 #include "lsst/pex/policy/Policy.h"
 
+namespace ex = lsst::pex::exceptions;
+
+using lsst::pex::policy::Policy;
+
 
 // Command line option descriptors.
 static struct option longopts[] = {
@@ -74,7 +78,7 @@ static void usage(char const* argv0) {
 
 // Query for a single chunk.
 static char const chunkQuery[] =
-    "SELECT objectId, ra, decl,"
+    "SELECT objectId, ra, decl, "
     " uVarProb, gVarProb, rVarProb, iVarProb, zVarProb, yVarProb"
     " FROM Object"
     " WHERE ra BETWEEN ? AND ? AND decl BETWEEN ? AND ?";
@@ -98,7 +102,7 @@ static void ioAssert(bool cond, char const* msg) {
 
     static char buf[64];
     std::snprintf(buf, sizeof(buf), "error %d", errno);
-    throw lsst::pex::exceptions::Runtime(std::string(msg) + ": " + buf);
+    throw LSST_EXCEPT(ex::RuntimeErrorException, std::string(msg) + ": " + buf);
 }
 
 
@@ -159,8 +163,7 @@ int main(int argc, char** argv) {
     int fileNameLen = strlen(fileBase) + 1 + 10 + 1;
     char* fileName = new char[fileNameLen];
     if (fileName == 0) {
-        throw lsst::pex::exceptions::Runtime(
-            "Unable to allocate memory for filename");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to allocate memory for filename");
     }
 
     if (numChunks == -1) {
@@ -182,22 +185,18 @@ int main(int argc, char** argv) {
 
     // Set up database authentication and the storage location.
     if (!policyFileName.empty()) {
-        lsst::pex::policy::Policy::Ptr policyPtr(
-            lsst::pex::policy::Policy::createPolicy(policyFileName));
-        lsst::daf::persistence::DbAuth::setPolicy(policyPtr);
+        Policy::Ptr policyPtr(new Policy(policyFileName));
     }
     lsst::daf::persistence::DbStorageLocation dbLoc(url);
 
     // Set up the MySQL client library and connect to the database.
     // Use MySQL client directly for maximum performance.
     if (mysql_library_init(0, 0, 0)) {
-        throw lsst::pex::exceptions::Runtime(
-            "Unable to initialize mysql library");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to initialize mysql library");
     }
     MYSQL* db = mysql_init(0);
     if (db == 0) {
-        throw lsst::pex::exceptions::Runtime(
-            "Unable to create empty connection");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to create empty connection");
     }
     if (!mysql_real_connect(db, dbLoc.getHostname().c_str(),
                             dbLoc.getUsername().c_str(),
@@ -205,26 +204,25 @@ int main(int argc, char** argv) {
                             dbLoc.getDbName().c_str(),
                             std::strtol(dbLoc.getPort().c_str(), 0, 10),
                             0, CLIENT_COMPRESS)) {
-        throw lsst::pex::exceptions::Runtime(
-            std::string("Unable to connect to database: ") + mysql_error(db));
+        throw LSST_EXCEPT(ex::RuntimeErrorException, 
+                          std::string("Unable to connect to database: ") + mysql_error(db));
     }
 
     // Prepare the query statement.
     MYSQL_STMT* stmt = mysql_stmt_init(db);
     if (stmt == 0) {
-        throw lsst::pex::exceptions::Runtime(
-            "Out of memory while preparing statement");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Out of memory while preparing statement");
     }
     if (numChunks < 1) {
         if (mysql_stmt_prepare(stmt, chunkQuery, chunkQuerySize)) {
-            throw lsst::pex::exceptions::Runtime(
-                std::string("Unable to prepare statement: ") + mysql_error(db));
+            throw LSST_EXCEPT(ex::RuntimeErrorException, 
+                              std::string("Unable to prepare statement: ") + mysql_error(db));
         }
     }
     else {
         if (mysql_stmt_prepare(stmt, stripeQuery, stripeQuerySize)) {
-            throw lsst::pex::exceptions::Runtime(
-                std::string("Unable to prepare statement: ") + mysql_error(db));
+            throw LSST_EXCEPT(ex::RuntimeErrorException, 
+                              std::string("Unable to prepare statement: ") + mysql_error(db));
         }
     }
 
@@ -270,10 +268,15 @@ int main(int argc, char** argv) {
     for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
         obj._varProb[i] = -1;
     }
+    // these fields aren't yet available in DC3a
+    obj._muRa = 0.0;
+    obj._muDecl = 0.0;
+    obj._parallax = -99.0;
+    obj._radialVelocity = 0.0;
+
     for (int i = 0; i < 3 + lsst::afw::image::Filter::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
-
     memset(resultArray, 0, sizeof(resultArray));
 
     // Set each result binding.
@@ -310,13 +313,13 @@ int main(int argc, char** argv) {
 
     // Bind and execute the SQL statement.
     if (mysql_stmt_bind_param(stmt, bindArray)) {
-        throw lsst::pex::exceptions::Runtime("Unable to bind parameters");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to bind parameters");
     }
     if (mysql_stmt_execute(stmt)) {
-        throw lsst::pex::exceptions::Runtime("Unable to execute statement");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to execute statement");
     }
     if (mysql_stmt_bind_result(stmt, resultArray)) {
-        throw lsst::pex::exceptions::Runtime("Unable to bind results");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to bind results");
     }
 
 
@@ -341,8 +344,7 @@ int main(int argc, char** argv) {
         // Check for nulls.
         for (int i = 0; i < 9; ++i) {
             if (isNull[i]) {
-                throw lsst::pex::exceptions::Runtime(
-                    "Unexpected null value found");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Unexpected null value found");
             }
         }
 
@@ -353,12 +355,10 @@ int main(int argc, char** argv) {
                 // Rewrite the header, now that we know how many rows we have.
                 off_t pos = lseek(fd, 0, SEEK_SET);
                 if (pos == static_cast<off_t>(-1)) {
-                    throw lsst::pex::exceptions::Runtime(
-                        "Unable to rewind output file");
+                    throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to rewind output file");
                 }
                 ssize_t bytes = write(fd, &header, sizeof(header));
-                ioAssert(bytes == sizeof(header),
-                         "Unable to write updated header");
+                ioAssert(bytes == sizeof(header), "Unable to write updated header");
 
                 // Close the output file.
                 err = close(fd);
@@ -392,15 +392,14 @@ int main(int argc, char** argv) {
         ++header._numRecords;
     }
     if (err == 1) {
-        throw lsst::pex::exceptions::Runtime(
-            std::string("Error while fetching: ") + mysql_error(db));
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          std::string("Error while fetching: ") + mysql_error(db));
     }
     else if (err == MYSQL_DATA_TRUNCATED) {
-        throw lsst::pex::exceptions::Runtime(
-            "Error while fetching: data truncated");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: data truncated");
     }
     else if (err != MYSQL_NO_DATA) {
-        throw lsst::pex::exceptions::Runtime("Error while fetching: unknown");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: unknown");
     }
 
     // Finish the final chunk.
@@ -408,8 +407,7 @@ int main(int argc, char** argv) {
         // Rewrite the header, now that we know how many rows we have.
         off_t pos = lseek(fd, 0, SEEK_SET);
         if (pos == static_cast<off_t>(-1)) {
-            throw lsst::pex::exceptions::Runtime(
-                "Unable to rewind output file");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to rewind output file");
         }
         ssize_t bytes = write(fd, &header, sizeof(header));
         ioAssert(bytes == sizeof(header), "Unable to write updated header");
@@ -421,7 +419,7 @@ int main(int argc, char** argv) {
 
     // Close down MySQL.
     if (mysql_stmt_close(stmt)) {
-        throw lsst::pex::exceptions::Runtime("Error while closing statement");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while closing statement");
     }
     mysql_close(db);
     mysql_library_end();

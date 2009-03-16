@@ -42,7 +42,13 @@ struct ZoneEntry {
     double  _y;     ///< unit vector y coordinate of entity position
     double  _z;     ///< unit vector z coordinate of entity position
 
-    ZoneEntry(Data * const data, Chunk * const chunk, int const index);
+    inline ZoneEntry(
+        double const ra,
+        double const dec,
+        Data * const data,
+        Chunk * const chunk,
+        int const index
+    );
 };
 
 template <typename ChunkT>
@@ -97,12 +103,12 @@ struct ZoneEntryArray {
     void init(int const capacity);
 
     /** Inserts the given data item into the zone. */
-    void insert(Data * const data, Chunk * const chunk, int const index) {
+    void insert(double const ra, double const dec, Data * const data, Chunk * const chunk, int const index) {
         int const sz = _size;
         if (sz == _capacity) {
             grow();
         }
-        new(&_entries[sz]) EntryT(data, chunk, index);
+        new(&_entries[sz]) EntryT(ra, dec, data, chunk, index);
         _size = sz + 1;
     }
 
@@ -197,10 +203,10 @@ public :
     template <typename FunctionT> void apply(FunctionT & function);
 
     /** Inserts the given data item from the given chunk into the index. */
-    void insert(Data * const data, Chunk * const chunk, int const index) {
+    void insert(double const ra, double const dec, Data * const data, Chunk * const chunk, int const index) {
         int const zone = _zsc.decToZone(data->getDec());
         if (zone >= _minZone && zone <= _maxZone) {
-            _zones[zone - _minZone].insert(data, chunk, index);
+            _zones[zone - _minZone].insert(ra, dec, data, chunk, index);
         }
     }
 

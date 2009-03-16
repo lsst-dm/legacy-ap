@@ -32,7 +32,9 @@
 // -- lsst::ap::ZoneEntry<C> ----------------
 
 template <typename ChunkT>
-lsst::ap::ZoneEntry<ChunkT>::ZoneEntry(
+inline lsst::ap::ZoneEntry<ChunkT>::ZoneEntry(
+    double const ra,
+    double const dec,
     Data * const data,
     Chunk * const chunk,
     int const index
@@ -42,16 +44,14 @@ lsst::ap::ZoneEntry<ChunkT>::ZoneEntry(
     _index(index),
     _chunk(chunk)
 {
-    double ra = data->getRa();
-    double dec = data->getDec();
     _ra  = raToScaledInteger(ra);
     _dec = decToScaledInteger(dec);
-    ra  = radians(ra);
-    dec = radians(dec);
-    double cdec = std::cos(dec);
-    _x = std::cos(ra)*cdec;
-    _y = std::sin(ra)*cdec;
-    _z = std::sin(dec);
+    double raRad  = radians(ra);
+    double decRad = radians(dec);
+    double cosDec = std::cos(decRad);
+    _x = std::cos(raRad)*cosDec;
+    _y = std::sin(raRad)*cosDec;
+    _z = std::sin(decRad);
 }
 
 

@@ -346,10 +346,10 @@ void buildPoints(
     }
 
     for (size_t i = 0; i < first.size(); ++i) {
-        fzi.insert(&first[i], 0, 0);
+        fzi.insert(first[i].getRa(), first[i].getDec(), &first[i], 0, 0);
     }
     for (size_t i = 0; i < second.size(); ++i) {
-        szi.insert(&second[i], 0, 0);
+        szi.insert(second[i].getRa(), second[i].getDec(), &second[i], 0, 0);
     }
 
     // sort the indexes
@@ -455,7 +455,7 @@ void buildEllipsesAndPoints(
         ells.push_back(Ell(first[i]));
     }
     for (size_t i = 0; i < second.size(); ++i) {
-        szi.insert(&second[i], 0, 0);
+        szi.insert(second[i].getRa(), second[i].getDec(), &second[i], 0, 0);
     }
     szi.sort();
 }

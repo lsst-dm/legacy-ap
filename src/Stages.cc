@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "boost/format.hpp"
 #include "boost/scoped_array.hpp"
@@ -97,6 +98,7 @@ typedef Ellipse<MovingObjectPrediction> MovingObjectEllipse;
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
+
 template class ZoneEntry<detail::ObjectChunk>;
 template class ZoneEntry<DiaSourceChunk>;
 
@@ -115,6 +117,51 @@ template class EllipseList<lsst::mops::MovingObjectPrediction>;
 
 
 namespace detail {
+
+// -- Proper motion correction for objects ----------------
+
+/** @return the proper motion corrected position of the given object */
+std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
+    static double const RAD_PER_MAS = (RADIANS_PER_DEGREE/360000.0);
+    // (rad/mas)*(sec/year)/(km/AU)
+    static double const SCALE = RAD_PER_MAS*(365.25*86400/149597870.691);
+
+    double ra   = radians(obj.getRa());   // rad
+    double decl = radians(obj.getDec()); // rad
+
+    // Convert ra, dec to unit vector in cartesian coordinate system
+    double const sinDecl = std::sin(decl);
+    double const cosDecl = std::cos(decl);
+    double const sinRa   = std::sin(ra);
+    double const cosRa   = std::cos(ra);
+    double x = cosRa * cosDecl;
+    double y = sinRa * cosDecl;
+    double z = sinDecl;
+
+    // compute space motion vector (radians per year)
+    double const pmRa   = obj.getMuRa()*RAD_PER_MAS/cosDecl;
+    double const pmDecl = obj.getMuDecl()*RAD_PER_MAS;
+    // divide radial velociy by distance to source
+    double const w = obj.getParallax()*obj.getRadialVelocity()*SCALE;
+
+    double const mx = - pmRa*y - pmDecl*cosRa   + x*w;
+    double const my =   pmRa*x - pmDecl*sinRa   + y*w;
+    double const mz =            pmDecl*cosDecl + z*w;
+
+    // Linear interpolation of position
+    double const dt = (epoch - obj.getEpoch()) * (1/365.25); // julian years
+    x += mx*dt;
+    y += my*dt;
+    z += mz*dt;
+
+    // Store unit vector for corrected position, convert back to
+    // spherical coords and store scaled integer ra/dec
+    double d2 = x*x + y*y;
+    ra   = (d2 == 0.0) ? 0 : degrees(std::atan2(y, x));
+    decl = (z  == 0.0) ? 0 : degrees(std::atan2(z, std::sqrt(d2)));
+    return std::make_pair(ra, decl);
+}
+
 
 // -- Match processors ----------------
 
@@ -250,6 +297,10 @@ struct LSST_AP_LOCAL NewObjectCreator {
             obj._objectId           = id | _idNamespace;
             obj._ra                 = entry._data->getRa();
             obj._decl               = entry._data->getDec();
+            obj._muRa               = 0.0;
+            obj._muDecl             = 0.0;
+            obj._parallax           = 0.0;
+            obj._radialVelocity     = 0.0; 
             obj._varProb[Filter::U] = 0;
             obj._varProb[Filter::G] = 0;
             obj._varProb[Filter::R] = 0;
@@ -279,7 +330,8 @@ struct LSST_AP_LOCAL NewObjectCreator {
 template <typename EntryT>
 void buildZoneIndex(
     ZoneIndex<EntryT> & index,
-    std::vector<typename EntryT::Chunk> const & chunks
+    std::vector<typename EntryT::Chunk> const & chunks,
+    double const epoch
 ) {
     typedef typename EntryT::Data Data;
     typedef typename EntryT::Chunk Chunk;
@@ -323,22 +375,23 @@ void buildZoneIndex(
     double maxDec = zsc.getStripeDecMax(maxStripe) + 0.001;
     index.setDecBounds(std::max(minDec, -90.0), std::min(maxDec, 90.0));
 
-    // Loop over stripes: since each stripe maps to a distinct set of adjacent zones,
-    // multiple stripes can be added to the index in parallel without any locking.
-    volatile bool failed = false;
-#if LSST_HAVE_OPEN_MP
-#   pragma omp parallel for shared(numStripes, stripes, failed) \
-               schedule(dynamic,1)
-#endif
-    for (int s = 0; s < numStripes; ++s) {
-        try {
-            ChunkVector &  vec       = stripes[s];
+    // Loop over stripes. Note that due to proper motion, objects from
+    // different stripes can end up in the same zone. Objects are never
+    // migrated across chunks/stripes; rather, their J2000 coordinates
+    // determine the chunks that they will belong to. As time goes on,
+    // the spatial extent of a chunk will grow, where the rate of growth
+    // is bounded by Barnard's star with a proper motion of ~10.5 arcsec/year.
+    // When intersecting the bounding circle of a FOV with chunk boundaries
+    // to determine which chunks must be loaded for association, the bounding
+    // circle must be padded to ensure all relevant objects are loaded.
+    try {
+        for (int s = 0; s < numStripes; ++s) {
+            ChunkVector &  vec = stripes[s];
             Size const numChunks = vec.size();
 
             // Loop over chunks in stripe
             for (Size c = 0; c < numChunks; ++c) {
-
-                Chunk  * const ch = &vec[c];
+                Chunk * const ch = &vec[c];
                 int const numBlocks  = ch->blocks();
                 int i = 0;
 
@@ -351,22 +404,18 @@ void buildZoneIndex(
                     // loop over entries in block
                     for (int e = 0; e < numEntries; ++e, ++i) {
                         if ((flags[e] & Chunk::DELETED) == 0) {
-                            index.insert(&block[e], ch, i);
+                            std::pair<double, double> pos = correctProperMotion(block[e], epoch);
+                            index.insert(pos.first, pos.second, &block[e], ch, i);
                         }
                     }
                 }
             }
-        } catch(...) {
-            // Don't throw in threaded section of code!
-            failed = true;
         }
-    } // end of omp parallel for
-
-    // If any worker failed, throw an exception
-    if (failed) {
-        index.clear();
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Failed to build zone index");
+    } catch(...) {
+       index.clear();
+       throw LSST_EXCEPT(ex::RuntimeErrorException, "Failed to build zone index"); 
     }
+
     watch.stop();
     Log log(Log::getDefaultLog(), "associate");
     int numElements = static_cast<int>(index.size());
@@ -463,6 +512,8 @@ VisitProcessingContext::VisitProcessingContext(
     if (event->exists("matchRadius")) {
         _matchRadius = event->getAsDouble("matchRadius");
     }
+    _visitDate = event->getAsDouble("dateobs");
+
     // DC3a: set association pipeline deadline to 10 minutes
     // after creation of a visit processing context.
     _deadline.systemTime();
@@ -505,7 +556,8 @@ void VisitProcessingContext::setDiaSources(PersistableDiaSourceVector::Ptr diaSo
     watch.start();
     try {
         for (int i = 0; i < sz; ++i) {
-            _diaSourceIndex.insert(_diaSources[i].get(), 0, 0);
+            _diaSourceIndex.insert(_diaSources[i]->getRa(), _diaSources[i]->getDec(),
+                                   _diaSources[i].get(), 0, 0);
         }
     } catch (...) {
         _diaSourceIndex.clear();
@@ -525,7 +577,7 @@ void VisitProcessingContext::setDiaSources(PersistableDiaSourceVector::Ptr diaSo
 
 
 void VisitProcessingContext::buildObjectIndex() {
-    detail::buildZoneIndex(_objectIndex, _chunks);
+    detail::buildZoneIndex(_objectIndex, _chunks, _visitDate);
 }
 
 

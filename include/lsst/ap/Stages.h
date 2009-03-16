@@ -142,6 +142,7 @@ private :
     std::string _runId;
     int _visitId;
     double _matchRadius;
+    double _visitDate;
     lsst::afw::image::Filter _filter;
     int _workerId;
     int _numWorkers;

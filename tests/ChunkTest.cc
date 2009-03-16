@@ -111,11 +111,13 @@ void appendObjects(ObjChunk & chunk, int const num) {
     for (int i = 0; i < num; ++i, ++id) {
         obj._objectId = id;
         // don't care where objects are for this test - fill everything except id with random data
-        Point p     = Point::random(rng());
-        obj._ra     = p._ra;
-        obj._decl   = p._dec;
-        obj._pmRa   = rng().gaussian()*10.0;
-        obj._pmDecl = rng().gaussian()*10.0;
+        Point p = Point::random(rng());
+        obj._ra = p._ra;
+        obj._decl = p._dec;
+        obj._muRa = rng().gaussian()*10.0;
+        obj._muDecl = rng().gaussian()*10.0;
+        obj._parallax = rng().flat(0.0, 10000.0);
+        obj._radialVelocity = rng().gaussian()*1.0e6;
         for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
             obj._varProb[i] = static_cast<boost::int16_t>(rng().uniformInt(100));
         }
