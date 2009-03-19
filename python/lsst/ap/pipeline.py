@@ -197,7 +197,7 @@ class StoreStage(harness.Stage.Stage):
     def _runSql(self, sqlStatements, scriptFileName):
         db = persistence.DbStorage()
         db.setPersistLocation(self.database)
-        with open(scriptFileName, 'w') as scriptFile:
+        with open(os.path.join(self.scriptDir, scriptFileName), 'w') as scriptFile:
             for stmt in sqlStatements:
                 stmt = stmt % self.templateDict
                 startTime = time.clock()
@@ -207,9 +207,14 @@ class StoreStage(harness.Stage.Stage):
                 try:
                     db.executeSql(stmt)
                 except Exception, e:
-                    scriptFile.write(str(e))
+                    try:
+                        for line in str(e).splitlines(True):
+                            scriptFile.write('-- ' + line)
+                        scriptFile.flush()
+                    except:
+                        pass
                     raise
-                scriptFile.write('... statement executed in %f seconds\n' % (time.clock() - startTime))
+                scriptFile.write('-- statement executed in %f seconds\n\n' % (time.clock() - startTime))
 
     def _copyObject(self):
         """

@@ -81,7 +81,7 @@ class PipelineTestCase(unittest.TestCase):
         mysqlStatements = [
             """CREATE DATABASE %(runId)s""",
             """USE %(runId)s""",
-            """CREATE TABLE Object LIKE test_ap.Object""",
+            """CREATE TABLE VarObject LIKE test_ap.Object""",
             """CREATE TABLE NonVarObject LIKE test_ap.Object""",
             """CREATE TABLE DIASource LIKE test_ap.DIASource""",
             """CREATE TABLE prv_Filter LIKE test_ap.prv_Filter""",
@@ -101,7 +101,8 @@ class PipelineTestCase(unittest.TestCase):
             """CREATE TABLE _tmpl_InMemoryId LIKE test_ap._tmpl_InMemoryId""",
             """CREATE TABLE _ap_DIASourceToObjectMatches LIKE test_ap._ap_DIASourceToObjectMatches""",
             """CREATE TABLE _ap_PredToDIASourceMatches LIKE test_ap._ap_PredToDIASourceMatches""",
-            """CREATE TABLE _ap_DIASourceToNewObject LIKE test_ap._ap_DIASourceToNewObject"""
+            """CREATE TABLE _ap_DIASourceToNewObject LIKE test_ap._ap_DIASourceToNewObject""",
+            """CREATE TABLE _mops_Prediction LIKE test_ap._mops_Prediction"""
         ]
         db = DbStorage()
         db.setPersistLocation(LogicalLocation(self.dbUrlPrefix + 'test_ap'))

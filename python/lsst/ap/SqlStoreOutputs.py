@@ -25,13 +25,13 @@ mysqlStatements = [
     """INSERT INTO %(diaSourceTable)s SELECT * FROM _tmp_v%(visitId)d_DIASource""",
     # Update latest observation time and observation count for objects with matches
     """UPDATE %(varObjectTable)s AS o, _tmp_v%(visitId)d_BestMatch AS m
-       SET   o.latestObsTime = '%(visitTime)s',
+       SET   o.latestObsT = '%(dateObs)s',
              o.%(filter)cNumObs = o.%(filter)cNumObs + 1
-       WHERE o.objectId = m.id""",
+       WHERE o.objectId = m.second""",
     """UPDATE %(nonVarObjectTable)s AS o, _tmp_v%(visitId)d_BestMatch AS m
-       SET   o.latestObsTime = '%(visitTime)s',
+       SET   o.latestObsT = '%(dateObs)s',
              o.%(filter)cNumObs = o.%(filter)cNumObs + 1
-       WHERE o.objectId = m.id""",
+       WHERE o.objectId = m.second""",
     # Create new objects from difference sources in an in-memory table.
     """CREATE TEMPORARY TABLE _tmp_v%(visitId)d_NewObject LIKE _tmpl_InMemoryObject""",
     # Insert records (all filter-specific fields set to NULL)
@@ -39,8 +39,8 @@ mysqlStatements = [
        SELECT n.second, # objectId
            s.ra, # ra
            s.decl, # decl
-           '%(dateObs)s', # earliestObsTime
-           '%(dateObs)s', # latestObsTime
+           '%(dateObs)s', # earliestObsT
+           '%(dateObs)s', # latestObsT
            NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL,
            NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL,
            NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL,
@@ -50,17 +50,16 @@ mysqlStatements = [
        FROM _tmp_v%(visitId)d_DIASourceToNewObject AS n
        JOIN _tmp_v%(visitId)d_DIASource AS s ON (s.diaSourceId = n.first)""",
     # Set filter specific fields in the in-memory temp table
+    # FIXME: copying flux values into magnitudes is clearly bogus 
     """UPDATE _tmp_v%(visitId)d_NewObject            AS o,
               _tmp_v%(visitId)d_DIASourceToNewObject AS n,
               _tmp_v%(visitId)d_DIASource            AS s
-       SET o.%(filter)cMag          = s.psfMag,
-           o.%(filter)cMagErr       = s.psfMagErr,
-           o.%(filter)cPetroMag     = s.petroMag,
-           o.%(filter)cPetroMagErr  = s.petroMagErr,
-           o.%(filter)Ixx           = s.Ixx,
-           o.%(filter)Iyy           = s.Iyy,
-           o.%(filter)Ixy           = s.Ixy,
-           o.%(filter)NumObs        = 1
+       SET o.%(filter)cMag         = s.psfFlux,
+           o.%(filter)cMagErr      = s.psfFluxErr,
+           o.%(filter)cIxx         = s.Ixx,
+           o.%(filter)cIyy         = s.Iyy,
+           o.%(filter)cIxy         = s.Ixy,
+           o.%(filter)cNumObs      = 1
         WHERE o.objectId = n.second AND n.first = s.diaSourceId""",
     # Append the in-memory temp table to the variable object catalog
     """INSERT INTO %(varObjectTable)s SELECT * FROM _tmp_v%(visitId)d_NewObject"""

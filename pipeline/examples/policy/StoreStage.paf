@@ -9,6 +9,6 @@ diaSourceTable:    "DIASource"
 varObjectTable:    "VarObject"
 nonVarObjectTable: "NonVarObject"
 storeOutputs:      true
-appendTables:      false
+appendTables:      true
 dropTables:        true
 

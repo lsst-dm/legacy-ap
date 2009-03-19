@@ -26,13 +26,13 @@ Persistence: {
         PersistableIdPairVector: {
             diaSourceToNewObject: {
                 templateTableName: "_tmpl_IdPair"
-                tableNamePattern: "_tmp_v%(visitId)_PredToDIASourceMatches"
+                tableNamePattern: "_tmp_v%(visitId)_DIASourceToNewObject"
             }
         }
         PersistableMatchPairVector: {
             predToDiaSourceMatches: {
                 templateTableName: "_tmpl_MatchPair"
-                tableNamePattern: "_tmp_v%(visitId)_DIASourceToNewObject"
+                tableNamePattern: "_tmp_v%(visitId)_PredToDIASourceMatches"
             }
         }
     }
