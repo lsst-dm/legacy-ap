@@ -15,7 +15,7 @@ from datetime import datetime
 import os, os.path
 import pdb
 import re
-import subprocess
+import time
 
 import lsst.daf.base as base
 import lsst.daf.persistence as persistence

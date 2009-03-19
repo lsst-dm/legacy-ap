@@ -83,6 +83,7 @@ class PipelineTestCase(unittest.TestCase):
             """USE %(runId)s""",
             """CREATE TABLE Object LIKE test_ap.Object""",
             """CREATE TABLE NonVarObject LIKE test_ap.Object""",
+            """CREATE TABLE DIASource LIKE test_ap.DIASource""",
             """CREATE TABLE prv_Filter LIKE test_ap.prv_Filter""",
             """INSERT INTO prv_Filter SELECT * FROM test_ap.prv_Filter""",
             """CREATE TABLE _tmp_v%(visitId)d_DIASource
@@ -96,6 +97,7 @@ class PipelineTestCase(unittest.TestCase):
             """CREATE TABLE _tmpl_MatchPair LIKE test_ap._tmpl_MatchPair""",
             """CREATE TABLE _tmpl_IdPair LIKE test_ap._tmpl_IdPair""",
             """CREATE TABLE _tmpl_InMemoryObject LIKE test_ap._tmpl_InMemoryObject""",
+            """CREATE TABLE _tmpl_InMemoryMatchPair LIKE test_ap._tmpl_InMemoryMatchPair""",
             """CREATE TABLE _tmpl_InMemoryId LIKE test_ap._tmpl_InMemoryId""",
             """CREATE TABLE _ap_DIASourceToObjectMatches LIKE test_ap._ap_DIASourceToObjectMatches""",
             """CREATE TABLE _ap_PredToDIASourceMatches LIKE test_ap._ap_PredToDIASourceMatches""",
