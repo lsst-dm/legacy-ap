@@ -58,7 +58,7 @@ public :
 
     ~VisitProcessingContext();
 
-    void setDiaSources(lsst::afw::detection::PersistableDiaSourceVector::Ptr diaSources);
+    void setDiaSources(boost::shared_ptr<lsst::afw::detection::PersistableDiaSourceVector> diaSources);
 
 #ifndef SWIG
 
@@ -106,7 +106,7 @@ public :
 
 #endif
 
-    lsst::pex::policy::Policy::Ptr getPipelinePolicy() {
+    boost::shared_ptr<lsst::pex::policy::Policy> getPipelinePolicy() {
         return _policy;
     }
     std::string const & getRunId() const {
@@ -142,7 +142,7 @@ private :
     std::string _runId;
     int _visitId;
     double _matchRadius;
-    double _visitDate;
+    double _visitTime;
     lsst::afw::image::Filter _filter;
     int _workerId;
     int _numWorkers;
@@ -158,13 +158,13 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context);
 LSST_AP_API void buildObjectIndex(VisitProcessingContext & context);
 
 LSST_AP_API void matchDiaSources(
-    boost::shared_ptr<MatchPairVector> & matches,
+    MatchPairVector & matches,
     VisitProcessingContext & context
 );
 
 LSST_AP_API void matchMops(
-    boost::shared_ptr<MatchPairVector> & matches,
-    boost::shared_ptr<IdPairVector> & newObjects,
+    MatchPairVector & matches,
+    IdPairVector & newObjects,
     VisitProcessingContext & context,
     lsst::mops::MovingObjectPredictionVector & predictions
 );

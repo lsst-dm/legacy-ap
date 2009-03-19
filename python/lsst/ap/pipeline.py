@@ -11,59 +11,58 @@ Classes corresponding to the 4 Stages that make up the LSST association pipeline
 """
 from __future__ import with_statement
 
-import datetime
-import os
-import os.path
+from datetime import datetime
+import os, os.path
+import pdb
 import re
 import subprocess
 
-import lsst.pex.exceptions
-import lsst.daf.persistence
-import lsst.pex.logging
-import lsst.pex.harness.Stage
-import lsst.afw.image
+import lsst.daf.base as base
+import lsst.daf.persistence as persistence
+import lsst.pex.logging as logging
+import lsst.pex.harness as harness
+import lsst.afw.image as image
 import lsst.ap as ap
 
 
 # ----------------------------------------------------------------
 
-class LoadStage(lsst.pex.harness.Stage.Stage):
+class LoadStage(harness.Stage.Stage):
     """
     Stage that loads basic object data (id, position, variability probabilities)
     for a visit FOV.
     """
 
     def _massagePolicy(self):
-        runDict = { 'runId': str(self.getRun()) }
-        if self._policy.exists('filterTableLocation'):
-            ftLoc = self._policy.get('filterTableLocation') % runDict
-            self._policy.set('filterTableLocation', ftLoc)
+        loc = persistence.LogicalLocation(self._policy.get('filterTableLocation'))
+        self._policy.set('filterTableLocation', loc.locString())
 
-    def __init__(self, stageId, stagePolicy):
-        lsst.pex.harness.Stage.Stage.__init__(self, stageId, stagePolicy)
-        self._policy = stagePolicy
-        self._firstVisit = True
-        if stagePolicy is None:
+    def __init__(self, stageId, policy):
+        if policy is None:
             raise RuntimeError, "Cannot create a lsst.ap.LoadStage without a policy"
+        harness.Stage.Stage.__init__(self, stageId, policy)
+        self._firstVisit = True
 
     def makeVpContext(self):
         """
         Takes a clipboard from the input queue, creates a visit processing context
         (a holder for all inter-stage association pipeline state), adds it to the
         clipboard, and finally places the clipboard onto the output queue. Expected
-        on the input clipboard is an event named 'triggerAssociationEvent' containing
-        the following information:
-        - the position of the FOV center, given by keys 'FOVRA' and 'FOVDec' (both
+        on the input clipboard is an event (named 'triggerAssociationEvent')
+        containing the following information:
+        - the position of the visit center, given by keys 'ra' and 'decl' (both
           with double precision values in units of degrees).
-        - a visit identifier given by the 'visitId' key (with an int64_t value).
-        - the name of the filter (a string) for the visit given by the 'filterName' key.
+        - a visit identifier given by the 'visitId' key (with an integer value).
+        - the name of the filter (a string) for the visit given by the 'filter' key.
+        - the time at which the visit will occur, given by key 'dateObs' with a double
+          precision value in MJD (TAI)
         - [optionally] a match radius given by the 'matchRadius' key (with a double
           precision value in units of arc-seconds).
         """
         clipboard = self.inputQueue.getNextDataset()
         event = clipboard.get('triggerAssociationEvent')
         self.vpContext = ap.VisitProcessingContext(
-            self.policy, event, self.getRun(), self.getRank(), self.getUniverseSize() - 1
+            self._policy, event, self.getRun(), self.getRank(), self.getUniverseSize() - 1
         )
         clipboard.put('vpContext', self.vpContext)
         self.outputQueue.addDataset(clipboard)
@@ -74,8 +73,6 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size() == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage preprocess(): stage %d' % self.getStageId())
-
         if self._firstVisit:
             self._massagePolicy()
             ap.initialize(str(self.getRun()))
@@ -89,13 +86,10 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): stage %d' % self.getStageId())
-        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage process(): worker %d' % self.getRank())
-
-        if self.firstVisit:
+        if self._firstVisit:
             self._massagePolicy()
             ap.initialize(str(self.getRun()))
-            self.firstVisit = False
+            self._firstVisit = False
         self.makeVpContext()
         ap.loadSliceObjects(self.vpContext)
 
@@ -104,44 +98,40 @@ class LoadStage(lsst.pex.harness.Stage.Stage):
         Checks to make sure all worker slices successfully loaded their share of the
         objects for the visit FOV and builds an object index if so.
         """
-        lsst.pex.logging.Trace('ap.LoadStage', 3, 'Python lsst.ap.pipeline.LoadStage postprocess(): stage %d' % self.getStageId())
         ap.buildObjectIndex(self.vpContext)
 
 
 # --------------------------------------------------------------------------------
 
-class MatchDiaSourcesStage(lsst.pex.harness.Stage.Stage):
+class MatchDiaSourcesStage(harness.Stage.Stage):
     """
     Matches difference sources from the detection pipeline against objects
     within the visits FOV. Difference sources are expected to be found on the clipboard
-    under the key 'DiaSources' and match results, consisting of (difference source id,
+    under the key 'diaSources' and match results, consisting of (difference source id,
     object id, match distance) tuples are placed onto the clipboard under the key
-    'DiaSourceToObjectMatches'.
+    'diaSourceToObjectMatches'.
     """
 
     def __init__(self, stageId=-1, policy=None):
-        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
+        harness.Stage.Stage.__init__(self, stageId, policy)
 
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.MatchDiaSourcesStage', 3, 'Python lsst.ap.pipeline.MatchDiaSourcesStage preprocess(): stage %d' % self.getStageId())
-
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
-        sources   = clipboard.get('DiaSources')
-        matches   = ap.MatchPairVecPtr()
+        sources   = clipboard.get('diaSources')
+        matches   = ap.MatchPairVec()
 
         vpContext.setDiaSources(sources)
         ap.matchDiaSources(matches, vpContext)
 
-        clipboard.put('DiaSourceToObjectMatches', matches)
+        clipboard.put('diaSourceToObjectMatches', ap.PersistableMatchPairVector(matches))
         self.outputQueue.addDataset(clipboard)
 
     def process(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-
         self.outputQueue.addDataset(self.inputQueue.getNextDataset())
 
     def postprocess(self):
@@ -150,52 +140,47 @@ class MatchDiaSourcesStage(lsst.pex.harness.Stage.Stage):
 
 # --------------------------------------------------------------------------------
 
-class MatchMopsPredsStage(lsst.pex.harness.Stage.Stage):
+class MatchMopsPredsStage(harness.Stage.Stage):
     """
     Matches moving object predictions for a visit against difference sources. The previous
     stage is assumed to have read the difference sources and produced an index for them (stored
     in 'vpContext' on the clipboard). Moving object predictions are expected to be found on the
-    clipboard under the key 'MopsPreds' and match results, consisting of (moving object id,
+    clipboard under the key 'mopsPreds' and match results, consisting of (moving object id,
     difference source id, match distance) tuples are placed onto the clipboard under the key
-    'MopsPredToDiaSourceMatches'. Finally, difference sources which didn't match anything are
+    'predToDiaSourceMatches'. Finally, difference sources which didn't match anything are
     used to create new objects - identifiers for these are placed onto the clipboard under the
-    key 'NewObjects'.
+    key 'diaSourceToNewObject'.
     """
     def __init__(self, stageId=-1, policy=None):
-        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
+        harness.Stage.Stage.__init__(self, stageId, policy)
 
     def preprocess(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.MatchMopsPredsStage', 3, 'Python lsst.ap.pipeline.MatchMopsPredsStage preprocess(): stage %d' % self.getStageId())
-
         clipboard = self.inputQueue.getNextDataset()
         vpContext = clipboard.get('vpContext')
 
         try:
-            event1 = clipboard.get('triggerAssociationEvent')
-            event2 = clipboard.get('triggerMatchMopsPredsEvent')
-            if event1.findUnique('visitId').getValueInt() != event2.findUnique('visitId').getValueInt():
-                raise lsst.pex.exceptions.LsstRuntime(
-                    'triggerAssociationEvent.visitId != triggerMatchMopsPredsEvent.visitId'
-                )
-            preds     = clipboard.get('MopsPreds')
-            matches   = ap.MatchPairVecPtr()
-            idPairs   = ap.IdPairVecPtr()
+            ev1 = clipboard.get('triggerAssociationEvent')
+            ev2 = clipboard.get('triggerMatchMopsPredsEvent')
+            if ev1.getInt('visitId') != ev2.getInt('visitId'):
+                raise RuntimeError('triggerAssociationEvent.visitId != triggerMatchMopsPredsEvent.visitId')
+            preds = clipboard.get('mopsPreds')
+            matches = ap.MatchPairVec()
+            idPairs = ap.IdPairVec()
         except:
             ap.endVisit(vpContext, True)
             raise
 
-        ap.matchMops(matches, idPairs, vpContext, preds)
+        ap.matchMops(matches, idPairs, vpContext, preds.getPredictions())
 
-        clipboard.put('MopsPredToDiaSourceMatches', matches)
-        clipboard.put('NewObjectIdPairs', idPairs)
+        clipboard.put('predToDiaSourceMatches', ap.PersistableMatchPairVector(matches))
+        clipboard.put('diaSourceToNewObject', ap.PersistableIdPairVector(idPairs))
         self.outputQueue.addDataset(clipboard)
 
     def process(self):
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-
         self.outputQueue.addDataset(self.inputQueue.getNextDataset())
 
     def postprocess(self):
@@ -204,160 +189,116 @@ class MatchMopsPredsStage(lsst.pex.harness.Stage.Stage):
 
 # ----------------------------------------------------------------
 
-class StoreStage(lsst.pex.harness.Stage.Stage):
+class StoreStage(harness.Stage.Stage):
     """
-    Stores new objects (created from unmatched difference sources) obtained during
-    the visit into chunk delta files.
+    Store new objects (created from unmatched difference sources under certain
+    conditions) obtained during the visit into chunk delta files.
     """
+    def _runSql(self, sqlStatements, scriptFileName):
+        db = persistence.DbStorage()
+        db.setPersistLocation(self.database)
+        with open(scriptFileName, 'w') as scriptFile:
+            for stmt in sqlStatements:
+                stmt = stmt % self.templateDict
+                startTime = time.clock()
+                scriptFile.write(stmt)
+                scriptFile.write(';\n\n')
+                scriptFile.flush()
+                try:
+                    db.executeSql(stmt)
+                except Exception, e:
+                    scriptFile.write(str(e))
+                    raise
+                scriptFile.write('... statement executed in %f seconds\n' % (time.clock() - startTime))
 
-    def _createSqlScripts(self, vpContext, visitTime):
-        self.templateDict['visitId']    = vpContext.getVisitId()
-        self.templateDict['visitTime']  = visitTime
-        self.templateDict['filterName'] = self.filterChars[vpContext.getFilterId()]
-        for i in self.templateNames:
-            outText = self.templates[i] % self.templateDict
-            name, ext = os.path.splitext(i)
-            assert name.endswith('Template')
-            outName = ''.join([name[:-len('Template')], '_visit%d' % vpContext.getVisitId(), ext])
-            outPath = os.path.join(self.scriptDir, outName)
-            self.scriptPaths[i] = outPath
-            with file(outPath, 'w') as outFile:
-                outFile.write(outText)
+    def _copyObject(self):
+        """
+        Append contents of policy-specified object table to Object table in per-run database
+        """
+        if (self.objectTable and len(self.objectTable) > 0):
+            db = persistence.DbStorage()
+            db.setPersistLocation(self.database)
+            db.executeSql("INSERT INTO %s SELECT * FROM %s" %\
+                (self.templateDict['nonVarObjectTable'], self.objectTable))
 
-    def _runSqlScript(self, i):
-        script = self.scriptPaths[i]
-        args = ['mysql',
-                '--user=%s' % self.username,
-                '--password=%s' % self.password,
-                '--host=%s' % self.hostname,
-                '--port=%d' % self.port,
-                '--database=%s' % self.database,
-                '-vvv',
-                '-e', 'source %s' % script]
-        with file(script + '.log', 'w') as logFile:
-            exitcode = subprocess.Popen(args, stdout=logFile).wait()
-        return exitcode
-
-    def _initPropsFromRun(self, runId):
-        runDict  = { 'runId': str(runId) }
-        location = self.location % runDict
-        self.scriptDir = self.scriptDirectory % runDict
+    def __init__(self, stageId, policy):
+        if policy is None:
+            raise RuntimeError, "Cannot create a lsst.ap.StoreStage without a policy"
+        harness.Stage.Stage.__init__(self, stageId, policy)
+        self.filterChars  = ('u','g','r','i','z','y')
+        self.templateDict = {}
+        self.additionalData = base.PropertySet()
+        self.database = persistence.LogicalLocation(policy.getString('database'))
+        self.objectTable = policy.getString('objectTable') if policy.exists('objectTable') else None
+        self.storeOutputs = policy.getBool('storeOutputs')
+        self.appendTables = policy.getBool('appendTables')
+        self.dropTables = policy.getBool('dropTables')
+        self.scriptDir = persistence.LogicalLocation(policy.getString('scriptDirectory')).locString()
         if not os.path.exists(self.scriptDir):
             os.makedirs(self.scriptDir)
-        # Parse database location string
-        dbloc = re.compile('(\w+)://(\S+):(\d+)/(\S+)').match(location)
-        if dbloc is None:
-            raise lsst.pex.exceptions.LsstRuntime('invalid location string')
-        if dbloc.group(1) != 'mysql':
-            raise lsst.pex.exceptions.LsstRuntime('database type %s not supported' % dbloc.group(1))
-        self.hostname = dbloc.group(2)
-        self.port     = int(dbloc.group(3))
-        self.database = dbloc.group(4)
+        self.templateDict['diaSourceTable'] = policy.getString('diaSourceTable')
+        self.templateDict['varObjectTable'] = policy.getString('varObjectTable')
+        self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable')
 
-    def __init__(self, stageId=-1, policy=None):
-        lsst.pex.harness.Stage.Stage.__init__(self, stageId, policy)
-        if not lsst.daf.persistence.DbAuth.available():
-            raise lsst.pex.exceptions.LsstRuntime('missing credentials for database authorization')
-        self.firstVisit    = True
-        self.username      = lsst.daf.persistence.DbAuth.username()
-        self.password      = lsst.daf.persistence.DbAuth.password()
-        self.filterChars   = ('u','g','r','i','z','y')
-        self.templateNames = ['StoreOutputsTemplate.sql',
-                              'AppendTablesTemplate.sql',
-                              'DropTablesTemplate.sql']
-        self.templates     = {}
-        self.scriptPaths   = {}
-        self.templateDict  = {}
-        # read in templates
-        apDir = os.environ['AP_DIR']
-        for i in self.templateNames:
-            inPath = os.path.join(apDir, "sql", i)
-            with file(inPath, 'r') as inFile:
-                self.templates[i] = inFile.read()
-        # set default policy parameters
-        self.location        = 'mysql://lsst10.ncsa.uiuc.edu:3306/test'
-        self.storeOutputs    = True
-        self.appendTables    = True
-        self.dropTables      = True
-        self.scriptDirectory = '/tmp/%(runId)s'
-        self.templateDict['diaSourceTable']    = 'DIASource'
-        self.templateDict['varObjectTable']    = 'VarObject'
-        self.templateDict['nonVarObjectTable'] = 'NonVarObject'
-        # extract policy parameters from policy (if available)
-        if policy != None:
-            self.location        = policy.getString('location', self.location)
-            self.storeOutputs    = policy.getBool('storeOutputs', self.storeOutputs)
-            self.appendTables    = policy.getBool('appendTables', self.appendTables)
-            self.dropTables      = policy.getBool('dropTables', self.dropTables)
-            self.scriptDirectory = policy.getString('scriptDirectory', self.scriptDirectory)
-            self.templateDict['diaSourceTable'] = policy.getString('diaSourceTable', self.templateDict['diaSourceTable'])
-            self.templateDict['varObjectTable'] = policy.getString('varObjectTable', self.templateDict['varObjectTable'])
-            self.templateDict['nonVarObjectTable'] = policy.getString('nonVarObjectTable', self.templateDict['nonVarObjectTable'])
-        self._initPropsFromRun(self.getRun())
+    def initialize(self, outQueue, inQueue):
+        """
+        The master slice is in charge of database prep-work
+        """
+        harness.Stage.Stage.initialize(self, outQueue, inQueue)
+        if self.getRank() == -1:
+            self._copyObject()
 
     def preprocess(self):
-        if self.firstVisit:
-            self._initPropsFromRun(self.getRun())
-            self.firstVisit = False
+        pass
 
     def process(self):
         """
-        Stores chunk deltas assigned to the worker slice.
+        Store chunk deltas assigned to the worker slice.
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): stage %d' % self.getStageId())
-        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage process(): worker %d' % self.getRank())
-
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
         ap.storeSliceObjects(clipboard.get('vpContext'))
 
     def postprocess(self):
         """
-        Checks to make sure all worker slices successfully stored their share of the
+        Check to make sure all worker slices successfully stored their share of the
         new objects for the visit and removes the visit from the list of in-flight
         visits being tracked by the shared memory chunk manager. Optionally:
-          - stores pipeline outputs (new objects, object updates, new difference sources)
-          - appends per-visit tables to global accumulator tables
-          - drops per-visit tables created by LSST pipelines
+          - store pipeline outputs (new objects, object updates, new difference sources)
+          - append per-visit tables to global accumulator tables
+          - drop per-visit tables created by LSST pipelines
         """
         assert self.inputQueue.size()  == 1
         assert self.outputQueue.size() == 0
-        lsst.pex.logging.Trace('ap.StoreStage', 3, 'Python lsst.ap.pipeline.StoreStage postprocess(): stage %d' % self.getStageId())
-
         clipboard = self.inputQueue.getNextDataset()
         self.outputQueue.addDataset(clipboard)
+
         vpContext = clipboard.get('vpContext')
-        event     = clipboard.get('triggerAssociationEvent')
-        # get MJD of visit and convert to UTC string in ISO 8601 format for use in database queries
-        dt        = lsst.daf.base.DateTime(event.findUnique('visitTime').getValueDouble())
-        utcString = datetime.datetime.utcfromtimestamp(dt.nsecs()/1000000000).isoformat(' ')
-        self._createSqlScripts(vpContext, utcString)
+        event = clipboard.get('triggerAssociationEvent')
+        do = base.DateTime(event.getDouble('dateObs'))
+        doUtc = datetime.utcfromtimestamp(do.nsecs(base.DateTime.UTC)/1000000000).isoformat(' ')
+        dbType = re.match(r'(\w+)://', self.database.locString()).group(1)
+        visitId = event.getInt('visitId')
+
+        self.templateDict['runId'] = self.getRun()
+        self.templateDict['visitId'] = visitId
+        self.templateDict['dateObs'] = doUtc
+        self.templateDict['filter'] = self.filterChars[vpContext.getFilterId()]
+
         if self.storeOutputs:
-            if self._runSqlScript('StoreOutputsTemplate.sql') != 0:
+            try:
+                self._runSql(ap.SqlStoreOutputs.sqlStatements[dbType], 'StoreOutputs_%d.sql' % visitId)
+            except:
                 ap.endVisit(vpContext, True)
-                raise lsst.pex.exceptions.LsstRuntime(
-                    'Association pipeline failed: SQL script %s failed' %
-                    self.scriptPaths['StoreOutputsTemplate.sql']
-                )
-
+                raise
         if not ap.endVisit(vpContext, False):
-            raise lsst.pex.exceptions.LsstRuntime('Association pipeline failed: visit not committed')
-
+            raise RuntimeError('Association pipeline failed: visit not committed')
         if self.appendTables:
-            if self._runSqlScript('AppendTablesTemplate.sql') != 0:
-                raise lsst.pex.exceptions.LsstRuntime(
-                    'Association pipeline failed: SQL script %s failed' %
-                    self.scriptPaths['AppendTablesTemplate.sql']
-                )
-
+            self._runSql(ap.SqlAppendTables.sqlStatements[dbType], 'AppendTables_%d.sql' % visitId)
         if self.dropTables:
-            if self._runSqlScript('DropTablesTemplate.sql') != 0:
-                raise lsst.pex.exceptions.LsstRuntime(
-                    'Association pipeline failed to drop tables given in SQL script %s' %
-                    self.scriptPaths['DropTablesTemplate.sql']
-                )
+            self._runSql(ap.SqlDropTables.sqlStatements[dbType], 'DropTables_%d.sql' % visitId)
 
 
 # ----------------------------------------------------------------

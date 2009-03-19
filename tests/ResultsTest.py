@@ -106,8 +106,8 @@ class MatchPairVecTestCase(unittest.TestCase):
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
             ps   = base.PropertySet()
-            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
-            ps.add("itemName", "MatchPair")
+            ps.setInt("visitId", int(time.clock())*16384 + random.randint(0,16383))
+            ps.setString("itemName", "MatchPair")
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
             pers.persist(ap.PersistableMatchPairVector(self.vec), stl, ps)
@@ -167,8 +167,8 @@ class IdPairVecTestCase(unittest.TestCase):
             pers = persistence.Persistence.getPersistence(pol)
             loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
             ps   = base.PropertySet()
-            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
-            ps.add("itemName", "IdPair")
+            ps.setInt("visitId", int(time.clock())*16384 + random.randint(0,16383))
+            ps.setString("itemName", "IdPair")
             stl = persistence.StorageList()
             stl.push_back(pers.getPersistStorage("DbStorage", loc))
             pers.persist(ap.PersistableIdPairVector(self.vec), stl, ps)
@@ -184,64 +184,64 @@ class IdPairVecTestCase(unittest.TestCase):
 
 
 # ----------------------------------------------------------------
-class IdVecTestCase(unittest.TestCase):
-    """A test case for IdVec"""
-
-    def setUp(self):
-        n = 16 + random.randint(0,16)
-        self.vec = ap.IdVec()
-        for i in xrange(n):
-            self.vec.push_back(i)
-
-    def tearDown(self):
-        del self.vec
-
-    def testIterable(self):
-        """Tests that IdVec instances can be iterated over"""
-        j = 0
-        for i in self.vec:
-            assert i == j
-            j += 1
-
-    def testCopy(self):
-        """Tests copying and assignment of IdVec instances"""
-        _copy(self.vec, ap.IdVec, long)
-
-    def testInsertErase(self):
-        """Tests inserting and erasing IdVec elements"""
-        _insertErase(self.vec, ap.IdVec, long)
-
-    def testSlice(self):
-        slice = self.vec[1:11]
-        j = 1
-        for i in slice:
-            print i
-            assert i == j
-            j += 1
-
-    def testPersistence(self):
-        if persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
-            pol  = policy.Policy()
-            root = "Formatter.PersistableIdVector"
-            pol.set(root + ".Id.templateTableName", "_tmpl_Id")
-            pol.set(root + ".Id.tableNamePattern", "_tmp_v%(visitId)_I")
-            pers = persistence.Persistence.getPersistence(pol)
-            loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
-            ps   = base.PropertySet()
-            ps.add("visitId", int(time.clock())*16384 + random.randint(0,16383))
-            ps.add("itemName", "Id")
-            stl = persistence.StorageList()
-            stl.push_back(pers.getPersistStorage("DbStorage", loc))
-            pers.persist(ap.PersistableIdVector(self.vec), stl, ps)
-            stl = persistence.StorageList()
-            stl.push_back(pers.getRetrieveStorage("DbStorage", loc))
-            res = ap.PersistableIdVector.swigConvert(pers.unsafeRetrieve("PersistableIdVector", stl, ps))
-            db = persistence.DbStorage()
-            db.setPersistLocation(loc)
-            db.startTransaction()
-            db.dropTable(detection.getTableName(pol.getPolicy(root), ps))
-            db.endTransaction()
-            assert _seqEqual(res.getIds(), self.vec)
+#class IdVecTestCase(unittest.TestCase):
+#    """A test case for IdVec"""
+#
+#    def setUp(self):
+#        n = 16 + random.randint(0,16)
+#        self.vec = ap.IdVec()
+#        for i in xrange(n):
+#            self.vec.push_back(i)
+#
+#    def tearDown(self):
+#        del self.vec
+#
+#    def testIterable(self):
+#        """Tests that IdVec instances can be iterated over"""
+#        j = 0
+#        for i in self.vec:
+#            assert i == j
+#            j += 1
+#
+#    def testCopy(self):
+#        """Tests copying and assignment of IdVec instances"""
+#        _copy(self.vec, ap.IdVec, long)
+#
+#    def testInsertErase(self):
+#        """Tests inserting and erasing IdVec elements"""
+#        _insertErase(self.vec, ap.IdVec, long)
+#
+#    def testSlice(self):
+#        slice = self.vec[1:11]
+#        j = 1
+#        for i in slice:
+#            print i
+#            assert i == j
+#            j += 1
+#
+#    def testPersistence(self):
+#        if persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
+#            pol  = policy.Policy()
+#            root = "Formatter.PersistableIdVector"
+#            pol.set(root + ".Id.templateTableName", "_tmpl_Id")
+#            pol.set(root + ".Id.tableNamePattern", "_tmp_v%(visitId)_I")
+#            pers = persistence.Persistence.getPersistence(pol)
+#            loc  = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test")
+#            ps   = base.PropertySet()
+#            ps.setInt("visitId", int(time.clock())*16384 + random.randint(0,16383))
+#            ps.setString("itemName", "Id")
+#            stl = persistence.StorageList()
+#            stl.push_back(pers.getPersistStorage("DbStorage", loc))
+#            pers.persist(ap.PersistableIdVector(self.vec), stl, ps)
+#            stl = persistence.StorageList()
+#            stl.push_back(pers.getRetrieveStorage("DbStorage", loc))
+#            res = ap.PersistableIdVector.swigConvert(pers.unsafeRetrieve("PersistableIdVector", stl, ps))
+#            db = persistence.DbStorage()
+#            db.setPersistLocation(loc)
+#            db.startTransaction()
+#            db.dropTable(detection.getTableName(pol.getPolicy(root), ps))
+#            db.endTransaction()
+#            assert _seqEqual(res.getIds(), self.vec)
 
 
 # ----------------------------------------------------------------
@@ -253,7 +253,7 @@ def suite():
     suites = []
     suites += unittest.makeSuite(MatchPairVecTestCase)
     suites += unittest.makeSuite(IdPairVecTestCase)
-    suites += unittest.makeSuite(IdVecTestCase)
+    # suites += unittest.makeSuite(IdVecTestCase)
     suites += unittest.makeSuite(tests.MemoryTestCase)
     return unittest.TestSuite(suites)
 

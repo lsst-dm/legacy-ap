@@ -6,13 +6,21 @@
 AdditionalData: "visitId=triggerAssociationEvent.visitId"
 RunMode: "preprocess"
 InputItems: {
-    MopsPreds: {
-        Type: "MovingObjectPredictionVector"
-        PythonType: "lsst.mops.MopsPredVec"
+    mopsPreds: {
+        Type: "PersistableMovingObjectPredictionVector"
+        PythonType: "lsst.mops.PersistableMopsPredVec"
         StoragePolicy: {
-            Storage:  "DbTsvStorage"
-            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+            Storage:  "DbStorage"
+            Location: "%(dbUrl)"
         }
     }
 }
-
+Persistence: {
+    Formatter: {
+        PersistableMovingObjectPredictionVector: {
+            mopsPreds: {
+                tableNamePattern: "_tmp_v%(visitId)_Preds"
+            }
+        }
+    }
+}

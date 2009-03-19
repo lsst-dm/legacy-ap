@@ -2,7 +2,8 @@
 #
 # Example policy file for lsst.ap.pipeline.LoadStage
 
-fovRadius                       : 0.75 
+triggerEvent                    : "triggerAssociationEvent"
+fovRadius                       : 0.75
 zonesPerDegree                  : 180
 zonesPerStripe                  : 63
 maxEntriesPerZoneEstimate       : 4096
@@ -10,9 +11,9 @@ matchRadius                     : 0.5
 semiMajorAxisThreshold          : 10800.0
 semiMajorAxisClamp              : 10.0
 semiMinorAxisClamp              : 10.0
-objectChunkFileNamePattern      : "/tmp/%1%/objchunk/stripe_%2%/objref_chunk.%3%"
-objectDeltaChunkFileNamePattern : "/tmp/%1%/objdelta/stripe_%2%/objdelta_chunk%3%"
-filterTableLocation             : "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+objectChunkFileNamePattern      : "%(input)/objchunk/%(stripeId)/ref_%(chunkId).chunk"
+objectDeltaChunkFileNamePattern : "%(update)/objdelta/%(stripeId)/delta_%(chunkId).chunk"
+filterTableLocation             : "%(dbUrl)"
 uVarProbThreshold               : 90
 gVarProbThreshold               : 90
 rVarProbThreshold               : 90

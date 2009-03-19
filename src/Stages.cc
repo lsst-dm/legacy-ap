@@ -43,7 +43,6 @@
 #include "lsst/mops/MovingObjectPrediction.h"
 
 #include "lsst/ap/ChunkManager.h"
-#include "lsst/ap/ChunkToNameMappings.h"
 #include "lsst/ap/Match.h"
 #include "lsst/ap/Stages.h"
 #include "lsst/ap/Time.h"
@@ -71,11 +70,11 @@ namespace lsst { namespace ap {
 static boost::uint32_t const HAS_MATCH  = 1;
 static boost::uint32_t const HAS_KNOWN_VARIABLE_MATCH = 2;
 static char const * const VAR_PROB_THRESH_KEY[6] = {
-    "uVarProbThreshold"
-    "gVarProbThreshold"
-    "rVarProbThreshold"
-    "iVarProbThreshold"
-    "zVarProbThreshold"
+    "uVarProbThreshold",
+    "gVarProbThreshold",
+    "rVarProbThreshold",
+    "iVarProbThreshold",
+    "zVarProbThreshold",
     "yVarProbThreshold"
 };
 
@@ -505,20 +504,20 @@ VisitProcessingContext::VisitProcessingContext(
     _workerId(workerId),
     _numWorkers(numWorkers)
 {
-    double ra = event->getAsDouble("FOVRA");
-    double dec = event->getAsDouble("FOVDec");
+    double ra = event->getAsDouble("ra");
+    double dec = event->getAsDouble("decl");
     _fov = CircularRegion(ra, dec, policy->getDouble("fovRadius"));
     _visitId = event->getAsInt("visitId");
     if (event->exists("matchRadius")) {
         _matchRadius = event->getAsDouble("matchRadius");
     }
-    _visitDate = event->getAsDouble("dateobs");
+    _visitTime = event->getAsDouble("dateObs");
 
     // DC3a: set association pipeline deadline to 10 minutes
     // after creation of a visit processing context.
     _deadline.systemTime();
     _deadline.tv_sec += 600;
-    std::string filterName = event->getAsString("filterName");
+    std::string filterName = event->getAsString("filter");
     LogicalLocation location(policy->getString("filterTableLocation"));
     _filter = Filter(location, filterName);
 }
@@ -527,7 +526,7 @@ VisitProcessingContext::VisitProcessingContext(
 VisitProcessingContext::~VisitProcessingContext() {}
 
 
-void VisitProcessingContext::setDiaSources(PersistableDiaSourceVector::Ptr diaSources) {
+void VisitProcessingContext::setDiaSources(boost::shared_ptr<PersistableDiaSourceVector> diaSources) {
     _diaSources = diaSources->getSources();
     _diaSourceIndex.clear();
     int const sz = static_cast<int>(_diaSources.size());
@@ -577,7 +576,7 @@ void VisitProcessingContext::setDiaSources(PersistableDiaSourceVector::Ptr diaSo
 
 
 void VisitProcessingContext::buildObjectIndex() {
-    detail::buildZoneIndex(_objectIndex, _chunks, _visitDate);
+    detail::buildZoneIndex(_objectIndex, _chunks, _visitTime);
 }
 
 
@@ -651,19 +650,18 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
 
         // Read data files
         watch.start();
-        ChunkToFileNameMapping refNames(context.getPipelinePolicy()->getString("objectChunkFileNamePattern"));
-        ChunkToFileNameMapping deltaNames(context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern"));
+        std::string refNamePattern(context.getPipelinePolicy()->getString("objectChunkFileNamePattern"));
+        std::string deltaNamePattern(context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern"));
+        PropertySet::Ptr ps(new PropertySet);
+        ps->set<std::string>("runId", context.getRunId());
         ChunkVector::size_type numToRead(toRead.size());
         for (ChunkIterator i(toRead.begin()), end(toRead.end()); i != end; ++i) {
             Chunk & c = *i;
-            c.read(
-                refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                false
-            );
-            c.readDelta(
-                deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                false
-            );
+            ps->set<int>("chunkId", c.getId());
+            ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+            ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+            c.read(LogicalLocation(refNamePattern, ps).locString(), false);
+            c.readDelta(LogicalLocation(deltaNamePattern, ps).locString(), false);
             c.setUsable();
         }
         watch.stop();
@@ -687,14 +685,11 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             numToRead = toRead.size();
             for (ChunkIterator i(toRead.begin()), end(toRead.end()); i != end; ++i) {
                 Chunk & c = *i;
-                c.read(
-                    refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                    false
-                );
-                c.readDelta(
-                    deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                    false
-                );
+                ps->set<int>("chunkId", c.getId());
+                ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+                ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+                c.read(LogicalLocation(refNamePattern, ps).locString(), false);
+                c.readDelta(LogicalLocation(deltaNamePattern, ps).locString(), false);
                 c.setUsable();
             }
             watch.stop();
@@ -754,17 +749,17 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
  * @param[in, out] context  State involved in processing a single visit.
  */
 LSST_AP_API void matchDiaSources(
-    boost::shared_ptr<MatchPairVector> & matches,
+    MatchPairVector & matches,
     VisitProcessingContext & context
 ) {
     SharedObjectChunkManager manager(context.getRunId());
 
     try {
 
-        matches.reset(new MatchPairVector());
-        matches->reserve(65536);
+        matches.clear();
+        matches.reserve(65536);
 
-        detail::ObjectMatchProcessor<detail::ObjectEntry> mlp(context, *matches, context.getFilter());
+        detail::ObjectMatchProcessor<detail::ObjectEntry> mlp(context, matches, context.getFilter());
         PassthroughFilter<detail::DiaSourceEntry> pdf;
         PassthroughFilter<detail::ObjectEntry> pof;
 
@@ -812,8 +807,8 @@ LSST_AP_API void matchDiaSources(
  * @param[in]      predictions The list of moving object predictions to match against difference sources.
  */
 LSST_AP_API void matchMops(
-    boost::shared_ptr<MatchPairVector> & matches,
-    boost::shared_ptr<IdPairVector> & newObjects,
+    MatchPairVector & matches,
+    IdPairVector & newObjects,
     VisitProcessingContext & context,
     lsst::mops::MovingObjectPredictionVector & predictions
 ) {
@@ -823,12 +818,12 @@ LSST_AP_API void matchMops(
         double const smaaClamp = context.getPipelinePolicy()->getDouble("semiMajorAxisClamp");
         double const smiaClamp = context.getPipelinePolicy()->getDouble("semiMinorAxisClamp");
         
-        matches.reset(new MatchPairVector);
-        matches->reserve(8192);
-        newObjects.reset(new IdPairVector);
-        newObjects->reserve(8192);
+        matches.clear();
+        matches.reserve(8192);
+        newObjects.clear();
+        newObjects.reserve(8192);
 
-        detail::MovingObjectPredictionMatchProcessor mpp(*matches);
+        detail::MovingObjectPredictionMatchProcessor mpp(matches);
 
         // discard difference sources with known variable matches
         Stopwatch watch(true);
@@ -890,7 +885,7 @@ LSST_AP_API void matchMops(
         // Create new objects from difference sources with no matches
         watch.start();
         detail::NewObjectCreator createObjects(
-            *newObjects,
+            newObjects,
             context.getChunks(),
             context.getDecomposition(),
             context.getFilter()
@@ -898,7 +893,7 @@ LSST_AP_API void matchMops(
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
         Rec(log, Log::INFO) << "created new objects" <<
-            Prop<int>("numObjects", static_cast<int>(newObjects->size())) <<
+            Prop<int>("numObjects", static_cast<int>(newObjects.size())) <<
             Prop<double>("time", watch.seconds()) << Rec::endr;
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
@@ -924,11 +919,16 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     Log log(Log::getDefaultLog(), "associate");
     try {
         Stopwatch watch(true);
-        ChunkToFileNameMapping deltaNames(context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern"));
+        std::string deltaNamePattern = context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern");
+        PropertySet::Ptr ps(new PropertySet);
+        ps->set<std::string>("runId", context.getRunId());
         ChunkVector & chunks = context.getChunks();
         for (ChunkIterator i(chunks.begin()), end(chunks.end()); i != end; ++i) {
             Chunk & c = *i;
-            std::string file(deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()));
+            ps->set<int>("chunkId", c.getId());
+            ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+            ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+            std::string file = LogicalLocation(deltaNamePattern, ps).locString();
             verifyPathName(file);
             c.writeDelta(file, true, false);
         }

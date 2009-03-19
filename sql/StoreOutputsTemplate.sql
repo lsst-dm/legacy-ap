@@ -7,16 +7,16 @@
 --
 
 -- Set objectId of each difference source to the id of the closest matching object
-CREATE TEMPORARY TABLE BestMatch_visit%(visitId)d LIKE InMemoryMatchPairTemplate;
+CREATE TEMPORARY TABLE _tmp_v%(visitId)d_BestMatch LIKE _tmpl_InMemoryMatchPair;
 ALTER TABLE DiaSourceToObjectMatches_visit%(visitId)d ADD INDEX (first, distance);
-INSERT INTO BestMatch_visit%(visitId)d
+INSERT INTO _tmp_v%(visitId)d_BestMatch
     SELECT a.first, a.second, a.distance
     FROM DiaSourceToObjectMatches_visit%(visitId)d AS a LEFT OUTER JOIN
          DiaSourceToObjectMatches_visit%(visitId)d AS b ON
          a.first = b.first AND (b.distance < a.distance OR
                                 (b.distance = a.distance AND b.second < a.second))
     WHERE b.first IS NULL;
-UPDATE DiaSources_visit%(visitId)d AS s, BestMatch_visit%(visitId)d AS m
+UPDATE DiaSources_visit%(visitId)d AS s, _tmp_v%(visitId)d_BestMatch AS m
     SET s.objectId = m.second
     WHERE s.diaSourceId = m.first;
 
@@ -29,18 +29,18 @@ UPDATE DiaSources_visit%(visitId)d AS s, NewObjectIdPairs_visit%(visitId)d AS n
 INSERT INTO %(diaSourceTable)s SELECT * FROM DiaSources_visit%(visitId)d;
 
 -- Update latest observation time and observation count for objects with matches
-UPDATE %(varObjectTable)s AS o, BestMatch_visit%(visitId)d AS m
+UPDATE %(varObjectTable)s AS o, _tmp_v%(visitId)d_BestMatch AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
-UPDATE %(nonVarObjectTable)s AS o, BestMatch_visit%(visitId)d AS m
+UPDATE %(nonVarObjectTable)s AS o, _tmp_v%(visitId)d_BestMatch AS m
     SET   o.latestObsTime = '%(visitTime)s',
           o.%(filterName)cNumObs = o.%(filterName)cNumObs + 1
     WHERE o.objectId = m.id;
 
 -- Create new objects from difference sources in an in-memory table. This provides both
 -- a debugging aid and allows different filters to be handled with a single script.
-CREATE TEMPORARY TABLE NewObjects_visit%(visitId)d LIKE InMemoryObjectTemplate;
+CREATE TEMPORARY TABLE NewObjects_visit%(visitId)d LIKE _tmpl_InMemoryObject;
 
 -- Insert records (all filter-specific fields set to NULL)
 INSERT INTO NewObjects_visit%(visitId)d

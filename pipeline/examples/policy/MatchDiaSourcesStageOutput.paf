@@ -6,21 +6,21 @@
 AdditionalData: "visitId=triggerAssociationEvent.visitId"
 RunMode: "preprocess"
 OutputItems: {
-    DiaSourceToObjectMatches: {
+    diaSourceToObjectMatches: {
         Required: true
         StoragePolicy: {
-            Storage:  "DbTsvStorage"
-            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+            Storage:  "DbStorage"
+            Location: "%(dbUrl)"
         }
     }
 }
 Persistence: {
     Formatter: {
-        MatchPairVector: {
-            DiaSourceToObjectMatches: {
-                templateTableName: "MatchPair"
+        PersistableMatchPairVector: {
+            diaSourceToObjectMatches: {
+                templateTableName: "_tmpl_MatchPair"
+                tableNamePattern: "_tmp_v%(visitId)_DIASourceToObjectMatches"
             }
         }
     }
 }
-

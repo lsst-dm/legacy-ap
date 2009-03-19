@@ -15,6 +15,8 @@ Access to association pipeline persistable result objects and implementation met
 %{
 #include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
+#include "lsst/daf/data.h"
+#include "lsst/afw.h"
 #include "lsst/ap/Results.h"
 #include "lsst/ap/io/ResultFormatters.h"
 #include "lsst/ap/Stages.h"
@@ -36,6 +38,8 @@ namespace boost {
 
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
+%import "lsst/afw/detection/detectionLib.i"
+%import "lsst/mops/mopsLib.i"
 
 %lsst_exceptions()
 
@@ -69,7 +73,6 @@ IdPair.__str__ = IdPair.toString
 MatchPair.__str__ = MatchPair.toString
 %}
 
-%template(IdVec) std::vector<boost::int64_t>;
 %template(IdPairVec) std::vector<std::pair<boost::int64_t, boost::int64_t> >;
 %template(MatchPairVec) std::vector<lsst::ap::MatchPair>;
 
