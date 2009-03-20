@@ -35,7 +35,6 @@ struct LSST_AP_API Object {
     double _muDecl;
     double _parallax;
     double _radialVelocity;
-    double _epoch;
     boost::int16_t _varProb[lsst::afw::image::Filter::NUM_FILTERS];
 
     boost::int64_t getId() const {
