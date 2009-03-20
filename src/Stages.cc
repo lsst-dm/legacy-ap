@@ -158,6 +158,9 @@ std::pair<double, double> correctProperMotion(Object const& obj, double const ep
     double d2 = x*x + y*y;
     ra   = (d2 == 0.0) ? 0 : degrees(std::atan2(y, x));
     decl = (z  == 0.0) ? 0 : degrees(std::atan2(z, std::sqrt(d2)));
+    if (ra < 0.0) {
+        ra += 360.0;
+    }
     return std::make_pair(ra, decl);
 }
 
