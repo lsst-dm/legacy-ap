@@ -4,7 +4,7 @@
  * @file
  * @brief   Persistable vectors for association pipeline results.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_RESULTS_H

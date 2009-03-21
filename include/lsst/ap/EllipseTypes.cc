@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of Ellipse and EllipseList classes.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_ELLIPSE_TYPES_CC

@@ -4,7 +4,7 @@
  * @file
  * @brief   Chunk class implementation.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CHUNK_CC

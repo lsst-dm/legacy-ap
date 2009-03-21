@@ -4,7 +4,7 @@
  * @file
  * @brief   Persistence implementation for association pipeline result vectors.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <memory>

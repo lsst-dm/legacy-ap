@@ -4,7 +4,7 @@
  * @file
  * @brief   Class describing a circular region on the sky.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CIRCULAR_REGION_H

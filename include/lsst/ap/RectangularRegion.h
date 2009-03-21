@@ -4,7 +4,7 @@
  * @file
  * @brief   Class describing a rectangular (in ra and dec) region on the sky.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_RECTANGULAR_REGION_H

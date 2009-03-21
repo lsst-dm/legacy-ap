@@ -4,7 +4,7 @@
  * @file
  * @brief   Static members for ScopeGuard.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <lsst/ap/ScopeGuard.h>

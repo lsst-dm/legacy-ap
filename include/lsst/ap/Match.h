@@ -20,7 +20,7 @@
  * in a parallel match. Ensuring that this doesn't cause problems is the responsibility of the
  * match pair/list processor author.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_MATCH_H

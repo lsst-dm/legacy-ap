@@ -4,7 +4,7 @@
  * @file
  * @brief   Formatter subclasses for association pipeline result vectors.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_IO_RESULT_FORMATTERS_H

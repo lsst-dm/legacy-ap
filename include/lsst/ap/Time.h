@@ -4,7 +4,7 @@
  * @file
  * @brief   Convenience wrapper for the C library timespec struct and a simple profiling class.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_TIME_H

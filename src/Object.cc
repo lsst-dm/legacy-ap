@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of Object class.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include "lsst/ap/Object.h"

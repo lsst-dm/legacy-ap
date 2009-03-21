@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of persistable association pipeline result vectors.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include "lsst/ap/Results.h"

@@ -4,7 +4,7 @@
  * @file
  * @brief   Chunk manager helper classes
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CHUNK_MANAGER_IMPL_H

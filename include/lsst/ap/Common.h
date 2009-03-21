@@ -6,7 +6,7 @@
  *
  * Intended for things of broad utility, e.g. platform normalization and global constants
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_COMMON_H

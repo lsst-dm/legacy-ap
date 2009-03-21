@@ -4,7 +4,7 @@
  * @file
  * @brief   Simple wrapper class for POSIX condition variables.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CONDITION_H

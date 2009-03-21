@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of Point class.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <cassert>

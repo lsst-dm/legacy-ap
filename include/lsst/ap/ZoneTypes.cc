@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of zone related classes.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_ZONE_TYPES_CC

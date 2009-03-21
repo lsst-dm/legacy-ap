@@ -4,7 +4,7 @@
  * @file
  * @brief   Miscellaneous helper methods.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_UTILS_H

@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of miscellaneous helper functions
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <cerrno>

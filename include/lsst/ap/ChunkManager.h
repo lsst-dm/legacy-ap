@@ -4,7 +4,7 @@
  * @file
  * @brief   Class for managing chunks of Object instances in shared memory.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CHUNK_MANAGER_H

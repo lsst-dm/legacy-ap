@@ -4,7 +4,7 @@
  * @file
  * @brief   Types involved in algorithms for matching points inside ellipses.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_ELLIPSE_TYPES_H

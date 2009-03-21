@@ -4,7 +4,7 @@
  * @file
  * @brief   Compile time constants related to data types to be stored in chunks.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_DATA_TRAITS_H

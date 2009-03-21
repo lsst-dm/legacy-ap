@@ -4,7 +4,7 @@
  * @file
  * @brief   C++ representations of an LSST Object.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_OBJECT_H

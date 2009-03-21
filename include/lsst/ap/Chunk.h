@@ -4,7 +4,7 @@
  * @file
  * @brief   Classes for holding spatial chunks of things in memory.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_CHUNK_H

@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of low level file IO classes.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <sys/types.h>

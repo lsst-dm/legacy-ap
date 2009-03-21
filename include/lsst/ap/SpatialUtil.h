@@ -4,7 +4,7 @@
  * @file
  * @brief   Class and helper functions related to spatial partitioning.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_SPATIAL_UTIL_H

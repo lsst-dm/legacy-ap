@@ -4,7 +4,7 @@
  * @file
  * @brief   Utility class for automatically invoking a function when leaving a scope.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_SCOPE_GUARD_H

@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of spatial utility classes and functions.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <cassert>

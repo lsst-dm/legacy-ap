@@ -4,7 +4,7 @@
  * @file
  * @brief   A fixed capacity FIFO buffer for integers.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_FIFO_H

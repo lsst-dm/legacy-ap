@@ -4,7 +4,7 @@
  * @file
  * @brief   Simple wrappers for POSIX mutual exclusion locks.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_MUTEX_H

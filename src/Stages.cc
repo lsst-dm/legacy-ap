@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of association pipeline stages.
  *
- * @ingroup associate
+ * @ingroup ap
  *
  * @todo    How is the time of observation for a visit specified? And how is
  *          the association pipeline deadline derived from this? Possibly post-DC2.
@@ -419,7 +419,7 @@ void buildZoneIndex(
     }
 
     watch.stop();
-    Log log(Log::getDefaultLog(), "associate");
+    Log log(Log::getDefaultLog(), "lsst.ap");
     int numElements = static_cast<int>(index.size());
     Rec(log, Log::INFO) << "inserted elements into zone index" <<
         Prop<int>("numElements", numElements) <<
@@ -551,7 +551,7 @@ void VisitProcessingContext::setDiaSources(boost::shared_ptr<PersistableDiaSourc
     assert(maxDec >= minDec && "invalid dec bounds for DiaSource list");
     _diaSourceIndex.setDecBounds(minDec, maxDec);
     watch.stop();
-    Log log(Log::getDefaultLog(), "associate");
+    Log log(Log::getDefaultLog(), "lsst.ap");
     Rec(log, Log::INFO) << "set dec bounds for difference source index" <<
         Prop<int>("numElements", sz) <<
         Prop<double>("time", watch.seconds()) << Rec::endr;
@@ -618,7 +618,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<Chunk>::iterator              ChunkIterator;
 
     SharedObjectChunkManager manager(context.getRunId());
-    Log log(Log::getDefaultLog(), "associate");
+    Log log(Log::getDefaultLog(), "lsst.ap");
 
     try {
 
@@ -782,7 +782,7 @@ LSST_AP_API void matchDiaSources(
             mlp
         );
         watch.stop();
-        Log log(Log::getDefaultLog(), "associate");
+        Log log(Log::getDefaultLog(), "lsst.ap");
         Rec(log, Log::INFO) << "matched difference sources to objects" <<
             Prop<int>("numDiaSources", context.getDiaSourceIndex().size()) <<
             Prop<int>("numObjects", context.getObjectIndex().size()) <<
@@ -833,7 +833,7 @@ LSST_AP_API void matchMops(
         detail::DiscardKnownVariableFilter dvf;
         int nr = context.getDiaSourceIndex().pack(dvf);
         watch.stop();
-        Log log(Log::getDefaultLog(), "associate");
+        Log log(Log::getDefaultLog(), "lsst.ap");
         Rec(log, Log::INFO) << "removed difference sources matching known variables from index" <<
             Prop<int>("numRemoved", nr) <<
             Prop<double>("time", watch.seconds()) << Rec::endr;
@@ -919,7 +919,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
     typedef std::vector<Chunk>::iterator ChunkIterator;
 
     SharedObjectChunkManager manager(context.getRunId());
-    Log log(Log::getDefaultLog(), "associate");
+    Log log(Log::getDefaultLog(), "lsst.ap");
     try {
         Stopwatch watch(true);
         std::string deltaNamePattern = context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern");
@@ -976,7 +976,7 @@ LSST_AP_API void failVisit(VisitProcessingContext & context) {
 LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback) {
     SharedObjectChunkManager manager(context.getRunId());
     bool committed = manager.endVisit(context.getVisitId(), rollback);
-    Log log(Log::getDefaultLog(), "associate");
+    Log log(Log::getDefaultLog(), "lsst.ap");
     if (committed) {
         log.log(Log::INFO, "Committed visit");
     } else {

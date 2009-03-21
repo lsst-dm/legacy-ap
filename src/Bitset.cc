@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of the Bitset template and helper functions.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <climits>

@@ -4,7 +4,7 @@
  * @file
  * @brief   Classes for zone entries, zones, and zone indexes.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_ZONE_TYPES_H

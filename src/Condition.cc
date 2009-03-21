@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of POSIX condition variable wrappers.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <pthread.h>

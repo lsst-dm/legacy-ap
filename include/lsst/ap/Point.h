@@ -5,7 +5,7 @@
  * @brief   Class for representing points on the sky, with support
  *          for random perturbations.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_POINT_H

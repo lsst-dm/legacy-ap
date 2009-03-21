@@ -4,7 +4,7 @@
  * @file
  * @brief   C++ pipeline stage implementation methods.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_STAGES_H

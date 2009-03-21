@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of the Mutex and SharedMutex classes
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <pthread.h>

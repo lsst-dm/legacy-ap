@@ -4,7 +4,7 @@
  * @file
  * @brief   TimeSpec and Stopwatch utility class implementations.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <sys/time.h> // for ::gettimeofday()

@@ -4,7 +4,7 @@
  * @file
  * @brief   A class for manipulating a fixed set of bits at the individual bit level.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_BITSET_H

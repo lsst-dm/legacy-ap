@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of the CircularRegion class.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include "lsst/pex/exceptions.h"

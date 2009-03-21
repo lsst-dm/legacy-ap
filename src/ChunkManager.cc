@@ -4,7 +4,7 @@
  * @file
  * @brief   Implementation of shared memory chunk manager for Object instances.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #include <sys/mman.h>   // for mmap, munmap, shm_open, shm_unlink

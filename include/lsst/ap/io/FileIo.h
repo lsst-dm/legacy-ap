@@ -4,7 +4,7 @@
  * @file
  * @brief   Low-level sequential file IO classes.
  *
- * @ingroup associate
+ * @ingroup ap
  */
 
 #ifndef LSST_AP_IO_FILE_IO_H
