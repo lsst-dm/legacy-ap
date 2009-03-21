@@ -14,32 +14,30 @@
 #include <stdexcept>
 #include <vector>
 
-#include <boost/scoped_array.hpp>
-#include <boost/scoped_ptr.hpp>
+#include "boost/scoped_array.hpp"
+#include "boost/scoped_ptr.hpp"
+
+#include "lsst/pex/exceptions.h"
 
 #include "DataTraits.h"
 #include "Chunk.h"
 #include "io/FileIo.h"
 
 
-namespace lsst {
-namespace ap {
-
-
 // -- ChunkDescriptor ----------------
 
-template <uint32_t MaxBlocksPerChunk>
-void ChunkDescriptor<MaxBlocksPerChunk>::initialize() {
+template <int MaxBlocksPerChunk>
+void lsst::ap::ChunkDescriptor<MaxBlocksPerChunk>::initialize() {
 
-    _chunkId        = -1;
-    _visitId        = -1;
-    _nextChunk      = -1;
-    _usable         = false;
-    _numBlocks      = 0;
-    _nextBlock      = 0;
-    _index          = 0;
-    _size           = 0;
-    _delta          = 0;
+    _chunkId   = -1;
+    _visitId   = -1;
+    _nextChunk = -1;
+    _usable    = false;
+    _numBlocks = 0;
+    _nextBlock = 0;
+    _index     = 0;
+    _size      = 0;
+    _delta     = 0;
     _curBlockOffset = 0;
 
     _interestedParties.clear();
@@ -47,17 +45,18 @@ void ChunkDescriptor<MaxBlocksPerChunk>::initialize() {
 }
 
 
-// -- Chunk ----------------
+// -- ChunkRef ----------------
 
 /** Ensures the chunk has space to hold at least @a n entries. */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::reserve(uint32_t const n) {
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::reserve(int const n) {
     if (n > capacity()) {
         if (n > 0x3fffffff) {
-            LSST_AP_THROW(LengthError, "requested chunk capacity is too large");
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+                "Requested chunk capacity is too large");
         }
-        uint32_t nb = (n + ((1u << ENTRIES_PER_BLOCK_LOG2) - 1)) >> ENTRIES_PER_BLOCK_LOG2;
-        uint32_t b  = _descriptor->_numBlocks;
+        int nb = (n + ((1 << ENTRIES_PER_BLOCK_LOG2) - 1)) >> ENTRIES_PER_BLOCK_LOG2;
+        int b = _descriptor->_numBlocks;
         _allocator->allocate(&(_descriptor->_blocks[b]), nb - b);
         // zero out the newly allocated blocks
         for (; b < nb; ++b) {
@@ -74,19 +73,20 @@ void Chunk<AllocatorT, DataT, TraitsT>::reserve(uint32_t const n) {
 
 /** Inserts the entry into the chunk, allocating memory if necessary. */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::insert(
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::insert(
     DataT          const & data,
     ChunkEntryFlag const   flags
 ) {
-   uint32_t const block = _descriptor->_nextBlock;
-   size_t   off = _descriptor->_curBlockOffset;
-   uint32_t i   = _descriptor->_index;
+   int const   block = _descriptor->_nextBlock;
+   std::size_t off   = _descriptor->_curBlockOffset;
+   int         i     = _descriptor->_index;
 
-   if (block == 0 || i >= (1u << ENTRIES_PER_BLOCK_LOG2)) {
+   if (block == 0 || i >= (1 << ENTRIES_PER_BLOCK_LOG2)) {
        // no current block, or current block is full
        if (block >= _descriptor->_numBlocks) {
            if (block >= MAX_BLOCKS) {
-               LSST_AP_THROW(LengthError, "maximum number of blocks per chunk exceeded");
+               throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+                   "maximum number of blocks per chunk exceeded");
            }
            off = _allocator->allocate();
            // zero out the newly allocated block
@@ -96,19 +96,19 @@ void Chunk<AllocatorT, DataT, TraitsT>::insert(
                sizeof(DataT) << ENTRIES_PER_BLOCK_LOG2
            );
            _descriptor->_blocks[block] = off;
-           _descriptor->_numBlocks     = block + 1;
+           _descriptor->_numBlocks = block + 1;
        } else {
            off = _descriptor->_blocks[block];
        }
-       _descriptor->_nextBlock      = block + 1;
+       _descriptor->_nextBlock = block + 1;
        _descriptor->_curBlockOffset = off;
        i = 0;
    }
 
    // copy in data
-   size_t const addr = off + i*sizeof(DataT) + (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
+   std::size_t const addr = off + i*sizeof(DataT) + 
+                            (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
    new (reinterpret_cast<DataT *>(map(addr))) DataT(data);
-
    *reinterpret_cast<ChunkEntryFlag *>(map(off + i*sizeof(ChunkEntryFlag))) = flags;
    _descriptor->_index = i + 1;
    ++_descriptor->_size;
@@ -123,26 +123,26 @@ void Chunk<AllocatorT, DataT, TraitsT>::insert(
  * @return      @c true if any entries were removed
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-bool Chunk<AllocatorT, DataT, TraitsT>::pack(uint32_t const i) {
+bool lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::pack(int const i) {
 
-    static uint32_t const fb = (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
+    static int const fb = (sizeof(ChunkEntryFlag) << ENTRIES_PER_BLOCK_LOG2);
 
-    assert (i < _descriptor->_size);
+    assert (i >= 0 && i < _descriptor->_size);
 
-    uint32_t delta = 0xffffffff;
-    uint32_t sz    = _descriptor->_size;
-    uint32_t dBlk  = i >> ENTRIES_PER_BLOCK_LOG2;
-    size_t   d     = _descriptor->_blocks[dBlk];
-    size_t   dEnd  = d + BLOCK_SIZE;
-    uint32_t ib    = i & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1);
+    int delta = 0x7fffffff;
+    int sz    = _descriptor->_size;
+    int dBlk  = i >> ENTRIES_PER_BLOCK_LOG2;
+    int ib    = i & ((1 << ENTRIES_PER_BLOCK_LOG2) - 1);
+    std::size_t d     = _descriptor->_blocks[dBlk];
+    std::size_t dEnd  = d + BLOCK_SIZE;
 
-    ChunkEntryFlag * __restrict df = map(d + ib*sizeof(ChunkEntryFlag));
+    ChunkEntryFlag * df = map(d + ib*sizeof(ChunkEntryFlag));
     d += fb + ib*sizeof(DataT);
 
-    uint32_t sBlk = dBlk;
-    size_t   s    = d;
-    size_t   sEnd = dEnd;
-    ChunkEntryFlag const * __restrict sf = df;
+    int sBlk = dBlk;
+    std::size_t s    = d;
+    std::size_t sEnd = dEnd;
+    ChunkEntryFlag const * sf = df;
 
     while (true) {
         for ( ; s < sEnd; s += sizeof(DataT), sf++) {
@@ -150,7 +150,7 @@ bool Chunk<AllocatorT, DataT, TraitsT>::pack(uint32_t const i) {
                 --sz;
                 continue;
             }
-            if ((*sf & IN_DELTA) != 0 && delta == 0xffffffff) {
+            if ((*sf & IN_DELTA) != 0 && delta == 0x7fffffff) {
                 // set delta
                 delta = (dBlk << ENTRIES_PER_BLOCK_LOG2) +
                         (d - _descriptor->_blocks[dBlk] - fb)/sizeof(DataT);
@@ -180,7 +180,7 @@ bool Chunk<AllocatorT, DataT, TraitsT>::pack(uint32_t const i) {
     }
 
     if (sz < _descriptor->_size) {
-        size_t const cb = _descriptor->_blocks[dBlk];
+        std::size_t const cb = _descriptor->_blocks[dBlk];
         _descriptor->_curBlockOffset = cb;
         _descriptor->_nextBlock      = dBlk + 1;
         d -= cb + fb;
@@ -202,15 +202,15 @@ bool Chunk<AllocatorT, DataT, TraitsT>::pack(uint32_t const i) {
  * @param[in] n     The number of block entries for which flag values are to be set.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::setFlags(
-    uint32_t       const b,
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::setFlags(
+    int const b,
     ChunkEntryFlag const flags,
-    uint32_t       const i,
-    uint32_t       const n
+    int const i,
+    int const n
 ) {
-    assert(i + n <= (1u << ENTRIES_PER_BLOCK_LOG2));
+    assert(i >= 0 && n >= 0 && i + n >= 0 && i + n <= (1 << ENTRIES_PER_BLOCK_LOG2));
 
-    ChunkEntryFlag * __restrict df = getFlagBlock(b) + i;
+    ChunkEntryFlag * df = getFlagBlock(b) + i;
     std::memset(df, flags, n);
 }
 
@@ -221,16 +221,15 @@ void Chunk<AllocatorT, DataT, TraitsT>::setFlags(
  * @return  @c true if there were any modifications to rollback
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-bool Chunk<AllocatorT, DataT, TraitsT>::rollback() {
+bool lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::rollback() {
     bool mod = false;
 
-    for (uint32_t b = 0; b < _descriptor->_nextBlock; ++b) {
+    for (int b = 0; b < _descriptor->_nextBlock; ++b) {
 
-        size_t const off = _descriptor->_blocks[b];
-        ChunkEntryFlag * const __restrict flags = map(off);
-        uint32_t const e = entries(b);
+        std::size_t const off = _descriptor->_blocks[b];
+        ChunkEntryFlag * const flags = map(off);
 
-        for (uint32_t i = 0; i < e; ++i) {
+        for (int i = 0, e = entries(b); i < e; ++i) {
             ChunkEntryFlag f = flags[i];
             if ((f & INSERTED) != 0) {
                 // remove all newly inserted entries
@@ -257,20 +256,20 @@ bool Chunk<AllocatorT, DataT, TraitsT>::rollback() {
  *                          cleared for each entry.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::commit(bool clearDelta) {
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::commit(bool clearDelta) {
 
-    uint32_t mask = UNCOMMITTED | INSERTED;
+    ChunkEntryFlag mask = UNCOMMITTED | INSERTED;
     if (clearDelta) {
         mask |= IN_DELTA;
     }
     mask = ~mask;
 
-    for (uint32_t b = 0; b < _descriptor->_nextBlock; ++b) {
-        size_t const off = _descriptor->_blocks[b];
-        ChunkEntryFlag * const __restrict flags = map(off);
-        uint32_t const e = entries(b);
+    for (int b = 0; b < _descriptor->_nextBlock; ++b) {
+        std::size_t const off = _descriptor->_blocks[b];
+        ChunkEntryFlag * const flags = map(off);
+        int const e = entries(b);
 
-        for (uint32_t i = 0; i < e; ++i) {
+        for (int i = 0; i < e; ++i) {
             flags[i] &= mask;
         }
     }
@@ -290,44 +289,60 @@ void Chunk<AllocatorT, DataT, TraitsT>::commit(bool clearDelta) {
  * @param[in] end          Valid entry indexes must be less than this value.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::applyDeletes(
-    uint32_t const * const deletes,
-    uint32_t const         numDeletes,
-    uint32_t const         end
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::applyDeletes(
+    int const * const deletes,
+    int const numDeletes,
+    int const end
 ) {
     // check that all delete indexes are within the specified range
-    for (uint32_t i = 0; i < numDeletes; ++i) {
-        if (deletes[i] >= end) {
-            LSST_AP_THROW(
-                IoError,
-                "FATAL: binary chunk delta file contains an invalid delete marker - delta NOT applied"
+    for (int i = 0; i < numDeletes; ++i) {
+        if (deletes[i] < 0 || deletes[i] >= end) {
+            throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException,
+                "Binary chunk delta file contains an invalid delete marker - delta not applied"
             );
         }
     }
 
     // ok - apply deletes.
-    for (uint32_t i = 0; i < numDeletes; ++i) {
-        uint32_t d = deletes[i];
+    for (int i = 0; i < numDeletes; ++i) {
+        int d = deletes[i];
         ChunkEntryFlag * f = reinterpret_cast<ChunkEntryFlag *>(map(
             _descriptor->_blocks[d >> ENTRIES_PER_BLOCK_LOG2] +
-            (d & ((1u << ENTRIES_PER_BLOCK_LOG2) - 1))*sizeof(ChunkEntryFlag)
+            (d & ((1 << ENTRIES_PER_BLOCK_LOG2) - 1)) * sizeof(ChunkEntryFlag)
         ));
         *f |= DELETED;
     }
 }
 
 
-static void doRead(io::SequentialReader & reader, uint8_t * dst, size_t dstlen) {
+namespace lsst { namespace ap { namespace {
+
+void doRead(io::SequentialReader & reader, unsigned char * dst, std::size_t dstlen) {
      while (dstlen > 0) {
-        size_t nb = reader.read(dst, dstlen);
+        std::size_t nb = reader.read(dst, dstlen);
         assert(nb <= dstlen);
         if (nb == 0) {
-            LSST_AP_THROW(IoError, "Unexpected end of file");
+            throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, "Unexpected end of file");
         }
         dst    += nb;
         dstlen -= nb;
     }
 }
+
+std::string const badChunkMessage =
+    "Binary chunk file failed sanity checks - file is of the wrong format, "
+    "of the wrong record type, or corrupted. This error indicates that one "
+    "of the following situations has occurred:\n"
+    "  - the file being read was not a chunk file\n"
+    "  - the chunk file being read was generated with an incompatible\n"
+    "    version of the association pipeline code\n"
+    "  - the chunk file being read was generated on a machine with\n"
+    "    either a different word size (32 vs. 64 bit) or endianness from\n"
+    "    the runtime machine(s).\n"
+    "Please regenerate the chunk on a machine matching the characteristics "
+    "of the runtime machine(s), check your policy files, and try again.";
+
+}}} // end of namespace lsst::ap::<anonymous>
 
 
 /**
@@ -338,7 +353,7 @@ static void doRead(io::SequentialReader & reader, uint8_t * dst, size_t dstlen) 
  * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::read(
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::read(
     std::string const & name,
     bool        const   compressed
 ) {
@@ -357,43 +372,36 @@ void Chunk<AllocatorT, DataT, TraitsT>::read(
 
     // read in the header
     BinChunkHeader header;
-    doRead(*reader, reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
-
-    // check for fishy smells ...
+    doRead(*reader, reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
     if (!header.isValid() || header._numDeletes != 0 || header._recordSize != sizeof(DataT)) {
-        // lo! blue-fin tuna
-        LSST_AP_THROW(
-            IoError,
-            "Binary chunk file failed sanity checks - file is of the wrong format, "
-            "of the wrong record type, or corrupted."
-        );
+        throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, badChunkMessage);
     }
 
-    uint32_t nr = header._numRecords;
+    int nr = header._numRecords;
     if (nr == 0) {
         return; // nothing to read in
     }
     reserve(nr);
 
-    int32_t  b  = 0;
-    uint32_t nd;
+    int b = 0;
+    int nd;
 
     // read in one memory block at a time
     do {
-        nd  = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
+        nd  = std::min((1 << ENTRIES_PER_BLOCK_LOG2), nr);
         nr -= nd;
-        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
+        doRead(*reader, reinterpret_cast<unsigned char *>(getBlock(b)), nd * sizeof(DataT));
         setFlags(b, 0, 0, nd);
         ++b;
     } while (nr > 0);
 
     // update chunk size
-    _descriptor->_nextBlock      = b;
+    _descriptor->_nextBlock = b;
     _descriptor->_curBlockOffset = _descriptor->_blocks[b - 1];
-    _descriptor->_index          = nd;
-    uint32_t sz                  = nd + ((b - 1) << ENTRIES_PER_BLOCK_LOG2);
-    _descriptor->_size           = sz;
-    _descriptor->_delta          = sz;
+    _descriptor->_index = nd;
+    int sz = nd + ((b - 1) << ENTRIES_PER_BLOCK_LOG2);
+    _descriptor->_size  = sz;
+    _descriptor->_delta = sz;
 }
 
 
@@ -406,7 +414,7 @@ void Chunk<AllocatorT, DataT, TraitsT>::read(
  * @param compressed   Is the binary chunk file compressed? zlib or gzip compression is supported.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::readDelta(
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::readDelta(
     std::string const & name,
     bool        const   compressed
 ) {
@@ -424,22 +432,17 @@ void Chunk<AllocatorT, DataT, TraitsT>::readDelta(
 
     // read in the header
     BinChunkHeader header;
-    doRead(*reader, reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
-
+    doRead(*reader, reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
     if (!header.isValid() || header._recordSize != sizeof(DataT)) {
-        LSST_AP_THROW(
-            IoError,
-            "Binary chunk delta file failed sanity checks - file is of the wrong format, "
-            "of the wrong record type, or corrupted."
-        );
+        throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, badChunkMessage);
     }
 
     // read in indexes of records to delete
-    boost::scoped_array<uint32_t> deletes(header._numDeletes > 0 ? new uint32_t[header._numDeletes] : 0);
-    doRead(*reader, reinterpret_cast<uint8_t *>(deletes.get()), sizeof(uint32_t)*header._numDeletes);
+    boost::scoped_array<int> deletes(header._numDeletes > 0 ? new int[header._numDeletes] : 0);
+    doRead(*reader, reinterpret_cast<unsigned char *>(deletes.get()), sizeof(int) * header._numDeletes);
 
     // read in records to append
-    uint32_t nr = header._numRecords;
+    int nr = header._numRecords;
     if (nr == 0) {
         applyDeletes(deletes.get(), header._numDeletes, _descriptor->_size);
         return; // nothing more to read in
@@ -447,35 +450,35 @@ void Chunk<AllocatorT, DataT, TraitsT>::readDelta(
     reserve(nr + _descriptor->_size);
 
     // fill up the current block (or the first block if there is no current block)
-    uint32_t b  = _descriptor->_nextBlock;
+    int b  = _descriptor->_nextBlock;
     if (b > 0) {
         --b;
     }
-    uint32_t i  = _descriptor->_index;
-    uint32_t nd = std::min((1u << ENTRIES_PER_BLOCK_LOG2) - i, nr);
+    int i = _descriptor->_index;
+    int nd = std::min((1 << ENTRIES_PER_BLOCK_LOG2) - i, nr);
     nr -= nd;
-    doRead(*reader, reinterpret_cast<uint8_t *>(&getBlock(b)[i]), nd*sizeof(DataT));
+    doRead(*reader, reinterpret_cast<unsigned char *>(&getBlock(b)[i]), nd * sizeof(DataT));
     setFlags(b, IN_DELTA, i, nd);
     nd += i;
     ++b;
 
     // fill remaining blocks
     while (nr > 0) {
-        nd  = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
+        nd  = std::min((1 << ENTRIES_PER_BLOCK_LOG2), nr);
         nr -= nd;
-        doRead(*reader, reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
+        doRead(*reader, reinterpret_cast<unsigned char *>(getBlock(b)), nd * sizeof(DataT));
         setFlags(b, IN_DELTA, 0, nd);
         ++b;
     }
 
-    uint32_t const sz = ((b - 1) << ENTRIES_PER_BLOCK_LOG2) + nd;
+    int const sz = ((b - 1) << ENTRIES_PER_BLOCK_LOG2) + nd;
     applyDeletes(deletes.get(), header._numDeletes, sz);
 
     // update chunk state to reflect additions
-    _descriptor->_nextBlock      = b;
+    _descriptor->_nextBlock = b;
     _descriptor->_curBlockOffset = _descriptor->_blocks[b - 1];
-    _descriptor->_index          = nd;
-    _descriptor->_size           = sz;
+    _descriptor->_index = nd;
+    _descriptor->_size = sz;
 }
 
 
@@ -492,12 +495,12 @@ void Chunk<AllocatorT, DataT, TraitsT>::readDelta(
  * @param withDelta    Should entries marked IN_DELTA be written out?
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::write(
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::write(
     std::string const & name,
     bool        const   overwrite,
     bool        const   compressed,
     bool        const   withDelta
-) {
+) const {
     boost::scoped_ptr<io::SequentialWriter> writer;
     if (compressed) {
         writer.reset(new io::CompressedFileWriter(name, overwrite));
@@ -506,15 +509,15 @@ void Chunk<AllocatorT, DataT, TraitsT>::write(
     }
 
     // create header
-    uint32_t nr = withDelta ? size() : delta();
+    int nr = withDelta ? size() : delta();
     BinChunkHeader header;
     header._numRecords = nr;
     header._recordSize = sizeof(DataT);
 
-    writer->write(reinterpret_cast<uint8_t const *>(&header), sizeof(BinChunkHeader));
-    for (int32_t b = 0; nr > 0; ++b) {
-        uint32_t const nd = std::min((1u << ENTRIES_PER_BLOCK_LOG2), nr);
-        writer->write(reinterpret_cast<uint8_t const *>(getBlock(b)), nd*sizeof(DataT));
+    writer->write(reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
+    for (int b = 0; nr > 0; ++b) {
+        int const nd = std::min((1 << ENTRIES_PER_BLOCK_LOG2), nr);
+        writer->write(reinterpret_cast<unsigned char const *>(getBlock(b)), nd * sizeof(DataT));
         nr -= nd;
     }
     writer->finish();
@@ -534,11 +537,11 @@ void Chunk<AllocatorT, DataT, TraitsT>::write(
  *                     compatible algorithm will be used)?
  */
 template <typename AllocatorT, typename DataT, typename TraitsT>
-void Chunk<AllocatorT, DataT, TraitsT>::writeDelta(
+void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::writeDelta(
     std::string const & name,
     bool        const   overwrite,
     bool        const   compressed
-) {
+) const {
     boost::scoped_ptr<io::SequentialWriter> writer;
     if (compressed) {
         writer.reset(new io::CompressedFileWriter(name, overwrite));
@@ -547,13 +550,13 @@ void Chunk<AllocatorT, DataT, TraitsT>::writeDelta(
     }
 
     // collect all deletes (there are likely to be very few, if any)
-    std::vector<uint32_t> deletes;
+    std::vector<int> deletes;
 
-    uint32_t const nb = _descriptor->_nextBlock;
-    for (uint32_t b = 0; b < nb; ++b) {
-        ChunkEntryFlag const * const __restrict f = getFlagBlock(b);
-        uint32_t const nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
-        for (uint32_t i = 0; i < nd; ++i) {
+    int const nb = _descriptor->_nextBlock;
+    for (int b = 0; b < nb; ++b) {
+        ChunkEntryFlag const * const f = getFlagBlock(b);
+        int const nd = (b < nb - 1) ? (1 << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
+        for (int i = 0; i < nd; ++i) {
             if ((f[i] & DELETED) != 0) {
                 deletes.push_back(i + (b << ENTRIES_PER_BLOCK_LOG2));
             }
@@ -561,27 +564,28 @@ void Chunk<AllocatorT, DataT, TraitsT>::writeDelta(
     }
 
     // create and write header
-    uint32_t fd = _descriptor->_delta;
+    int fd = _descriptor->_delta;
     BinChunkHeader header;
     header._numRecords = _descriptor->_size - fd;
     header._numDeletes = deletes.size();
     header._recordSize = sizeof(DataT);
-    writer->write(reinterpret_cast<uint8_t *>(&header), sizeof(BinChunkHeader));
+    writer->write(reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
 
     // write array of delete indexes
     if (!deletes.empty()) {
-        writer->write(reinterpret_cast<uint8_t *>(&deletes.front()), deletes.size()*sizeof(uint32_t));
+        writer->write(reinterpret_cast<unsigned char *>(&deletes.front()),
+                      deletes.size() * sizeof(int));
     }
 
     // write out IN_DELTA chunk entries
     if (fd < _descriptor->_size) {
-        uint32_t b = fd >> ENTRIES_PER_BLOCK_LOG2;
-        fd &= (1u << ENTRIES_PER_BLOCK_LOG2) - 1;
-        uint32_t nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
-        writer->write(reinterpret_cast<uint8_t *>(&getBlock(b)[fd]), (nd - fd)*sizeof(DataT));
+        int b = fd >> ENTRIES_PER_BLOCK_LOG2;
+        fd &= (1 << ENTRIES_PER_BLOCK_LOG2) - 1;
+        int nd = (b < nb - 1) ? (1 << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
+        writer->write(reinterpret_cast<unsigned char const *>(&getBlock(b)[fd]), (nd - fd) * sizeof(DataT));
         for (++b; b < nb; ++b) {
-            nd = (b < nb - 1) ? (1u << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
-            writer->write(reinterpret_cast<uint8_t *>(getBlock(b)), nd*sizeof(DataT));
+            nd = (b < nb - 1) ? (1 << ENTRIES_PER_BLOCK_LOG2) : _descriptor->_index;
+            writer->write(reinterpret_cast<unsigned char const *>(getBlock(b)), nd * sizeof(DataT));
         }
     }
 
@@ -589,7 +593,5 @@ void Chunk<AllocatorT, DataT, TraitsT>::writeDelta(
     writer->finish();
 }
 
-
-}}  // end of namespace lsst::ap
 
 #endif // LSST_AP_CHUNK_CC

@@ -21,51 +21,49 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include <boost/scoped_array.hpp>
+#include "boost/scoped_array.hpp"
 
-#include "Exceptions.h"
+#include "lsst/pex/exceptions.h"
+
 #include "SpatialUtil.h"
 #include "ZoneTypes.h"
 
 
-namespace lsst {
-namespace ap {
-
-
-// -- ZoneEntry<C> ----------------
+// -- lsst::ap::ZoneEntry<C> ----------------
 
 template <typename ChunkT>
-ZoneEntry<ChunkT>::ZoneEntry(
-    Data  * const data,
+inline lsst::ap::ZoneEntry<ChunkT>::ZoneEntry(
+    double const ra,
+    double const dec,
+    Data * const data,
     Chunk * const chunk,
-    int32_t const index
+    int const index
 ) :
     _data(data),
     _flags(0),
     _index(index),
     _chunk(chunk)
 {
-    double ra  = data->getRa();
-    double dec = data->getDec();
     _ra  = raToScaledInteger(ra);
     _dec = decToScaledInteger(dec);
-    ra  = radians(ra);
-    dec = radians(dec);
-    double cdec = std::cos(dec);
-    _x = std::cos(ra)*cdec;
-    _y = std::sin(ra)*cdec;
-    _z = std::sin(dec);
+    double raRad  = radians(ra);
+    double decRad = radians(dec);
+    double cosDec = std::cos(decRad);
+    _x = std::cos(raRad)*cosDec;
+    _y = std::sin(raRad)*cosDec;
+    _z = std::sin(decRad);
 }
 
 
-// -- Zone<EntryT> ----------------
+// -- lsst::ap::ZoneEntryArray<EntryT> ----------------
 
 template <typename EntryT>
-Zone<EntryT>::Zone() : _entries(0), _size(0), _capacity(0), _zone(0), _deltaRa(0) {}
+lsst::ap::ZoneEntryArray<EntryT>::ZoneEntryArray()
+    : _entries(0), _size(0), _capacity(0), _zone(0), _deltaRa(0) {}
 
 
 template <typename EntryT>
-Zone<EntryT>::~Zone() {
+lsst::ap::ZoneEntryArray<EntryT>::~ZoneEntryArray() {
     if (_entries != 0) {
         std::free(_entries);
         _entries = 0;
@@ -73,14 +71,15 @@ Zone<EntryT>::~Zone() {
 }
 
 
-/// Initializes the zone, allocating space for the given number of entries.
+/** Initializes the zone, allocating space for the given number of entries. */
 template <typename EntryT>
-void Zone<EntryT>::init(int32_t const capacity) {
+void lsst::ap::ZoneEntryArray<EntryT>::init(int const capacity) {
     if (capacity > 0) {
-        size_t const nb = sizeof(EntryT) * capacity;
+        std::size_t const nb = sizeof(EntryT) * capacity;
         EntryT * entries = static_cast<EntryT *>(std::malloc(nb));
         if (entries == 0) {
-            throw std::bad_alloc();
+            throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+                              "failed to allocate zone");
         }
         _entries = entries;
         _capacity = capacity;
@@ -88,32 +87,33 @@ void Zone<EntryT>::init(int32_t const capacity) {
 }
 
 
-/// Sorts the zone entries on ra.
+/** Sorts the zone entries on ra. */
 template <typename EntryT>
-void Zone<EntryT>::sort() {
+void lsst::ap::ZoneEntryArray<EntryT>::sort() {
     std::sort(_entries, _entries + _size);
 }
 
 
-/// Increases the size of the underlying array of entries by roughly 25% (and by at least 1).
+/** Increases the size of the underlying array of entries by roughly 25% (and by at least 1). */
 template <typename EntryT>
-void Zone<EntryT>::grow() {
-    int32_t cap = _capacity >> 2;
+void lsst::ap::ZoneEntryArray<EntryT>::grow() {
+    int cap = _capacity >> 2;
     cap = _capacity + (64 > cap ? 64 : cap);
     EntryT * entries  = static_cast<EntryT *>(std::realloc(_entries, sizeof(EntryT)*cap));
     if (entries == 0) {
-        throw std::bad_alloc();
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+                          "failed to increase zone capacity");
     }
     _entries  = entries;
     _capacity = cap;
 }
 
 
-/// Prepares for a distance based match with the given radius
+/** Prepares for a distance based match with the given radius */
 template <typename EntryT>
-void Zone<EntryT>::computeMatchParams(
+void lsst::ap::ZoneEntryArray<EntryT>::computeMatchParams(
     ZoneStripeChunkDecomposition const & zsc,
-    double                       const   radius
+    double const radius
 ) {
     double d1 = std::fabs(zsc.getZoneDecMin(_zone));
     double d2 = std::fabs(zsc.getZoneDecMax(_zone));
@@ -129,9 +129,9 @@ void Zone<EntryT>::computeMatchParams(
  */
 template <typename EntryT>
     template <typename FilterT>
-size_t Zone<EntryT>::pack(FilterT & filter) {
-    int32_t src = 0;
-    int32_t dst = 0;
+int lsst::ap::ZoneEntryArray<EntryT>::pack(FilterT & filter) {
+    int src = 0;
+    int dst = 0;
 
     for ( ; src < _size; ++src) {
         if (!filter(_entries[src])) {
@@ -143,7 +143,7 @@ size_t Zone<EntryT>::pack(FilterT & filter) {
         ++dst;
     }
     _size = dst;
-    return static_cast<size_t>(src - dst);
+    return src - dst;
 }
 
 
@@ -153,8 +153,8 @@ size_t Zone<EntryT>::pack(FilterT & filter) {
  */
 template <typename EntryT>
     template <typename FunctionT>
-void Zone<EntryT>::apply(FunctionT & function) {
-    for (int32_t i = 0; i < _size; ++i) {
+void lsst::ap::ZoneEntryArray<EntryT>::apply(FunctionT & function) {
+    for (int i = 0; i < _size; ++i) {
         function(_entries[i]);
     }
 }
@@ -163,10 +163,10 @@ void Zone<EntryT>::apply(FunctionT & function) {
 // -- ZoneIndex<EntryT> ----------------
 
 template <typename EntryT>
-ZoneIndex<EntryT>::ZoneIndex(
-    int32_t const zonesPerDegree,
-    int32_t const zonesPerStripe,
-    int32_t const maxEntriesPerZoneEstimate
+lsst::ap::ZoneIndex<EntryT>::ZoneIndex(
+    int const zonesPerDegree,
+    int const zonesPerStripe,
+    int const maxEntriesPerZoneEstimate
 ) :
     lsst::daf::base::Citizen(typeid(*this)),
     _zsc(zonesPerDegree, zonesPerStripe, maxEntriesPerZoneEstimate),
@@ -179,8 +179,8 @@ ZoneIndex<EntryT>::ZoneIndex(
 
 /// Removes all entries from every zone in the index.
 template <typename EntryT>
-void ZoneIndex<EntryT>::clear() {
-    for (int32_t i = 0; i < _capacity; ++i) {
+void lsst::ap::ZoneIndex<EntryT>::clear() {
+    for (int i = 0; i < _capacity; ++i) {
         _zones[i].clear();
     }
 }
@@ -188,9 +188,9 @@ void ZoneIndex<EntryT>::clear() {
 
 /// Returns the number of entries in the index.
 template <typename EntryT>
-int32_t ZoneIndex<EntryT>::size() const {
-    int32_t sz = 0;
-    for (int32_t i = 0; i <= _maxZone - _minZone; ++i) {
+int lsst::ap::ZoneIndex<EntryT>::size() const {
+    int sz = 0;
+    for (int i = 0; i <= _maxZone - _minZone; ++i) {
         sz += _zones[i].size();
     }
     return sz;
@@ -199,17 +199,18 @@ int32_t ZoneIndex<EntryT>::size() const {
 
 /// Sets the range of declination values the index will accept data for.
 template <typename EntryT>
-void ZoneIndex<EntryT>::setDecBounds(double const minDec, double const maxDec) {
-    int32_t minZone = _zsc.decToZone(minDec);
-    int32_t maxZone = _zsc.decToZone(maxDec);
+void lsst::ap::ZoneIndex<EntryT>::setDecBounds(double const minDec, double const maxDec) {
+    int minZone = _zsc.decToZone(minDec);
+    int maxZone = _zsc.decToZone(maxDec);
     if (maxZone < minZone) {
-        LSST_AP_THROW(InvalidParameter, "min/max zone ids inverted");
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+                          "min/max zone ids inverted");
     }
-    int32_t const cap = maxZone - minZone + 1;
+    int const cap = maxZone - minZone + 1;
     if (cap >= _capacity) {
-        int32_t const worst = _zsc.getMaxEntriesPerZoneEstimate();
+        int const worst = _zsc.getMaxEntriesPerZoneEstimate();
         boost::scoped_array<Zone> zones(new Zone[cap]);
-        int32_t i = 0;
+        int i = 0;
         for ( ; i < _capacity; ++i) {
             zones[i] = _zones[i];
         }
@@ -227,7 +228,7 @@ void ZoneIndex<EntryT>::setDecBounds(double const minDec, double const maxDec) {
         _capacity = cap;
     }
 
-    int32_t i = 0;
+    int i = 0;
     for ( ; i <= maxZone - minZone; ++i) {
         _zones[i].clear();
         _zones[i]._zone = i + minZone;
@@ -242,9 +243,9 @@ void ZoneIndex<EntryT>::setDecBounds(double const minDec, double const maxDec) {
 
 /// Prepares for distance based matches of the given maximum radius
 template <typename EntryT>
-void ZoneIndex<EntryT>::computeMatchParams(double const radius) {
-    int32_t const numZones = _maxZone - _minZone + 1;
-    for (int32_t t = 0; t < numZones; ++t) {
+void lsst::ap::ZoneIndex<EntryT>::computeMatchParams(double const radius) {
+    int const numZones = _maxZone - _minZone + 1;
+    for (int t = 0; t < numZones; ++t) {
         _zones[t].computeMatchParams(_zsc, radius);
     }
 }
@@ -252,13 +253,13 @@ void ZoneIndex<EntryT>::computeMatchParams(double const radius) {
 
 /// Sorts each zone in the index (on right ascension)
 template <typename EntryT>
-void ZoneIndex<EntryT>::sort() {
-    int32_t const numZones = _maxZone - _minZone + 1;
+void lsst::ap::ZoneIndex<EntryT>::sort() {
+    int const numZones = _maxZone - _minZone + 1;
 #if LSST_AP_HAVE_OPEN_MP
 #   pragma omp parallel for default(shared) \
                schedule(static,8)
 #endif
-    for (int32_t t = 0; t < numZones; ++t) {
+    for (int t = 0; t < numZones; ++t) {
         _zones[t].sort();
     } // end of parallel for
 }
@@ -272,16 +273,16 @@ void ZoneIndex<EntryT>::sort() {
  */
 template <typename EntryT>
     template <typename FilterT>
-size_t ZoneIndex<EntryT>::pack(FilterT & filter) {
-    size_t        numPacked = 0;
-    int32_t const numZones  = _maxZone - _minZone + 1;
+int lsst::ap::ZoneIndex<EntryT>::pack(FilterT & filter) {
+    int const numZones = _maxZone - _minZone + 1;
+    int numPacked = 0;
 #if LSST_AP_HAVE_OPEN_MP
 #   pragma omp parallel for default(shared) \
                reduction(+:numPacked) \
                schedule(static,8)
 #endif
-    for (int32_t z = 0; z < numZones; ++z) {
-        size_t np = _zones[z].pack<FilterT>(filter);
+    for (int z = 0; z < numZones; ++z) {
+        int np = _zones[z].pack<FilterT>(filter);
         numPacked = numPacked + np;
     } // end of parallel for
     return numPacked;
@@ -294,14 +295,12 @@ size_t ZoneIndex<EntryT>::pack(FilterT & filter) {
  */
 template <typename EntryT>
     template <typename FunctionT>
-void ZoneIndex<EntryT>::apply(FunctionT & function) {
-    int32_t const numZones = _maxZone - _minZone + 1;
-    for (int32_t z = 0; z < numZones; ++z) {
+void lsst::ap::ZoneIndex<EntryT>::apply(FunctionT & function) {
+    int const numZones = _maxZone - _minZone + 1;
+    for (int z = 0; z < numZones; ++z) {
         _zones[z].apply<FunctionT>(function);
     }
 }
 
-
-}} // end of namespace lsst::ap
 
 #endif // LSST_AP_ZONE_TYPES_CC

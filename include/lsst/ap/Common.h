@@ -14,7 +14,7 @@
 
 #include <cstddef>
 
-#include <boost/cstdint.hpp>
+#include "boost/cstdint.hpp"
 
 
 // -- Shared library support ----------------
@@ -35,37 +35,7 @@
 #endif
 
 
-// -- Compiler features ----------------
-
-#if defined(__GNUC__)
-#   define LSST_AP_FUNC __PRETTY_FUNCTION__
-#else
-#   define LSST_AP_FUNC __func__
-#   define __restrict
-#endif
-
-
-namespace lsst {
-namespace ap {
-
-#ifndef SWIG
-// Ensure presence of standard integeral types
-using std::size_t;
-using std::ptrdiff_t;
-
-using boost::int8_t;
-using boost::uint8_t;
-using boost::int16_t;
-using boost::uint16_t;
-using boost::int32_t;
-using boost::uint32_t;
-using boost::int64_t;
-using boost::uint64_t;
-using boost::intmax_t;
-using boost::uintmax_t;
-#endif
-
-namespace {
+namespace lsst { namespace ap { namespace {
 
 /// The radius of an LSST FOV, in degrees.
 double const FOV_RADIUS = 1.75;
@@ -75,16 +45,13 @@ double const FOV_RADIUS = 1.75;
  * are defined as those for which data is actively being read, processed, or written out.
  * @b Must be a power of 2.
  */
-uint32_t const MAX_VISITS_IN_FLIGHT = 16;
+int const MAX_VISITS_IN_FLIGHT = 16;
 
 double const DEGREES_PER_RADIAN = 57.2957795130823208767981548141;
 double const RADIANS_PER_DEGREE = 0.0174532925199432957692369076849;
 double const TWO_PI             = 6.28318530717958647692528676656;
 
-} // end of anonymous namespace
-
-
-}} // end of namespace lsst::ap
+}}} // end of namespace lsst::ap::<anonymous>
 
 #endif  // LSST_AP_COMMON_H
 

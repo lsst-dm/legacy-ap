@@ -9,26 +9,47 @@
 
 #include <unistd.h>
 
-#include <boost/bind.hpp>
-#include <boost/scoped_array.hpp>
-#include <boost/version.hpp>
-#if BOOST_VERSION < 103400
-#   include <boost/test/auto_unit_test.hpp>
-#   define BOOST_TEST_MESSAGE BOOST_MESSAGE
-#else
-#   include <boost/test/unit_test.hpp>
-#endif
+#include <iostream>
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Random.h>
-#include <lsst/ap/ScopeGuard.h>
-#include <lsst/ap/io/FileIo.h>
+#include "boost/bind.hpp"
+#include "boost/scoped_array.hpp"
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE FileIoTest
+#include "boost/test/unit_test.hpp"
 
+#include "lsst/afw/math/Random.h"
+
+#include "lsst/ap/Common.h"
+#include "lsst/ap/ScopeGuard.h"
+#include "lsst/ap/Time.h"
+#include "lsst/ap/io/FileIo.h"
+
+
+using std::size_t;
+using boost::uint8_t;
+using boost::uint32_t;
+using lsst::afw::math::Random;
 
 using namespace lsst::ap;
 
 
 namespace {
+
+Random & rng() {
+    static Random * generator = 0;
+    if (generator == 0) {
+        TimeSpec ts;
+        ts.systemTime();
+        generator = new Random(Random::MT19937, static_cast<unsigned long>(ts.tv_sec + ts.tv_nsec));
+        std::clog << "\n"
+            << "     /\n"
+            << "    | Note: Using random number seed " << generator->getSeed() << "\n"
+            << "    |       and algorithm " << generator->getAlgorithmName() << "\n"
+            << "     \\\n" << std::endl;
+    }
+    return *generator;
+}
+
 
 void doWrite(
     io::SequentialWriter & writer,
@@ -114,7 +135,6 @@ std::string const makeTempFile() {
     return std::string(name);
 }
 
-
 } // end of anonymous namespace
 
 
@@ -122,13 +142,9 @@ BOOST_AUTO_TEST_CASE(sequentialIoTest1) {
 
     BOOST_TEST_MESSAGE("    - roundtrip file IO test, one-shot, no compression");
     std::string const name(makeTempFile());
-    ScopeGuard  fileGuard(boost::bind(::unlink, name.c_str()));
+    ScopeGuard fileGuard(boost::bind(::unlink, name.c_str()));
 
-    initRandom();
-    size_t len = 16384;
-    if (coinToss(0.5)) {
-        len += static_cast<size_t>(uniformRandom()*16384.0) - 8192;
-    }
+    size_t len = static_cast<size_t>(rng().flat(8192, 65536));
     boost::scoped_array<uint32_t> content(new uint32_t[len]);
     boost::scoped_array<uint32_t> contentCheck(new uint32_t[len]);
     for (uint32_t i = 0; i < len; ++i) { content[i] = i; }
@@ -149,11 +165,7 @@ BOOST_AUTO_TEST_CASE(sequentialIoTest2) {
     std::string const name(makeTempFile());
     ScopeGuard  fileGuard(boost::bind(::unlink, name.c_str()));
 
-    initRandom();
-    size_t len = 15977;
-    if (coinToss(0.5)) {
-        len += static_cast<size_t>(uniformRandom()*16384.0) - 8192;
-    }
+    size_t len = static_cast<size_t>(rng().flat(3000, 65536));
     boost::scoped_array<uint32_t> content(new uint32_t[len]);
     boost::scoped_array<uint32_t> contentCheck(new uint32_t[len]);
     for (uint32_t i = 0; i < len; ++i) { content[i] = i; }
@@ -174,11 +186,7 @@ BOOST_AUTO_TEST_CASE(sequentialIoTest3) {
     std::string const name(makeTempFile());
     ScopeGuard  fileGuard(boost::bind(::unlink, name.c_str()));
 
-    initRandom();
-    size_t len = 1024512;
-    if (coinToss(0.5)) {
-        len += static_cast<size_t>(uniformRandom()*1024512.0) - 512256;
-    }
+    size_t len = static_cast<size_t>(rng().flat(512256, 2049024));
     boost::scoped_array<uint32_t> content(new uint32_t[len]);
     boost::scoped_array<uint32_t> contentCheck(new uint32_t[len]);
     for (uint32_t i = 0; i < len; ++i) { content[i] = i; }

@@ -35,13 +35,11 @@
 
 #include "Common.h"
 #include "EllipseTypes.h"
-#include "Exceptions.h"
 #include "SpatialUtil.h"
 #include "ZoneTypes.h"
 
 
-namespace lsst {
-namespace ap {
+namespace lsst { namespace ap {
 
 
 /** @brief  A default "let everything through" filter implementation. */
@@ -129,7 +127,7 @@ template <
     typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
     typename MatchListProcessorT  // = EmptyMatchListProcessor<FirstEntryT, MatchWithoutDistance<SecondEntryT> >
 >
-size_t distanceMatch(
+std::size_t distanceMatch(
     ZoneIndex<FirstEntryT>  & first,
     ZoneIndex<SecondEntryT> & second,
     double const              radius,
@@ -142,16 +140,17 @@ size_t distanceMatch(
     typedef typename MatchListProcessorT::Match    Match;
 
     if (radius < 0) {
-        LSST_AP_THROW(OutOfRange, "match radius must be greater than or equal to zero degrees");
+        throw LSST_EXCEPT(lsst::pex::exceptions::RangeErrorException,
+                          "match radius must be greater than or equal to zero degrees");
     }
 
-    double const  shr      = std::sin(radians(radius*0.5));
-    double const  d2Limit  = 4.0*shr*shr;
-    int32_t const minZone  = first.getMinZone();
-    int32_t const maxZone  = first.getMaxZone();
-    int32_t const deltaDec = deltaDecToScaledInteger(radius);
+    double const shr     = std::sin(radians(radius*0.5));
+    double const d2Limit = 4.0*shr*shr;
+    int const minZone = first.getMinZone();
+    int const maxZone = first.getMaxZone();
+    boost::int32_t const deltaDec = deltaDecToScaledInteger(radius);
 
-    size_t numMatchPairs = 0;
+    std::size_t numMatchPairs = 0;
 
     second.computeMatchParams(radius);
 
@@ -162,7 +161,7 @@ size_t distanceMatch(
     {
         // allocate per-thread data structures
         SecondZone * zones[2048];
-        int32_t      limits[2048];
+        int limits[2048];
         std::vector<Match> matches;
         matches.reserve(32);
 
@@ -173,22 +172,22 @@ size_t distanceMatch(
                reduction(+:numMatchPairs) \
                schedule(static,8)
 #endif
-        for (int32_t fzi = minZone; fzi <= maxZone; ++fzi) {
+        for (int fzi = minZone; fzi <= maxZone; ++fzi) {
 
             FirstZone   * const __restrict fz = first.getZone(fzi);
             FirstEntryT * const __restrict fze = fz->_entries;
-            int32_t const nfze = fz->_size;
+            int const nfze = fz->_size;
             if (nfze <= 0) {
                 continue; // no entries in first zone
             }
 
             // populate secondary zone array with potentially matching zones
-            int32_t nsz = 0;
+            int nsz = 0;
             {
                 double d = first.getDecomposition().getZoneDecMin(fz->_zone) - radius;
-                int32_t const minz = second.getDecomposition().decToZone(d <= -90.0 ? -90.0 : d);
+                int const minz = second.getDecomposition().decToZone(d <= -90.0 ? -90.0 : d);
                 d = first.getDecomposition().getZoneDecMax(fz->_zone) + radius;
-                int32_t const maxz = second.getDecomposition().decToZone(d >= 90.0 ? 90.0 : d);
+                int const maxz = second.getDecomposition().decToZone(d >= 90.0 ? 90.0 : d);
                 // A search circle should never cover more than 2048 zones
                 assert(maxz - minz + 1 <= 2048 && "match radius too large");
 
@@ -196,7 +195,7 @@ size_t distanceMatch(
                 SecondZone * const __restrict szend = second.endZone(minz, maxz);
 
                 for ( ; sz < szend; ++sz) {
-                    int32_t const nsze = sz->_size;
+                    int const nsze = sz->_size;
                     if (nsze > 0) {
                         zones[nsz] = sz;
                         if ((nsze >> 4) > nfze) {
@@ -217,7 +216,7 @@ size_t distanceMatch(
             }
 
             // loop over entries in first zone
-            for (int32_t fe = 0; fe < nfze; ++fe) {
+            for (int fe = 0; fe < nfze; ++fe) {
 
                 if (!firstFilter(fze[fe])) {
                     continue; // entry was filtered out
@@ -225,25 +224,25 @@ size_t distanceMatch(
 
                 matches.clear();
 
-                uint32_t const ra  = fze[fe]._ra;
-                int32_t  const dec = fze[fe]._dec;
-                double   const fx  = fze[fe]._x;
-                double   const fy  = fze[fe]._y;
-                double   const fz  = fze[fe]._z;
+                boost::uint32_t const ra  = fze[fe]._ra;
+                boost::int32_t  const dec = fze[fe]._dec;
+                double const fx = fze[fe]._x;
+                double const fy = fze[fe]._y;
+                double const fz = fze[fe]._z;
 
                 // loop over all potentially matching zones.
-                for (int32_t szi = 0; szi < nsz; ++szi) {
+                for (int szi = 0; szi < nsz; ++szi) {
 
                     SecondZone   * const __restrict sz  = zones[szi];
                     SecondEntryT * const __restrict sze = sz->_entries;
 
-                    int32_t  const seWrap      = sz->_size;
-                    uint32_t const deltaRa     = sz->_deltaRa;
-                    uint32_t const deltaRaWrap = -deltaRa;
+                    int const seWrap = sz->_size;
+                    boost::uint32_t const deltaRa = sz->_deltaRa;
+                    boost::uint32_t const deltaRaWrap = -deltaRa;
 
-                    int32_t  start = limits[szi];
-                    int32_t  se;
-                    uint32_t dra;
+                    int start = limits[szi];
+                    int se;
+                    boost::uint32_t dra;
 
                     if (start >= 0) {
 
@@ -291,12 +290,12 @@ size_t distanceMatch(
                     do {
 
                         // test whether entry se is within dec range
-                        int32_t ddec = dec - sze[se]._dec;
+                        boost::int32_t ddec = dec - sze[se]._dec;
                         // C standard says: result of a right shifting a negative integer
                         // is implementation defined. If a signed right shift is available,
                         // use it to perform a branchless abs().
 #if LSST_AP_HAVE_SIGNED_RSHIFT
-                        int32_t sgn  = ddec >> 31;
+                        boost::int32_t sgn  = ddec >> 31;
                         ddec = (ddec ^ sgn) - sgn; // abs(dec - sze[se]._dec)
 #else
                         if (ddec < 0) {
@@ -331,7 +330,7 @@ size_t distanceMatch(
                 } // end of loop over potentially matching zones
 
                 // All matches (if any) for fe are found
-                size_t nm = matches.size();
+                std::size_t nm = matches.size();
                 if (nm > 0) {
                     // pass them on to the match processor
                     numMatchPairs = numMatchPairs + nm;
@@ -373,27 +372,25 @@ template <
     typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
     typename MatchPairProcessorT  // = EmptyMatchPairProcessor<FirstEntryT, SecondEntryT>
 >
-size_t ellipseMatch(
+std::size_t ellipseMatch(
     EllipseList<FirstEntryT> & first,
     ZoneIndex<SecondEntryT>  & second,
     FirstFilterT             & firstFilter,
     SecondFilterT            & secondFilter,
     MatchPairProcessorT      & matchPairProcessor
 ) {
+    typedef typename ZoneIndex<SecondEntryT>::Zone SecondZone;
 
-    typedef typename EllipseList<FirstEntryT>::Ellipse Ellipse;
-    typedef typename ZoneIndex<SecondEntryT>::Zone     SecondZone;
-
-    int32_t const minZone = second.getMinZone();
-    int32_t const maxZone = second.getMaxZone();
-    size_t numMatchPairs  = 0;
+    int const minZone = second.getMinZone();
+    int const maxZone = second.getMaxZone();
+    std::size_t numMatchPairs = 0;
 
     first.prepareForMatch(second.getDecomposition());
 
-    Ellipse * activeHead = 0;
-    Ellipse * activeTail = 0;
-    Ellipse * searchHead = first.begin();
-    Ellipse * const end  = first.end();
+    Ellipse<FirstEntryT> * activeHead = 0;
+    Ellipse<FirstEntryT> * activeTail = 0;
+    Ellipse<FirstEntryT> * searchHead = &(*first.begin());
+    Ellipse<FirstEntryT> * const end = &(*first.end());
 
     // initialize the linked list of active ellipses (those that intersect minZone)
     while (searchHead < end && searchHead->_minZone <= minZone) {
@@ -411,18 +408,18 @@ size_t ellipseMatch(
     }
 
     // loop over the set of zones in the second entity set
-    int32_t szi = minZone;
+    int szi = minZone;
     while (true) {
 
         SecondZone   * const __restrict sz  = second.getZone(szi);
         SecondEntryT * const __restrict sze = sz->_entries;
-        int32_t const seWrap = sz->_size;
+        int const seWrap = sz->_size;
 
         ++szi;
 
         // Traverse the active ellipse list
-        Ellipse * active = activeHead;
-        Ellipse * prev   = 0;
+        Ellipse<FirstEntryT> * active = activeHead;
+        Ellipse<FirstEntryT> * prev   = 0;
 
         while (active != 0) {
 
@@ -431,17 +428,17 @@ size_t ellipseMatch(
 #endif
             if (seWrap > 0) {
                 // find entries within ra range of the active ellipse
-                uint32_t const ra          = active->_ra;
-                uint32_t const deltaRa     = active->_deltaRa;
-                uint32_t const deltaRaWrap = -deltaRa;
-                int32_t  const start       = sz->findGte(ra - deltaRa);
+                boost::uint32_t const ra          = active->_ra;
+                boost::uint32_t const deltaRa     = active->_deltaRa;
+                boost::uint32_t const deltaRaWrap = -deltaRa;
+                int const start = sz->findGte(ra - deltaRa);
 
-                int32_t  se  = start;
-                uint32_t dra = ra - sze[se]._ra;
+                int se  = start;
+                boost::uint32_t dra = ra - sze[se]._ra;
                 while (dra <= deltaRa || dra >= deltaRaWrap) {
 
                     // check whether entry is within dec range
-                    int32_t const dec = sze[se]._dec;
+                    boost::int32_t const dec = sze[se]._dec;
                     if (dec >= active->_minDec && dec <= active->_maxDec) {
                         // perform detailed in ellipse test
                         if (active->contains(sze[se]._x, sze[se]._y, sze[se]._z)) {
@@ -524,19 +521,18 @@ template <
     typename SecondFilterT,      // = PassthroughFilter<SecondEntryT>,
     typename MatchListProcessorT // = EmptyMatchListProcessor<FirstEntryT, SecondEntryT>
 >
-size_t ellipseGroupedMatch(
+std::size_t ellipseGroupedMatch(
     EllipseList<FirstEntryT> & first,
     ZoneIndex<SecondEntryT>  & second,
     FirstFilterT             & firstFilter,
     SecondFilterT            & secondFilter,
     MatchListProcessorT      & matchListProcessor
 ) {
-    typedef typename EllipseList<FirstEntryT>::Ellipse Ellipse;
-    typedef typename ZoneIndex<SecondEntryT>::Zone     SecondZone;
-    typedef typename MatchListProcessorT::Match        Match;
+    typedef typename ZoneIndex<SecondEntryT>::Zone SecondZone;
+    typedef typename MatchListProcessorT::Match Match;
 
-    size_t const numEllipses   = first.size();
-    size_t       numMatchPairs = 0;
+    std::size_t const numEllipses   = first.size();
+    std::size_t       numMatchPairs = 0;
 
     first.prepareForMatch(second.getDecomposition());
 
@@ -554,40 +550,40 @@ size_t ellipseGroupedMatch(
                reduction(+:numMatchPairs) \
                schedule(static,128)
 #endif
-        for (size_t i = 0; i < numEllipses; ++i) {
+        for (std::size_t i = 0; i < numEllipses; ++i) {
 
             if (!firstFilter(first[i])) {
                 continue; // ellipse was filtered out
             }
 
-            Ellipse    * const __restrict ell   = &first[i];
-            SecondZone *       __restrict sz    = second.firstZone(ell->_minZone, ell->_maxZone);
+            Ellipse<FirstEntryT> * const __restrict ell = &first[i];
+            SecondZone * __restrict sz = second.firstZone(ell->_minZone, ell->_maxZone);
             SecondZone * const __restrict szend = second.endZone(ell->_minZone, ell->_maxZone);
 
-            uint32_t const ra          = ell->_ra;
-            uint32_t const deltaRa     = ell->_deltaRa;
-            uint32_t const deltaRaWrap = -deltaRa;
+            boost::uint32_t const ra          = ell->_ra;
+            boost::uint32_t const deltaRa     = ell->_deltaRa;
+            boost::uint32_t const deltaRaWrap = -deltaRa;
 
             matches.clear();
 
             // loop over zones covered by the ellipse
             for ( ; sz < szend; ++sz) {
 
-                int32_t const seWrap = sz->_size;
+                int const seWrap = sz->_size;
                 if (seWrap == 0) {
                     continue;
                 }
 
                 // find starting point within ra range of the ellipse
                 SecondEntryT * const __restrict sze = sz->_entries;
-                int32_t const start = sz->findGte(ra - deltaRa);
-                int32_t       se    = start;
-                uint32_t      dra   = ra - sze[se]._ra;
+                int const start = sz->findGte(ra - deltaRa);
+                int se = start;
+                boost::uint32_t dra = ra - sze[se]._ra;
 
                 while (dra <= deltaRa || dra >= deltaRaWrap) {
 
                     // check whether entry is within dec range
-                    int32_t const dec = sze[se]._dec;
+                    boost::int32_t const dec = sze[se]._dec;
                     if (dec >= ell->_minDec && dec <= ell->_maxDec) {
                         // perform detailed in ellipse test
                         if (ell->contains(sze[se]._x, sze[se]._y, sze[se]._z)) {
@@ -609,7 +605,7 @@ size_t ellipseGroupedMatch(
             }
 
             // All matches (if any) for ell are found
-            size_t nm = matches.size();
+            std::size_t nm = matches.size();
             if (nm > 0) {
                 // pass them on to the match processor
                 numMatchPairs = numMatchPairs + nm;

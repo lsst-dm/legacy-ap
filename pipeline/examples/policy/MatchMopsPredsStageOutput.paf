@@ -6,31 +6,33 @@
 AdditionalData: "visitId=triggerAssociationEvent.visitId"
 RunMode: "preprocess"
 OutputItems: {
-    MopsPredToDiaSourceMatches: {
+    predToDiaSourceMatches: {
         Required: true
         StoragePolicy: {
-            Storage:  "DbTsvStorage"
-            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+            Storage:  "DbStorage"
+            Location: "%(dbUrl)"
         }
     }
-    NewObjectIdPairs: {
+    diaSourceToNewObject: {
         Required: true
         StoragePolicy: {
-            Storage:  "DbTsvStorage"
-            Location: "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+            Storage:  "DbStorage"
+            Location: "%(dbUrl)"
         }
     }
 }
 Persistence: {
     Formatter: {
-        IdPairVector: {
-            NewObjectIdPairs: {
-                templateTableName: "IdPair"
+        PersistableIdPairVector: {
+            diaSourceToNewObject: {
+                templateTableName: "_tmpl_IdPair"
+                tableNamePattern: "_tmp_v%(visitId)_DIASourceToNewObject"
             }
         }
-        MatchPairVector: {
-            MopsPredToDiaSourceMatches: {
-                templateTableName: "MatchPair"
+        PersistableMatchPairVector: {
+            predToDiaSourceMatches: {
+                templateTableName: "_tmpl_MatchPair"
+                tableNamePattern: "_tmp_v%(visitId)_PredToDIASourceMatches"
             }
         }
     }

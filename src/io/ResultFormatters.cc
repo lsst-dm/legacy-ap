@@ -9,243 +9,261 @@
 
 #include <memory>
 
-#include <lsst/daf/persistence/BoostStorage.h>
-#include <lsst/daf/persistence/DbStorage.h>
-#include <lsst/daf/persistence/DbTsvStorage.h>
-#include <lsst/daf/persistence/FormatterImpl.h>
+#include "boost/format.hpp"
+//#include "boost/serialization/export.hpp"
 
-#include <boost/any.hpp>
-#include <boost/format.hpp>
-//#include <boost/serialization/export.hpp>
+#include "lsst/pex/exceptions.h"
+#include "lsst/daf/base/Persistable.h"
+#include "lsst/daf/base/PropertySet.h"
+#include "lsst/daf/persistence/BoostStorage.h"
+#include "lsst/daf/persistence/DbStorage.h"
+#include "lsst/daf/persistence/DbTsvStorage.h"
+#include "lsst/daf/persistence/FormatterImpl.h"
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Exceptions.h>
-#include <lsst/ap/Results.h>
-#include <lsst/ap/Utils.h>
-#include <lsst/ap/io/ResultFormatters.h>
+#include "lsst/afw/formatters/Utils.h"
+
+#include "lsst/ap/Common.h"
+#include "lsst/ap/Results.h"
+#include "lsst/ap/Utils.h"
+#include "lsst/ap/io/ResultFormatters.h"
 
 //BOOST_CLASS_EXPORT(lsst::ap::MatchPairVector)
 //BOOST_CLASS_EXPORT(lsst::ap::IdVector)
 
-
-namespace lsst {
-namespace ap {
-namespace io {
-
+using lsst::daf::base::Persistable;
+using lsst::daf::base::PropertySet;
+using lsst::pex::policy::Policy;
 using lsst::daf::persistence::BoostStorage;
+using lsst::daf::persistence::DbStorage;
 using lsst::daf::persistence::DbTsvStorage;
+using lsst::daf::persistence::Formatter;
+using lsst::daf::persistence::FormatterRegistration;
+using lsst::daf::persistence::Storage;
+
+namespace ex = lsst::pex::exceptions;
+namespace fmt = lsst::afw::formatters;
 
 // -- MatchPairVectorFormatter ----------------
 
-MatchPairVectorFormatter::MatchPairVectorFormatter(Policy::Ptr const & policy) :
+lsst::ap::io::MatchPairVectorFormatter::MatchPairVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
 
 
-MatchPairVectorFormatter::~MatchPairVectorFormatter() {}
+lsst::ap::io::MatchPairVectorFormatter::~MatchPairVectorFormatter() {}
 
 
-FormatterRegistration MatchPairVectorFormatter::registration(
-    "MatchPairVector",
-    typeid(MatchPairVector),
+FormatterRegistration lsst::ap::io::MatchPairVectorFormatter::registration(
+    "PersistableMatchPairVector",
+    typeid(PersistableMatchPairVector),
     createInstance
 );
 
 
-Formatter::Ptr MatchPairVectorFormatter::createInstance(Policy::Ptr policy) {
+Formatter::Ptr lsst::ap::io::MatchPairVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new MatchPairVectorFormatter(policy));
 }
 
 
 template <class Archive>
-void MatchPairVectorFormatter::delegateSerialize(
+void lsst::ap::io::MatchPairVectorFormatter::delegateSerialize(
     Archive &          archive,
     unsigned int const version,
     Persistable *      persistable
 ) {
-    MatchPairVector * p = dynamic_cast<MatchPairVector *>(persistable);
+    PersistableMatchPairVector * p = dynamic_cast<PersistableMatchPairVector *>(persistable);
     MatchPairVector::size_type sz;
+    MatchPairVector & vec = p->getMatchPairs();
 
     if (Archive::is_loading::value) {
         MatchPair data;
         archive & sz;
-        p->reserve(sz);
+        vec.reserve(sz);
         for (; sz > 0; --sz) {
             archive & data;
-            p->push_back(data);
+            vec.push_back(data);
         }
     } else {
-        sz = p->size();
+        sz = vec.size();
         archive & sz;
-        MatchPairVector::iterator const end(p->end());
-        for (MatchPairVector::iterator i = p->begin(); i != end; ++i) {
+        for (MatchPairVector::iterator i(vec.begin()), end(vec.end()); i != end; ++i) {
             archive & *i;
         }
     }
 }
 
 /// @cond
-template void MatchPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
+template void lsst::ap::io::MatchPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
-template void MatchPairVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
+template void lsst::ap::io::MatchPairVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
     boost::archive::text_iarchive &, unsigned int const, Persistable *
 );
-//template void MatchPairVector::delegateSerialize<boost::archive::binary_oarchive>(
+//template void lsst::ap::io::MatchPairVector::delegateSerialize<boost::archive::binary_oarchive>(
 //    boost::archive::binary_oarchive &, unsigned int const, Persistable *
 //);
-//template void MatchPairVector::delegateSerialize<boost::archive::binary_iarchive>(
+//template void lsst::ap::io::MatchPairVector::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
 /// @endcond
 
 
-void MatchPairVectorFormatter::write(
-    Persistable const *   persistable,
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+void lsst::ap::io::MatchPairVectorFormatter::write(
+    Persistable const * persistable,
+    Storage::Ptr        storage,
+    PropertySet::Ptr    additionalData
 ) {
     if (persistable == 0) {
-        LSST_AP_THROW(InvalidParameter, "No Persistable provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Persistable provided");
     }
     if (!storage) {
-        LSST_AP_THROW(InvalidParameter, "No Storage provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Storage provided");
     }
 
-    MatchPairVector const * p = dynamic_cast<MatchPairVector const *>(persistable);
+    PersistableMatchPairVector const * p = dynamic_cast<PersistableMatchPairVector const *>(persistable);
     if (p == 0) {
-        LSST_AP_THROW(Runtime, "Persistable was not of concrete type MatchPairVector");
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          "Persistable was not of concrete type PersistableMatchPairVector");
     }
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage * bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name(getTableName(_policy, additionalData));
-        std::string model(getTableTemplateName(_policy, additionalData));
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
+        MatchPairVector const & v = p->getMatchPairs();
         if (typeid(*storage) == typeid(DbStorage)) {
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            MatchPairVector::const_iterator const end(p->end());
-            for (MatchPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<long long>("first",    i->_first);
-                db->setColumn<long long>("second",   i->_second);
+            for (MatchPairVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
+                db->setColumn<boost::int64_t>("first", i->_first);
+                db->setColumn<boost::int64_t>("second", i->_second);
                 db->setColumn<double> ("distance", i->_distance);
                 db->insertRow();
             }
         } else {
             DbTsvStorage * db = dynamic_cast<DbTsvStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbTsvStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbTsvStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            MatchPairVector::const_iterator const end(p->end());
-            for (MatchPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<long long>("first",    i->_first);
-                db->setColumn<long long>("second",   i->_second);
+            for (MatchPairVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
+                db->setColumn<boost::int64_t>("first", i->_first);
+                db->setColumn<boost::int64_t>("second", i->_second);
                 db->setColumn<double> ("distance", i->_distance);
                 db->insertRow();
             }
         }
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
 }
 
 
-Persistable * MatchPairVectorFormatter::read(
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+Persistable * lsst::ap::io::MatchPairVectorFormatter::read(
+    Storage::Ptr     storage,
+    PropertySet::Ptr additionalData
 ) {
-    std::auto_ptr<MatchPairVector> p(new MatchPairVector);
+    std::auto_ptr<PersistableMatchPairVector> p(new PersistableMatchPairVector);
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage * bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getIArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
         DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
         if (db == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
-        db->setTableForQuery(getTableName(_policy, additionalData));
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
         MatchPair data;
         db->outParam("first",    &(data._first));
         db->outParam("second",   &(data._second));
         db->outParam("distance", &(data._distance));
         db->query();
         while (db->next()) {
-            if (db->columnIsNull(0)) { LSST_AP_THROW(Runtime, "null column \"first\"");    }
-            if (db->columnIsNull(1)) { LSST_AP_THROW(Runtime, "null column \"second\"");   }
-            if (db->columnIsNull(2)) { LSST_AP_THROW(Runtime, "null column \"distance\""); }
-            p->push_back(data);
+            if (db->columnIsNull(0)) {
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "null column \"first\"");
+            }
+            if (db->columnIsNull(1)) {
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "null column \"second\"");
+            }
+            if (db->columnIsNull(2)) {
+                throw LSST_EXCEPT(ex::RuntimeErrorException,  "null column \"distance\"");
+            }
+            p->getMatchPairs().push_back(data);
         }
         db->finishQuery();
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
     return p.release();
 }
 
 
-void MatchPairVectorFormatter::update(Persistable *, Storage::Ptr, DataProperty::PtrType) {
-    LSST_AP_THROW(Runtime, "MatchPairVectorFormatter: updates not supported");
+void lsst::ap::io::MatchPairVectorFormatter::update(Persistable *, Storage::Ptr, PropertySet::Ptr) {
+    throw LSST_EXCEPT(ex::RuntimeErrorException, "MatchPairVectorFormatter: updates not supported");
 }
 
 
 // -- IdPairVectorFormatter ----------------
 
-IdPairVectorFormatter::IdPairVectorFormatter(Policy::Ptr const & policy) :
+lsst::ap::io::IdPairVectorFormatter::IdPairVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
 
 
-IdPairVectorFormatter::~IdPairVectorFormatter() {}
+lsst::ap::io::IdPairVectorFormatter::~IdPairVectorFormatter() {}
 
 
-FormatterRegistration IdPairVectorFormatter::registration("IdPairVector", typeid(IdPairVector), createInstance);
+FormatterRegistration lsst::ap::io::IdPairVectorFormatter::registration(
+    "PersistableIdPairVector",
+    typeid(PersistableIdPairVector),
+    createInstance
+);
 
 
-Formatter::Ptr IdPairVectorFormatter::createInstance(Policy::Ptr policy) {
+Formatter::Ptr lsst::ap::io::IdPairVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new IdPairVectorFormatter(policy));
 }
 
 
 template <class Archive>
-void IdPairVectorFormatter::delegateSerialize(
+void lsst::ap::io::IdPairVectorFormatter::delegateSerialize(
     Archive &          archive,
     unsigned int const version,
     Persistable *      persistable
 ) {
-    IdPairVector * p = dynamic_cast<IdPairVector *>(persistable);
+    PersistableIdPairVector * p = dynamic_cast<PersistableIdPairVector *>(persistable);
     IdPairVector::size_type sz;
+    IdPairVector & vec = p->getIdPairs();
 
     if (Archive::is_loading::value) {
         IdPair data;
         archive & sz;
-        p->reserve(sz);
+        vec.reserve(sz);
         for (; sz > 0; --sz) {
             archive & data.first;
             archive & data.second;
-            p->push_back(data);
+            vec.push_back(data);
         }
     } else {
-        sz = p->size();
+        sz = vec.size();
         archive & sz;
-        IdPairVector::iterator const end(p->end());
-        for (IdPairVector::iterator i = p->begin(); i != end; ++i) {
+        for (IdPairVector::iterator i(vec.begin()), end(vec.end()); i != end; ++i) {
             archive & i->first;
             archive & i->second;
         }
@@ -253,284 +271,283 @@ void IdPairVectorFormatter::delegateSerialize(
 }
 
 /// @cond
-template void IdPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
+template void lsst::ap::io::IdPairVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
-template void IdPairVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
+template void lsst::ap::io::IdPairVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
     boost::archive::text_iarchive &, unsigned int const, Persistable *
 );
-//template void IdPairVectorFormatter::delegateSerialize<boost::archive::binary_oarchive>(
+//template void lsst::ap::io::IdPairVectorFormatter::delegateSerialize<boost::archive::binary_oarchive>(
 //    boost::archive::binary_oarchive &, unsigned int const, Persistable *
 //);
-//template void IdPairVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
+//template void lsst::ap::io::IdPairVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
 /// @endcond
 
 
-void IdPairVectorFormatter::write(
-    Persistable const *   persistable,
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+void lsst::ap::io::IdPairVectorFormatter::write(
+    Persistable const * persistable,
+    Storage::Ptr        storage,
+    PropertySet::Ptr    additionalData
 ) {
     if (persistable == 0) {
-        LSST_AP_THROW(InvalidParameter, "No Persistable provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Persistable provided");
     }
     if (!storage) {
-        LSST_AP_THROW(InvalidParameter, "No Storage provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Storage provided");
     }
 
-    IdPairVector const * p = dynamic_cast<IdPairVector const *>(persistable);
+    PersistableIdPairVector const * p = dynamic_cast<PersistableIdPairVector const *>(persistable);
     if (p == 0) {
-        LSST_AP_THROW(Runtime, "Persistable was not of concrete type IdPairVector");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Persistable was not of concrete type IdPairVector");
     }
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage * bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name(getTableName(_policy, additionalData));
-        std::string model(getTableTemplateName(_policy, additionalData));
-        if (typeid(*storage) == typeid(DbStorage)) {
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
+        IdPairVector const & v = p->getIdPairs();
+        if (typeid(*storage) == typeid(DbStorage)) { 
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            IdPairVector::const_iterator const end(p->end());
-            for (IdPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<long long>("first",  i->first);
-                db->setColumn<long long>("second", i->second);
+            for (IdPairVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
+                db->setColumn<boost::int64_t>("first",  i->first);
+                db->setColumn<boost::int64_t>("second", i->second);
                 db->insertRow();
             }
         } else {
             DbTsvStorage * db = dynamic_cast<DbTsvStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbTsvStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbTsvStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            IdPairVector::const_iterator const end(p->end());
-            for (IdPairVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<long long>("first",  i->first);
-                db->setColumn<long long>("second", i->second);
+            for (IdPairVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
+                db->setColumn<boost::int64_t>("first",  i->first);
+                db->setColumn<boost::int64_t>("second", i->second);
                 db->insertRow();
             }
         }
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
 }
 
 
-Persistable * IdPairVectorFormatter::read(
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+Persistable * lsst::ap::io::IdPairVectorFormatter::read(
+    Storage::Ptr     storage,
+    PropertySet::Ptr additionalData
 ) {
-    std::auto_ptr<IdPairVector> p(new IdPairVector);
+    std::auto_ptr<PersistableIdPairVector> p(new PersistableIdPairVector);
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage* bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getIArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
         DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
         if (db == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
 
-        db->setTableForQuery(getTableName(_policy, additionalData));
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
         IdPair data;
         db->outParam("first",  &data.first);
         db->outParam("second", &data.second);
         db->query();
         while (db->next()) {
             if (db->columnIsNull(0)) {
-                LSST_AP_THROW(Runtime, "null column \"first\"");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "null column \"first\"");
             }
             if (db->columnIsNull(1)) {
-                LSST_AP_THROW(Runtime, "null column \"second\"");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "null column \"second\"");
             }
-            p->push_back(data);
+            p->getIdPairs().push_back(data);
         }
         db->finishQuery();
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
     return p.release();
 }
 
 
-void IdPairVectorFormatter::update(Persistable *, Storage::Ptr, DataProperty::PtrType) {
-    LSST_AP_THROW(Runtime, "IdPairVectorFormatter: updates not supported");
+void lsst::ap::io::IdPairVectorFormatter::update(Persistable *, Storage::Ptr, PropertySet::Ptr) {
+    throw LSST_EXCEPT(ex::RuntimeErrorException, "IdPairVectorFormatter: updates not supported");
 }
 
 
 // -- IdVectorFormatter ----------------
 
-IdVectorFormatter::IdVectorFormatter(Policy::Ptr const & policy) :
+lsst::ap::io::IdVectorFormatter::IdVectorFormatter(Policy::Ptr policy) :
     Formatter(typeid(*this)),
     _policy(policy)
 {}
 
 
-IdVectorFormatter::~IdVectorFormatter() {}
+lsst::ap::io::IdVectorFormatter::~IdVectorFormatter() {}
 
 
-FormatterRegistration IdVectorFormatter::registration("IdVector", typeid(IdVector), createInstance);
+FormatterRegistration lsst::ap::io::IdVectorFormatter::registration(
+    "PersistableIdVector",
+    typeid(PersistableIdVector),
+    createInstance
+);
 
 
-Formatter::Ptr IdVectorFormatter::createInstance(Policy::Ptr policy) {
+Formatter::Ptr lsst::ap::io::IdVectorFormatter::createInstance(Policy::Ptr policy) {
     return Formatter::Ptr(new IdVectorFormatter(policy));
 }
 
 
 template <class Archive>
-void IdVectorFormatter::delegateSerialize(
+void lsst::ap::io::IdVectorFormatter::delegateSerialize(
     Archive &          archive,
     unsigned int const version,
     Persistable *      persistable
 ) {
-    IdVector * p = dynamic_cast<IdVector *>(persistable);
+    PersistableIdVector * p = dynamic_cast<PersistableIdVector *>(persistable);
     IdVector::size_type sz;
+    IdVector & vec = p->getIds();
 
     if (Archive::is_loading::value) {
-        int64_t data;
+        boost::int64_t data;
         archive & sz;
-        p->reserve(sz);
+        vec.reserve(sz);
         for (; sz > 0; --sz) {
             archive & data;
-            p->push_back(data);
+            vec.push_back(data);
         }
     } else {
-        sz = p->size();
+        sz = vec.size();
         archive & sz;
-        IdVector::iterator const end(p->end());
-        for (IdVector::iterator i = p->begin(); i != end; ++i) {
+        for (IdVector::iterator i(vec.begin()), end(vec.end()); i != end; ++i) {
             archive & *i;
         }
     }
 }
 
 /// @cond
-template void IdVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
+template void lsst::ap::io::IdVectorFormatter::delegateSerialize<boost::archive::text_oarchive>(
     boost::archive::text_oarchive &, unsigned int const, Persistable *
 );
-template void IdVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
+template void lsst::ap::io::IdVectorFormatter::delegateSerialize<boost::archive::text_iarchive>(
     boost::archive::text_iarchive &, unsigned int const, Persistable *
 );
-//template void IdVectorFormatter::delegateSerialize<boost::archive::binary_oarchive>(
+//template void lsst::ap::io::IdVectorFormatter::delegateSerialize<boost::archive::binary_oarchive>(
 //    boost::archive::binary_oarchive &, unsigned int const, Persistable *
 //);
-//template void IdVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
+//template void lsst::ap::io::IdVectorFormatter::delegateSerialize<boost::archive::binary_iarchive>(
 //    boost::archive::binary_iarchive &, unsigned int const, Persistable *
 //);
 /// @endcond
 
 
-void IdVectorFormatter::write(
-    Persistable const *   persistable,
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+void lsst::ap::io::IdVectorFormatter::write(
+    Persistable const * persistable,
+    Storage::Ptr        storage,
+    PropertySet::Ptr    additionalData
 ) {
     if (persistable == 0) {
-        LSST_AP_THROW(InvalidParameter, "No Persistable provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Persistable provided");
     }
     if (!storage) {
-        LSST_AP_THROW(InvalidParameter, "No Storage provided");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "No Storage provided");
     }
 
-    IdVector const * p = dynamic_cast<IdVector const *>(persistable);
+    PersistableIdVector const * p = dynamic_cast<PersistableIdVector const *>(persistable);
     if (p == 0) {
-        LSST_AP_THROW(Runtime, "Persistable was not of concrete type IdVector");
+        throw LSST_EXCEPT(ex::RuntimeErrorException, "Persistable was not of concrete type IdVector");
     }
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage * bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getOArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
-        std::string name(getTableName(_policy, additionalData));
-        std::string model(getTableTemplateName(_policy, additionalData));
+        std::string name = fmt::getTableName(_policy, additionalData);
+        std::string model = _policy->getString(fmt::getItemName(additionalData) + ".templateTableName");
+        IdVector const & v = p->getIds();
         if (typeid(*storage) == typeid(DbStorage)) {
             DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            IdVector::const_iterator const end(p->end());
-            for (IdVector::const_iterator i = p->begin(); i != end; ++i) {
-                db->setColumn<long long>("id", *i);
+            for (IdVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
+                db->setColumn<boost::int64_t>("id", *i);
                 db->insertRow();
             }
         } else {
             DbTsvStorage * db = dynamic_cast<DbTsvStorage *>(storage.get());
             if (db == 0) {
-                LSST_AP_THROW(Runtime, "Didn't get DbTsvStorage");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbTsvStorage");
             }
             db->createTableFromTemplate(name, model, false);
             db->setTableForInsert(name);
-            IdVector::const_iterator const end(p->end());
-            for (IdVector::const_iterator i = p->begin(); i != end; ++i) {
+            for (IdVector::const_iterator i(v.begin()), end(v.end()); i != end; ++i) {
                 db->setColumn<long long>("id", *i);
                 db->insertRow();
             }
         }
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
 }
 
 
-Persistable * IdVectorFormatter::read(
-    Storage::Ptr          storage,
-    DataProperty::PtrType additionalData
+Persistable * lsst::ap::io::IdVectorFormatter::read(
+    Storage::Ptr     storage,
+    PropertySet::Ptr additionalData
 ) {
-    std::auto_ptr<IdVector> p(new IdVector);
+    std::auto_ptr<PersistableIdVector> p(new PersistableIdVector);
 
     if (typeid(*storage) == typeid(BoostStorage)) {
         BoostStorage* bs = dynamic_cast<BoostStorage *>(storage.get());
         if (bs == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get BoostStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get BoostStorage");
         }
         bs->getIArchive() & *p;
     } else if (typeid(*storage) == typeid(DbStorage) || typeid(*storage) == typeid(DbTsvStorage)) {
         DbStorage * db = dynamic_cast<DbStorage *>(storage.get());
         if (db == 0) {
-            LSST_AP_THROW(Runtime, "Didn't get DbStorage");
+            throw LSST_EXCEPT(ex::RuntimeErrorException, "Didn't get DbStorage");
         }
 
-        db->setTableForQuery(getTableName(_policy, additionalData));
-        int64_t data;
+        db->setTableForQuery(fmt::getTableName(_policy, additionalData));
+        boost::int64_t data;
         db->outParam("id", &data);
         db->query();
         while (db->next()) {
             if (db->columnIsNull(0)) {
-                LSST_AP_THROW(Runtime, "null column \"id\"");
+                throw LSST_EXCEPT(ex::RuntimeErrorException, "null column \"id\"");
             }
-            p->push_back(data);
+            p->getIds().push_back(data);
         }
         db->finishQuery();
     } else {
-        LSST_AP_THROW(InvalidParameter, "Storage type is not supported");
+        throw LSST_EXCEPT(ex::InvalidParameterException, "Storage type is not supported");
     }
     return p.release();
 }
 
 
-void IdVectorFormatter::update(Persistable *, Storage::Ptr, DataProperty::PtrType) {
-    LSST_AP_THROW(Runtime, "IdVectorFormatter: updates not supported");
+void lsst::ap::io::IdVectorFormatter::update(Persistable *, Storage::Ptr, PropertySet::Ptr) {
+    throw LSST_EXCEPT(ex::RuntimeErrorException, "IdVectorFormatter: updates not supported");
 }
-
-
-}}} // end of namespace lsst::ap::io
 

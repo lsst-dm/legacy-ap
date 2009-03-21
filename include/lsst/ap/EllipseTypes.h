@@ -18,9 +18,7 @@
 #include "SpatialUtil.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 /**
  * @brief   Contains spatial information for a single ellipse on the unit sphere (sky).
@@ -29,27 +27,26 @@ namespace ap {
  */
 template <typename DataT>
 class Ellipse {
-
 public :
 
-    DataT   *  _data;        ///< pointer to data object
-    Ellipse *  _next;        ///< pointer to next active ellipse in search
+    DataT   * _data; ///< pointer to data object (not owned by this object!)
+    Ellipse * _next; ///< pointer to next active ellipse in search
 
-    int32_t    _minZone;     ///< minimum zone of ellipse bounding-box
-    int32_t    _maxZone;     ///< maximum zone of ellipse bounding-box
-    uint32_t   _ra;          ///< right ascension of ellipse center
-    uint32_t   _deltaRa;     ///< width (in right ascension) of ellipse
-    int32_t    _minDec;      ///< minimum declination of ellipse bounding-box
-    int32_t    _maxDec;      ///< maximum declination of ellipse bounding-box
+    int _minZone;             ///< minimum zone of ellipse bounding-box
+    int _maxZone;             ///< maximum zone of ellipse bounding-box
+    boost::uint32_t _ra;      ///< right ascension of ellipse center
+    boost::uint32_t _deltaRa; ///< width (in right ascension) of ellipse
+    boost::int32_t _minDec;   ///< minimum declination of ellipse bounding-box
+    boost::int32_t _maxDec;   ///< maximum declination of ellipse bounding-box
 
-    double     _sinDec;      ///< sine of ellipse center dec
-    double     _cosDec;      ///< cosine of ellipse center dec
-    double     _sinRa;       ///< sine of ellipse center ra
-    double     _cosRa;       ///< cosine of ellipse center ra
-    double     _sinPa;       ///< sine of ellipse position angle
-    double     _cosPa;       ///< cosine of ellipse position angle
-    double     _invMinor2;   ///< 1/(smia*smia), where smia is the ellipse semi-minor axis length (rad)
-    double     _invMajor2;   ///< 1/(smaa*smaa), where smaa is the ellipse semi-major axis length (rad)
+    double _sinDec;    ///< sine of ellipse center dec
+    double _cosDec;    ///< cosine of ellipse center dec
+    double _sinRa;     ///< sine of ellipse center ra
+    double _cosRa;     ///< cosine of ellipse center ra
+    double _sinPa;     ///< sine of ellipse position angle
+    double _cosPa;     ///< cosine of ellipse position angle
+    double _invMinor2; ///< 1/(smia*smia), where smia is the ellipse semi-minor axis length (rad)
+    double _invMajor2; ///< 1/(smaa*smaa), where smaa is the ellipse semi-major axis length (rad)
 
     explicit Ellipse(DataT & data);
 
@@ -118,51 +115,14 @@ struct EllipsePtrLessThan :
  * Supports the in-ellipse cross matching algorithms.
  */
 template <typename DataT>
-class EllipseList {
-
+class EllipseList : public std::vector<Ellipse<DataT> > {
 public :
+    EllipseList() : std::vector<Ellipse<DataT> >() {}
 
-    typedef Ellipse<DataT> Ellipse;
-
-    typedef typename std::vector<Ellipse>::iterator       iterator;
-    typedef typename std::vector<Ellipse>::const_iterator const_iterator;
-    typedef typename std::vector<Ellipse>::size_type      size_type;
-
-    EllipseList() : _ellipses() {}
-
-    /// Creates a list of ellipses from the given data objects.
-    EllipseList(
-        DataT * const begin,
-        DataT * const end
-    );
-
-    EllipseList(EllipseList const & list);
-
-    EllipseList & operator=(EllipseList const & list);
-
-    size_type size()     const { return _ellipses.size();     }
-    size_type capacity() const { return _ellipses.capacity(); }
-    bool      empty()    const { return _ellipses.empty();    }
-
-    Ellipse const & operator[](size_type const i) const { return _ellipses[i]; }
-    Ellipse const * begin() const { return &_ellipses.front();    }
-    Ellipse const * end()   const { return &_ellipses.back() + 1; }
-
-    Ellipse & operator[](size_type const i) { return _ellipses[i]; }
-    Ellipse * begin() { return &_ellipses.front();    }
-    Ellipse * end()   { return &_ellipses.back() + 1; }
-
-    void push_back(DataT & data)    { _ellipses.push_back(Ellipse(data)); }
-    void pop_back()                 { _ellipses.pop_back();                   }
-    void clear()                    { _ellipses.clear();                      }
-    void reserve(size_type const n) { _ellipses.reserve(n);                   }
-    void swap(EllipseList & list)   { std::swap(_ellipses, list._ellipses);   }
+    /** Creates a list of ellipses from the given data objects. */
+    EllipseList(DataT * const begin, DataT * const end);
 
     void prepareForMatch(ZoneStripeChunkDecomposition const & zsc);
-
-private :
-
-    std::vector<Ellipse> _ellipses;
 };
 
 

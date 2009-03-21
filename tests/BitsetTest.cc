@@ -7,16 +7,12 @@
  * @ingroup associate
  */
 
-#include <boost/version.hpp>
-#if BOOST_VERSION < 103400
-#   include <boost/test/auto_unit_test.hpp>
-#   define BOOST_TEST_MESSAGE BOOST_MESSAGE
-#else
-#   include <boost/test/unit_test.hpp>
-#endif
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE BitsetTest
+#include "boost/test/unit_test.hpp"
 
-#include <lsst/ap/Common.h>
-#include <lsst/ap/Bitset.h>
+#include "lsst/ap/Common.h"
+#include "lsst/ap/Bitset.h"
 
 
 using namespace lsst::ap;

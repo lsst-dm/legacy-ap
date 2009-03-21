@@ -13,46 +13,43 @@
 #include <cassert>
 #include <cstring>
 
-#include <boost/static_assert.hpp>
+#include "boost/static_assert.hpp"
 
 #include "Common.h"
 
 
-namespace lsst {
-namespace ap {
-
-namespace detail {
+namespace lsst { namespace ap { namespace detail {
 
 template <typename WordT> struct BitTraits {
     static bool const IS_SPECIALIZED = false;
 };
 
 template <> struct LSST_AP_LOCAL BitTraits<uint8_t>  {
-    static bool    const IS_SPECIALIZED     = true;
-    static int     const BITS_PER_WORD_LOG2 = 3;
-    static int     const BITS_PER_WORD      = 8;
-    static uint8_t const WORD_MASK          = 0xff;
+    static bool const IS_SPECIALIZED      = true;
+    static int  const BITS_PER_WORD_LOG2  = 3;
+    static int  const BITS_PER_WORD       = 8;
+    static boost::uint8_t const WORD_MASK = 0xff;
 };
 
 template <> struct LSST_AP_LOCAL BitTraits<uint16_t> {
-    static bool     const IS_SPECIALIZED     = true;
-    static int      const BITS_PER_WORD_LOG2 = 4;
-    static int      const BITS_PER_WORD      = 16;
-    static uint16_t const WORD_MASK          = 0xffff;
+    static bool const IS_SPECIALIZED       = true;
+    static int  const BITS_PER_WORD_LOG2   = 4;
+    static int  const BITS_PER_WORD        = 16;
+    static boost::uint16_t const WORD_MASK = 0xffff;
 };
 
 template <> struct LSST_AP_LOCAL BitTraits<uint32_t> {
-    static bool     const IS_SPECIALIZED     = true;
-    static int      const BITS_PER_WORD_LOG2 = 5;
-    static int      const BITS_PER_WORD      = 32;
-    static uint32_t const WORD_MASK          = 0xffffffff;
+    static bool const IS_SPECIALIZED       = true;
+    static int  const BITS_PER_WORD_LOG2   = 5;
+    static int  const BITS_PER_WORD        = 32;
+    static boost::uint32_t const WORD_MASK = 0xffffffff;
 };
 
 template <> struct LSST_AP_LOCAL BitTraits<uint64_t> {
-    static bool     const IS_SPECIALIZED     = true;
-    static int      const BITS_PER_WORD_LOG2 = 6;
-    static int      const BITS_PER_WORD      = 64;
-    static uint64_t const WORD_MASK          = UINT64_C(0xffffffffffffffff);
+    static bool const IS_SPECIALIZED       = true;
+    static int  const BITS_PER_WORD_LOG2   = 6;
+    static int  const BITS_PER_WORD        = 64;
+    static boost::uint64_t const WORD_MASK = UINT64_C(0xffffffffffffffff);
 };
 
 template <typename WordT>
@@ -66,19 +63,19 @@ inline WordT maskForBit(int const i) {
 }
 
 template <typename WordT>
-bool set(
-    int        * const indexes,
-    WordT      * const words,
-    int  const         numBitsToSet,
-    int  const         numBits
+bool setBits(
+    int * const indexes,
+    WordT * const words,
+    int const numBitsToSet,
+    int const numBits
 );
 
 template <typename WordT>
-void reset(
-    WordT     * const words,
+void resetBits(
+    WordT * const words,
     int const * const indexes,
-    int const         numBitsToReset,
-    int const         numBits
+    int const numBitsToReset,
+    int const numBits
 );
 
 } // end of namespace detail
@@ -141,12 +138,12 @@ public :
      * @a numBits of them to one and returns @c true. Otherwise, @c false is returned.
      */
     bool set(int * const indexes, int const numBits) {
-        return detail::set<WordT>(indexes, _bits, numBits, NumBits);
+        return detail::setBits<WordT>(indexes, _bits, numBits, NumBits);
     }
 
     /** Sets @a numBits bits identified by the integers in @a indexes to zero. */
     void reset(int const * const indexes, int const numBits) {
-        detail::reset<WordT>(_bits, indexes, numBits, NumBits);
+        detail::resetBits<WordT>(_bits, indexes, numBits, NumBits);
     }
 
 private :

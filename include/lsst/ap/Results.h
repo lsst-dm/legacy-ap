@@ -13,27 +13,25 @@
 #include <utility>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
+#include "boost/shared_ptr.hpp"
 
-#include <lsst/daf/base/Citizen.h>
-#include <lsst/daf/base/Persistable.h>
+#include "lsst/daf/base/Citizen.h"
+#include "lsst/daf/base/Persistable.h"
 
 #include "Common.h"
 
 
 /// @cond
-namespace boost {
-namespace serialization {
+namespace boost { namespace serialization {
     class access;
 }}
 /// @endcond
 
 
-namespace lsst {
-namespace ap {
+namespace lsst { namespace ap {
 
-// forward declarations for formatters
 namespace io {
+    // forward declarations for formatters
     class MatchPairVectorFormatter;
     class IdPairVectorFormatter;
     class IdVectorFormatter;
@@ -47,24 +45,45 @@ public :
 
     MatchPair() : _first(-1), _second(-1), _distance(0.0) {}
 
-    MatchPair(int64_t const first, int64_t const second, double const distance) :
+    MatchPair(boost::int64_t const first, boost::int64_t const second, double const distance) :
         _first(first), _second(second), _distance(distance) {}
 
-    int64_t getFirst()    const { return _first;    }
-    int64_t getSecond()   const { return _second;   }
-    double  getDistance() const { return _distance; }
+    boost::int64_t getFirst() const {
+        return _first;
+    }
+    boost::int64_t getSecond() const {
+        return _second;
+    }
+    double getDistance() const {
+        return _distance;
+    }
 
-    void setFirst   (int64_t const first)    { _first    = first;    }
-    void setSecond  (int64_t const second)   { _second   = second;   }
-    void setDistance(double  const distance) { _distance = distance; }
+    void setFirst(boost::int64_t const first) {
+        _first = first;
+    }
+    void setSecond(boost::int64_t const second) {
+        _second = second;
+    }
+    void setDistance(double const distance) {
+        _distance = distance;
+    }
+
+    bool operator==(MatchPair const & mp) const {
+        return _first == mp.getFirst() && _second == mp.getSecond();
+    }
+
+    bool operator!=(MatchPair const & mp) const {
+        return !operator==(mp);
+    }
 
 private :
 
-    int64_t _first;
-    int64_t _second;
-    double  _distance;
+    boost::int64_t _first;
+    boost::int64_t _second;
+    double _distance;
 
-    template <typename Archive> void serialize(Archive & ar, unsigned int const version) {
+    template <typename Archive>
+    void serialize(Archive & ar, unsigned int const version) {
         ar & _first;
         ar & _second;
         ar & _distance;
@@ -74,316 +93,114 @@ private :
     friend class io::MatchPairVectorFormatter;
 };
 
-inline bool operator==(MatchPair const & mp1, MatchPair const & mp2) {
-    return mp1.getFirst() == mp2.getFirst() && mp1.getSecond() == mp2.getSecond();
-}
-
-inline bool operator!=(MatchPair const & d1, MatchPair const & d2) {
-    return !(d1 == d2);
-}
-
-
-// Classes that require special handling in the SWIG interface file follow
-#ifndef SWIG
 
 /** @brief  Holds a pair of ids. */
-typedef std::pair<int64_t, int64_t> IdPair;
+typedef std::pair<boost::int64_t, boost::int64_t> IdPair;
+/** @brief  A list of MatchPair instances. */
+typedef std::vector<MatchPair> MatchPairVector;
+/** @brief  A list of IdPair instances. */
+typedef std::vector<IdPair> IdPairVector;
+/** @brief  A list of integer ids. */
+typedef std::vector<boost::int64_t> IdVector;
 
 
-/** @brief  A persistable container of MatchPair instances, implemented using std::vector. */
-class LSST_AP_API MatchPairVector :
+/** @brief  A persistable wrapper for a MatchPairVector. */
+class LSST_AP_API PersistableMatchPairVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :
+    typedef boost::shared_ptr<PersistableMatchPairVector> Ptr;
 
-    typedef boost::shared_ptr<MatchPairVector> Ptr;
-    typedef std::vector<MatchPair>             Vector;
+    PersistableMatchPairVector();
+    explicit PersistableMatchPairVector(MatchPairVector const &);
+    ~PersistableMatchPairVector();
 
-    typedef Vector::allocator_type         allocator_type;
-    typedef Vector::iterator               iterator;
-    typedef Vector::const_iterator         const_iterator;
-    typedef Vector::reverse_iterator       reverse_iterator;
-    typedef Vector::const_reverse_iterator const_reverse_iterator;
-    typedef Vector::size_type              size_type;
-    typedef Vector::difference_type        difference_type;
-    typedef Vector::reference              reference;
-    typedef Vector::const_reference        const_reference;
-    typedef Vector::value_type             value_type;
+    MatchPairVector & getMatchPairs() {
+        return _matchPairs;
+    }
+    MatchPairVector const & getMatchPairs() const {
+        return _matchPairs;
+    }
+    void setMatchPairs(MatchPairVector const & matchPairs) {
+        _matchPairs = matchPairs;
+    }
 
-    MatchPairVector();
-    explicit MatchPairVector(size_type sz);
-    MatchPairVector(size_type sz, value_type const & val);
+    bool operator==(MatchPairVector const & other) const;
+    bool operator==(PersistableMatchPairVector const & other) const {
+        return other == _matchPairs;
+    }
 
-    template <typename InputIteratorT>
-    MatchPairVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::daf::base::Citizen(typeid(*this)),
-        _vec(beg, end)
-    {}
-
-    virtual ~MatchPairVector();
-
-    MatchPairVector(MatchPairVector const & vec);
-    explicit MatchPairVector(Vector const & vec);
-    MatchPairVector & operator=(MatchPairVector const & vec);
-    MatchPairVector & operator=(Vector const & vec);
-
-    void swap(MatchPairVector & v) { using std::swap; swap(_vec, v._vec); }
-    void swap(Vector & v)          { using std::swap; swap(_vec, v);      }
-
-    size_type size()     const { return _vec.size();     }
-    size_type max_size() const { return _vec.max_size(); }
-    bool      empty()    const { return _vec.empty();    }
-    size_type capacity() const { return _vec.capacity(); }
-
-    void reserve(size_type const n) { _vec.reserve(n); }
-
-    template <typename InputIteratorT>
-    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
-    void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
-
-    reference       at        (size_type const i)       { return _vec.at(i); }
-    const_reference at        (size_type const i) const { return _vec.at(i); }
-    reference       operator[](size_type const i)       { return _vec[i];    }
-    const_reference operator[](size_type const i) const { return _vec[i];    }
-
-    reference       front()       { return _vec.front(); }
-    const_reference front() const { return _vec.front(); }
-    reference       back ()       { return _vec.back();  }
-    const_reference back () const { return _vec.back();  }
-
-    iterator               begin ()       { return _vec.begin();  }
-    const_iterator         begin () const { return _vec.begin();  }
-    reverse_iterator       rbegin()       { return _vec.rbegin(); }
-    const_reverse_iterator rbegin() const { return _vec.rbegin(); }
-    iterator               end   ()       { return _vec.end();    }
-    const_iterator         end   () const { return _vec.end();    }
-    reverse_iterator       rend  ()       { return _vec.rend();   }
-    const_reverse_iterator rend  () const { return _vec.rend();   }
-
-    void push_back (value_type const & value) { _vec.push_back(value);  }
-
-    void pop_back () { _vec.pop_back();  }
-    void clear()     { _vec.clear();     }
-
-    template <typename InputIteratorT>
-    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
-
-    iterator erase(iterator pos)               { return _vec.erase(pos);      }
-    iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }
-
-    void resize(size_type n)                   { _vec.resize(n);        }
-    void resize(size_type n, value_type value) { _vec.resize(n, value); }
-
-    bool operator==(MatchPairVector const & v) { return _vec == v._vec; }
-    bool operator!=(MatchPairVector const & v) { return _vec != v._vec; }
-
-private :
-
-    LSST_PERSIST_FORMATTER(io::MatchPairVectorFormatter);
-
-    Vector _vec;
+private:
+    LSST_PERSIST_FORMATTER(lsst::ap::io::MatchPairVectorFormatter);
+    MatchPairVector _matchPairs;
 };
 
 
-/** @brief  A persistable container of IdPair identifiers, implemented using std::vector. */
-class LSST_AP_API IdPairVector :
+/** @brief  A persistable wrapper for an IdPairVector. */
+class LSST_AP_API PersistableIdPairVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :
+    typedef boost::shared_ptr<PersistableIdPairVector> Ptr;
 
-    typedef boost::shared_ptr<IdPairVector> Ptr;
-    typedef std::vector<IdPair>             Vector;
+    PersistableIdPairVector();
+    explicit PersistableIdPairVector(IdPairVector const &);
+    ~PersistableIdPairVector();
 
-    typedef Vector::allocator_type         allocator_type;
-    typedef Vector::iterator               iterator;
-    typedef Vector::const_iterator         const_iterator;
-    typedef Vector::reverse_iterator       reverse_iterator;
-    typedef Vector::const_reverse_iterator const_reverse_iterator;
-    typedef Vector::size_type              size_type;
-    typedef Vector::difference_type        difference_type;
-    typedef Vector::reference              reference;
-    typedef Vector::const_reference        const_reference;
-    typedef Vector::value_type             value_type;
+    IdPairVector & getIdPairs() {
+        return _idPairs;
+    }
+    IdPairVector const & getIdPairs() const {
+        return _idPairs;
+    }
+    void setIdPairs(IdPairVector const & idPairs) {
+        _idPairs = idPairs;
+    }
 
-    IdPairVector();
-    explicit IdPairVector(size_type sz);
-    IdPairVector(size_type sz, value_type const & val);
+    bool operator==(IdPairVector const & other) const;
+    bool operator==(PersistableIdPairVector const & other) const {
+        return other == _idPairs;
+    }
 
-    template <typename InputIteratorT>
-    IdPairVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::daf::base::Citizen(typeid(*this)),
-        _vec(beg, end)
-    {}
-
-    virtual ~IdPairVector();
-
-    IdPairVector(IdPairVector const & vec);
-    explicit IdPairVector(Vector const & vec);
-    IdPairVector & operator=(IdPairVector const & vec);
-    IdPairVector & operator=(Vector const & vec);
-
-    void swap(IdPairVector & v) { using std::swap; swap(_vec, v._vec); }
-    void swap(Vector & v)       { using std::swap; swap(_vec, v);      }
-
-    size_type size()     const { return _vec.size();     }
-    size_type max_size() const { return _vec.max_size(); }
-    bool      empty()    const { return _vec.empty();    }
-    size_type capacity() const { return _vec.capacity(); }
-
-    void reserve(size_type const n) { _vec.reserve(n); }
-
-    template <typename InputIteratorT>
-    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
-    void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
-
-    reference       at        (size_type const i)       { return _vec.at(i); }
-    const_reference at        (size_type const i) const { return _vec.at(i); }
-    reference       operator[](size_type const i)       { return _vec[i];    }
-    const_reference operator[](size_type const i) const { return _vec[i];    }
-
-    reference       front()       { return _vec.front(); }
-    const_reference front() const { return _vec.front(); }
-    reference       back ()       { return _vec.back();  }
-    const_reference back () const { return _vec.back();  }
-
-    iterator               begin ()       { return _vec.begin();  }
-    const_iterator         begin () const { return _vec.begin();  }
-    reverse_iterator       rbegin()       { return _vec.rbegin(); }
-    const_reverse_iterator rbegin() const { return _vec.rbegin(); }
-    iterator               end   ()       { return _vec.end();    }
-    const_iterator         end   () const { return _vec.end();    }
-    reverse_iterator       rend  ()       { return _vec.rend();   }
-    const_reverse_iterator rend  () const { return _vec.rend();   }
-
-    void push_back (value_type const & value) { _vec.push_back(value);  }
-
-    void pop_back () { _vec.pop_back();  }
-    void clear()     { _vec.clear();     }
-
-    template <typename InputIteratorT>
-    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
-
-    iterator erase(iterator pos)               { return _vec.erase(pos);      }
-    iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }
-
-    void resize(size_type n)                   { _vec.resize(n);        }
-    void resize(size_type n, value_type value) { _vec.resize(n, value); }
-
-    bool operator==(IdPairVector const & v) { return _vec == v._vec; }
-    bool operator!=(IdPairVector const & v) { return _vec != v._vec; }
-
-private :
-
-    LSST_PERSIST_FORMATTER(io::IdPairVectorFormatter);
-
-    Vector _vec;
+private:
+    LSST_PERSIST_FORMATTER(lsst::ap::io::IdPairVectorFormatter);
+    IdPairVector _idPairs;
 };
 
 
-/** @brief  A persistable container of integer (int64_t) identifiers, implemented using std::vector. */
-class LSST_AP_API IdVector :
+/** @brief  A persistable wrapper for an IdVector. */
+class LSST_AP_API PersistableIdVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
 public :
+    typedef boost::shared_ptr<PersistableIdVector> Ptr;
 
-    typedef boost::shared_ptr<IdVector>    Ptr;
-    typedef std::vector<int64_t>           Vector;
+    PersistableIdVector();
+    explicit PersistableIdVector(IdVector const &);
+    ~PersistableIdVector();
 
-    typedef Vector::allocator_type         allocator_type;
-    typedef Vector::iterator               iterator;
-    typedef Vector::const_iterator         const_iterator;
-    typedef Vector::reverse_iterator       reverse_iterator;
-    typedef Vector::const_reverse_iterator const_reverse_iterator;
-    typedef Vector::size_type              size_type;
-    typedef Vector::difference_type        difference_type;
-    typedef Vector::reference              reference;
-    typedef Vector::const_reference        const_reference;
-    typedef Vector::value_type             value_type;
+    IdVector & getIds() {
+        return _ids;
+    }
+    IdVector const & getIds() const {
+        return _ids;
+    }
+    void setIds(IdVector const & ids) {
+        _ids = ids;
+    }
 
-    IdVector();
-    explicit IdVector(size_type sz);
-    IdVector(size_type sz, value_type const & val);
+    bool operator==(IdVector const & other) const;
+    bool operator==(PersistableIdVector const & other) const {
+        return other == _ids;
+    }
 
-    template <typename InputIteratorT>
-    IdVector(InputIteratorT beg, InputIteratorT end) :
-        lsst::daf::base::Citizen(typeid(*this)),
-        _vec(beg, end)
-    {}
-
-    virtual ~IdVector();
-
-    IdVector(IdVector const & vec);
-    explicit IdVector(Vector const & vec);
-    IdVector & operator=(IdVector const & vec);
-    IdVector & operator=(Vector const & vec);
-
-    void swap(IdVector & v) { using std::swap; swap(_vec, v._vec); }
-    void swap(Vector & v)   { using std::swap; swap(_vec, v);      }
-
-    size_type size()     const { return _vec.size();     }
-    size_type max_size() const { return _vec.max_size(); }
-    bool      empty()    const { return _vec.empty();    }
-    size_type capacity() const { return _vec.capacity(); }
-
-    void reserve(size_type const n) { _vec.reserve(n); }
-
-    template <typename InputIteratorT>
-    void assign(InputIteratorT beg, InputIteratorT end)    { _vec.assign(beg, end); }
-    void assign(size_type const n, value_type const & val) { _vec.assign(n, val);   }
-
-    reference       at        (size_type const i)       { return _vec.at(i); }
-    const_reference at        (size_type const i) const { return _vec.at(i); }
-    reference       operator[](size_type const i)       { return _vec[i];    }
-    const_reference operator[](size_type const i) const { return _vec[i];    }
-
-    reference       front()       { return _vec.front(); }
-    const_reference front() const { return _vec.front(); }
-    reference       back ()       { return _vec.back();  }
-    const_reference back () const { return _vec.back();  }
-
-    iterator               begin ()       { return _vec.begin();  }
-    const_iterator         begin () const { return _vec.begin();  }
-    reverse_iterator       rbegin()       { return _vec.rbegin(); }
-    const_reverse_iterator rbegin() const { return _vec.rbegin(); }
-    iterator               end   ()       { return _vec.end();    }
-    const_iterator         end   () const { return _vec.end();    }
-    reverse_iterator       rend  ()       { return _vec.rend();   }
-    const_reverse_iterator rend  () const { return _vec.rend();   }
-
-    void push_back (value_type const & value) { _vec.push_back(value);  }
-
-    void pop_back () { _vec.pop_back();  }
-    void clear()     { _vec.clear();     }
-
-    template <typename InputIteratorT>
-    void     insert(iterator pos, InputIteratorT beg, InputIteratorT end) { _vec.insert(pos, beg, end);      }
-    iterator insert(iterator pos, value_type const & val)                 { return _vec.insert(pos, val);    }
-    void     insert(iterator pos, size_type n, value_type const & val)    { return _vec.insert(pos, n, val); }
-
-    iterator erase(iterator pos)               { return _vec.erase(pos);      }
-    iterator erase(iterator beg, iterator end) { return _vec.erase(beg, end); }
-
-    void resize(size_type n)                   { _vec.resize(n);        }
-    void resize(size_type n, value_type value) { _vec.resize(n, value); }
-
-    bool operator==(IdVector const & v) { return _vec == v._vec; }
-    bool operator!=(IdVector const & v) { return _vec != v._vec; }
-
-private :
-
-    LSST_PERSIST_FORMATTER(io::IdVectorFormatter);
-
-    Vector _vec;
+private:
+    LSST_PERSIST_FORMATTER(lsst::ap::io::IdVectorFormatter);
+    IdVector _ids;
 };
-
-#endif // SWIG
 
 
 }}  // end of namespace lsst::ap

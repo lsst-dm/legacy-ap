@@ -11,27 +11,43 @@
 #include <iostream>
 #include <vector>
 
-#include <boost/version.hpp>
-#if BOOST_VERSION < 103400
-#   include <boost/test/auto_unit_test.hpp>
-#   define BOOST_TEST_MESSAGE BOOST_MESSAGE
-#else
-#   include <boost/test/unit_test.hpp>
-#endif
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE MatchTest
+#include "boost/test/unit_test.hpp"
 
-#include <lsst/ap/EllipseTypes.h>
-#include <lsst/ap/Match.h>
-#include <lsst/ap/Object.h>
-#include <lsst/ap/Random.h>
-#include <lsst/ap/Time.h>
-#include <lsst/ap/ZoneTypes.h>
+#include "lsst/afw/math/Random.h"
 
+#include "lsst/ap/EllipseTypes.h"
+#include "lsst/ap/Match.h"
+#include "lsst/ap/Object.h"
+#include "lsst/ap/Point.h"
+#include "lsst/ap/Time.h"
+#include "lsst/ap/ZoneTypes.h"
+
+using std::size_t;
+using boost::int64_t;
+using lsst::afw::math::Random;
 using namespace lsst::ap;
 
 
 namespace {
 
-int32_t const MAX_EXPECTED = 9;
+Random & rng() {
+    static Random * generator = 0;
+    if (generator == 0) {
+        TimeSpec ts;
+        ts.systemTime();
+        generator = new Random(Random::MT19937, static_cast<unsigned long>(ts.tv_sec + ts.tv_nsec));
+        std::clog << "\n"
+            << "     /\n"
+            << "    | Note: Using random number seed " << generator->getSeed() << "\n"
+            << "    |       and algorithm " << generator->getAlgorithmName() << "\n"
+            << "     \\\n" << std::endl;
+    }
+    return *generator;
+}
+
+int const MAX_EXPECTED = 9;
 
 // A test point or ellipse that knows what it should match
 struct TestDatum {
@@ -63,21 +79,21 @@ struct TestDatum {
 
 
 void TestDatum::init(int64_t const id, Point const & p) {
-    _id          = id;
-    _loc         = p;
-    _smaa        = 0.0;
-    _smia        = 0.0;
-    _pa          = 0.0;
-    _expected    =  0;
-    _matched     =  0;
-    for(int32_t i = 0; i < MAX_EXPECTED; ++i) {
+    _id       = id;
+    _loc      = p;
+    _smaa     = 0.0;
+    _smia     = 0.0;
+    _pa       = 0.0;
+    _expected =  0;
+    _matched  =  0;
+    for(int i = 0; i < MAX_EXPECTED; ++i) {
         _expectId[i] = -1;
     }
 }
 
 
 bool TestDatum::matchWasExpected(int64_t const id) const {
-    for(int32_t i = 0; i < _expected; ++i) {
+    for(int i = 0; i < _expected; ++i) {
         if (_expectId[i] == id) {
             return true;
         }
@@ -93,7 +109,7 @@ std::ostream & operator<<(std::ostream & o, TestDatum const & d) {
     } else {
         o << ") [expecting no matches";
     }
-    for (int32_t i = 0; i < d._expected; ++i) {
+    for (int i = 0; i < d._expected; ++i) {
         o << ' ' << d._expectId[i];
     }
     o << ']';
@@ -130,7 +146,7 @@ typedef EllipseList<TestDatum> EllList;
 // explicit instantiations
 template class ZoneEntry<BogusChunk>;
 template class Ellipse<TestDatum>;
-template class Zone<Ze>;
+template class ZoneEntryArray<Ze>;
 template class ZoneIndex<Ze>;
 template class EllipseList<TestDatum>;
 
@@ -139,7 +155,7 @@ namespace {
 
 // Scrutinizes incoming match lists and validates them
 struct MlProcessor {
-    typedef MatchWithDistance<Ze>        Match;
+    typedef MatchWithDistance<Ze> Match;
     typedef std::vector<Match>::iterator MatchIterator;
 
     double _matchDist;
@@ -191,7 +207,7 @@ void MpProcessor::operator()(Ell & e, Ze & z) {
 
 // Scrutinizes incoming ellipse match lists and validates them
 struct EmlProcessor {
-    typedef Ze *                         Match;
+    typedef Ze * Match;
     typedef std::vector<Match>::iterator MatchIterator;
 
     void operator()(Ell & entry, MatchIterator begin, MatchIterator end);
@@ -260,8 +276,6 @@ void buildPoints(
     BOOST_REQUIRE(decMin < decMax && decMin >= -90.0 && decMax <= 90.0);
     BOOST_REQUIRE(radius > 0.0 && radius < 0.0667);
 
-    initRandom();
-
     double min = clampDec(decMin - 10.0*radius);
     double max = clampDec(decMax + 10.0*radius);
     fzi.setDecBounds(min, max);
@@ -287,6 +301,7 @@ void buildPoints(
                 d.init(
                     i,
                     Point::random(
+                        rng(),
                         360.0 - 0.125*deltaRa,
                                 0.125*deltaRa,
                         clampDec(dec + deltaDec*0.38),
@@ -297,6 +312,7 @@ void buildPoints(
                 d.init(
                     i,
                     Point::random(
+                        rng(),
                         ra + deltaRa*0.38,
                         ra + deltaRa*0.62,
                         clampDec(dec + deltaDec*0.38),
@@ -306,12 +322,12 @@ void buildPoints(
             }
             ++i;
 
-            int32_t nm = static_cast<int32_t>(std::floor(uniformRandom()*(MAX_EXPECTED + 1)));
+            int nm = static_cast<int>(rng().uniformInt(MAX_EXPECTED + 1));
             assert(nm <= MAX_EXPECTED);
             // generate between 0 and 9 matches for the test point just created
-            for (int32_t j = 0; j < nm; ++j) {
+            for (int j = 0; j < nm; ++j) {
                 TestDatum m(i, d._loc);
-                m._loc.perturb(radius);
+                m._loc.perturb(rng(), radius);
                 ++i;
                 double const dist = d._loc.distance(m._loc);
                 if (dist < 0.95*radius) {
@@ -330,10 +346,10 @@ void buildPoints(
     }
 
     for (size_t i = 0; i < first.size(); ++i) {
-        fzi.insert(&first[i], 0, 0);
+        fzi.insert(first[i].getRa(), first[i].getDec(), &first[i], 0, 0);
     }
     for (size_t i = 0; i < second.size(); ++i) {
-        szi.insert(&second[i], 0, 0);
+        szi.insert(second[i].getRa(), second[i].getDec(), &second[i], 0, 0);
     }
 
     // sort the indexes
@@ -354,8 +370,6 @@ void buildEllipsesAndPoints(
 ) {
     BOOST_REQUIRE(decMin < decMax && decMin >= -90.0 && decMax <= 90.0);
     BOOST_REQUIRE(radius > 0.0 && radius < 0.0667);
-
-    initRandom();
 
     double min = clampDec(decMin - 10.0*radius);
     double max = clampDec(decMax + 10.0*radius);
@@ -381,6 +395,7 @@ void buildEllipsesAndPoints(
                 d.init(
                     i,
                     Point::random(
+                        rng(),
                         360.0 - 0.125*deltaRa,
                                 0.125*deltaRa,
                         clampDec(dec + deltaDec*0.38),
@@ -391,6 +406,7 @@ void buildEllipsesAndPoints(
                 d.init(
                     i,
                     Point::random(
+                        rng(),
                         ra + deltaRa*0.38,
                         ra + deltaRa*0.62,
                         clampDec(dec + deltaDec*0.38),
@@ -399,20 +415,20 @@ void buildEllipsesAndPoints(
                 );
             }
             ++i;
-            double tmp = 0.5*std::fabs(normalRandom()) + 0.5;
+            double tmp = 0.5*std::fabs(rng().gaussian()) + 0.5;
             d._smaa = (tmp >= 1.0 ? 1.0 : tmp)*radius;
-            d._smia = (0.75*uniformRandom() + 0.1)*d._smaa;
-            d._pa   = uniformRandom()*180.0;
+            d._smia = rng().flat(0.1, 0.85)*d._smaa;
+            d._pa   = rng().flat(0.0, 180.0);
 
-            int32_t nm = static_cast<int32_t>(std::floor(uniformRandom()*(MAX_EXPECTED + 1)));
+            int nm = static_cast<int>(rng().uniformInt(MAX_EXPECTED + 1));
             assert(nm <= MAX_EXPECTED);
             // generate between 0 and 9 matches for the test ellipses just created
-            for (int32_t j = 0; j < nm; ++j) {
+            for (int j = 0; j < nm; ++j) {
                 TestDatum m(i, d._loc);
-                bool north = coinToss(0.5);
+                bool north = rng().uniform() <= 0.5;
                 // perturb some amount along major/minor axis, allowing to easily check
                 // whether or not the perturbed point should match
-                m._loc.perturb(radius, d._pa + (north ? 0.0 : 90.0));
+                m._loc.perturb(rng(), radius, d._pa + (north ? 0.0 : 90.0));
                 ++i;
                 double const dist = d._loc.distance(m._loc);
                 double cmp = north ? d._smaa : d._smia;
@@ -436,10 +452,10 @@ void buildEllipsesAndPoints(
 
     ells.reserve(first.size());
     for (size_t i = 0; i < first.size(); ++i) {
-        ells.push_back(first[i]);
+        ells.push_back(Ell(first[i]));
     }
     for (size_t i = 0; i < second.size(); ++i) {
-        szi.insert(&second[i], 0, 0);
+        szi.insert(second[i].getRa(), second[i].getDec(), &second[i], 0, 0);
     }
     szi.sort();
 }

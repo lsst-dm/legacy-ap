@@ -2,12 +2,13 @@
 #
 # Example policy file for lsst.ap.pipeline.StoreStage
 
-scriptDirectory:   "/tmp/%(runId)s"
-location:          "mysql://lsst10.ncsa.uiuc.edu:3306/test"
+scriptDirectory:   "%(output)/sql"
+database:          "%(dbUrl)"
+objectTable:       "DC3a_catalogs.CFHTLSObject"
 diaSourceTable:    "DIASource"
 varObjectTable:    "VarObject"
 nonVarObjectTable: "NonVarObject"
 storeOutputs:      true
-appendTables:      false
+appendTables:      true
 dropTables:        true
 

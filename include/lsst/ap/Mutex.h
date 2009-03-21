@@ -15,15 +15,15 @@
 
 #include <cassert>
 
-#include <boost/noncopyable.hpp>
+#include "boost/format.hpp"
+#include "boost/noncopyable.hpp"
+
+#include "lsst/pex/exceptions.h"
 
 #include "Common.h"
-#include "Exceptions.h"
 
 
-namespace lsst {
-namespace ap {
-
+namespace lsst { namespace ap {
 
 template <typename MutexT> class ScopedLock;
 template <typename MutexT> class Condition;
@@ -37,7 +37,8 @@ public :
     Mutex() {
         int err = ::pthread_mutex_init(&_mutex, 0);
         if (err != 0) {
-            LSST_AP_THROW_ERR(Runtime, "pthread_mutex_init() failed", err);
+            throw LSST_EXCEPT(lsst::pex::exceptions::RuntimeErrorException,
+                (boost::format("pthread_mutex_init() failed, return code: %1%") % err).str());
         }
     }
 
@@ -179,7 +180,7 @@ private :
 
     MutexT * _mutex;
 
-    pthread_mutex_t * getPosixMutex() {
+    ::pthread_mutex_t * getPosixMutex() {
         return &(_mutex->_mutex);
     }
 

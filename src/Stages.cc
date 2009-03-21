@@ -9,20 +9,15 @@
  * @todo    How is the time of observation for a visit specified? And how is
  *          the association pipeline deadline derived from this? Possibly post-DC2.
  *
- * @todo    [Post DC2] How are variability probabilities set for new objects? Currently,
+ * @todo    [Post DC3a] How are variability probabilities set for new objects? Currently,
  *          the probability is set to 100% for any new Object.
  *
- * @todo    [Post DC2] StoreStage can issue multiple database requests in parallel
+ * @todo    [Post DC3a] StoreStage can issue multiple database requests in parallel
  *
  * @todo    The end of the pipeline needs to send out a 'triggerAlertGeneration' event.
- *          Possibly post-DC2, since there is no alert generation pipeline.
+ *          Post-DC3a, since there is no alert generation pipeline.
  *
- * @todo    [Post DC2] Don't create new objects from difference sources which convincingly
- *          match a moving object prediction.
- *
- * @todo    [Post DC2] Better exception handling on the Python side
- *
- * @todo    [Post DC2] Add a version number to chunk delta file names. Use a database
+ * @todo    [Post DC3a] Add a version number to chunk delta file names. Use a database
  *          table to track the version numbers of valid delta files in transactional
  *          fashion. Note that the transaction which updates these version numbers
  *          should include the insert to the object table as well as the append to the
@@ -35,131 +30,66 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 
-#include <boost/any.hpp>
-#include <boost/format.hpp>
-#include <boost/scoped_array.hpp>
+#include "boost/format.hpp"
+#include "boost/scoped_array.hpp"
 
-#include <lsst/pex/logging/Log.h>
+#include "lsst/pex/exceptions.h"
+#include "lsst/pex/logging/Log.h"
 
-#include <lsst/afw/detection/Source.h>
-#include <lsst/afw/image/Filter.h>
-#include <lsst/mops/MovingObjectPrediction.h>
+#include "lsst/afw/detection/DiaSource.h"
+#include "lsst/afw/image/Filter.h"
+#include "lsst/mops/MovingObjectPrediction.h"
 
-#include <lsst/ap/ChunkManager.h>
-#include <lsst/ap/ChunkToNameMappings.h>
-#include <lsst/ap/Match.h>
-#include <lsst/ap/Stages.h>
-#include <lsst/ap/Time.h>
-#include <lsst/ap/Utils.h>
+#include "lsst/ap/ChunkManager.h"
+#include "lsst/ap/Match.h"
+#include "lsst/ap/Stages.h"
+#include "lsst/ap/Time.h"
+#include "lsst/ap/Utils.h"
 
-
-namespace lsst {
-namespace ap {
-
-using lsst::daf::base::DataProperty;
+using lsst::daf::base::PropertySet;
 using lsst::pex::logging::Log;
 using lsst::pex::logging::Rec;
+using lsst::pex::logging::Prop;
+using lsst::pex::policy::Policy;
+using lsst::daf::persistence::LogicalLocation;
+using lsst::afw::detection::DiaSource;
+using lsst::afw::detection::DiaSourceSet;
+using lsst::afw::detection::PersistableDiaSourceVector;
+using lsst::afw::image::Filter;
+using lsst::mops::MovingObjectPrediction;
 
+namespace ex = lsst::pex::exceptions;
+
+
+namespace lsst { namespace ap {
 
 // -- Constants ----------------
 
-static uint32_t const HAS_MATCH                    = 1;
-static uint32_t const HAS_KNOWN_VARIABLE_MATCH     = 2;
-static int8_t   const DEF_VP_THRESH                = 90;
-static int32_t  const DEF_ZONES_PER_DEGREE         = 180;   // 20 arc-second zone height
-static int32_t  const DEF_ZONES_PER_STRIPE         = 63;    // 0.35 degree stripes
-static int32_t  const DEF_MAX_ENTRIES_PER_ZONE_EST = 4096;
-static double   const DEF_SMAA_THRESH              = 300;   // arc-seconds == 5 arc-minutes
-static double   const DEF_SMAA_CLAMP               = 0.0;   // no clmaping
-static double   const DEF_SMIA_CLAMP               = 0.0;   // no clmaping
-static double   const DEF_MATCH_RADIUS             = 0.05;  // arc-seconds
-
-static char const * const DEF_OBJ_PATTERN       = "/tmp/%1%/objchunk/stripe_%2%/objref_chunk%3%";
-static char const * const DEF_OBJ_DELTA_PATTERN = "/tmp/%1%/objdelta/stripe_%2%/objdelta_chunk%3%";
-static char const * const DEF_DB_LOCATION       = "mysql://lsst10.ncsa.uiuc.edu:3306/test";
-
-// -- Adjustable (by policy) configuration parameters ----------------
-
-static int32_t sZonesPerDegree       = DEF_ZONES_PER_DEGREE;
-static int32_t sZonesPerStripe       = DEF_ZONES_PER_STRIPE;
-static int32_t sMaxEntriesPerZoneEst = DEF_MAX_ENTRIES_PER_ZONE_EST;
-
-
-/// The radius of a visit FOV.
-static double sFovRadius = FOV_RADIUS;
-
-/**
- * Any error ellipses for predicted moving object positions with a semi-major axis length greater
- * than this threshold (in arc-seconds) are ignored by the association pipeline.
- */
-static double sSemiMajorAxisThreshold = DEF_SMAA_THRESH;
-
-/**
- * Any error ellipse for a predicted moving object with a semi-major axis length greater
- * than this value (in arc-seconds) has its semi-major axis length clamped to this value.
- * Non-positive values indicate no clamping is to be performed.
- */
-static double sSemiMajorAxisClamp = DEF_SMAA_CLAMP;
-
-/**
- * Any error ellipse for a predicted moving object with a semi-minor axis length greater
- * than this value (in arc-seconds) has its semi-minor axis length clamped to this value.
- * Non-positive values indicate no clamping is to be performed.
- */
-static double sSemiMinorAxisClamp = DEF_SMIA_CLAMP;
-
-/**
- * Unless overridden by the detection pipeline/policy, this is the default match radius
- * (in arc-seconds) for matching difference sources to objects.
- */
-static double sMatchRadius = DEF_MATCH_RADIUS;
-
-/**
- * The pattern (@c boost::format compatible) of simple object chunk file names. The pattern
- * is supplied with 3 parameters - a run id string, an integer stripe id and an integer chunk id -
- * which may be used to construct a unique file name.
- */
-static std::string sObjFilePattern(DEF_OBJ_PATTERN);
-
-/**
- * The pattern (@c boost::format compatible) of simple object delta chunk file names. The pattern is
- * supplied with 4 parameters - a run id string, an integer stripe id, an integer chunk id and an
- * integer version id - which may be used to construct a file name.
- */
-static std::string sObjDeltaFilePattern(DEF_OBJ_DELTA_PATTERN);
-
-/**
- * Per-filter variable-object probability threshold above which an object is considered to be a
- * "known variable". DiaSources matching "known variables" are not considered when matching against
- * predicted positions of moving objects.
- */
-static int8_t sVarProbThreshold[lsst::afw::image::Filter::NUM_FILTERS] = {
-    DEF_VP_THRESH,
-    DEF_VP_THRESH,
-    DEF_VP_THRESH,
-    DEF_VP_THRESH,
-    DEF_VP_THRESH,
-    DEF_VP_THRESH
+static boost::uint32_t const HAS_MATCH  = 1;
+static boost::uint32_t const HAS_KNOWN_VARIABLE_MATCH = 2;
+static char const * const VAR_PROB_THRESH_KEY[6] = {
+    "uVarProbThreshold",
+    "gVarProbThreshold",
+    "rVarProbThreshold",
+    "iVarProbThreshold",
+    "zVarProbThreshold",
+    "yVarProbThreshold"
 };
-
-/// The location of the @b Filter table for mapping filter identifiers to names and vice versa.
-static std::string sFilterTableLocation(DEF_DB_LOCATION);
-
-
 
 // -- typedefs and templates for chunks and spatial indexes ----------------
 
 namespace detail {
 
-typedef SharedSimpleObjectChunkManager::SimpleObjectChunk SimpleObjectChunk;
+typedef SharedObjectChunkManager::ObjectChunk ObjectChunk;
 
-typedef std::vector<SimpleObjectChunk>  SimpleObjectChunkVector;
+typedef std::vector<ObjectChunk> ObjectChunkVector;
 
-typedef ZoneEntry<SimpleObjectChunk>    SimpleObjectEntry;
-typedef ZoneEntry<DiaSourceChunk>       DiaSourceEntry;
+typedef ZoneEntry<ObjectChunk> ObjectEntry;
+typedef ZoneEntry<DiaSourceChunk> DiaSourceEntry;
 
-typedef Ellipse<lsst::mops::MovingObjectPrediction> MovingObjectEllipse;
+typedef Ellipse<MovingObjectPrediction> MovingObjectEllipse;
 
 } // end of namespace detail
 
@@ -167,13 +97,14 @@ typedef Ellipse<lsst::mops::MovingObjectPrediction> MovingObjectEllipse;
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
-template class ZoneEntry<detail::SimpleObjectChunk>;
+
+template class ZoneEntry<detail::ObjectChunk>;
 template class ZoneEntry<DiaSourceChunk>;
 
-template class Zone<detail::SimpleObjectEntry>;
-template class Zone<detail::DiaSourceEntry>;
+template class ZoneEntryArray<detail::ObjectEntry>;
+template class ZoneEntryArray<detail::DiaSourceEntry>;
 
-template class ZoneIndex<detail::SimpleObjectEntry>;
+template class ZoneIndex<detail::ObjectEntry>;
 template class ZoneIndex<detail::DiaSourceEntry>;
 
 template class Ellipse<lsst::mops::MovingObjectPrediction>;
@@ -186,6 +117,54 @@ template class EllipseList<lsst::mops::MovingObjectPrediction>;
 
 namespace detail {
 
+// -- Proper motion correction for objects ----------------
+
+/** @return the proper motion corrected position of the given object */
+std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
+    static double const RAD_PER_MAS = (RADIANS_PER_DEGREE/360000.0);
+    // (rad/mas)*(sec/year)/(km/AU)
+    static double const SCALE = RAD_PER_MAS*(365.25*86400/149597870.691);
+
+    double ra   = radians(obj.getRa());   // rad
+    double decl = radians(obj.getDec()); // rad
+
+    // Convert ra, dec to unit vector in cartesian coordinate system
+    double const sinDecl = std::sin(decl);
+    double const cosDecl = std::cos(decl);
+    double const sinRa   = std::sin(ra);
+    double const cosRa   = std::cos(ra);
+    double x = cosRa * cosDecl;
+    double y = sinRa * cosDecl;
+    double z = sinDecl;
+
+    // compute space motion vector (radians per year)
+    double const pmRa   = obj.getMuRa()*RAD_PER_MAS/cosDecl;
+    double const pmDecl = obj.getMuDecl()*RAD_PER_MAS;
+    // divide radial velociy by distance to source
+    double const w = obj.getParallax()*obj.getRadialVelocity()*SCALE;
+
+    double const mx = - pmRa*y - pmDecl*cosRa   + x*w;
+    double const my =   pmRa*x - pmDecl*sinRa   + y*w;
+    double const mz =            pmDecl*cosDecl + z*w;
+
+    // Linear interpolation of position
+    double const dt = (epoch - obj.getEpoch()) * (1/365.25); // julian years
+    x += mx*dt;
+    y += my*dt;
+    z += mz*dt;
+
+    // Store unit vector for corrected position, convert back to
+    // spherical coords and store scaled integer ra/dec
+    double d2 = x*x + y*y;
+    ra   = (d2 == 0.0) ? 0 : degrees(std::atan2(y, x));
+    decl = (z  == 0.0) ? 0 : degrees(std::atan2(z, std::sqrt(d2)));
+    if (ra < 0.0) {
+        ra += 360.0;
+    }
+    return std::make_pair(ra, decl);
+}
+
+
 // -- Match processors ----------------
 
 /** @brief  Processor for lists of objects matching a difference source */
@@ -194,27 +173,28 @@ class ObjectMatchProcessor {
 
 public :
 
-    typedef MatchWithDistance<ZoneEntryT>         Match;
+    typedef MatchWithDistance<ZoneEntryT> Match;
     typedef typename std::vector<Match>::iterator MatchIterator;
 
-    MatchPairVector        & _matches;
-    lsst::afw::image::Filter const   _filter;
-    int8_t           const   _threshold;
+    MatchPairVector & _matches;
+    Filter const _filter;
+    int const _threshold;
 
     ObjectMatchProcessor(
-        MatchPairVector        & matches,
-        lsst::afw::image::Filter const   filter
+        VisitProcessingContext & context,
+        MatchPairVector & matches,
+        Filter const filter
     ) :
         _matches(matches),
         _filter(filter),
-        _threshold(sVarProbThreshold[filter])
+        _threshold(context.getPipelinePolicy()->getInt(VAR_PROB_THRESH_KEY[filter]))
     {}
 
     void operator()(DiaSourceEntry & ds, MatchIterator begin, MatchIterator end) {
-        uint32_t flags = HAS_MATCH;
+        boost::uint32_t flags = HAS_MATCH;
         do {
             ZoneEntryT * const obj  = begin->_match;
-            double       const dist = degrees(begin->_distance);
+            double const dist = degrees(begin->_distance);
             ++begin;
             // record match results (to be persisted later)
             _matches.push_back(MatchPair(ds._data->getId(), obj->_data->getId(), dist));
@@ -231,7 +211,7 @@ public :
 /** @brief  Processor for matches between moving object predictions and difference sources. */
 struct LSST_AP_LOCAL MovingObjectPredictionMatchProcessor {
 
-    typedef DiaSourceEntry *             Match;
+    typedef DiaSourceEntry * Match;
     typedef std::vector<Match>::iterator MatchIterator;
 
     MatchPairVector & _results;
@@ -261,8 +241,13 @@ struct LSST_AP_LOCAL DiscardKnownVariableFilter {
 
 /** @brief  Filter which discards predicted moving objects with large position error ellipses. */
 struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
+    double semiMajorAxisThreshold;
+
+    DiscardLargeEllipseFilter(Policy::Ptr const policy) :
+        semiMajorAxisThreshold(policy->getDouble("semiMajorAxisThreshold")) {}
+
     bool operator()(lsst::mops::MovingObjectPrediction const & p) {
-        return p.getSemiMajorAxisLength() < sSemiMajorAxisThreshold;
+        return p.getSemiMajorAxisLength() < semiMajorAxisThreshold;
     }
 };
 
@@ -270,70 +255,71 @@ struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
 /** @brief  Records ids of difference sources with no matches. */
 struct LSST_AP_LOCAL NewObjectCreator {
 
-    typedef std::map<int64_t, SimpleObjectChunk> ChunkMap;
-    typedef ChunkMap::value_type             ChunkMapValue;
-    typedef ChunkMap::iterator               ChunkMapIterator;
+    typedef std::map<int, ObjectChunk> ChunkMap;
+    typedef ChunkMap::value_type ChunkMapValue;
+    typedef ChunkMap::iterator ChunkMapIterator;
 
-    IdPairVector                       & _results;
+    IdPairVector & _results;
     ZoneStripeChunkDecomposition const & _zsc;
-    ChunkMap                             _chunks;
-    lsst::afw::image::Filter const               _filter;
-    int64_t          const               _idNamespace;
+    ChunkMap _chunks;
+    lsst::afw::image::Filter const _filter;
+    boost::int64_t const _idNamespace;
 
     explicit NewObjectCreator(
-        IdPairVector                       & results,
-        SimpleObjectChunkVector            & chunks,
+        IdPairVector & results,
+        ObjectChunkVector & chunks,
         ZoneStripeChunkDecomposition const & zsc,
-        lsst::afw::image::Filter             const   filter
+        lsst::afw::image::Filter const filter
     ) :
         _results(results),
         _zsc(zsc),
         _chunks(),
         _filter(filter),
-        _idNamespace(static_cast<int64_t>(filter + 1) << 56)
+        _idNamespace(static_cast<boost::int64_t>(filter + 1) << 56)
     {
         // build a map of ids to chunks
-        SimpleObjectChunkVector::iterator const end = chunks.end();
-        for (SimpleObjectChunkVector::iterator i = chunks.begin(); i != end; ++i) {
+        for (ObjectChunkVector::iterator i(chunks.begin()), end(chunks.end()); i != end; ++i) {
             _chunks.insert(ChunkMapValue(i->getId(), *i));
         }
     }
 
     void operator()(DiaSourceEntry const & entry) {
-        static int64_t const idLimit = INT64_C(1) << 56;
+        static boost::int64_t const idLimit = INT64_C(1) << 56;
 
         if ((entry._flags & (HAS_MATCH | HAS_KNOWN_VARIABLE_MATCH)) == 0) {
             // difference source had no matches - record it as the source of a new object
-            int64_t id = entry._data->getId();
+            boost::int64_t id = entry._data->getId();
             if (id >= idLimit) {
-                LSST_AP_THROW(OutOfRange, "DiaSource id doesn't fit in 56 bits");
+                throw LSST_EXCEPT(ex::RangeErrorException, "DiaSource id doesn't fit in 56 bits");
             }
             // generate a new simplified object (id, position, variability probabilities only)
             // and assign it to the appropriate chunk
-            SimpleObject obj;
+            Object obj;
             
             obj._objectId           = id | _idNamespace;
             obj._ra                 = entry._data->getRa();
             obj._decl               = entry._data->getDec();
-            obj._varProb[lsst::afw::image::Filter::U] = 0;
-            obj._varProb[lsst::afw::image::Filter::G] = 0;
-            obj._varProb[lsst::afw::image::Filter::R] = 0;
-            obj._varProb[lsst::afw::image::Filter::I] = 0;
-            obj._varProb[lsst::afw::image::Filter::Z] = 0;
-            obj._varProb[lsst::afw::image::Filter::Y] = 0;
+            obj._muRa               = 0.0;
+            obj._muDecl             = 0.0;
+            obj._parallax           = 0.0;
+            obj._radialVelocity     = 0.0; 
+            obj._varProb[Filter::U] = 0;
+            obj._varProb[Filter::G] = 0;
+            obj._varProb[Filter::R] = 0;
+            obj._varProb[Filter::I] = 0;
+            obj._varProb[Filter::Z] = 0;
+            obj._varProb[Filter::Y] = 0;
             obj._varProb[_filter]   = 100;
 
             _results.push_back(IdPair(id, obj._objectId));
 
             // find the chunk the new object belongs to and insert the new object into it
-            int64_t const chunkId = _zsc.radecToChunk(obj._ra, obj._decl);
+            int const chunkId = _zsc.radecToChunk(obj._ra, obj._decl);
             ChunkMapIterator c = _chunks.find(chunkId);
             if (c == _chunks.end()) {
-                LSST_AP_THROW(
-                    Runtime,
-                    boost::format("new object not in any chunk overlapping the FOV: (%1%, %2%) in chunk %3%") %
-                        obj._ra % obj._decl % chunkId
-                );
+                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                    (boost::format("new object not in any chunk overlapping the FOV: (%1%, %2%) in chunk %3%") %
+                        obj._ra % obj._decl % chunkId).str());
             }
             c->second.insert(obj);
         }
@@ -345,14 +331,15 @@ struct LSST_AP_LOCAL NewObjectCreator {
 
 template <typename EntryT>
 void buildZoneIndex(
-    ZoneIndex<EntryT>                         & index,
-    std::vector<typename EntryT::Chunk> const & chunks
+    ZoneIndex<EntryT> & index,
+    std::vector<typename EntryT::Chunk> const & chunks,
+    double const epoch
 ) {
-    typedef typename EntryT::Data             Data;
-    typedef typename EntryT::Chunk            Chunk;
-    typedef          std::vector<Chunk>       ChunkVector;
+    typedef typename EntryT::Data Data;
+    typedef typename EntryT::Chunk Chunk;
+    typedef std::vector<Chunk> ChunkVector;
     typedef typename ChunkVector::const_iterator ChunkIterator;
-    typedef typename ChunkVector::size_type      Size;
+    typedef typename ChunkVector::size_type Size;
 
     index.clear();
     if (chunks.empty()) {
@@ -363,11 +350,11 @@ void buildZoneIndex(
 
     // determine stripe bounds for the input chunks
     ZoneStripeChunkDecomposition const & zsc = index.getDecomposition();
-    int32_t minStripe = 0x7FFFFFFF;
-    int32_t maxStripe = -1 - minStripe;
+    int minStripe = 0x7FFFFFFF;
+    int maxStripe = -1 - minStripe;
     ChunkIterator const end(chunks.end());
     for (ChunkIterator c(chunks.begin()); c != end; ++c) {
-        int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
+        int const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
         if (stripeId > maxStripe) {
             maxStripe = stripeId;
         }
@@ -378,10 +365,10 @@ void buildZoneIndex(
     assert(maxStripe >= minStripe && "invalid stripe bounds for chunk list");
 
     // Partition input chunks into stripes
-    int32_t const numStripes = maxStripe - minStripe + 1;
+    int const numStripes = maxStripe - minStripe + 1;
     boost::scoped_array<ChunkVector> stripes(new ChunkVector[numStripes]);
     for (ChunkIterator c(chunks.begin()); c != end; ++c) {
-        int32_t const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
+        int const stripeId = ZoneStripeChunkDecomposition::chunkToStripe(c->getId());
         assert(stripeId >= minStripe && stripeId <= maxStripe && "stripe id out of bounds");
         stripes[stripeId - minStripe].push_back(*c);
     }
@@ -390,64 +377,61 @@ void buildZoneIndex(
     double maxDec = zsc.getStripeDecMax(maxStripe) + 0.001;
     index.setDecBounds(std::max(minDec, -90.0), std::min(maxDec, 90.0));
 
-    // Loop over stripes: since each stripe maps to a distinct set of adjacent zones,
-    // multiple stripes can be added to the index in parallel without any locking.
-    volatile bool failed = false;
-#if LSST_HAVE_OPEN_MP
-#   pragma omp parallel for shared(numStripes, stripes, failed) \
-               schedule(dynamic,1)
-#endif
-    for (int32_t s = 0; s < numStripes; ++s) {
-        try {
-            ChunkVector &  vec       = stripes[s];
+    // Loop over stripes. Note that due to proper motion, objects from
+    // different stripes can end up in the same zone. Objects are never
+    // migrated across chunks/stripes; rather, their J2000 coordinates
+    // determine the chunks that they will belong to. As time goes on,
+    // the spatial extent of a chunk will grow, where the rate of growth
+    // is bounded by Barnard's star with a proper motion of ~10.5 arcsec/year.
+    // When intersecting the bounding circle of a FOV with chunk boundaries
+    // to determine which chunks must be loaded for association, the bounding
+    // circle must be padded to ensure all relevant objects are loaded.
+    try {
+        for (int s = 0; s < numStripes; ++s) {
+            ChunkVector &  vec = stripes[s];
             Size const numChunks = vec.size();
 
             // Loop over chunks in stripe
             for (Size c = 0; c < numChunks; ++c) {
-
-                Chunk  * const ch         = &vec[c];
-                uint32_t const numBlocks  = ch->blocks();
-                uint32_t       i          = 0;
+                Chunk * const ch = &vec[c];
+                int const numBlocks  = ch->blocks();
+                int i = 0;
 
                 // loop over blocks in chunk
-                for (uint32_t b = 0; b < numBlocks; ++b) {
-                    uint32_t const numEntries = ch->entries(b);
-                    Data                 * const block = ch->getBlock(b);
+                for (int b = 0; b < numBlocks; ++b) {
+                    int const numEntries = ch->entries(b);
+                    Data * const block = ch->getBlock(b);
                     ChunkEntryFlag const * const flags = ch->getFlagBlock(b);
 
                     // loop over entries in block
-                    for (uint32_t e = 0; e < numEntries; ++e, ++i) {
+                    for (int e = 0; e < numEntries; ++e, ++i) {
                         if ((flags[e] & Chunk::DELETED) == 0) {
-                            index.insert(&block[e], ch, i);
+                            std::pair<double, double> pos = correctProperMotion(block[e], epoch);
+                            index.insert(pos.first, pos.second, &block[e], ch, i);
                         }
                     }
                 }
             }
-        } catch(...) {
-            // Don't throw in threaded section of code!
-            failed = true;
         }
-    } // end of omp parallel for
-
-    // If any worker failed, throw an exception
-    if (failed) {
-        index.clear();
-        LSST_AP_THROW(Runtime, "Failed to build zone index");
+    } catch(...) {
+       index.clear();
+       throw LSST_EXCEPT(ex::RuntimeErrorException, "Failed to build zone index"); 
     }
+
     watch.stop();
     Log log(Log::getDefaultLog(), "associate");
-    size_t numElements = index.size();
+    int numElements = static_cast<int>(index.size());
     Rec(log, Log::INFO) << "inserted elements into zone index" <<
-        DataProperty("numElements", static_cast<long>(numElements)) <<
-        DataProperty("time", watch.seconds()) << Rec::endr;
+        Prop<int>("numElements", numElements) <<
+        Prop<double>("time", watch.seconds()) << Rec::endr;
 
     // zone structure is filled, sort individual zones (on right ascension)
     watch.start();
     index.sort();
     watch.stop();
     Rec(log, Log::INFO) << "sorted zone index" <<
-        DataProperty("numElements", static_cast<long>(numElements)) <<
-        DataProperty("time", watch.seconds()) << Rec::endr;
+        Prop<int>("numElements", numElements) <<
+        Prop<double>("time", watch.seconds()) << Rec::endr;
 }
 
 } // end of namespace detail
@@ -459,31 +443,31 @@ void buildZoneIndex(
 #   pragma GCC visibility push(hidden)
 #endif
 /// @cond
-template class detail::ObjectMatchProcessor<detail::SimpleObjectEntry>;
+template class detail::ObjectMatchProcessor<detail::ObjectEntry>;
 
-template size_t distanceMatch<
+template std::size_t distanceMatch<
     detail::DiaSourceEntry,
-    detail::SimpleObjectEntry,
+    detail::ObjectEntry,
     PassthroughFilter<detail::DiaSourceEntry>,
-    PassthroughFilter<detail::SimpleObjectEntry>,
-    detail::ObjectMatchProcessor<detail::SimpleObjectEntry>
+    PassthroughFilter<detail::ObjectEntry>,
+    detail::ObjectMatchProcessor<detail::ObjectEntry>
 >(
     ZoneIndex<detail::DiaSourceEntry> &,
-    ZoneIndex<detail::SimpleObjectEntry> &,
+    ZoneIndex<detail::ObjectEntry> &,
     double const,
     PassthroughFilter<detail::DiaSourceEntry> &,
-    PassthroughFilter<detail::SimpleObjectEntry> &,
-    detail::ObjectMatchProcessor<detail::SimpleObjectEntry> &
+    PassthroughFilter<detail::ObjectEntry> &,
+    detail::ObjectMatchProcessor<detail::ObjectEntry> &
 );
 
-template size_t ellipseMatch<
-    lsst::mops::MovingObjectPrediction,
+template std::size_t ellipseMatch<
+    MovingObjectPrediction,
     detail::DiaSourceEntry,
     PassthroughFilter<detail::MovingObjectEllipse>,
     PassthroughFilter<detail::DiaSourceEntry>,
     detail::MovingObjectPredictionMatchProcessor
 >(
-    EllipseList<lsst::mops::MovingObjectPrediction> &,
+    EllipseList<MovingObjectPrediction> &,
     ZoneIndex<detail::DiaSourceEntry> &,
     PassthroughFilter<detail::MovingObjectEllipse> &,
     PassthroughFilter<detail::DiaSourceEntry> &,
@@ -498,61 +482,65 @@ template size_t ellipseMatch<
 // -- VisitProcessingContext ----------------
 
 VisitProcessingContext::VisitProcessingContext(
-    lsst::daf::base::DataProperty::PtrType const & event,
-    std::string                            const & runId,
+    Policy::Ptr const policy,
+    PropertySet::Ptr const event,
+    std::string const & runId,
     int const workerId,
     int const numWorkers
 ) :
     lsst::daf::base::Citizen(typeid(*this)),
+    _policy(policy),
     _chunkIds(),
     _chunks(),
-    _objectIndex(sZonesPerDegree, sZonesPerStripe, sMaxEntriesPerZoneEst),
-    _diaSourceIndex(sZonesPerDegree, sZonesPerStripe, sMaxEntriesPerZoneEst),
+    _objectIndex(policy->getInt("zonesPerDegree"),
+                 policy->getInt("zonesPerStripe"),
+                 policy->getInt("maxEntriesPerZoneEstimate")),
+    _diaSourceIndex(policy->getInt("zonesPerDegree"),
+                    policy->getInt("zonesPerStripe"),
+                    policy->getInt("maxEntriesPerZoneEstimate")),
     _deadline(),
     _fov(),
     _runId(runId),
     _visitId(-1),
-    _matchRadius(sMatchRadius),
+    _matchRadius(policy->getDouble("matchRadius")),
     _filter(),
     _workerId(workerId),
     _numWorkers(numWorkers)
 {
-    lsst::daf::base::DataProperty::PtrType dp = extractRequired(event, "FOVRA");
-    double ra = boost::any_cast<double>(dp->getValue());
-    dp = extractRequired(event, "FOVDec");
-    double dec = boost::any_cast<double>(dp->getValue());
-    _fov = CircularRegion(ra, dec, sFovRadius);
-    dp = extractRequired(event, "visitId");
-    _visitId = anyToInteger<int64_t>(dp->getValue());
-    dp = event->findUnique("matchRadius");
-    if (dp) {
-        _matchRadius = boost::any_cast<double>(dp->getValue());
+    double ra = event->getAsDouble("ra");
+    double dec = event->getAsDouble("decl");
+    _fov = CircularRegion(ra, dec, policy->getDouble("fovRadius"));
+    _visitId = event->getAsInt("visitId");
+    if (event->exists("matchRadius")) {
+        _matchRadius = event->getAsDouble("matchRadius");
     }
-    // DC2: set association pipeline deadline to 10 minutes
+    _visitTime = event->getAsDouble("dateObs");
+
+    // DC3a: set association pipeline deadline to 10 minutes
     // after creation of a visit processing context.
     _deadline.systemTime();
     _deadline.tv_sec += 600;
-    dp = extractRequired(event, "filterName");
-    std::string filterName = boost::any_cast<std::string>(dp->getValue());
-    lsst::daf::persistence::LogicalLocation location(sFilterTableLocation);
-    _filter = lsst::afw::image::Filter(location, filterName);
+    std::string filterName = event->getAsString("filter");
+    LogicalLocation location(policy->getString("filterTableLocation"));
+    _filter = Filter(location, filterName);
 }
 
 
 VisitProcessingContext::~VisitProcessingContext() {}
 
 
-void VisitProcessingContext::setDiaSources(lsst::afw::detection::SourceVector & vec) {
+void VisitProcessingContext::setDiaSources(boost::shared_ptr<PersistableDiaSourceVector> diaSources) {
+    _diaSources = diaSources->getSources();
     _diaSourceIndex.clear();
-    lsst::afw::detection::SourceVector::size_type const sz = vec.size();
+    int const sz = static_cast<int>(_diaSources.size());
     if (sz == 0) {
         return;
     }
     Stopwatch watch(true);
     double minDec =  90.0;
     double maxDec = -90.0;
-    for (lsst::afw::detection::SourceVector::size_type i = 0; i < sz; ++i) {
-        double dec = vec[i].getDec();
+    for (int i = 0; i < sz; ++i) {
+        double dec = _diaSources[i]->getDec();
         if (dec < minDec) {
             minDec = dec;
         }
@@ -564,13 +552,14 @@ void VisitProcessingContext::setDiaSources(lsst::afw::detection::SourceVector & 
     _diaSourceIndex.setDecBounds(minDec, maxDec);
     watch.stop();
     Log log(Log::getDefaultLog(), "associate");
-    Rec(log, Log::INFO) <<  "set dec bounds for difference source index" <<
-        DataProperty("numElements", static_cast<long>(sz)) <<
-        DataProperty("time", watch.seconds()) << Rec::endr;
+    Rec(log, Log::INFO) << "set dec bounds for difference source index" <<
+        Prop<int>("numElements", sz) <<
+        Prop<double>("time", watch.seconds()) << Rec::endr;
     watch.start();
     try {
-        for (lsst::afw::detection::SourceVector::size_type i = 0; i < sz; ++i) {
-            _diaSourceIndex.insert(&vec[i], 0, 0);
+        for (int i = 0; i < sz; ++i) {
+            _diaSourceIndex.insert(_diaSources[i]->getRa(), _diaSources[i]->getDec(),
+                                   _diaSources[i].get(), 0, 0);
         }
     } catch (...) {
         _diaSourceIndex.clear();
@@ -578,19 +567,19 @@ void VisitProcessingContext::setDiaSources(lsst::afw::detection::SourceVector & 
     }
     watch.stop();
     Rec(log, Log::INFO) << "inserted difference sources into zone index" <<
-        DataProperty("numElements", static_cast<long>(sz)) <<
-        DataProperty("time", watch.seconds()) << Rec::endr;
+        Prop<int>("numElements", sz) <<
+        Prop<double>("time", watch.seconds()) << Rec::endr;
     watch.start();
     _diaSourceIndex.sort();
     watch.stop();
     Rec(log, Log::INFO) << "sorted difference source zone index" <<
-        DataProperty("numElements", static_cast<long>(sz)) <<
-        DataProperty("time", watch.seconds()) << Rec::endr;
+        Prop<int>("numElements", sz) <<
+        Prop<double>("time", watch.seconds()) << Rec::endr;
 }
 
 
 void VisitProcessingContext::buildObjectIndex() {
-    detail::buildZoneIndex(_objectIndex, _chunks);
+    detail::buildZoneIndex(_objectIndex, _chunks, _visitTime);
 }
 
 
@@ -600,41 +589,9 @@ void VisitProcessingContext::buildObjectIndex() {
  * Sets up all fundamental visit processing parameters using a policy and ensure
  * that a reference to the shared memory object used for chunk storage exists.
  */
-LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::string const & runId) {
-
-    volatile SharedSimpleObjectChunkManager manager(runId);
-
-    sZonesPerDegree         = DEF_ZONES_PER_DEGREE;
-    sZonesPerStripe         = DEF_ZONES_PER_STRIPE;
-    sMaxEntriesPerZoneEst   = DEF_MAX_ENTRIES_PER_ZONE_EST;
-    sSemiMajorAxisThreshold = DEF_SMAA_THRESH;
-    sSemiMajorAxisClamp     = DEF_SMAA_CLAMP;
-    sSemiMinorAxisClamp     = DEF_SMIA_CLAMP;
-    sObjFilePattern         = DEF_OBJ_PATTERN;
-    sObjDeltaFilePattern    = DEF_OBJ_DELTA_PATTERN;
-
-    if (policy) {
-        sFovRadius              = policy->getDouble("fovRadius",              FOV_RADIUS);
-        sSemiMajorAxisThreshold = policy->getDouble("semiMajorAxisThreshold", DEF_SMAA_THRESH);
-        sSemiMajorAxisClamp     = policy->getDouble("semiMajorAxisClamp",     DEF_SMAA_CLAMP);
-        sSemiMinorAxisClamp     = policy->getDouble("semiMinorAxisClamp",     DEF_SMIA_CLAMP); 
-        sMatchRadius            = policy->getDouble("matchRadius",            DEF_MATCH_RADIUS);
-
-        sZonesPerDegree       = policy->getInt("zonesPerDegree",            DEF_ZONES_PER_DEGREE);
-        sZonesPerStripe       = policy->getInt("zonesPerStripe",            DEF_ZONES_PER_STRIPE);
-        sMaxEntriesPerZoneEst = policy->getInt("maxEntriesPerZoneEstimate", DEF_MAX_ENTRIES_PER_ZONE_EST);
-
-        sObjFilePattern      = policy->getString("objectChunkFileNamePattern",      DEF_OBJ_PATTERN);
-        sObjDeltaFilePattern = policy->getString("objectDeltaChunkFileNamePattern", DEF_OBJ_DELTA_PATTERN);
-        sFilterTableLocation = policy->getString("filterTableLocation",             DEF_DB_LOCATION);
-
-        sVarProbThreshold[lsst::afw::image::Filter::U] = policy->getInt("uVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::afw::image::Filter::G] = policy->getInt("gVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::afw::image::Filter::R] = policy->getInt("rVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::afw::image::Filter::I] = policy->getInt("iVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::afw::image::Filter::Z] = policy->getInt("zVarProbThreshold", DEF_VP_THRESH);
-        sVarProbThreshold[lsst::afw::image::Filter::Y] = policy->getInt("yVarProbThreshold", DEF_VP_THRESH);
-    }
+LSST_AP_API void initialize(std::string const & runId) {
+    // create shared memory object if it doesn't already exist
+    volatile SharedObjectChunkManager manager(runId);
 }
 
 
@@ -645,7 +602,7 @@ LSST_AP_API void initialize(lsst::pex::policy::Policy const * policy, std::strin
 LSST_AP_API void registerVisit(VisitProcessingContext & context) {
     context.getChunkIds().clear();
     computeChunkIds(context.getChunkIds(), context.getFov(), context.getDecomposition(), 0, 1);
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     manager.registerVisit(context.getVisitId());
 }
 
@@ -656,11 +613,11 @@ LSST_AP_API void registerVisit(VisitProcessingContext & context) {
  */
 LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
 
-    typedef VisitProcessingContext::SimpleObjectChunk Chunk;
+    typedef VisitProcessingContext::ObjectChunk Chunk;
     typedef std::vector<Chunk>                        ChunkVector;
     typedef std::vector<Chunk>::iterator              ChunkIterator;
 
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     Log log(Log::getDefaultLog(), "associate");
 
     try {
@@ -676,8 +633,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
         );
         watch.stop();
         Rec(log, Log::INFO) << "computed chunk ids in FOV for worker " <<
-            DataProperty("numChunks", static_cast<long>(context.getChunkIds().size())) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numChunks", static_cast<int>(context.getChunkIds().size())) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         // Register interest in or create chunks via the chunk manager
         std::vector<Chunk> toRead;
@@ -686,7 +643,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
         manager.startVisit(toRead, toWaitFor, context.getVisitId(), context.getChunkIds());
         watch.stop();
         Rec(log, Log::INFO) << "started processing visit" <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         // record pointers to all chunks being handled by the slice
         ChunkVector & chunks = context.getChunks();
@@ -696,26 +653,24 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
 
         // Read data files
         watch.start();
-        ChunkToFileNameMapping refNames(sObjFilePattern);
-        ChunkToFileNameMapping deltaNames(sObjDeltaFilePattern);
-        ChunkIterator          end(toRead.end());
+        std::string refNamePattern(context.getPipelinePolicy()->getString("objectChunkFileNamePattern"));
+        std::string deltaNamePattern(context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern"));
+        PropertySet::Ptr ps(new PropertySet);
+        ps->set<std::string>("runId", context.getRunId());
         ChunkVector::size_type numToRead(toRead.size());
-        for (ChunkIterator i(toRead.begin()); i != end; ++i) {
+        for (ChunkIterator i(toRead.begin()), end(toRead.end()); i != end; ++i) {
             Chunk & c = *i;
-            c.read(
-                refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                false
-            );
-            c.readDelta(
-                deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                false
-            );
+            ps->set<int>("chunkId", c.getId());
+            ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+            ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+            c.read(LogicalLocation(refNamePattern, ps).locString(), false);
+            c.readDelta(LogicalLocation(deltaNamePattern, ps).locString(), false);
             c.setUsable();
         }
         watch.stop();
         Rec(log, Log::INFO) << "read chunk files" <<
-            DataProperty("numChunks", static_cast<long>(numToRead)) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numChunks", static_cast<int>(numToRead)) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         toRead.clear();
         ChunkVector::size_type numToWaitFor = toWaitFor.size();
@@ -725,36 +680,32 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
             manager.waitForOwnership(toRead, toWaitFor, context.getVisitId(), context.getDeadline());
             watch.stop();
             Rec(log, Log::INFO) << "acquired ownership of pre-existing chunks" <<
-                DataProperty("numChunks", static_cast<long>(numToWaitFor)) <<
-                DataProperty("time", watch.seconds()) << Rec::endr;
+                Prop<int>("numChunks", static_cast<int>(numToWaitFor)) <<
+                Prop<double>("time", watch.seconds()) << Rec::endr;
 
             // Read in chunks that were not successfully read by the previous owner
             watch.start();
             numToRead = toRead.size();
-            end = toRead.end();
-            for (ChunkIterator i(toRead.begin()); i != end; ++i) {
+            for (ChunkIterator i(toRead.begin()), end(toRead.end()); i != end; ++i) {
                 Chunk & c = *i;
-                c.read(
-                    refNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                    false
-                );
-                c.readDelta(
-                    deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()),
-                    false
-                );
+                ps->set<int>("chunkId", c.getId());
+                ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+                ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+                c.read(LogicalLocation(refNamePattern, ps).locString(), false);
+                c.readDelta(LogicalLocation(deltaNamePattern, ps).locString(), false);
                 c.setUsable();
             }
             watch.stop();
             Rec(log, Log::INFO) << "read straggling chunks" <<
-                DataProperty("numChunks", static_cast<long>(numToRead)) <<
-                DataProperty("time", watch.seconds()) << Rec::endr;
+                Prop<int>("numChunks", static_cast<int>(numToRead)) <<
+                Prop<double>("time", watch.seconds()) << Rec::endr;
         }
 
-    } catch (lsst::pex::exceptions::ExceptionStack & ex) {
-        Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
+    } catch (ex::Exception & except) {
+        Rec(log, Log::FATAL) << except.what() << Rec::endr;
         manager.failVisit(context.getVisitId());
-    } catch (std::exception & ex) {
-        log.log(Log::FATAL, ex.what());
+    } catch (std::exception & except) {
+        log.log(Log::FATAL, except.what());
         manager.failVisit(context.getVisitId());
     } catch (...) {
         log.log(Log::FATAL, "caught unknown exception");
@@ -771,8 +722,8 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
  */
 LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
     // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
-    SharedSimpleObjectChunkManager::destroyInstance(context.getRunId());
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager::destroyInstance(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     if (manager.isVisitInFlight(context.getVisitId())) {
         try {
             // Build zone index on objects
@@ -785,7 +736,8 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
     } else {
         // One or more workers failed in the load phase - rollback the visit
         manager.endVisit(context.getVisitId(), true);
-        LSST_AP_THROW(Runtime, "Association pipeline failed to read Object data for FOV");
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          "Association pipeline failed to read Object data for FOV");
     }
 }
 
@@ -800,27 +752,27 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
  * @param[in, out] context  State involved in processing a single visit.
  */
 LSST_AP_API void matchDiaSources(
-    boost::shared_ptr<MatchPairVector> & matches,
-    VisitProcessingContext             & context
+    MatchPairVector & matches,
+    VisitProcessingContext & context
 ) {
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
 
     try {
 
-        matches.reset(new MatchPairVector());
-        matches->reserve(65536);
+        matches.clear();
+        matches.reserve(65536);
 
-        detail::ObjectMatchProcessor<detail::SimpleObjectEntry> mlp(*matches, context.getFilter());
-        PassthroughFilter<detail::DiaSourceEntry>    pdf;
-        PassthroughFilter<detail::SimpleObjectEntry> pof;
+        detail::ObjectMatchProcessor<detail::ObjectEntry> mlp(context, matches, context.getFilter());
+        PassthroughFilter<detail::DiaSourceEntry> pdf;
+        PassthroughFilter<detail::ObjectEntry> pof;
 
         Stopwatch watch(true);
-        size_t nm = distanceMatch<
+        std::size_t nm = distanceMatch<
             detail::DiaSourceEntry,
-            detail::SimpleObjectEntry,
+            detail::ObjectEntry,
             PassthroughFilter<detail::DiaSourceEntry>,
-            PassthroughFilter<detail::SimpleObjectEntry>,
-            detail::ObjectMatchProcessor<detail::SimpleObjectEntry>
+            PassthroughFilter<detail::ObjectEntry>,
+            detail::ObjectMatchProcessor<detail::ObjectEntry>
         >(
             context.getDiaSourceIndex(),
             context.getObjectIndex(),
@@ -832,10 +784,10 @@ LSST_AP_API void matchDiaSources(
         watch.stop();
         Log log(Log::getDefaultLog(), "associate");
         Rec(log, Log::INFO) << "matched difference sources to objects" <<
-            DataProperty("numDiaSources", context.getDiaSourceIndex().size()) <<
-            DataProperty("numObjects", context.getObjectIndex().size()) <<
-            DataProperty("numMatches", static_cast<long>(nm)) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numDiaSources", context.getDiaSourceIndex().size()) <<
+            Prop<int>("numObjects", context.getObjectIndex().size()) <<
+            Prop<int>("numMatches", static_cast<int>(nm)) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
@@ -858,61 +810,63 @@ LSST_AP_API void matchDiaSources(
  * @param[in]      predictions The list of moving object predictions to match against difference sources.
  */
 LSST_AP_API void matchMops(
-    boost::shared_ptr<MatchPairVector>     & matches,
-    boost::shared_ptr<IdPairVector>        & newObjects,
-    VisitProcessingContext                 & context,
+    MatchPairVector & matches,
+    IdPairVector & newObjects,
+    VisitProcessingContext & context,
     lsst::mops::MovingObjectPredictionVector & predictions
 ) {
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
 
     try {
+        double const smaaClamp = context.getPipelinePolicy()->getDouble("semiMajorAxisClamp");
+        double const smiaClamp = context.getPipelinePolicy()->getDouble("semiMinorAxisClamp");
+        
+        matches.clear();
+        matches.reserve(8192);
+        newObjects.clear();
+        newObjects.reserve(8192);
 
-        matches.reset(new MatchPairVector);
-        matches->reserve(8192);
-        newObjects.reset(new IdPairVector);
-        newObjects->reserve(8192);
-
-        detail::MovingObjectPredictionMatchProcessor mpp(*matches);
+        detail::MovingObjectPredictionMatchProcessor mpp(matches);
 
         // discard difference sources with known variable matches
         Stopwatch watch(true);
         detail::DiscardKnownVariableFilter dvf;
-        size_t nr = context.getDiaSourceIndex().pack(dvf);
+        int nr = context.getDiaSourceIndex().pack(dvf);
         watch.stop();
         Log log(Log::getDefaultLog(), "associate");
         Rec(log, Log::INFO) << "removed difference sources matching known variables from index" <<
-            DataProperty("numRemoved", static_cast<long>(nr)) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numRemoved", nr) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         // build ellipses required for matching from predictions
         watch.start();
         EllipseList<lsst::mops::MovingObjectPrediction::MovingObjectPrediction> ellipses;
         ellipses.reserve(predictions.size());
-        detail::DiscardLargeEllipseFilter elf;
+        detail::DiscardLargeEllipseFilter elf(context.getPipelinePolicy());
         lsst::mops::MovingObjectPredictionVector::iterator const end = predictions.end();
         for (lsst::mops::MovingObjectPredictionVector::iterator i = predictions.begin(); i != end; ++i) {
             if (elf(*i)) {
                 // clamp error ellipses if necessary
-                if (sSemiMajorAxisClamp > 0.0 && i->getSemiMajorAxisLength() > sSemiMajorAxisClamp) {
-                    i->setSemiMajorAxisLength(sSemiMajorAxisClamp);
+                if (smaaClamp > 0.0 && i->getSemiMajorAxisLength() > smaaClamp) {
+                    i->setSemiMajorAxisLength(smaaClamp);
                 }
-                if (sSemiMinorAxisClamp > 0.0 && i->getSemiMinorAxisLength() > sSemiMinorAxisClamp) {
-                    i->setSemiMinorAxisLength(sSemiMinorAxisClamp);
+                if (smiaClamp > 0.0 && i->getSemiMinorAxisLength() > smiaClamp) {
+                    i->setSemiMinorAxisLength(smiaClamp);
                 }
-                ellipses.push_back(*i);
+                ellipses.push_back(Ellipse<lsst::mops::MovingObjectPrediction>(*i));
             }
         }
         watch.stop();
         Rec(log, Log::INFO) << "built list of match parameters for moving object predictions" <<
-            DataProperty("numPredictions", static_cast<long>(ellipses.size())) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numPredictions", static_cast<int>(ellipses.size())) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         // match them against difference sources
         PassthroughFilter<detail::MovingObjectEllipse> pef;
         PassthroughFilter<detail::DiaSourceEntry>      pdf;
         watch.start();
-        size_t nm = ellipseMatch<
-            lsst::mops::MovingObjectPrediction::MovingObjectPrediction,
+        std::size_t nm = ellipseMatch<
+            MovingObjectPrediction,
             detail::DiaSourceEntry,
             PassthroughFilter<detail::MovingObjectEllipse>,
             PassthroughFilter<detail::DiaSourceEntry>,
@@ -926,15 +880,15 @@ LSST_AP_API void matchMops(
         );
         watch.stop();
         Rec(log, Log::INFO) << "matched moving object predictions to difference sources" <<
-            DataProperty("numPredictions", static_cast<long>(ellipses.size())) <<
-            DataProperty("numDiaSources", context.getDiaSourceIndex().size()) <<
-            DataProperty("numMatches", static_cast<long>(nm)) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numPredictions", static_cast<int>(ellipses.size())) <<
+            Prop<int>("numDiaSources", context.getDiaSourceIndex().size()) <<
+            Prop<int>("numMatches", static_cast<int>(nm)) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
 
         // Create new objects from difference sources with no matches
         watch.start();
         detail::NewObjectCreator createObjects(
-            *newObjects,
+            newObjects,
             context.getChunks(),
             context.getDecomposition(),
             context.getFilter()
@@ -942,8 +896,8 @@ LSST_AP_API void matchMops(
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
         Rec(log, Log::INFO) << "created new objects" <<
-            DataProperty("numObjects", static_cast<long>(newObjects->size())) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
+            Prop<int>("numObjects", static_cast<int>(newObjects.size())) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
     } catch (...) {
         manager.endVisit(context.getVisitId(), true);
         throw;
@@ -960,34 +914,36 @@ LSST_AP_API void matchMops(
  */
 LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
 
-    typedef VisitProcessingContext::SimpleObjectChunk Chunk;
-    typedef std::vector<Chunk>                        ChunkVector;
-    typedef std::vector<Chunk>::iterator              ChunkIterator;
+    typedef VisitProcessingContext::ObjectChunk Chunk;
+    typedef std::vector<Chunk> ChunkVector;
+    typedef std::vector<Chunk>::iterator ChunkIterator;
 
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     Log log(Log::getDefaultLog(), "associate");
-
     try {
         Stopwatch watch(true);
-        ChunkToFileNameMapping deltaNames(sObjDeltaFilePattern);
-        ChunkVector &      chunks = context.getChunks();
-        ChunkIterator      end(chunks.end());
-        for (ChunkIterator i(chunks.begin()); i != end; ++i) {
+        std::string deltaNamePattern = context.getPipelinePolicy()->getString("objectDeltaChunkFileNamePattern");
+        PropertySet::Ptr ps(new PropertySet);
+        ps->set<std::string>("runId", context.getRunId());
+        ChunkVector & chunks = context.getChunks();
+        for (ChunkIterator i(chunks.begin()), end(chunks.end()); i != end; ++i) {
             Chunk & c = *i;
-            std::string file(deltaNames.getName(context.getRunId(), context.getDecomposition(), c.getId()));
+            ps->set<int>("chunkId", c.getId());
+            ps->set<int>("stripeId", ZoneStripeChunkDecomposition::chunkToStripe(c.getId()));
+            ps->set<int>("chunkSeqNum", ZoneStripeChunkDecomposition::chunkToSequence(c.getId()));
+            std::string file = LogicalLocation(deltaNamePattern, ps).locString();
             verifyPathName(file);
             c.writeDelta(file, true, false);
         }
         watch.stop();
         Rec(log, Log::INFO) << "wrote chunk delta files" <<
-            DataProperty("numChunks", static_cast<long>(chunks.size())) <<
-            DataProperty("time", watch.seconds()) << Rec::endr;
-
-    } catch (lsst::pex::exceptions::ExceptionStack & ex) {
-        Rec(log, Log::FATAL) << ex.what() << *(ex.getStack()) << Rec::endr;
+            Prop<int>("numChunks", static_cast<int>(chunks.size())) <<
+            Prop<double>("time", watch.seconds()) << Rec::endr;
+    } catch (ex::Exception & except) {
+        Rec(log, Log::FATAL) << except.what() << Rec::endr;
         manager.failVisit(context.getVisitId());
-    } catch (std::exception & ex) {
-        log.log(Log::FATAL, ex.what());
+    } catch (std::exception & except) {
+        log.log(Log::FATAL, except.what());
         manager.failVisit(context.getVisitId());
     } catch (...) {
         log.log(Log::FATAL, "caught unknown exception");
@@ -1002,7 +958,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
  * @param[in, out] context  State involved in processing a single visit.
  */
 LSST_AP_API void failVisit(VisitProcessingContext & context) {
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     manager.failVisit(context.getVisitId());
 }
 
@@ -1018,7 +974,7 @@ LSST_AP_API void failVisit(VisitProcessingContext & context) {
  *          @c false otherwise.
  */
 LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback) {
-    SharedSimpleObjectChunkManager manager(context.getRunId());
+    SharedObjectChunkManager manager(context.getRunId());
     bool committed = manager.endVisit(context.getVisitId(), rollback);
     Log log(Log::getDefaultLog(), "associate");
     if (committed) {

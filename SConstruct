@@ -1,10 +1,8 @@
 # -*- python -*-
-import glob, os.path, re, os
+import glob, os.path, re, os, sys
 import lsst.SConsUtils as scons
 
-#
 # Custom configure tests
-#
 visCheckSrc = """
     __attribute__((visibility('hidden')))  void hiddenFunc() {}
     __attribute__((visibility('default'))) void defaultFunc() {}
@@ -89,34 +87,53 @@ def IsGccBelow4(context):
     context.Result(result)
     return result
 
+# Direct and indirect dependencies of ap
+dependencies = ["boost", "python", "mysqlclient", "wcslib", 'minuit',
+                "pex_exceptions", "utils", "daf_base", "pex_logging",
+                "security", "pex_policy", "daf_persistence",
+                "daf_data", "afw", "mops"]
+
 #
 # Setup our environment
 #
-env = scons.makeEnv('ap',
+env = scons.makeEnv("ap",
                     r"$HeadURL$",
-                    [['boost', 'boost/version.hpp',
-                        'boost_filesystem boost_regex boost_serialization boost_program_options:C++'],
-                     ['mysqlclient', 'mysql/mysql.h', 'mysqlclient:C++'],
-                     ['wcslib', 'wcslib/wcs.h', 'm wcs'],
-                     ['python', 'Python.h'],
-                     ['daf_base', 'lsst/daf/base/Citizen.h', 'daf_base:C++'],
-                     ['daf_data', None , 'daf_data:C++'], # needed by final libap.so build 
-                     ['pex_exceptions', 'lsst/pex/exceptions/Exception.h', 'pex_exceptions:C++'],
-                     ['daf_persistence', 'lsst/daf/persistence/LogicalLocation.h', 'daf_persistence:C++'],
-                     ['pex_policy', 'lsst/pex/policy/Policy.h', 'pex_policy:C++'],
-                     ['pex_logging', 'lsst/pex/logging/Log.h', 'pex_logging:C++'],
-                     ['mops', 'lsst/mops/MovingObjectPrediction.h'],
-                     ['afw', 'lsst/afw/detection/Source.h', 'afw:C++'],
-                     ['utils', 'lsst/utils/Utils.h', 'utils:C++'],
-                     ['security', 'lsst/security/Security.h', 'security:C++']
+                    [["boost", "boost/version.hpp", "boost_system:C++"],
+                     ["boost", "boost/filesystem.hpp", "boost_filesystem:C++"],
+                     ["boost", "boost/regex.hpp", "boost_regex:C++"],
+                     ["boost", "boost/serialization/base_object.hpp", "boost_serialization:C++"],
+                     ["boost", "boost/program_options.hpp", "boost_program_options:C++"],                    
+                     ["boost", "boost/test/unit_test.hpp", "boost_unit_test_framework:C++"],                    
+                     ["python", "Python.h"],
+                     ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
+                     ["wcslib", "wcslib/wcs.h", "m wcs"],
+                     ["minuit", "Minuit/FCNBase.h", "lcg_Minuit:C++"],
+                     ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
+                     ["utils", "lsst/utils/Utils.h", "utils:C++"],
+                     ["daf_base", "lsst/daf/base.h", "daf_base:C++"],
+                     ["pex_logging", "lsst/pex/logging/Trace.h", "pex_logging:C++"],
+                     ["security", "lsst/security/Security.h", "security:C++"],
+                     ["pex_policy", "lsst/pex/policy/Policy.h", "pex_policy:C++"],
+                     ["daf_persistence", "lsst/daf/persistence.h", "daf_persistence:C++"],
+                     ["daf_data", "lsst/daf/data.h", "daf_data:C++"],
+                     ["afw", "lsst/afw/detection/DiaSource.h", "afw:C++"],
+                     ["mops", "lsst/mops/MovingObjectPrediction.h"]
                     ])
 
-# Libraries needed to link libraries/executables
-env.libs['ap'] += env.getlibs('boost wcslib utils daf_base daf_data daf_persistence pex_exceptions pex_logging pex_policy security afw')
+env.Help("""
+LSST Association Pipeline
+""")
 
-#
+# Libraries needed to link libraries/executables
+pkg = env["eups_product"]
+env.libs[pkg] += env.getlibs(" ".join(dependencies))
+
+sysLibs = ['z', 'pthread']
+if env['PLATFORM'] == 'posix':
+    sysLibs += ['rt']
+env.libs[pkg] += sysLibs
+
 # Run configure tests
-#
 if not env.CleanFlagIsSet():
     conf = Configure(env, custom_tests = {'CustomCompilerFlag' : CustomCompilerFlag,
                                           'CustomCompileCheck' : CustomCompileCheck,
@@ -128,8 +145,8 @@ if not env.CleanFlagIsSet():
             print 'Missing support for Posix AIO'
             Exit(1)
         # Necessary to get Linux direct I/O support
-        if os.uname()[0].title() == 'Linux':
-            conf.env.Append(CPPFLAGS = ' -D_GNU_SOURCE')
+        #if os.uname()[0].title() == 'Linux':
+        #    conf.env.Append(CPPFLAGS = ' -D_GNU_SOURCE')
 
     # If one of the randomized unit tests fail, uncomment and
     # set the following defines to obtain repeatable behaviour
@@ -155,39 +172,31 @@ if not env.CleanFlagIsSet():
     # Platform features
     if conf.CheckFunc('clock_gettime'): # Linux/Solaris: prototype in <time.h>
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_CLOCK_GETTIME=1')
-    if conf.CheckFunc('directio'): # Solaris: prototype in <sys/fcntl.h>
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_DIRECTIO=1')
-    if conf.CustomCompileCheck('Checking for O_NOATIME in open()... ', noatimeCheckSrc):
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_O_NOATIME=1')
-    if conf.CustomCompileCheck('Checking for F_NOCACHE in fcntl()... ', nocacheCheckSrc):
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_F_NOCACHE=1')
     env = conf.Finish()
 
-#
+
 # Build/install things
-#
-for d in Split('include/lsst/ap doc lib python/lsst/ap bin tests'):
-    SConscript(os.path.join(d, 'SConscript'))
+for d in Split("bin lib python/lsst/" + re.sub(r'_', "/", pkg) + " tests doc"):
+    try:
+        SConscript(os.path.join(d, "SConscript"))
+    except Exception, e:
+        print >> sys.stderr, "%s: %s" % (os.path.join(d, "SConscript"), e)
 
 env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 
-Alias('install', [env.Install(env['prefix'], 'python'),
-                  env.Install(env['prefix'], 'include'),
-                  env.Install(env['prefix'], 'bin'),
-                  env.Install(env['prefix'], 'sql'),
-                  env.Install(env['prefix'], 'lib'),
-                  env.Install(env['prefix'] + '/doc', 'doc/html'),
-                  env.InstallEups(env['prefix'] + '/ups', glob.glob('ups/*.table'))])
+Alias("install", [env.Install(env['prefix'], "python"),
+                  env.Install(env['prefix'], "include"),
+                  env.Install(env['prefix'], "lib"),
+                  env.InstallAs(os.path.join(env['prefix'], "doc", "doxygen"),
+                                os.path.join("doc", "htmlDir")),
+                  env.InstallEups(env['prefix'] + "/ups")])
 
 scons.CleanTree(r"*~ core *.so *.os *.o")
 
-#
 # Build TAGS files
-#
 files = scons.filesToTag()
 if files:
-    env.Command('TAGS', files, 'etags -o $TARGET $SOURCES')
+    env.Command("TAGS", files, "etags -o $TARGET $SOURCES")
 
 env.Declare()
-env.Help('LSST Association Pipeline')
 

@@ -12,16 +12,16 @@
 
 #include <iostream>
 
-#include <boost/format.hpp>
+#include "boost/format.hpp"
+
+#include "lsst/pex/exceptions.h"
 
 #include "Chunk.cc"
 #include "ChunkManagerImpl.h"
 #include "SpatialUtil.h"
 
 
-namespace lsst {
-namespace ap {
-namespace detail {
+namespace lsst { namespace ap { namespace detail {
 
 // -- HashedSet ----------------
 
@@ -29,45 +29,32 @@ namespace detail {
  * Returns the 32 bit hash of a 32 bit value using Thomas Wang's
  * <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
  */
-inline uint32_t hash(uint32_t key) {
+inline int hash(boost::uint32_t key) {
     key = (~key) + (key << 15); // key = (key << 15) - key - 1;
     key = key ^ (key >> 12);
     key = key + (key << 2);
     key = key ^ (key >> 4);
     key = key * 2057;           // key = (key + (key << 3)) + (key << 11);
     key = key ^ (key >> 16);
-    return key;
+    return static_cast<int>(key);
 }
 
-/**
- * Returns the 32 bit hash of a 64 bit value using Thomas Wang's
- * <a href="http://www.concentric.net/~Ttwang/tech/inthash.htm">mixing function</a>.
- */
-inline uint32_t hash(uint64_t key) {
-    key = (~key) + (key << 18); // key = (key << 18) - key - 1;
-    key = key ^ (key >> 31);
-    key = key * 21; // key = (key + (key << 2)) + (key << 4);
-    key = key ^ (key >> 11);
-    key = key + (key << 6);
-    key = key ^ (key >> 22);
-    return static_cast<uint32_t>(key);
+inline int hash(int key) {
+    return hash(static_cast<boost::uint32_t>(key));
 }
 
-inline uint32_t hash(int32_t key) { return hash(static_cast<uint32_t>(key)); }
-inline uint32_t hash(int64_t key) { return hash(static_cast<uint64_t>(key)); }
 
-
-template <typename EntryT, uint32_t NumEntries>
+template <typename EntryT, int NumEntries>
 HashedSet<EntryT, NumEntries>::HashedSet() :
     _free(0), _size(0)
 {
-    for (uint32_t i = 0; i < 2*NumEntries; ++i) {
+    for (int i = 0; i < 2*NumEntries; ++i) {
         _hashTable[i] = -1;
     }
-    // initialized linked list of free entries (embedded in the entries themselves)
-    for (uint32_t i = 0; i < NumEntries - 1; ++i) {
+    // initialize linked list of free entries (embedded in the entries themselves)
+    for (int i = 0; i < NumEntries - 1; ++i) {
         _entries[i].setId(-1);
-        _entries[i].setNextInChain(static_cast<int>(i + 1));
+        _entries[i].setNextInChain(i + 1);
     }
     _entries[NumEntries - 1].setNextInChain(-1);
 }
@@ -79,8 +66,8 @@ HashedSet<EntryT, NumEntries>::HashedSet() :
  * @param[in] id    The identifier of the entry to find.
  * @return          A pointer to the entry with the given identifier, or null if no such entry was found.
  */
-template <typename EntryT, uint32_t NumEntries>
-EntryT const * HashedSet<EntryT, NumEntries>::doFind(int64_t const id) const {
+template <typename EntryT, int NumEntries>
+EntryT const * HashedSet<EntryT, NumEntries>::doFind(int const id) const {
     int i = _hashTable[hash(id) & (2*NumEntries - 1)];
     while (i >= 0) {
         if (id == _entries[i].getId()) {
@@ -101,15 +88,15 @@ EntryT const * HashedSet<EntryT, NumEntries>::doFind(int64_t const id) const {
  *                  or null if either a preexisting entry with the given identifier was found or
  *                  no space for new entries remains.
  */
-template <typename EntryT, uint32_t NumEntries>
-EntryT * HashedSet<EntryT, NumEntries>::insert(int64_t const id) {
+template <typename EntryT, int NumEntries>
+EntryT * HashedSet<EntryT, NumEntries>::insert(int const id) {
 
     // check that there is space for another entry
     if (_free < 0) {
         return 0;
     }
 
-    uint32_t const bucket = hash(id) & (2*NumEntries - 1);
+    int const bucket = hash(id) & (2*NumEntries - 1);
 
     int i    = _hashTable[bucket];
     int last = -1;
@@ -152,10 +139,10 @@ EntryT * HashedSet<EntryT, NumEntries>::insert(int64_t const id) {
  * @return          A pointer to the entry with the given id along with a boolean indicating
  *                  whether the entry was inserted (@c true) or found (@c false).
  */
-template <typename EntryT, uint32_t NumEntries>
-std::pair<EntryT *, bool> HashedSet<EntryT, NumEntries>::findOrInsert(int64_t const id) {
+template <typename EntryT, int NumEntries>
+std::pair<EntryT *, bool> HashedSet<EntryT, NumEntries>::findOrInsert(int const id) {
 
-    uint32_t const bucket = hash(id) & (2*NumEntries - 1);
+    int const bucket = hash(id) & (2*NumEntries - 1);
 
     int i    = _hashTable[bucket];
     int last = -1;
@@ -197,10 +184,10 @@ std::pair<EntryT *, bool> HashedSet<EntryT, NumEntries>::findOrInsert(int64_t co
  * @param[in] id    The id of the entry to erase.
  * @return          @c true if an entry with the given id was found (and erased).
  */
-template <typename EntryT, uint32_t NumEntries>
-bool HashedSet<EntryT, NumEntries>::erase(int64_t const id) {
+template <typename EntryT, int NumEntries>
+bool HashedSet<EntryT, NumEntries>::erase(int const id) {
 
-    uint32_t const bucket = hash(id) & (2*NumEntries - 1);
+    int const bucket = hash(id) & (2*NumEntries - 1);
 
     int i    = _hashTable[bucket];
     int last = -1;
@@ -240,12 +227,12 @@ bool HashedSet<EntryT, NumEntries>::erase(int64_t const id) {
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 BlockAllocator<MutexT, DataT, TraitsT>::BlockAllocator(
-    uint8_t const * const reference,
-    size_t  const         offset
+    unsigned char const * const reference,
+    std::size_t const offset
 ) :
     _mutex(),
     _allocator(),
-    _offset(static_cast<size_t>((reference + offset) - reinterpret_cast<uint8_t * >(this)))
+    _offset(static_cast<std::size_t>((reference + offset) - reinterpret_cast<unsigned char * >(this)))
 {
     _allocator.reset();
 }
@@ -257,14 +244,15 @@ BlockAllocator<MutexT, DataT, TraitsT>::BlockAllocator(
  * @return  The offset (in bytes relative to the address of this allocator instance)
  *          of the newly allocated block.
  *
- * @throw std::bad_alloc    Thrown if no free block was available.
+ * @throw lsst::pex::exceptions:::MemoryException
+ *      Thrown if there was no free block available.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
+std::size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
     int i[1];
     ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, 1)) {
-        throw std::bad_alloc();
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException, "no free blocks remain");
     }
     return _offset + i[0]*BLOCK_SIZE;
 }
@@ -277,23 +265,28 @@ size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
  *                          allocated memory blocks are stored. Assumed to be of length at least @a n.
  * @param[in]  n            The number of memory blocks to allocate.
  *
- * @throw std::bad_alloc    Thrown if there were less than @a n free blocks available.
+ * @throw lsst::pex::exceptions:::MemoryException
+ *      Thrown if there were less than @a n free blocks available.
+ * @throw lsst::pex::exceptions:::RangeErrorException
+ *      Thrown if the number of blocks to allocate is negative or too large.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 void BlockAllocator<MutexT, DataT, TraitsT>::allocate(
-    size_t * const blockOffsets,
-    uint32_t const n
+    std::size_t * const blockOffsets,
+    int const n
 ) {
     if (n < 0 || n > TraitsT::MAX_BLOCKS_PER_CHUNK) {
-        LSST_AP_THROW(OutOfRange, "invalid number of memory blocks in allocation request");
+        throw LSST_EXCEPT(lsst::pex::exceptions::RangeErrorException,
+            "invalid number of memory blocks in allocation request");
     }
     int i[TraitsT::MAX_BLOCKS_PER_CHUNK];
 
     ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, n)) {
-        throw std::bad_alloc();
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+            "number of free blocks too small to satisfy allocation request");
     }
-    for (uint32_t j = 0; j < n; ++j) {
+    for (int j = 0; j < n; ++j) {
         blockOffsets[j] = _offset + i[j]*BLOCK_SIZE;
     }
 }
@@ -302,23 +295,25 @@ void BlockAllocator<MutexT, DataT, TraitsT>::allocate(
 /**
  * Frees @a n memory blocks, identified by offsets stored in the given array. Never throws.
  *
- * @param[in] blockOffsets  The array in which the offsets (relative to this allocator instance) of
- *                          the memory blocks to free are stored. Assumed to be of length at least @a n.
- * @param[in] n             The number of memory blocks to free.
+ * @param[in] blockOffsets  The array in which the offsets (relative to this allocator instance)
+ *                          of the memory blocks to free are stored. Assumed to be of length at
+ *                          least @a n.
+ * @param[in] n     The number of memory blocks to free.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 void BlockAllocator<MutexT, DataT, TraitsT>::free(
-    size_t   const * const blockOffsets,
-    uint32_t const         n
+    std::size_t const * const blockOffsets,
+    int const n
 ) {
     assert(n >= 0 && n <= TraitsT::MAX_BLOCKS_PER_CHUNK &&
         "invalid number of memory blocks in free request");
 
     // translate block offsets to block indexes
     int i[TraitsT::MAX_BLOCKS_PER_CHUNK];
-    for (uint32_t j = 0; j < n; ++j) {
-        size_t off = blockOffsets[j] - _offset;
-        assert(off < TraitsT::NUM_BLOCKS*BLOCK_SIZE && "block was not allocated by this allocator");
+    for (int j = 0; j < n; ++j) {
+        std::size_t off = blockOffsets[j] - _offset;
+        assert(off < TraitsT::NUM_BLOCKS*BLOCK_SIZE &&
+               "block was not allocated by this allocator");
         assert(off % BLOCK_SIZE == 0 && "invalid block address");
         i[j] = static_cast<int>(off/BLOCK_SIZE);
     }
@@ -335,7 +330,7 @@ void BlockAllocator<MutexT, DataT, TraitsT>::free(
  * Returns @c true if the given visit is being tracked by this
  * VisitTracker and has not been marked as failed.
  */
-bool VisitTracker::isValid(int64_t const visitId) const {
+bool VisitTracker::isValid(int const visitId) const {
     Visit const * v = this->find(visitId);
     if (v == 0) {
         return false;
@@ -344,11 +339,11 @@ bool VisitTracker::isValid(int64_t const visitId) const {
 }
 
 void VisitTracker::print(std::ostream & os) const {
-    std::vector<int64_t> v;
+    std::vector<int> v;
     v.reserve(size());
     Visit const * const e = end();
     for (Visit const * beg = begin(); beg != e; ++beg) {
-        int64_t const id = beg->getId();
+        int const id = beg->getId();
         if (id >= 0) {
             v.push_back(id);
         }
@@ -358,7 +353,7 @@ void VisitTracker::print(std::ostream & os) const {
     } else {
         std::sort(v.begin(), v.end());
         boost::format fmt("    visit %1% %|32t|: %2%\n");
-        for (std::vector<int64_t>::const_iterator i = v.begin(); i != v.end(); ++i) {
+        for (std::vector<int>::const_iterator i = v.begin(); i != v.end(); ++i) {
             Visit const * v = find(*i);
             os << fmt % v->getId() % (v->failed() ? "failed" : "in-flight");
         }
@@ -366,7 +361,7 @@ void VisitTracker::print(std::ostream & os) const {
     os << std::endl;
 }
 
-void VisitTracker::print(int64_t const visitId, std::ostream & os) const {
+void VisitTracker::print(int const visitId, std::ostream & os) const {
     Visit const * v = find(visitId);
     boost::format fmt("    visit %1% %|32t|: %2%\n");
     fmt % visitId;
@@ -395,21 +390,24 @@ void VisitTracker::print(int64_t const visitId, std::ostream & os) const {
  * @param[in]  visitId      The visit to register interest or create chunks for.
  * @param[in]  chunkIds     A list of identifiers for chunks required by the visit.
  *                          Assumed to be duplicate free.
+ * @throw lsst::pex::exceptions:::MemoryException
+ *      Thrown if there is insufficient space to track all requested chunks.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 void SubManager<MutexT, DataT, TraitsT>::createOrRegisterInterest(
-    std::vector<Chunk>         & toRead,
-    std::vector<Chunk>         & toWaitFor,
-    int64_t              const   visitId,
-    std::vector<int64_t> const & chunkIds
+    std::vector<Chunk> & toRead,
+    std::vector<Chunk> & toWaitFor,
+    int const visitId,
+    std::vector<int> const & chunkIds
 ) {
-    std::vector<int64_t>::const_iterator const end = chunkIds.end();
-    for (std::vector<int64_t>::const_iterator i = chunkIds.begin(); i != end; ++i) {
+    std::vector<int>::const_iterator const end = chunkIds.end();
+    for (std::vector<int>::const_iterator i = chunkIds.begin(); i != end; ++i) {
         std::pair<Descriptor *, bool> p(_chunks.findOrInsert(*i));
         if (p.second) {
             // new chunk descriptor was allocated
             if (p.first == 0) {
-                throw std::bad_alloc(); // ran out of space
+                throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+                                  "too many chunks in flight");
             }
             p.first->_visitId = visitId;
             p.first->_usable  = false;
@@ -443,10 +441,10 @@ template <typename MutexT, typename DataT, typename TraitsT>
 bool SubManager<MutexT, DataT, TraitsT>::checkForOwnership(
     std::vector<Chunk> & toRead,
     std::vector<Chunk> & toWaitFor,
-    int64_t const        visitId
+    int const visitId
 ) {
-    size_t size   = toWaitFor.size();
-    size_t i      = 0;
+    std::size_t size = toWaitFor.size();
+    std::size_t i = 0;
 
     while (i < size) {
         Chunk & c = toWaitFor[i];
@@ -480,11 +478,11 @@ bool SubManager<MutexT, DataT, TraitsT>::checkForOwnership(
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 void SubManager<MutexT, DataT, TraitsT>::getChunks(
-    std::vector<Chunk>         & chunks,
-    std::vector<int64_t> const & chunkIds
+    std::vector<Chunk> & chunks,
+    std::vector<int> const & chunkIds
 ) {
-    std::vector<int64_t>::const_iterator const end = chunkIds.end();
-    for (std::vector<int64_t>::const_iterator i = chunkIds.begin(); i != end; ++i) {
+    std::vector<int>::const_iterator const end = chunkIds.end();
+    for (std::vector<int>::const_iterator i = chunkIds.begin(); i != end; ++i) {
         Descriptor * d = _chunks.find(*i);
         if (d != 0) {
             chunks.push_back(Chunk(d, &_allocator));
@@ -508,8 +506,8 @@ void SubManager<MutexT, DataT, TraitsT>::getChunks(
  */
 template <typename MutexT, typename DataT, typename TraitsT>
 bool SubManager<MutexT, DataT, TraitsT>::relinquishOwnership(
-    int64_t      const   visitId,
-    bool         const   rollback,
+    int const visitId,
+    bool const rollback,
     VisitTracker const & tracker
 ) {
     bool change = false;
@@ -518,7 +516,7 @@ bool SubManager<MutexT, DataT, TraitsT>::relinquishOwnership(
         if (i->getId() != -1 && i->_visitId == visitId) {
             bool foundSuccessor = false;
             while (!i->_interestedParties.empty()) {
-                int64_t const nextVisitId = i->_interestedParties.dequeue();
+                int const nextVisitId = static_cast<int>(i->_interestedParties.dequeue());
                 if (tracker.isValid(nextVisitId)) {
                     i->_visitId    = nextVisitId;
                     change         = true;
@@ -568,11 +566,11 @@ namespace {
         boost::format oneFmt ("        chunk  %1%     in stripe %2% %|32t|: %3%%4%\n");
         boost::format manyFmt("        chunks %1%-%2% in stripe %3% %|32t|: %4%%5%\n");
 
-        uint32_t start = 0;
+        int start = 0;
         DescriptorT const * c = v[0];
-
-        for (uint32_t i = 1; i <= v.size(); ++i) {
-            if (i < v.size() && mergePrint(c, v[i])) {
+        int const sz = static_cast<int>(v.size());
+        for (int i = 1; i <= sz; ++i) {
+            if (i < sz && mergePrint(c, v[i])) {
                 continue;
             }
             if (i - start > 1) {
@@ -589,7 +587,7 @@ namespace {
                 oneFmt % (c->_interestedParties.empty() ? "" : ", interesting");
                 os << oneFmt;
             }
-            if (i < v.size()) {
+            if (i < sz) {
                 if (c->_visitId != v[i]->_visitId) {
                     os << "    Owned by visit " << v[i]->_visitId << ":\n";
                 }
@@ -626,10 +624,7 @@ void SubManager<MutexT, DataT, TraitsT>::print(std::ostream & os) const {
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void SubManager<MutexT, DataT, TraitsT>::print(
-    int64_t const   chunkId,
-    std::ostream  & os
-) const {
+void SubManager<MutexT, DataT, TraitsT>::print(int const chunkId, std::ostream & os) const {
     Descriptor const * c = _chunks.find(chunkId);
     os << "    [" << c->_chunkId << "] chunk " <<
           ZoneStripeChunkDecomposition::chunkToSequence(chunkId) << " in stripe " <<
@@ -642,7 +637,7 @@ void SubManager<MutexT, DataT, TraitsT>::print(
             os << "un";
         }
         os << "interesting\n        ";
-        uint32_t sz = c->_size;
+        int sz = c->_size;
         os << sz << " entries in " << c->_nextBlock << " blocks (" <<
               c->_numBlocks << " allocated)\n        ";
         if (sz <= c->_delta) {
@@ -657,10 +652,7 @@ void SubManager<MutexT, DataT, TraitsT>::print(
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void SubManager<MutexT, DataT, TraitsT>::printVisit(
-    int64_t const   visitId,
-    std::ostream  & os
-) const {
+void SubManager<MutexT, DataT, TraitsT>::printVisit(int const visitId, std::ostream & os) const {
     Descriptor const * const end = _chunks.end();
     std::vector<Descriptor const *> v;
     v.reserve(_chunks.size());
@@ -681,17 +673,17 @@ void SubManager<MutexT, DataT, TraitsT>::printVisit(
 }
 
 
-// -- ChunkManagerSingleImpl ----------------
+// -- ChunkManagerImpl ----------------
 
 template <typename MutexT, typename DataT, typename TraitsT>
-ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::ChunkManagerSingleImpl() :
-    _data(reinterpret_cast<uint8_t *>(this), blocks())
+ChunkManagerImpl<MutexT, DataT, TraitsT>::ChunkManagerImpl() :
+    _data(reinterpret_cast<unsigned char *>(this), blocks())
 {}
 
 
-/// Returns @c true if the given visit is in-flight and has not been marked as failed.
+/** Returns @c true if the given visit is in-flight and has not been marked as failed. */
 template <typename MutexT, typename DataT, typename TraitsT>
-bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::isVisitInFlight(int64_t const visitId) {
+bool ChunkManagerImpl<MutexT, DataT, TraitsT>::isVisitInFlight(int const visitId) {
     ScopedLock<MutexT> lock(_mutex);
     return _visits.isValid(visitId);
 }
@@ -702,7 +694,7 @@ bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::isVisitInFlight(int64_t con
  * registered, or has already been marked as failed, then the call has no effect.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::failVisit(int64_t const visitId) {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::failVisit(int const visitId) {
     ScopedLock<MutexT> lock(_mutex);
     Visit * v = _visits.find(visitId);
     if (v != 0) {
@@ -711,21 +703,24 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::failVisit(int64_t const vis
 }
 
 
-/// Registers the given visit as in-flight without performing any further action.
+/**
+ * Registers the given visit as in-flight without performing any further action.
+ *
+ * @throw lsst::pex::exceptions::InvalidParameterException
+ *      Thrown if the given visit is already in-flight.
+ * @throw lsst::pex::exceptions::LengthError
+ *      Thrown if too-many visits are currently in-flight.
+ */
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::registerVisit(int64_t const visitId) {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::registerVisit(int const visitId) {
     ScopedLock<MutexT> lock(_mutex);
     if (_visits.find(visitId) != 0) {
-        LSST_AP_THROW(
-            InvalidParameter,
-            boost::format("Cannot start processing visit %1%: visit is already in flight") % visitId
-        );
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+            (boost::format("Cannot start processing visit %1%: visit is already in flight") % visitId).str());
     }
     if (_visits.space() == 0) {
-        LSST_AP_THROW(
-            LengthError,
-            boost::format("Cannot register visit %1%: too many visits in-flight") % visitId
-        );
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+            (boost::format("Cannot register visit %1%: too many visits in-flight") % visitId).str());
     }
     Visit * v = _visits.insert(visitId);
     assert(v != 0);
@@ -745,13 +740,18 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::registerVisit(int64_t const
  * @param[out] toWaitFor   Set to the list of chunks that are already in memory and must be waited on.
  * @param[in]  visitId     The visit to begin.
  * @param[in]  chunkIds    Identifiers for chunks to register an interest in or create.
+ *
+ * @throw lsst::pex::exceptions::InvalidParameterException
+ *      Thrown if the given visit is not currently in-flight.
+ * @throw lsst::pex::exceptions::LengthErrorException
+ *      Thrown if the chunk manager does not have space to track all the chunks for the visit.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::startVisit(
-    std::vector<Chunk>         & toRead,
-    std::vector<Chunk>         & toWaitFor,
-    int64_t              const   visitId,
-    std::vector<int64_t> const & chunkIds
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::startVisit(
+    std::vector<Chunk> & toRead,
+    std::vector<Chunk> & toWaitFor,
+    int const visitId,
+    std::vector<int> const & chunkIds
 ) {
     toRead.clear();
     toWaitFor.clear();
@@ -762,14 +762,13 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::startVisit(
 
     ScopedLock<MutexT> lock(_mutex);
     // ensure internal resources necessary for success are available
-    if (_data.space() < chunkIds.size()) {
-        LSST_AP_THROW(LengthError, "requested additional chunks exceed chunk manager capacity");
+    if (_data.space() < static_cast<int>(chunkIds.size())) {
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+                          "requested additional chunks exceed chunk manager capacity");
     }
     if (!_visits.isValid(visitId)) {
-        LSST_AP_THROW(
-            InvalidParameter,
-            boost::format("Cannot start processing for visit %1%: visit is not in-flight") % visitId
-        );
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+            (boost::format("Cannot start processing for visit %1%: visit is not in-flight") % visitId).str());
     }
     // having pre-allocated/checked that there is space for everything,
     // manager state can be modified without throwing
@@ -791,15 +790,15 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::startVisit(
  * @param[in]     visitId   The visit that must wait for chunk ownership.
  * @param[in]     deadline  The point in time after which chunk acquisition should be abandoned.
  *
- * @throw Timeout   Thrown if the given visit deadline expired while
- *                  waiting to acquire the specified chunks.
+ * @throw lsst::pex::exceptions::TimeoutException
+ *      Thrown if the visit deadline expired while waiting to acquire chunks.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::waitForOwnership(
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::waitForOwnership(
     std::vector<Chunk> & toRead,
     std::vector<Chunk> & toWaitFor,
-    int64_t      const   visitId,
-    TimeSpec     const & deadline
+    int const visitId,
+    TimeSpec const & deadline
 ) {
     toRead.clear();
     toRead.reserve(toWaitFor.size());
@@ -811,7 +810,8 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::waitForOwnership(
         }
         // wait for ownership
         if (!_ownerCondition.wait(lock, deadline)) {
-            LSST_AP_THROW(Timeout, boost::format("Deadline for visit %1% expired") % visitId);
+            throw LSST_EXCEPT(lsst::pex::exceptions::TimeoutException,
+                (boost::format("Deadline for visit %1% expired") % visitId).str());
         }
     }
 }
@@ -824,9 +824,9 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::waitForOwnership(
  * @param[in]  chunkIds The list of identifiers for which corresponding chunks are desired.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::getChunks(
-    std::vector<Chunk>         & chunks,
-    std::vector<int64_t> const & chunkIds
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::getChunks(
+    std::vector<Chunk> & chunks,
+    std::vector<int> const & chunkIds
 ) {
     ScopedLock<MutexT> lock(_mutex);
     _data.getChunks(chunks, chunkIds);
@@ -847,9 +847,9 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::getChunks(
  *          @c false otherwise.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
-bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::endVisit(
-    int64_t const visitId,
-    bool    const rollback
+bool ChunkManagerImpl<MutexT, DataT, TraitsT>::endVisit(
+    int const visitId,
+    bool const rollback
 ) {
     ScopedLock<MutexT> lock(_mutex);
     bool roll = rollback || !_visits.isValid(visitId);
@@ -866,24 +866,21 @@ bool ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::endVisit(
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printVisits(std::ostream & os) const {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::printVisits(std::ostream & os) const {
     ScopedLock<MutexT> lock(_mutex);
     _visits.print(os);
 }
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printChunks(std::ostream & os) const {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::printChunks(std::ostream & os) const {
     ScopedLock<MutexT> lock(_mutex);
     _data.print(os);
 }
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printVisit(
-    int64_t const   visitId,
-    std::ostream  & os
-) const {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::printVisit(int const visitId, std::ostream  & os) const {
     ScopedLock<MutexT> lock(_mutex);
     _visits.print(visitId, os);
     _data.printVisit(visitId, os);
@@ -891,10 +888,7 @@ void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printVisit(
 
 
 template <typename MutexT, typename DataT, typename TraitsT>
-void ChunkManagerSingleImpl<MutexT, DataT, TraitsT>::printChunk(
-    int64_t const   chunkId,
-    std::ostream  & os
-) const {
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::printChunk(int const chunkId, std::ostream  & os) const {
     ScopedLock<MutexT> lock(_mutex);
     _data.print(chunkId, os);
 }

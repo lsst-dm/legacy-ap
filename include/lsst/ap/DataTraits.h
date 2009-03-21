@@ -10,14 +10,11 @@
 #ifndef LSST_AP_DATA_TRAITS_H
 #define LSST_AP_DATA_TRAITS_H
 
-#include <lsst/afw/detection/Source.h>
-
 #include "Common.h"
 #include "Object.h"
 
 
-namespace lsst {
-namespace ap {
+namespace lsst { namespace ap {
 
 /**
  * @brief  Provides basic chunk parameters at compile time.
@@ -41,11 +38,11 @@ namespace ap {
  */
 template <typename D> struct DataTraits {};
 
-template <> struct LSST_AP_LOCAL DataTraits<SimpleObject> {
-    static uint32_t const ENTRIES_PER_BLOCK_LOG2 = 12;
-    static uint32_t const MAX_BLOCKS_PER_CHUNK   = 128;
-    static uint32_t const MAX_CHUNKS_PER_FOV     = 128;
-    static uint32_t const NUM_BLOCKS             = 1024;
+template <> struct LSST_AP_LOCAL DataTraits<Object> {
+    static int const ENTRIES_PER_BLOCK_LOG2 = 12;
+    static int const MAX_BLOCKS_PER_CHUNK   = 128;
+    static int const MAX_CHUNKS_PER_FOV     = 128;
+    static int const NUM_BLOCKS             = 1024;
 };
 
 

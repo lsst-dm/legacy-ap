@@ -12,22 +12,16 @@
 
 #include <cmath>
 
-#include <stdexcept>
-
-#include <boost/scoped_array.hpp>
+#include "boost/scoped_array.hpp"
 
 #include "EllipseTypes.h"
 #include "SpatialUtil.h"
 
 
-namespace lsst {
-namespace ap {
-
-
 // -- Ellipse<DataT> ----------------
 
 template <typename DataT>
-Ellipse<DataT>::Ellipse(DataT & data) {
+lsst::ap::Ellipse<DataT>::Ellipse(DataT & data) {
     double ra   = data.getRa();
     double dec  = data.getDec();
     double pa   = data.getPositionAngle();
@@ -61,70 +55,53 @@ Ellipse<DataT>::Ellipse(DataT & data) {
 // -- EllipseList<DataT> ----------------
 
 template <typename DataT>
-EllipseList<DataT>::EllipseList(DataT * const begin, DataT * const end) : _ellipses() {
-    ptrdiff_t const n = end - begin;
-    for (ptrdiff_t i = 0; i < n; ++i) {
-        push_back(begin[i]);
+lsst::ap::EllipseList<DataT>::EllipseList(DataT * const begin, DataT * const end)
+    : std::vector<Ellipse<DataT> >()
+{
+    std::ptrdiff_t const n = end - begin;
+    for (std::ptrdiff_t i = 0; i < n; ++i) {
+        push_back(Ellipse<DataT>(begin[i]));
     }
 }
-
-
-template <typename DataT>
-EllipseList<DataT>::EllipseList(EllipseList const & list) : _ellipses(list._ellipses) {}
-
-
-template <typename DataT>
-EllipseList<DataT> & EllipseList<DataT>::operator=(EllipseList const & list) {
-    if (this != &list) {
-        EllipseList copy(list);
-        swap(copy);
-    }
-    return *this;
-}
-
 
 /**
  * Prepares the list of ellipses for matching against a list of positions --
  * finds zone bounds for each ellipse and sorts them in order of minimum zone.
  */
 template <typename DataT>
-void EllipseList<DataT>::prepareForMatch(ZoneStripeChunkDecomposition const & zsc) {
-
-    size_type const sz = size();
+void lsst::ap::EllipseList<DataT>::prepareForMatch(ZoneStripeChunkDecomposition const & zsc) {
+    typedef typename std::vector<DataT>::size_type size_type; 
+    size_type const sz = this->size();
 
     // find min and max zone for each ellipse
     for (size_type i = 0; i < sz; ++i) {
-        Ellipse & e    = _ellipses[i];
-        double    dec  = e._data->getDec();
-        double    smaa = e._data->getSemiMajorAxisLength();
+        Ellipse<DataT> & e = this->operator[](i);
+        double dec  = e._data->getDec();
+        double smaa = e._data->getSemiMajorAxisLength();
         // Note - this actually computes the min/max zone of the ellipses bounding circle
         double d = dec - smaa;
         e._minZone = zsc.decToZone(d <= -90.0 ? -90.0 : d);
         d = dec + smaa;
         e._maxZone = zsc.decToZone(d >= 90.0 ? 90.0 : d);
-        e._next    = 0;
+        e._next = 0;
     }
 
     if (sz > 1) {
         // indirect sort on min zone
-        boost::scoped_array<Ellipse *> pointers(new Ellipse *[sz]);
+        boost::scoped_array<Ellipse<DataT> *> pointers(new Ellipse<DataT> *[sz]);
         for (size_type i = 0; i < sz; ++i) {
-            pointers[i] = &_ellipses[i];
+            pointers[i] = &this->operator[](i);
         }
         std::sort(pointers.get(), pointers.get() + sz, EllipsePtrLessThan<DataT>());
         // copy ellipses into new array in sorted order
-        std::vector<Ellipse> ellipses;
+        std::vector<Ellipse<DataT> > ellipses;
         ellipses.reserve(sz);
         for (size_type i = 0; i < sz; ++i) {
             ellipses.push_back(*pointers[i]);
         }
         // replace old array with new sorted one
-        using std::swap;
-        swap(_ellipses, ellipses);
+        this->swap(ellipses);
     }
 }
-
-
-}} // end of namespace lsst::ap
 
 #endif // LSST_AP_ELLIPSE_TYPES_CC
