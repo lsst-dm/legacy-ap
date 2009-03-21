@@ -21,6 +21,9 @@ mysqlStatements = [
     """UPDATE _tmp_v%(visitId)d_DIASource AS s, _tmp_v%(visitId)d_DIASourceToNewObject AS n
        SET s.objectId = n.second
        WHERE s.diaSourceId = n.first""",
+    # Set id of sibling difference source (measured on other exposure in visit)
+    """UPDATE _tmp_v%(visitId)d_DIASource
+       SET diaSourceToId = diaSourceId ^ (1 << 14)""",
     # Append difference sources to the historical DiaSource table
     """INSERT INTO %(diaSourceTable)s SELECT * FROM _tmp_v%(visitId)d_DIASource""",
     # Update latest observation time and observation count for objects with matches
