@@ -21,173 +21,176 @@ static char const* SVNid __attribute__((unused)) = "$Id$";
 #include <cstdlib>
 #include <cerrno>
 #include <fcntl.h>
-#include <getopt.h>
 #include <iostream>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
+#include <cmath>
 #include <unistd.h>
 
-#include <mysql/mysql.h>
+#include "mysql/mysql.h"
+
+#include "boost/format.hpp"
+#include "boost/lexical_cast.hpp"
+#include "boost/program_options.hpp"
 
 #include "lsst/ap/Chunk.h"
 #include "lsst/ap/Object.h"
 #include "lsst/afw/image/Filter.h"
 #include "lsst/pex/exceptions.h"
 #include "lsst/daf/persistence/DbAuth.h"
-#include "lsst/daf/persistence/DbStorageLocation.h"
 #include "lsst/pex/policy/Policy.h"
+
+using namespace boost::program_options;
 
 namespace ex = lsst::pex::exceptions;
 
 using lsst::pex::policy::Policy;
-
-
-// Command line option descriptors.
-static struct option longopts[] = {
-    {"minRA", required_argument, 0, 'r'},
-    {"maxRA", required_argument, 0, 'R'},
-    {"minDecl", required_argument, 0, 'd'},
-    {"maxDecl", required_argument, 0, 'D'},
-    {"url", required_argument, 0, 'u'},
-    {"output", required_argument, 0, 'o'}
-};
-
-// Describe correct usage.
-static void usage(char const* argv0) {
-    std::cerr << "Usage: " << argv0 << " -o -d -D {-n | -r -R} [options]";
-    std::cerr << std::endl << std::endl;
-    std::cerr << "Required parameters:" << std::endl;
-    std::cerr << "\t-o outputFile   Output filename (or base for appended chunk number)" << std::endl;
-    std::cerr << "\t-d minDecl      Minimum declination [-90, 90)" << std::endl;
-    std::cerr << "\t-D maxDecl      Maximum declination (-90, 90]" << std::endl;
-    std::cerr << "Either -n or -r/-R must be specified:" << std::endl;
-    std::cerr << "\t-n numChunks    Number of chunks in the stripe" << std::endl;
-    std::cerr << "\t-r minRA        Minimum right ascension [0, 360)" << std::endl;
-    std::cerr << "\t-R maxRA        Maximum right ascension (0, 360]" << std::endl;
-    std::cerr << "Options:" << std::endl;
-    std::cerr << "\t-u dbURL        Connection URL for database" << std::endl;
-    std::cerr << "\t                (default: mysql://lsst10.ncsa.uiuc.edu:3306/test)" << std::endl;
-    std::cerr << "\t-p policyFile   Filename of policy for database authentication" << std::endl;
-    std::cerr << "\t                (default: none; falls back to file or environment)" << std::endl;
-    std::exit(1);
-}
+using lsst::daf::persistence::DbAuth;
+using lsst::afw::image::Filter;
+using lsst::ap::BinChunkHeader;
+using lsst::ap::Object;
 
 
 // Queries to execute.
 
-// Query for a single chunk.
+// Query pattern for a single chunk.
 static char const chunkQuery[] =
-    "SELECT objectId, ra, decl, "
-    " uVarProb, gVarProb, rVarProb, iVarProb, zVarProb, yVarProb"
-    " FROM Object"
-    " WHERE ra BETWEEN ? AND ? AND decl BETWEEN ? AND ?";
-size_t const chunkQuerySize = sizeof(chunkQuery);
+    "SELECT objectId, ra, decl"
+    " FROM %1%"
+    " WHERE decl BETWEEN ? AND ? AND ra BETWEEN ? AND ?";
 
-// Query for entire stripes.
+// Query pattern for entire stripes.
 // ORDER BY is required to avoid having many simultaneous open files.
 static char const stripeQuery[] =
-    "SELECT objectId, ra, decl,"
-    " uVarProb, gVarProb, rVarProb, iVarProb, zVarProb, yVarProb"
-    " FROM Object"
+    "SELECT objectId, ra, decl"
+    " FROM %1%"
     " WHERE decl BETWEEN ? AND ? ORDER BY ra";
-size_t const stripeQuerySize = sizeof(stripeQuery);
 
 
 // Check a condition and throw an exception (with errno decoding) if failed.
 static void ioAssert(bool cond, char const* msg) {
-    if (cond) {
-        return;
+    if (!cond) {
+        throw LSST_EXCEPT(ex::RuntimeErrorException,
+                          (boost::format("%1%: error %2%") % msg % errno).str());
     }
-
-    static char buf[64];
-    std::snprintf(buf, sizeof(buf), "error %d", errno);
-    throw LSST_EXCEPT(ex::RuntimeErrorException, std::string(msg) + ": " + buf);
 }
 
+// Check whether two conflicting options were specified and complain if so
+static void conflictingOptions(
+    options_description const & desc,
+    variables_map const & vm,
+    char const * const opt1,
+    char const * const opt2
+) {
+    if (vm.count(opt1) && !vm[opt1].defaulted() && vm.count(opt2) && !vm[opt2].defaulted()) {
+        std::cerr << "Options --" << opt1 << " and --" << opt2 << " conflict" <<
+                     std::endl << desc << std::endl;
+        std::exit(1);
+    }
+}
+
+static void requiredOption(
+    options_description const & desc,
+    variables_map const & vm,
+    char const * const opt
+) {
+    if (vm.count(opt) != 1 && !vm[opt].defaulted()) {
+        std::cerr << "--" << opt << " is a required parameter" <<
+                     std::endl << desc << std::endl;
+        std::exit(1);
+    }
+}
 
 // Main program.
 int main(int argc, char** argv) {
 
-    // Database connection URL (with default).
-    std::string url("mysql://lsst10.ncsa.uiuc.edu:3306/test");
-
-    // Filename for output, or base if writing entire stripe.
-    char const* fileBase = 0;
-
-    // Optional name of policy file for database authentication.
-    std::string policyFileName;
-
     // Number of chunks in this stripe.
     int numChunks = -1;
+    // RA and declination minimum and maximum (initialized to bogus values)
+    double minRa = -1000.0, maxRa = -1000.0;
+    double minDecl = -1000.0, maxDecl = -1000.0;
 
-    // RA and declination minimum and maximum (initialized to bogus values).
-    double raLimits[2] = {-1000.0, -1000.0};
-    double declLimits[2] = {-1000.0, -1000.0};
+    std::string fileBase;       // Filename for output, or base if writing entire stripe
+    std::string policyFileName; // Optional name of policy file for database authentication
+    std::string host;           // MySQL server hostname
+    std::string port;           // MySQL server port number
+    std::string database;       // MySQL database
+    std::string table;          // Object table name
 
-    // Process command line arguments.
-    int opt;
-    while ((opt = getopt_long(argc, argv, "r:R:n:d:D:u:o:", longopts, 0)) != -1) {
-        switch (opt) {
-        case 'r':
-            raLimits[0] = std::strtod(optarg, 0);
-            break;
-        case 'R':
-            raLimits[1] = std::strtod(optarg, 0);
-            break;
-        case 'n':
-            numChunks = std::strtol(optarg, 0, 10);
-            break;
-        case 'd':
-            declLimits[0] = std::strtod(optarg, 0);
-            break;
-        case 'D':
-            declLimits[1] = std::strtod(optarg, 0);
-            break;
-        case 'u':
-            url = std::string(optarg);
-            break;
-        case 'o':
-            fileBase = optarg;
-            break;
-        case 'p':
-            policyFileName = std::string(optarg);
-            break;
-        default:
-            usage(argv[0]);
-            break;
+    options_description generalOptions("General options");
+    generalOptions.add_options()
+        ("help,h", "print usage help");
+
+    options_description requiredOptions("Required (either -n OR -r/-R must be specified)");
+    requiredOptions.add_options()
+        ("min-decl,d", value(&minDecl), "Minimum declination [-90, 90)")
+        ("max-decl,D", value(&maxDecl), "Maximum declination (-90, 90]")
+        ("min-ra,r", value(&minRa), "Minimum right ascension [0, 360)")
+        ("max-ra,R", value(&maxRa), "Maximum right ascension (0, 360]")
+        ("num-chunks,n", value(&numChunks), "Number of chunks in the stripe")
+        ("output,o", value(&fileBase), "Output filename (or base for appended chunk number)");
+
+    options_description databaseOptions("Database options");
+    databaseOptions.add_options()
+        ("host,H", value(&host)->default_value("lsst10.ncsa.uiuc.edu"),
+            "MySQL database server hostname")
+        ("port,P", value(&port)->default_value("3306"),
+            "MySQL database server port number")
+        ("database,b", value(&database)->default_value("DC3a_catalogs"),
+            "Database name")
+        ("table,t", value(&table)->default_value("CFHTLSObject"),
+            "Object table name")
+        ("policy,p", value(&policyFileName),
+            "Filename of policy for database authentication");
+
+    options_description desc;
+    desc.add(generalOptions).add(requiredOptions).add(databaseOptions);
+    variables_map vm;
+    store(parse_command_line(argc, argv, desc), vm);
+    notify(vm);
+    conflictingOptions(desc, vm, "num-chunks", "min-ra");
+    conflictingOptions(desc, vm, "num-chunks", "max-ra");
+    requiredOption(desc, vm, "min-decl");
+    requiredOption(desc, vm, "max-decl");
+    requiredOption(desc, vm, "output");
+
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        return 0;
+    }
+    if (vm.count("num-chunks")) {
+        // Check chunk count
+        if (numChunks < 1) {
+            std::cerr << "Number of chunks must be positive" <<
+                         std::endl << desc << std::endl;
+            return 1;
         }
+    } else if (vm.count("min-ra") && vm.count("max-ra")) {
+        // Check right ascensions limits
+        if (minRa < 0.0 || maxRa > 360.0 || minRa >= maxRa) {
+            std::cerr << "Illegal right ascension limits" <<
+                         std::endl << desc << std::endl;
+            return 1;
+        }
+    } else {
+        std::cerr << "Right ascension limits or chunk count must be specified" <<
+                     std::endl << desc << std::endl;
+        return 1;
     }
-
-    if (fileBase == 0) usage(argv[0]);
-    int fileNameLen = strlen(fileBase) + 1 + 10 + 1;
-    char* fileName = new char[fileNameLen];
-    if (fileName == 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to allocate memory for filename");
+    // Check declination limits
+    if (minDecl < -90.0 || maxDecl > 90.0 || minDecl >= maxDecl) {
+        std::cerr << "Illegal declination limits" <<
+                     std::endl << desc << std::endl;
+        return 1;
     }
-
-    if (numChunks == -1) {
-        // Check RA parameters.
-        if (raLimits[0] < 0.0 || raLimits[1] > 360.0 ||
-            raLimits[0] >= raLimits[1]) usage(argv[0]);
-    }
-    else if (numChunks < 1 ||
-             raLimits[0] != -1000.0 || raLimits[1] != -1000.0) {
-        usage(argv[0]);
-    }
-
-    if (declLimits[0] < -90.0 || declLimits[1] > 90.0 ||
-        declLimits[0] > declLimits[1]) usage(argv[0]);
-
-    argc -= optind;
-    argv += optind;
-
 
     // Set up database authentication and the storage location.
     if (!policyFileName.empty()) {
-        Policy::Ptr policyPtr(new Policy(policyFileName));
+        Policy::Ptr policy(new Policy(policyFileName));
+        DbAuth::setPolicy(policy);
     }
-    lsst::daf::persistence::DbStorageLocation dbLoc(url);
+    if (!DbAuth::available(host, port)) {
+        std::cerr << "Database credentials for " << host << ":" << port << " not found." <<
+                     " Check ~/.lsst/db-auth.paf or specify an alternate host." << std::endl;
+    }
 
     // Set up the MySQL client library and connect to the database.
     // Use MySQL client directly for maximum performance.
@@ -198,11 +201,11 @@ int main(int argc, char** argv) {
     if (db == 0) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to create empty connection");
     }
-    if (!mysql_real_connect(db, dbLoc.getHostname().c_str(),
-                            dbLoc.getUsername().c_str(),
-                            dbLoc.getPassword().c_str(),
-                            dbLoc.getDbName().c_str(),
-                            std::strtol(dbLoc.getPort().c_str(), 0, 10),
+    if (!mysql_real_connect(db, host.c_str(),
+                            DbAuth::username(host, port).c_str(),
+                            DbAuth::password(host, port).c_str(),
+                            database.c_str(),
+                            boost::lexical_cast<long>(port),
                             0, CLIENT_COMPRESS)) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, 
                           std::string("Unable to connect to database: ") + mysql_error(db));
@@ -213,71 +216,51 @@ int main(int argc, char** argv) {
     if (stmt == 0) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, "Out of memory while preparing statement");
     }
-    if (numChunks < 1) {
-        if (mysql_stmt_prepare(stmt, chunkQuery, chunkQuerySize)) {
-            throw LSST_EXCEPT(ex::RuntimeErrorException, 
-                              std::string("Unable to prepare statement: ") + mysql_error(db));
-        }
-    }
-    else {
-        if (mysql_stmt_prepare(stmt, stripeQuery, stripeQuerySize)) {
-            throw LSST_EXCEPT(ex::RuntimeErrorException, 
-                              std::string("Unable to prepare statement: ") + mysql_error(db));
-        }
+    std::string query = (boost::format(numChunks < 1 ? chunkQuery : stripeQuery) % table).str();
+    if (mysql_stmt_prepare(stmt, query.c_str(), query.size())) {
+        throw LSST_EXCEPT(ex::RuntimeErrorException, 
+                          std::string("Unable to prepare statement: ") + mysql_error(db));
     }
 
     // Set up the WHERE clause bindings.
     MYSQL_BIND bindArray[4];
-
-    memset(bindArray, 0, sizeof(bindArray));
-
+    std::memset(bindArray, 0, sizeof(bindArray));
+    for (int i = 0; i < 4; ++i) {
+        bindArray[i].buffer_type = MYSQL_TYPE_DOUBLE;
+        bindArray[i].buffer_length = sizeof(double);
+        bindArray[i].is_null = 0;
+    }
+    bindArray[0].buffer = &minDecl;
+    bindArray[1].buffer = &maxDecl;
     if (numChunks < 1) {
-        for (int i = 0; i < 4; ++i) {
-            bindArray[i].buffer_type = MYSQL_TYPE_DOUBLE;
-            bindArray[i].buffer_length = sizeof(double);
-            bindArray[i].is_null = 0;
-            if (i < 2) bindArray[i].buffer = &raLimits[i];
-            else bindArray[i].buffer = &declLimits[i - 2];
-        }
+        bindArray[2].buffer = &minRa;
+        bindArray[3].buffer = &maxRa;
     }
-    else {
-        for (int i = 0; i < 2; ++i) {
-            bindArray[i].buffer_type = MYSQL_TYPE_DOUBLE;
-            bindArray[i].buffer_length = sizeof(double);
-            bindArray[i].is_null = 0;
-            bindArray[i].buffer = &declLimits[i];
-        }
-    }
-
 
     // Set up the result bindings.
-
-    // Retrieved object.
-    lsst::ap::Object obj;
-    // Result binding array.
-    MYSQL_BIND resultArray[3 + lsst::afw::image::Filter::NUM_FILTERS];
-    // Null flags for object fields.
-    my_bool isNull[3 + lsst::afw::image::Filter::NUM_FILTERS];
-    // Error flags for object fields.
-    my_bool error[3 + lsst::afw::image::Filter::NUM_FILTERS];
+    Object obj;                                      // Retrieved object
+    MYSQL_BIND resultArray[7 + Filter::NUM_FILTERS]; // Result binding array
+    my_bool isNull[7 + Filter::NUM_FILTERS];         // Null flags for object fields
+    my_bool error[7 + Filter::NUM_FILTERS];          // Error flags for object fields
 
     // Initialize object to junk values to help detect bugs.
     obj._objectId = 0xcafefeeddeadbeefLL;
     obj._ra = -100.0;
     obj._decl = -1234567890.0;
-    for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
-        obj._varProb[i] = -1;
-    }
-    // these fields aren't yet available in DC3a
+
+    // These fields aren't yet available in DC3a - set
+    // proper motions and variability probabilities to zero
     obj._muRa = 0.0;
     obj._muDecl = 0.0;
-    obj._parallax = -99.0;
+    obj._parallax = 0.0;
     obj._radialVelocity = 0.0;
-
-    for (int i = 0; i < 3 + lsst::afw::image::Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < Filter::NUM_FILTERS; ++i) {
+        obj._varProb[i] = 0;
+    }
+    for (int i = 0; i < 7 + Filter::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
-    memset(resultArray, 0, sizeof(resultArray));
+    std::memset(resultArray, 0, sizeof(resultArray));
 
     // Set each result binding.
     resultArray[0].buffer_type = MYSQL_TYPE_LONGLONG;
@@ -287,29 +270,15 @@ int main(int argc, char** argv) {
     resultArray[0].is_unsigned = false;
     resultArray[0].error = &error[0];
 
-    resultArray[1].buffer_type = MYSQL_TYPE_DOUBLE;
-    resultArray[1].buffer = &(obj._ra);
-    resultArray[1].buffer_length = sizeof(obj._ra);
-    resultArray[1].is_null = &isNull[1];
-    resultArray[1].is_unsigned = false;
-    resultArray[1].error = &error[1];
-
-    resultArray[2].buffer_type = MYSQL_TYPE_DOUBLE;
-    resultArray[2].buffer = &(obj._decl);
-    resultArray[2].buffer_length = sizeof(obj._decl);
-    resultArray[2].is_null = &isNull[2];
-    resultArray[2].is_unsigned = false;
-    resultArray[2].error = &error[2];
-
-    for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
-        resultArray[3 + i].buffer_type = MYSQL_TYPE_SHORT;
-        resultArray[3 + i].buffer = &(obj._varProb[i]);
-        resultArray[3 + i].buffer_length = sizeof(obj._varProb[i]);
-        resultArray[3 + i].is_null = &isNull[3 + i];
-        resultArray[3 + i].is_unsigned = false;
-        resultArray[3 + i].error = &error[3 + i];
+    for (int i = 1; i < 3; ++i) {
+        resultArray[i].buffer_type = MYSQL_TYPE_DOUBLE;
+        resultArray[i].buffer_length = sizeof(double);
+        resultArray[i].is_null = &isNull[i];
+        resultArray[i].is_unsigned = false;
+        resultArray[i].error = &error[i];
     }
-
+    resultArray[1].buffer = &(obj._ra);
+    resultArray[2].buffer = &(obj._decl);
 
     // Bind and execute the SQL statement.
     if (mysql_stmt_bind_param(stmt, bindArray)) {
@@ -322,27 +291,21 @@ int main(int argc, char** argv) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to bind results");
     }
 
-
     // Set up (most of) a chunk header.
     lsst::ap::BinChunkHeader header;
     header._recordSize = sizeof(obj);
 
-
     // Fetch rows from the database and write the resulting objects.
 
-    // Error status return.
-    int err = 0;
-    // File descriptor for output file.
-    int fd = -1;
-    // Current chunk number.
-    int chunkNum = -1;
-    // Upper RA boundary of current chunk.
-    double chunkBoundary = -1.0;
+    std::string fileName;        // Filename for output
+    int err = 0;                 // Error status return
+    int fd = -1;                 // File descriptor for output file
+    int chunkNum = -1;           // Current chunk number
+    double chunkBoundary = -1.0; // Upper RA boundary of current chunk
 
     while ((err = mysql_stmt_fetch(stmt)) == 0) {
-
         // Check for nulls.
-        for (int i = 0; i < 9; ++i) {
+        for (int i = 0; i < 7 + Filter::NUM_FILTERS; ++i) {
             if (isNull[i]) {
                 throw LSST_EXCEPT(ex::RuntimeErrorException, "Unexpected null value found");
             }
@@ -350,7 +313,6 @@ int main(int argc, char** argv) {
 
         // Check for new chunk.
         if (obj._ra > chunkBoundary) {
-
             if (fd != -1) {
                 // Rewrite the header, now that we know how many rows we have.
                 off_t pos = lseek(fd, 0, SEEK_SET);
@@ -366,24 +328,22 @@ int main(int argc, char** argv) {
             }
 
             if (numChunks < 1) {
-                strcpy(fileName, fileBase);
+                fileName = fileBase;
                 chunkBoundary = 1000.0;
-            }
-            else {
+            } else {
                 chunkNum = static_cast<int>(floor(obj._ra * numChunks / 360.0));
-                snprintf(fileName, fileNameLen, "%s.%d", fileBase, chunkNum);
+                fileName = (boost::format("%1%_%2%.chunk") % fileBase % chunkNum).str();
                 chunkBoundary = (360.0 * (chunkNum + 1)) / numChunks;
             }
 
             // Open the new output file.
-            fd = open(fileName, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            fd = open(fileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
             ioAssert(fd >= 0, "Unable to open output file");
 
             // Write the output file header.
             header._numRecords = 0;
             ssize_t bytes = write(fd, &header, sizeof(header));
             ioAssert(bytes == sizeof(header), "Unable to write header");
-
         }
 
         // Write the object and increment the count.
@@ -391,14 +351,13 @@ int main(int argc, char** argv) {
         ioAssert(bytes == sizeof(obj), "Unable to write object");
         ++header._numRecords;
     }
+
     if (err == 1) {
         throw LSST_EXCEPT(ex::RuntimeErrorException,
                           std::string("Error while fetching: ") + mysql_error(db));
-    }
-    else if (err == MYSQL_DATA_TRUNCATED) {
+    } else if (err == MYSQL_DATA_TRUNCATED) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: data truncated");
-    }
-    else if (err != MYSQL_NO_DATA) {
+    } else if (err != MYSQL_NO_DATA) {
         throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: unknown");
     }
 
@@ -423,8 +382,6 @@ int main(int argc, char** argv) {
     }
     mysql_close(db);
     mysql_library_end();
-
-    delete[] fileName;
 
     return 0;
 }

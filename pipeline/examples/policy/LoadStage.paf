@@ -11,8 +11,8 @@ matchRadius                     : 0.5
 semiMajorAxisThreshold          : 10800.0
 semiMajorAxisClamp              : 10.0
 semiMinorAxisClamp              : 10.0
-objectChunkFileNamePattern      : "%(input)/objchunk/%(stripeId)/ref_%(chunkId).chunk"
-objectDeltaChunkFileNamePattern : "%(update)/objdelta/%(stripeId)/delta_%(chunkId).chunk"
+objectChunkFileNamePattern      : "%(input)/objref/%(stripeId)/ref_%(chunkSeqNum).chunk"
+objectDeltaChunkFileNamePattern : "%(update)/objdelta/%(stripeId)/delta_%(chunkSeqNum).chunk"
 filterTableLocation             : "%(dbUrl)"
 uVarProbThreshold               : 90
 gVarProbThreshold               : 90

@@ -77,13 +77,13 @@ int main(int argc, char * argv[]) {
             SharedObjectChunkManager::destroyInstance(name);
         }
 
-        return EXIT_SUCCESS;
+        return 0;
 
     } catch (lsst::pex::exceptions::Exception & ex) {
         std::cout << "Caught lsst::pex::exceptions::Exception :\n\n" << ex;
     } catch (std::exception & ex) {
         std::cout << "Caught std::exception : " << ex.what() << std::endl;
     }
-    return EXIT_FAILURE;
+    return 1;
 }
 
