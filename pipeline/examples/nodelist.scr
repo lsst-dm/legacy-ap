@@ -1,9 +1,0 @@
-# Format for node list is hostname followed by number of processes to run on that node 
-#
-# Note: the association pipeline *must* be parallelized by running multiple slices
-# on a single machine - each slice expects to be able to communicate with others via
-# shared memory. Also, parallelization only makes sense if a single slice
-# cannot exhaust available disk IO.
-#
-# In this example, there is one master process and one worker (slice) process.
-lsst10.ncsa.uiuc.edu:2
