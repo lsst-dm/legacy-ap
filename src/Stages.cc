@@ -69,6 +69,7 @@ namespace lsst { namespace ap {
 
 static boost::uint32_t const HAS_MATCH  = 1;
 static boost::uint32_t const HAS_KNOWN_VARIABLE_MATCH = 2;
+static boost::uint32_t const HAS_MOVING_OBJECT_MATCH = 4;
 static char const * const VAR_PROB_THRESH_KEY[6] = {
     "uVarProbThreshold",
     "gVarProbThreshold",
@@ -219,6 +220,7 @@ struct LSST_AP_LOCAL MovingObjectPredictionMatchProcessor {
     explicit MovingObjectPredictionMatchProcessor(MatchPairVector & results) : _results(results) {}
 
     void operator()(MovingObjectEllipse & ell, DiaSourceEntry & ds) {
+        ds._flags  |= HAS_MOVING_OBJECT_MATCH;
         double dx   = ell._cosRa * ell._cosDec - ds._x;
         double dy   = ell._sinRa * ell._cosDec - ds._y;
         double dz   = ell._sinDec              - ds._z;
@@ -284,7 +286,23 @@ struct LSST_AP_LOCAL NewObjectCreator {
     }
 
     void operator()(DiaSourceEntry const & entry) {
+        // TODO - this logic should be moved into Python to make it easier to change and more configureable
+        static boost::int64_t const SHAPE_DIFFERS_IN_BOTH_EXPOSURES_MASK = 1 << 2;
+        static boost::int64_t const POSITIVE_FLUX_EXCURSION_MASK = (1 << 3) | (1<< 4);
         static boost::int64_t const idLimit = INT64_C(1) << 56;
+        // Generate at most 1 object for a pair of difference sources
+        if ((entry._data->getDiaSourceToId() & (1 << 14)) != 0) {
+            return;
+        }
+        boost::int64_t classFlags = entry._data->getFlagClassification();
+        // Don't generate objects for cosmic rays
+        if (((classFlags & SHAPE_DIFFERS_IN_BOTH_EXPOSURES_MASK) != 0) &&
+            ((classFlags & POSITIVE_FLUX_EXCURSION_MASK) == POSITIVE_FLUX_EXCURSION_MASK)) {
+            return;
+        }
+        // TODO: Don't generate objects for fast movers. Requires knowledge of
+        // ellipticity of difference source after PSF deconvolution, which is not
+        // available for DC3a.
 
         if ((entry._flags & (HAS_MATCH | HAS_KNOWN_VARIABLE_MATCH)) == 0) {
             // difference source had no matches - record it as the source of a new object
@@ -292,7 +310,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
             if (id >= idLimit) {
                 throw LSST_EXCEPT(ex::RangeErrorException, "DiaSource id doesn't fit in 56 bits");
             }
-            // generate a new simplified object (id, position, variability probabilities only)
+            // generate a new simplified object (id, position, proper motions, variability probabilities)
             // and assign it to the appropriate chunk
             Object obj;
             
