@@ -46,7 +46,7 @@ namespace lsst { namespace ap { namespace detail {
  * </ul>
  */
 template <typename EntryT, int NumEntries>
-class HashedSet : private boost::noncopyable {
+class LSST_AP_LOCAL HashedSet : private boost::noncopyable {
     BOOST_STATIC_ASSERT(NumEntries > 0 && (NumEntries & (NumEntries - 1)) == 0);
     BOOST_STATIC_ASSERT(NumEntries < INT_MAX);
 //    BOOST_STATIC_ASSERT(boost::has_nothrow_constructor<EntryT>::value);
@@ -123,7 +123,7 @@ private :
  * simply by adding the offsets to the (process-specific) block allocator address.
  */
 template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class BlockAllocator : private boost::noncopyable {
+class LSST_AP_LOCAL BlockAllocator : private boost::noncopyable {
 public :
     BlockAllocator(unsigned char const * const ref, std::size_t const offset);
 
@@ -193,7 +193,7 @@ public :
  * To be used exclusively by chunk manager implementations.
  */
 template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class SubManager : private boost::noncopyable {
+class LSST_AP_LOCAL SubManager : private boost::noncopyable {
 public :
     typedef BlockAllocator<MutexT, DataT, TraitsT> Allocator;
     typedef ChunkRef<Allocator, DataT, TraitsT> Chunk;
@@ -266,7 +266,7 @@ template <
     typename DataT,
     typename TraitsT = DataTraits<DataT>
 >
-class ChunkManagerImpl : private boost::noncopyable {
+class LSST_AP_API ChunkManagerImpl : private boost::noncopyable {
 public :
     typedef SubManager<MutexT, DataT, TraitsT> Manager;
     typedef typename Manager::Chunk Chunk;

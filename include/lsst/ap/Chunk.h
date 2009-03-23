@@ -30,7 +30,7 @@ namespace ap {
 
 
 /** @brief  Simple header for binary chunk files -- allows some sanity checking at read time. */
-struct BinChunkHeader {
+struct LSST_AP_API BinChunkHeader {
 
     static boost::uint32_t const MAGIC = 0xdecade14;
 
@@ -220,7 +220,7 @@ typedef unsigned char ChunkEntryFlag;
  * to record a small number of incremental modifications.
  */
 template <typename AllocatorT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class ChunkRef {
+class LSST_AP_API ChunkRef {
 
 //    BOOST_STATIC_ASSERT(boost::has_trivial_assign<DataT>::value);
 //    BOOST_STATIC_ASSERT(boost::has_trivial_copy<DataT>::value);
