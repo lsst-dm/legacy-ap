@@ -4,8 +4,8 @@ import lsst.SConsUtils as scons
 
 # Custom configure tests
 visCheckSrc = """
-    __attribute__((visibility('hidden')))  void hiddenFunc() {}
-    __attribute__((visibility('default'))) void defaultFunc() {}
+    __attribute__((visibility("hidden")))  void hiddenFunc() {}
+    __attribute__((visibility("default"))) void defaultFunc() {}
     int main(int argc, char **argv) {
         hiddenFunc();
         defaultFunc();
@@ -108,6 +108,7 @@ env = scons.makeEnv("ap",
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ["wcslib", "wcslib/wcs.h", "m wcs"],
                      ["minuit", "Minuit/FCNBase.h", "lcg_Minuit:C++"],
+                     ["gsl", "gsl/gsl_rng.h", "gslcblas gsl"],
                      ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
                      ["utils", "lsst/utils/Utils.h", "utils:C++"],
                      ["daf_base", "lsst/daf/base.h", "daf_base:C++"],
@@ -144,9 +145,6 @@ if not env.CleanFlagIsSet():
         if not conf.CheckLibWithHeader('rt', 'aio.h', 'C'):
             print 'Missing support for Posix AIO'
             Exit(1)
-        # Necessary to get Linux direct I/O support
-        #if os.uname()[0].title() == 'Linux':
-        #    conf.env.Append(CPPFLAGS = ' -D_GNU_SOURCE')
 
     # If one of the randomized unit tests fail, uncomment and
     # set the following defines to obtain repeatable behaviour

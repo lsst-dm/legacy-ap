@@ -121,7 +121,7 @@ namespace detail {
 // -- Proper motion correction for objects ----------------
 
 /** @return the proper motion corrected position of the given object */
-std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
+LSST_AP_LOCAL std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
     static double const RAD_PER_MAS = (RADIANS_PER_DEGREE/360000.0);
     // (rad/mas)*(sec/year)/(km/AU)
     static double const SCALE = RAD_PER_MAS*(365.25*86400/149597870.691);
@@ -170,7 +170,7 @@ std::pair<double, double> correctProperMotion(Object const& obj, double const ep
 
 /** @brief  Processor for lists of objects matching a difference source */
 template <typename ZoneEntryT>
-class ObjectMatchProcessor {
+class LSST_AP_LOCAL ObjectMatchProcessor {
 
 public :
 
@@ -348,7 +348,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
 // -- Index creation ----------------
 
 template <typename EntryT>
-void buildZoneIndex(
+void LSST_AP_LOCAL buildZoneIndex(
     ZoneIndex<EntryT> & index,
     std::vector<typename EntryT::Chunk> const & chunks,
     double const epoch

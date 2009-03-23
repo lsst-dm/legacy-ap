@@ -103,7 +103,7 @@ BootstrapLock::~BootstrapLock() {
 
 
 template <typename ManagerT>
-ManagerT * getSingleton(char const * const shmObjName, char const * const shmLockName) {
+LSST_AP_LOCAL ManagerT * getSingleton(char const * const shmObjName, char const * const shmLockName) {
 
     static Mutex mutex;
     static ManagerT * singleton = 0;
