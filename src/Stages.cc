@@ -44,6 +44,7 @@
 
 #include "lsst/ap/ChunkManager.h"
 #include "lsst/ap/Match.h"
+#include "lsst/ap/Point.h"
 #include "lsst/ap/Stages.h"
 #include "lsst/ap/Time.h"
 #include "lsst/ap/Utils.h"
@@ -263,22 +264,25 @@ struct LSST_AP_LOCAL NewObjectCreator {
 
     IdPairVector & _results;
     ZoneStripeChunkDecomposition const & _zsc;
+    Point const _fovCen;
+    double const _fovRad;
     ChunkMap _chunks;
     lsst::afw::image::Filter const _filter;
     boost::int64_t const _idNamespace;
 
-    explicit NewObjectCreator(
+    NewObjectCreator(
         IdPairVector & results,
-        ObjectChunkVector & chunks,
-        ZoneStripeChunkDecomposition const & zsc,
-        lsst::afw::image::Filter const filter
+        VisitProcessingContext & context
     ) :
         _results(results),
-        _zsc(zsc),
+        _zsc(context.getDecomposition()),
+        _fovCen(context.getFov().getCenterRa(), context.getFov().getCenterDec()),
+        _fovRad(context.getFov().getRadius()),
         _chunks(),
-        _filter(filter),
-        _idNamespace(static_cast<boost::int64_t>(filter + 1) << 56)
+        _filter(context.getFilter()),
+        _idNamespace(static_cast<boost::int64_t>(context.getFilter() + 1) << 56)
     {
+        ObjectChunkVector & chunks = context.getChunks();
         // build a map of ids to chunks
         for (ObjectChunkVector::iterator i(chunks.begin()), end(chunks.end()); i != end; ++i) {
             _chunks.insert(ChunkMapValue(i->getId(), *i));
@@ -336,8 +340,12 @@ struct LSST_AP_LOCAL NewObjectCreator {
             ChunkMapIterator c = _chunks.find(chunkId);
             if (c == _chunks.end()) {
                 throw LSST_EXCEPT(ex::RuntimeErrorException,
-                    (boost::format("new object not in any chunk overlapping the FOV: (%1%, %2%) in chunk %3%") %
-                        obj._ra % obj._decl % chunkId).str());
+                    (boost::format("new object from DIASource %1% ra,dec=(%2%, %3%) x,y=(%4%, %5%) "
+                                   "not in any chunk overlapping FOV with center (%6%, %7%), "
+                                   "radius=%8%: new object would go to chunk %9%; distance to FOV "
+                                   "center is %10% deg") % id % obj._ra % obj._decl %
+                     entry._data->getXAstrom() % entry._data->getYAstrom() % _fovCen._ra %
+                     _fovCen._dec % _fovRad % chunkId % _fovCen.distance(Point(obj._ra, obj._decl))).str());
             }
             c->second.insert(obj);
         }
@@ -521,9 +529,11 @@ VisitProcessingContext::VisitProcessingContext(
     _runId(runId),
     _visitId(-1),
     _matchRadius(policy->getDouble("matchRadius")),
+    _ellipseScalingFactor(policy->getDouble("ellipseScalingFactor")),
     _filter(),
     _workerId(workerId),
-    _numWorkers(numWorkers)
+    _numWorkers(numWorkers),
+    _debugSharedMemory(policy->getBool("debugSharedMemory"))
 {
     double ra = event->getAsDouble("ra");
     double dec = event->getAsDouble("decl");
@@ -739,8 +749,10 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
  * @param[in, out] context  State involved in processing a single visit.
  */
 LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
-    // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
-    SharedObjectChunkManager::destroyInstance(context.getRunId());
+    if (!context.debugSharedMemory()) {
+        // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
+        SharedObjectChunkManager::destroyInstance(context.getRunId());
+    }
     SharedObjectChunkManager manager(context.getRunId());
     if (manager.isVisitInFlight(context.getVisitId())) {
         try {
@@ -836,6 +848,7 @@ LSST_AP_API void matchMops(
     SharedObjectChunkManager manager(context.getRunId());
 
     try {
+        double const ellScale = context.getPipelinePolicy()->getDouble("ellipseScalingFactor");
         double const smaaClamp = context.getPipelinePolicy()->getDouble("semiMajorAxisClamp");
         double const smiaClamp = context.getPipelinePolicy()->getDouble("semiMinorAxisClamp");
         
@@ -863,6 +876,8 @@ LSST_AP_API void matchMops(
         detail::DiscardLargeEllipseFilter elf(context.getPipelinePolicy());
         lsst::mops::MovingObjectPredictionVector::iterator const end = predictions.end();
         for (lsst::mops::MovingObjectPredictionVector::iterator i = predictions.begin(); i != end; ++i) {
+            i->setSemiMajorAxisLength(i->getSemiMajorAxisLength() * ellScale);
+            i->setSemiMinorAxisLength(i->getSemiMinorAxisLength() * ellScale);
             if (elf(*i)) {
                 // clamp error ellipses if necessary
                 if (smaaClamp > 0.0 && i->getSemiMajorAxisLength() > smaaClamp) {
@@ -905,12 +920,7 @@ LSST_AP_API void matchMops(
 
         // Create new objects from difference sources with no matches
         watch.start();
-        detail::NewObjectCreator createObjects(
-            newObjects,
-            context.getChunks(),
-            context.getDecomposition(),
-            context.getFilter()
-        );
+        detail::NewObjectCreator createObjects(newObjects, context);
         context.getDiaSourceIndex().apply(createObjects);
         watch.stop();
         Rec(log, Log::INFO) << "created new objects" <<

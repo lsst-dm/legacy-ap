@@ -8,6 +8,7 @@ zonesPerDegree                  : 180
 zonesPerStripe                  : 63
 maxEntriesPerZoneEstimate       : 4096
 matchRadius                     : 0.5
+ellipseScalingFactor            : 1.0
 semiMajorAxisThreshold          : 10800.0
 semiMajorAxisClamp              : 10.0
 semiMinorAxisClamp              : 10.0
@@ -20,3 +21,4 @@ rVarProbThreshold               : 90
 iVarProbThreshold               : 90
 zVarProbThreshold               : 90
 yVarProbThreshold               : 90
+debugSharedMemory               : false

@@ -319,6 +319,8 @@ public :
     void printChunk(int const chunkId, std::ostream & os) const;
 
 private :
+    void rollbackAllExcept(int const visitId);
+
     mutable MutexT    _mutex;
     Condition<MutexT> _ownerCondition;
     VisitTracker      _visits;

@@ -79,6 +79,18 @@ definitions: {
         maxOccurs:  1
     }
 
+    ellipseScalingFactor: {
+        description:"A scaling factor used to scale the semi-major and semi-major axis
+                     lengths of predicted moving object error ellipses prior to
+                     consideration by the pipeline. This occurs before thresholding
+                     (see the 'semiMajorAxisThreshold' property) and clamping (see the
+                     'semiMajorAxisClamp' and 'semiMinorAxisClamp' properties)."
+        type:       "double"
+        default:    1.0
+        minOccurs:  0
+        maxOccurs:  1
+    }
+
     semiMajorAxisThreshold: {
         description:"The maximum semi major axis length (in arc-seconds) of a
                      predicted moving objects error ellipse for that object to
@@ -250,6 +262,17 @@ definitions: {
             min:    0
             max:    100
         }
+    }
+
+    debugSharedMemory : {
+        description:"Flag indicating whether the per-run pipeline shared memory
+                     segment should be automatically deleted or not; if not it can
+                     be found in /dev/shm/, and will have a name consisting of 'ap_RRRR'
+                     where RRRR is the run id."
+        type:       "bool"
+        default:    false
+        minOccurs:  0
+        maxOccurs:  1
     }
 
 }

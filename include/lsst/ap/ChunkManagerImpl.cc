@@ -810,6 +810,12 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::waitForOwnership(
         }
         // wait for ownership
         if (!_ownerCondition.wait(lock, deadline)) {
+            // TODO: this is a short-term DC3a hack, necessary because there is no way for
+            // the pipeline framework to communicate exceptions arising outside of the implementation
+            // of AP (e.g. in an IOStage) back to the pipeline itself. This results in visits that
+            // fail, but never relinquish ownership of their chunks. For now, take the draconian measure
+            // of rolling back all visits except the current one. This needs to be re-thought for DC3b!
+            rollbackAllExcept(visitId);
             throw LSST_EXCEPT(lsst::pex::exceptions::TimeoutException,
                 (boost::format("Deadline for visit %1% expired") % visitId).str());
         }
@@ -862,6 +868,25 @@ bool ChunkManagerImpl<MutexT, DataT, TraitsT>::endVisit(
         _ownerCondition.notifyAll();
     }
     return !roll;
+}
+
+
+/**
+ * @internal
+ * Rolls back all visits currently being tracked except for the specified one.
+ * Assumes the chunk manager mutex has been acquired.
+ *
+ * @param[in] visitId	Identifier of sole surving visit.
+ */
+template <typename MutexT, typename DataT, typename TraitsT>
+void ChunkManagerImpl<MutexT, DataT, TraitsT>::rollbackAllExcept(int const visitId) {
+    for (Visit const * v = _visits.begin(); v != _visits.end(); ++v) {
+        int id = v->getId();
+        if (id >= 0 && id != visitId) {
+            _visits.erase(id);
+            _data.relinquishOwnership(id, true, _visits);
+        }
+    }
 }
 
 

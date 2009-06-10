@@ -115,6 +115,9 @@ public :
     double getMatchRadius() const {
         return _matchRadius;
     }
+    double getEllipseScalingFactor() const {
+        return _ellipseScalingFactor;
+    }
     int getVisitId() const {
         return _visitId;
     }
@@ -126,6 +129,9 @@ public :
     }
     int getNumWorkers() const {
         return _numWorkers;
+    }
+    bool debugSharedMemory() const {
+        return _debugSharedMemory;
     }
 
 private :
@@ -142,10 +148,12 @@ private :
     std::string _runId;
     int _visitId;
     double _matchRadius;
+    double _ellipseScalingFactor;
     double _visitTime;
     lsst::afw::image::Filter _filter;
     int _workerId;
     int _numWorkers;
+    bool _debugSharedMemory;
 };
 
 
