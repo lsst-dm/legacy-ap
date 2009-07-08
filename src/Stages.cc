@@ -295,13 +295,13 @@ struct LSST_AP_LOCAL NewObjectCreator {
         static boost::int64_t const POSITIVE_FLUX_EXCURSION_MASK = (1 << 3) | (1<< 4);
         static boost::int64_t const idLimit = INT64_C(1) << 56;
         // Generate at most 1 object for a pair of difference sources
-        if ((entry._data->getDiaSourceToId() & (1 << 14)) != 0) {
+        if ((entry._data->getDiaSourceToId() & (1 << 30)) != 0) {
             return;
         }
         boost::int64_t classFlags = entry._data->getFlagClassification();
         // Don't generate objects for cosmic rays
         if (((classFlags & SHAPE_DIFFERS_IN_BOTH_EXPOSURES_MASK) != 0) &&
-            ((classFlags & POSITIVE_FLUX_EXCURSION_MASK) == POSITIVE_FLUX_EXCURSION_MASK)) {
+            ((classFlags & POSITIVE_FLUX_EXCURSION_MASK) != 0)) {
             return;
         }
         // TODO: Don't generate objects for fast movers. Requires knowledge of
