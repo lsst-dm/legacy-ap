@@ -91,7 +91,7 @@ def IsGccBelow4(context):
 dependencies = ["boost", "python", "mysqlclient", "wcslib", 'minuit',
                 "pex_exceptions", "utils", "daf_base", "pex_logging",
                 "security", "pex_policy", "daf_persistence",
-                "daf_data", "afw", "mops","Eigen"]
+                "daf_data", "afw", "mops_nightmops","Eigen"]
 
 #
 # Setup our environment
@@ -118,7 +118,7 @@ env = scons.makeEnv("ap",
                      ["daf_persistence", "lsst/daf/persistence.h", "daf_persistence:C++"],
                      ["daf_data", "lsst/daf/data.h", "daf_data:C++"],
                      ["afw", "lsst/afw/detection/DiaSource.h", "afw:C++"],
-                     ["mops", "lsst/mops/MovingObjectPrediction.h"],
+                     ["mops_nightmops", "lsst/mops/MovingObjectPrediction.h"],
                      ["Eigen", "Eigen/Core.h"]
                     ])
 
