@@ -234,7 +234,7 @@ void EmlProcessor::operator()(Ell & e, MatchIterator begin, MatchIterator end) {
 
 
 // explicit instantiations of match routines
-
+namespace lsst { namespace ap {
 template size_t distanceMatch<Ze, Ze, Filt, Filt, MlProcessor>(
     Zi &,
     Zi &,
@@ -259,6 +259,8 @@ template size_t ellipseGroupedMatch<TestDatum, Ze, EllFilt, Filt, EmlProcessor>(
     Filt &,
     EmlProcessor &
 );
+
+}} // namespace lsst::ap
 
 
 namespace {
