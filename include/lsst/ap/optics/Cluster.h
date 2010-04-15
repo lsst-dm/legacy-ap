@@ -12,27 +12,25 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_OPTICS_H
-#define LSST_AP_OPTICS_OPTICS_H
+#ifndef LSST_AP_OPTICS_CLUSTER_H
+#define LSST_AP_OPTICS_CLUSTER_H
 
 #include <vector>
 
 #include "lsst/pex/policy/Policy.h"
 #include "lsst/afw/detection/Source.h"
 
-#include "../Common.h"
-
 
 namespace lsst { namespace ap { namespace optics {
 
-LSST_AP_API SourceClusterVector cluster(
+LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
     lsst::afw::detection::SourceSet const & sources,
     lsst::pex::policy::Policy::Ptr policy);
 
-LSST_AP_API SourceClusterVector cluster(
+LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
     std::vector<lsst::afw::detection::SourceSet> const & sources,
     lsst::pex::policy::Policy::Ptr policy);
 
 }}} // namespace lsst:ap::optics
 
-#endif // LSST_AP_OPTICS_OPTICS_H
+#endif // LSST_AP_OPTICS_CLUSTER_H
