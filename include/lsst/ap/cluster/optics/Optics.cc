@@ -5,8 +5,8 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_DETAIL_OPTICS_CC
-#define LSST_AP_OPTICS_DETAIL_OPTICS_CC
+#ifndef LSST_AP_CLUSTER_OPTICS_OPTICS_CC
+#define LSST_AP_CLUSTER_OPTICS_OPTICS_CC
 
 #include "Optics.h"
 
@@ -15,8 +15,11 @@
 
 #include "lsst/pex/exceptions.h"
 
+#include "KDTree.cc"
+#include "SeedList.cc"
 
-namespace lsst { namespace ap { namespace optics { namespace detail {
+
+namespace lsst { namespace ap { namespace cluster { namespace optics {
 
 namespace except = ::lsst::pex::exceptions;
 
@@ -62,10 +65,11 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
                           "pointsPerLeaf parameter must be positive");
     }
 
-    _log.log(Log::INFO, "Building k-d tree for sources");
+    _log.log(lsst::pex::logging::Log::INFO, "Building k-d tree for sources");
     boost::scoped_ptr<KDTree<K, DataT> > tree(new KDTree<K, DataT>(
         points, numPoints, pointsPerLeaf, leafExtentThreshold));
-    _log.format(Log::INFO, "Created k-d tree for %d sources", numPoints);
+    _log.format(lsst::pex::logging::Log::INFO,
+                "Created k-d tree for %d sources", numPoints);
 
     boost::scoped_ptr<SeedList<K, DataT> > seeds(new SeedList<K, DataT>(
         points, numPoints));
@@ -95,7 +99,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
     size_t s = clusters.size();
     int scanFrom = 0;
 
-    _log.log(Log::INFO, "Clustering sources using OPTICS");
+    _log.log(lsst::pex::logging::Log::INFO, "Clustering sources using OPTICS");
     _ran = true;
 
     while (true) {
@@ -103,7 +107,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
         if (_seeds->empty()) {
             // find next unprocessed point
             for (i = scanFrom; i < _numPoints; ++i) {
-                if (_points[i].state == Point::UNPROCESSED) {
+                if (_points[i].state == Point<K, DataT>::UNPROCESSED) {
                     scanFrom = i + 1;
                     break;
                 }
@@ -114,7 +118,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
         } else {
             i = _seeds->pop();
         }
-        _points[i].state = Point::PROCESSED;
+        _points[i].state = Point<K, DataT>::PROCESSED;
         expandClusterOrder(i, metric);
         if (_points[i].reach == std::numeric_limits<double>::infinity()) {
             if (clusters.size() != 0) {
@@ -127,7 +131,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
     if (cluster.size() > 0) {
         clusters.push_back(cluster);
     }
-    _log.format(Log::INFO, "Produced %d clusters",
+    _log.format(lsst::pex::logging::Log::INFO, "Produced %d clusters",
                 static_cast<int>(clusters.size() - s));
 }
 
@@ -141,7 +145,7 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
     int n = 0;
     int j = range;
     while (j != -1) {
-        Point * p = _points + j;
+        Point<K, DataT> * p = _points + j;
         if (j != i) {
             double d = p->dist;
             if (n < _minPoints) {
@@ -164,7 +168,7 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
         double coreDist = _distances[0];
         j = range;
         while (j != -1) {
-            Point * p = _points + j;
+            Point<K, DataT> * p = _points + j;
             if (j != i) {
                 _seeds->update(i, std::max(coreDist, p->dist));
             }
@@ -173,6 +177,6 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
     }
 }
 
-}}}} // namespace lsst:ap::optics::detail
+}}}} // namespace lsst:ap::cluster::optics
 
-#endif // LSST_AP_OPTICS_DETAIL_OPTICS_CC
+#endif // LSST_AP_CLUSTER_OPTICS_OPTICS_CC

@@ -5,8 +5,8 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_PT1SKYTILE_H
-#define LSST_AP_OPTICS_PT1SKYTILE_H
+#ifndef LSST_AP_CLUSTER_PT1SKYTILE_H
+#define LSST_AP_CLUSTER_PT1SKYTILE_H
 
 #include <vector>
 #include <utility>
@@ -16,7 +16,7 @@
 #include "../Common.h"
 
 
-namespace lsst { namespace ap { namespace optics {
+namespace lsst { namespace ap { namespace cluster {
 
 /** A PT1 sky-tile is a single pixel obtained from the quadrilateralized
   * spherical cube. Post-PT1, this code will be generalized and moved
@@ -45,6 +45,6 @@ private:
     int _id;
 };
 
-}}} // namespace lsst:ap::optics
+}}} // namespace lsst:ap::cluster
 
-#endif // LSST_AP_OPTICS_PT1SKYTILE_H
+#endif // LSST_AP_CLUSTER_PT1SKYTILE_H

@@ -1,27 +1,29 @@
 // -*- lsst-c++ -*-
 /** @file
-  * @brief Classes that represent clusters of sources and their attributes.
+  * @brief Functions for clustering points (using the OPTICS algorithm)
+  *        and for computing cluster attributes.
   *
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_SOURCECLUSTER_H
-#define LSST_AP_OPTICS_SOURCECLUSTER_H
+#ifndef LSST_AP_CLUSTER_SOURCECLUSTER_H
+#define LSST_AP_CLUSTER_SOURCECLUSTER_H
 
 #include <vector>
 
 #include "boost/shared_ptr.hpp"
 
+#include "lsst/pex/policy.h"
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
 
 
-namespace lsst { namespace ap { namespace optics {
+namespace lsst { namespace ap { namespace cluster {
 
 /** Attributes derived from a cluster of Sources; i.e. Sources that
   * have been determined to be observations of the same physical object
-  * according to some algorithm.
+  * according to some clustering algorithm.
   */
 class LSST_AP_API SourceClusterAttributes {
 public:
@@ -49,19 +51,14 @@ private:
     // TODO
 };
 
+LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
+    lsst::afw::detection::SourceSet const & sources,
+    lsst::pex::policy::Policy::Ptr policy);
 
-/** A class that packages up the sources in a cluster along with cluster attributes.
-  */
-struct LSST_AP_API SourceCluster {
-    SourceClusterAttributes::Ptr attributes;
-    lsst::afw::detection::SourceSet sources;
+LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
+    std::vector<lsst::afw::detection::SourceSet> const & sources,
+    lsst::pex::policy::Policy::Ptr policy);
 
-    SourceCluster() : attributes(), sources() { }
-    ~SourceCluster();
-};
+}}} // namespace lsst:ap::cluster
 
-typedef std::vector<SourceCluster> SourceClusterVector;
-
-}}} // namespace lsst:ap::optics
-
-#endif // LSST_AP_OPTICS_SOURCECLUSTER_H
+#endif // LSST_AP_CLUSTER_SOURCECLUSTER_H

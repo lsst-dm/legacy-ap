@@ -5,7 +5,7 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#include "lsst/ap/optics/PT1SkyTile.h"
+#include "lsst/ap/cluster/PT1SkyTile.h"
 
 #include <cmath>
 
@@ -15,7 +15,7 @@
 
 namespace except = lsst::pex::exceptions;
 
-namespace lsst { namespace ap { namespace optics {
+namespace lsst { namespace ap { namespace cluster {
 
 /** Creates a new sky-tile.
   *
@@ -155,4 +155,4 @@ std::pair<size_t, size_t> PT1SkyTile::prune(
 }
 //@}
 
-}}} // namespace lsst:ap::optics
+}}} // namespace lsst:ap::cluster

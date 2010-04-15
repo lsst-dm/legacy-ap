@@ -1,12 +1,19 @@
 // -*- lsst-c++ -*-
 /** @file
-  * @brief Class that encapsulates the state required by the OPTICS algorithm.
+  * @brief Main OPTICS algorithm implementation class.
+  *
+  * For details of the algorithm, see the following paper:
+  *
+  * "OPTICS: Ordering Points To Identify the Clustering Structure".
+  * Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, JÃÂ¶rg Sander (1999).
+  * ACM SIGMOD international conference on Management of data.
+  * ACM Press. pp. 49Ã¢<93>60.
   *
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_DETAIL_OPTICS_H
-#define LSST_AP_OPTICS_DETAIL_OPTICS_H
+#ifndef LSST_AP_CLUSTER_OPTICS_OPTICS_H
+#define LSST_AP_CLUSTER_OPTICS_OPTICS_H
 
 #include <vector>
 
@@ -19,7 +26,7 @@
 #include "SeedList.h"
 
 
-namespace lsst { namespace ap { namespace optics { namespace detail {
+namespace lsst { namespace ap { namespace cluster { namespace optics {
 
 /** @internal
   * Class that encapsulates parameters and state operated on by the
@@ -42,8 +49,8 @@ public:
 
 private:
     Point<K, DataT> * _points;
-    boost::scoped_ptr<KDTreePoint<K, DataT> > _tree;
-    boost::scoped_ptr<SeedListPoint<K, DataT> > _seeds;
+    boost::scoped_ptr<KDTree<K, DataT> > _tree;
+    boost::scoped_ptr<SeedList<K, DataT> > _seeds;
     boost::scoped_array<double> _distances;
     double _epsilon;
     int _numPoints;
@@ -55,6 +62,6 @@ private:
     void expandClusterOrder(int i, MetricT const & metric);
 };
 
-}}}} // namespace lsst:ap::optics::detail
+}}}} // namespace lsst:ap::cluster::optics
 
-#endif // LSST_AP_OPTICS_DETAIL_OPTICS_H
+#endif // LSST_AP_CLUSTER_OPTICS_OPTICS_H

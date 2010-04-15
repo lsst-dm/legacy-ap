@@ -5,14 +5,14 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_DETAIL_SEEDLIST_H
-#define LSST_AP_OPTICS_DETAIL_SEEDLIST_H
+#ifndef LSST_AP_CLUSTER_OPTICS_SEEDLIST_H
+#define LSST_AP_CLUSTER_OPTICS_SEEDLIST_H
 
 #include "../../Common.h"
 #include "KDTree.h"
 
 
-namespace lsst { namespace ap { namespace optics { namespace detail {
+namespace lsst { namespace ap { namespace cluster { namespace optics {
 
 /** TODO
   *
@@ -40,6 +40,6 @@ private:
     inline void siftDown(int pointIndex);
 };
 
-}}}} // namespace lsst:ap::optics::detail
+}}}} // namespace lsst:ap::cluster::optics
 
-#endif // LSST_AP_OPTICS_DETAIL_SEEDLIST_H
+#endif // LSST_AP_CLUSTER_OPTICS_SEEDLIST_H

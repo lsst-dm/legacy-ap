@@ -5,15 +5,15 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_DETAIL_KDTREE_CC
-#define LSST_AP_OPTICS_DETAIL_KDTREE_CC
+#ifndef LSST_AP_CLUSTER_OPTICS_KDTREE_CC
+#define LSST_AP_CLUSTER_OPTICS_KDTREE_CC
 
 #include "KDTree.h"
 
 #include <utility>
 
 
-namespace lsst { namespace ap { namespace optics { namespace detail {
+namespace lsst { namespace ap { namespace cluster { namespace optics {
 
 namespace except = ::lsst::pex::exceptions;
 
@@ -472,6 +472,6 @@ void KDTree<K, DataT>::build(double leafExtentThreshold)
     }
 }
 
-}}}} // namespace lsst::ap::optics::detail
+}}}} // namespace lsst::ap::cluster::optics
 
-#endif // LSST_AP_OPTICS_DETAIL_KDTREE_CC
+#endif // LSST_AP_CLUSTER_OPTICS_KDTREE_CC

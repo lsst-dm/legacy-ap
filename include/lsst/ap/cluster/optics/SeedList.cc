@@ -5,12 +5,13 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_OPTICS_DETAIL_SEEDLIST_CC
-#define LSST_AP_OPTICS_DETAIL_SEEDLIST_CC
+#ifndef LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
+#define LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
 
 #include "SeedList.h"
 
-namespace lsst { namespace ap { namespace optics { namespace detail {
+
+namespace lsst { namespace ap { namespace cluster { namespace optics {
 
 template <int K, typename DataT>
 SeedList<K, DataT>::SeedList(Point<K, DataT> * points, int numPoints) :
@@ -158,6 +159,6 @@ inline void SeedList<K, DataT>::siftDown(int pointIndex) {
     _points[pointIndex].state = heapIndex;
 }
 
-}}}} // namespace lsst:ap::optics::detail
+}}}} // namespace lsst:ap::cluster::optics
 
-#endif // LSST_AP_OPTICS_DETAIL_SEEDLIST_CC
+#endif // LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
