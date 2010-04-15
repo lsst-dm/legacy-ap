@@ -23,8 +23,8 @@ public:
     SeedList(Point<K, DataT> * points, int numPoints);
     ~SeedList();
 
-    bool empty() const;
-    int size() const;
+    inline bool empty() const;
+    inline int size() const;
     inline int capacity() const;
     inline int pop();
     inline void add(int i);

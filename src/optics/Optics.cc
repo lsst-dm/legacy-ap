@@ -22,6 +22,7 @@
 #include <limits>
 
 #include "boost/scoped_ptr.hpp"
+#include "boost/scoped_array.hpp"
 
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/logging/Log.h"
@@ -80,14 +81,7 @@ private:
 };
 
 /** Initializes data structures required by OPTICS for a set of input
-  * points. The following parameters are read from @c policy:
-  *
-  * @li @c "epsilon" (double) : generating distance for clusters (arcsec).
-  * @li @c "minPoints" (int) : minimum number of points that must be in an
-  *     epsilon neighborhood of a point P for P to be assigned to a cluster.
-  * @li @c "pointsPerLeaf" (int) : a performance tuning parameter that
-  *     specifies the target number of points per leaf of the k-d tree used
-  *     by OPTICS internally.
+  * points.
   */
 Optics::Optics(Point * points,
                int numPoints,
@@ -261,13 +255,18 @@ unsigned int const MAX_SOURCES =
 
 /// @name OPTICS clustering functions.
 //@{
-/** @brief Clusters a set of sources using the OPTICS algorithm.
+/** Clusters a set of sources using the OPTICS algorithm. The following
+  * parameters are read from @c policy:
+  *
+  * @li @c "epsilon" (double) : generating distance for clusters (arcsec).
+  * @li @c "minPoints" (int) : minimum number of points that must be in an
+  *     epsilon neighborhood of a point P for P to be assigned to a cluster.
+  * @li @c "pointsPerLeaf" (int) : a performance tuning parameter that
+  *     specifies the target number of points per leaf of the k-d tree used
+  *     by OPTICS internally.
   *
   * @param[in] sources      The sources to cluster.
-  * @param[in] epsilon      The clustering distance to use (radians).
-  * @param[in] minPoints    The minimum number of points that must be in an
-  *                         epsilon-neighborhood of a source S for S to be
-  *                         assigned to a cluster.
+  * @param[in] policy       Policy containing clustering parameters.
   *
   * @return     A vector of SourceCluster objects.
   */
