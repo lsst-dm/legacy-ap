@@ -88,7 +88,7 @@ def IsGccBelow4(context):
     return result
 
 # Direct and indirect dependencies of ap
-dependencies = ["boost", "python", "mysqlclient", "wcslib", 'minuit',
+dependencies = ["boost", "python", "mysqlclient", "wcslib", "minuit2",
                 "pex_exceptions", "utils", "daf_base", "pex_logging",
                 "security", "pex_policy", "daf_persistence",
                 "daf_data", "afw", "mops","Eigen"]
@@ -107,7 +107,7 @@ env = scons.makeEnv("ap",
                      ["python", "Python.h"],
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ["wcslib", "wcslib/wcs.h", "m wcs"],
-                     ["minuit", "Minuit/FCNBase.h", "lcg_Minuit:C++"],
+                     ["minuit2", "Minuit2/FCNBase.h", "Minuit2:C++"],
                      ["gsl", "gsl/gsl_rng.h", "gslcblas gsl"],
                      ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
                      ["utils", "lsst/utils/Utils.h", "utils:C++"],
