@@ -118,7 +118,7 @@ void appendObjects(ObjChunk & chunk, int const num) {
         obj._muDecl = rng().gaussian()*10.0;
         obj._parallax = rng().flat(0.0, 10000.0);
         obj._radialVelocity = rng().gaussian()*1.0e6;
-        for (int i = 0; i < lsst::afw::image::Filter::NUM_FILTERS; ++i) {
+        for (int i = 0; i < Object::NUM_FILTERS; ++i) {
             obj._varProb[i] = static_cast<boost::int16_t>(rng().uniformInt(100));
         }
         chunk.insert(obj);

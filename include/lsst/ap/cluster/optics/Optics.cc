@@ -115,10 +115,10 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
             if (i == _numPoints) {
                 break;
             }
+            _points[i].state = Point<K, DataT>::PROCESSED;
         } else {
             i = _seeds->pop();
         }
-        _points[i].state = Point<K, DataT>::PROCESSED;
         expandClusterOrder(i, metric);
         if (_points[i].reach == std::numeric_limits<double>::infinity()) {
             if (clusters.size() != 0) {

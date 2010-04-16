@@ -28,6 +28,7 @@ namespace lsst { namespace ap {
  * may ever be NULL.
  */
 struct LSST_AP_API Object {
+    static int const NUM_FILTERS = 6;
     boost::int64_t _objectId;
     double _ra;
     double _decl;
@@ -35,7 +36,7 @@ struct LSST_AP_API Object {
     double _muDecl;
     double _parallax;
     double _radialVelocity;
-    boost::int16_t _varProb[lsst::afw::image::Filter::NUM_FILTERS];
+    boost::int16_t _varProb[NUM_FILTERS];
 
     boost::int64_t getId() const {
         return _objectId;
@@ -78,8 +79,8 @@ struct LSST_AP_API Object {
         return 51544.4996275;
     }
 
-    boost::int16_t getVarProb(lsst::afw::image::Filter const f) const {
-        return _varProb[f];
+    boost::int16_t getVarProb(lsst::afw::image::Filter const & f) const {
+        return _varProb[f.getId()];
     }
 };
 

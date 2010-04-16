@@ -30,6 +30,8 @@ public:
     inline void add(int i);
     inline void update(int i, double reach);
 
+    bool checkInvariants() const;
+
 private:
     boost::scoped_array<int> _heap;
     Point<K, DataT> * _points;

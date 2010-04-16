@@ -54,11 +54,12 @@ inline int SeedList<K, DataT>::pop() {
         return -1;
     }
     int smallest = _heap[0];
-    int i = _heap[--s];
-    _size = s;
-    if (s > 0) {
-        siftDown(i);
-    } else {
+    _points[smallest].state = Point<K, DataT>::PROCESSED;
+    _size = --s;
+    if (s > 1) {
+        siftDown(_heap[s]);
+    } else if (s == 1) {
+        int i = _heap[1];
         _heap[0] = i;
         _points[i].state = 0;
     }
@@ -117,7 +118,7 @@ inline void SeedList<K, DataT>::siftUp(int heapIndex, int pointIndex) {
     while (heapIndex > 0) {
         int parentHeapIndex = (heapIndex - 1) >> 1;
         int parentPointIndex = _heap[parentHeapIndex];
-        if (_points[parentPointIndex].reach < reach) {
+        if (_points[parentPointIndex].reach <= reach) {
             break;
         }
         _heap[heapIndex] = parentPointIndex;
@@ -157,6 +158,55 @@ inline void SeedList<K, DataT>::siftDown(int pointIndex) {
     }
     _heap[heapIndex] = pointIndex;
     _points[pointIndex].state = heapIndex;
+}
+
+/** Returns @c true if implementation defined invariants over internal state
+  * hold. To be used by unit tests.
+  */
+template <int K, typename DataT>
+bool SeedList<K, DataT>::checkInvariants() const {
+    // check that each point knows its location in the seed list
+    for (int i = 0; i < _numPoints; ++i) {
+        int h = _points[i].state;
+        if (h >= 0) {
+            if (h >= _size) {
+                // point has an invalid index into the seed list
+                return false;
+            }
+            if (_heap[h] != i) {
+                // point has an incorrect index into the seed list
+                return false;
+            }
+        }
+    }
+    for (int i = 0; i < _size; ++i) {
+        int p = _heap[i];
+        if (p < 0 || p >= _numPoints) {
+            // heap contains an invalid point index
+            return false;
+        }
+        if (_points[p].state != i) {
+            // point has an incorrect index into the seed list
+            return false;
+        }
+    }
+    // check the heap invariant
+    for (int i = 0; i < _size >> 1; ++i) {
+        double reach = _points[_heap[i]].reach;
+        int h = (i << 1) + 1;
+        int p = _heap[h];
+        if (_points[p].reach < reach) {
+            return false;
+        }
+        h += 1;
+        if (h < _size) {
+            int p = _heap[h];
+            if (_points[p].reach < reach) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 }}}} // namespace lsst:ap::cluster::optics
