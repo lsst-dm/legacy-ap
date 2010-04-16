@@ -5,9 +5,9 @@
   * For details of the algorithm, see the following paper:
   *
   * "OPTICS: Ordering Points To Identify the Clustering Structure".
-  * Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, JÃÂ¶rg Sander (1999).
+  * Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, Jorg Sander (1999).
   * ACM SIGMOD international conference on Management of data.
-  * ACM Press. pp. 49Ã¢<93>60.
+  * ACM Press. pp. 49-60.
   *
   * @ingroup ap
   * @author Serge Monkewitz

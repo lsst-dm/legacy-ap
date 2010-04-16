@@ -117,6 +117,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
             }
             _points[i].state = Point<K, DataT>::PROCESSED;
         } else {
+            // expand cluster around seed with smallest reachability-distance
             i = _seeds->pop();
         }
         expandClusterOrder(i, metric);
