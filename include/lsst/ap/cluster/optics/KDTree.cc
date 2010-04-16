@@ -293,7 +293,7 @@ int median(Point<K, DataT> * const points,
   * process modifies the order of points in the array but not the points
   * themselves.
   *
-  * @param[inout] points        Pointer to an array of points.
+  * @param[in,out] points       Pointer to an array of points.
   * @param[in] numPoints        Number of elements in @c points.
   * @param[in] pointsPerLeaf    Target number of points per leaf node,
   *                             used to determine k-d tree height.
