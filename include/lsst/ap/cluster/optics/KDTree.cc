@@ -44,8 +44,8 @@ std::pair<double, int> maxExtentAndDim(Point<K, DataT> const * const points,
     for (int i = 0; i < numPoints; ++i) {
         Vector const & v = points[i].coords;
         for (int d = 0; d < K; ++d) {
-            minv[d] = std::min(minv[d], v[d]);
-            maxv[d] = std::max(minv[d], v[d]);
+            minv[d] = std::min(minv[d], v.coeff(d));
+            maxv[d] = std::max(maxv[d], v.coeff(d));
         }
     }
     double maxExtent = maxv[0] - minv[0];
@@ -219,8 +219,8 @@ inline int median5(Point<K, DataT> * const points, int const dim) {
 }
 
 /** @internal
-  * Returns the "median of medians" for an array. This primitive is used
-  * for pivot selection in the median finding algorithm.
+  * Returns the index of the "median of medians" for an array. This primitive
+  * is used for pivot selection in the median finding algorithm.
   *
   * @pre    points != 0
   * @pre    numPoints > 0
@@ -228,13 +228,14 @@ inline int median5(Point<K, DataT> * const points, int const dim) {
   */
 template <int K, typename DataT>
 int medianOfMedians(Point<K, DataT> * const points,
-                    int numPoints,
+                    int const numPoints,
                     int const dim)
 {
+    int n = numPoints;
     int m = 0;
     while (true) {
-        if (numPoints <= 5) {
-            switch (numPoints) {
+        if (n <= 5) {
+            switch (n) {
                 case 1: break;
                 case 2: m = median2(points, dim); break;
                 case 3: m = median3(points, dim); break;
@@ -244,10 +245,10 @@ int medianOfMedians(Point<K, DataT> * const points,
             break;
         }
         int j = 0;
-        for (int i = 0; i < numPoints; i += 5, ++j) {
+        for (int i = 0; i < n - 4; i += 5, ++j) {
             std::swap(points[j], points[i + median5(points + i, dim)]);
         }
-        numPoints = j;
+        n = j;
     }
     return m;
 }
@@ -265,21 +266,22 @@ int medianOfMedians(Point<K, DataT> * const points,
   *         (rounded down).
   */
 template <int K, typename DataT>
-int median(Point<K, DataT> * points,
-           int numPoints,
+int median(Point<K, DataT> * const points,
+           int const numPoints,
            int const dim)
 {
     int k = numPoints >> 1;
+    int left = 0;
+    int right = numPoints;
     while (true) {
-        int i = medianOfMedians(points, numPoints, dim);
-        i = partition(points, numPoints, dim, i);
+        int i = medianOfMedians(points + left, right - left, dim);
+        i = left + partition(points + left, right - left, dim, i);
         if (k == i) {
             return k;
         } else if (k < i) {
-            numPoints = i;
+            right = i;
         } else {
-            points += i + 1;
-            numPoints -= i + 1;
+            left = i + 1;
         }
     }
 }
@@ -443,7 +445,8 @@ void KDTree<K, DataT>::build(double leafExtentThreshold)
             if (extDim.first > leafExtentThreshold) {
                 _nodes[node].splitDim = extDim.second;
                 // find median of array
-                right = median(_points + left, right - left, extDim.second);
+                right = left + median(_points + left, right - left, extDim.second);
+                _nodes[node].split = _points[right].coords.coeff(extDim.second);
                 // process left child
                 node = (node << 1) + 1;
                 ++h;
@@ -451,11 +454,13 @@ void KDTree<K, DataT>::build(double leafExtentThreshold)
             }
             // node extent is below the subdivision limit: set right index for
             // all right children of node as their left siblings may be valid
-            int c = (node << 1) + 2;
-            for (int h2 = h; h2 <= _height; ++h2) {
-                _nodes[c].right = right;
+            int h2 = h;
+            int c = node;
+            do {
                 c = (c << 1) + 2;
-            }
+                ++h2;
+                _nodes[c].right = right;
+            } while (h2 < _height);
         }
         // move up the tree until a left child is found
         left = right;

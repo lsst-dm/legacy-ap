@@ -1,6 +1,4 @@
-#include <algorithm>
 #include <limits>
-#include <vector>
 
 #include "boost/shared_array.hpp"
 #define BOOST_TEST_DYN_LINK

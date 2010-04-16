@@ -187,8 +187,7 @@ Alias("install", [env.Install(env['prefix'], "python"),
                   env.Install(env['prefix'], "include"),
                   env.Install(env['prefix'], "lib"),
                   env.Install(env['prefix'], "bin"),
-                  env.InstallAs(os.path.join(env['prefix'], "doc", "doxygen"),
-                                os.path.join("doc", "htmlDir")),
+                  env.Install(env['prefix'], "doc"),
                   env.InstallEups(env['prefix'] + "/ups")])
 
 scons.CleanTree(r"*~ core *.so *.os *.o")
