@@ -51,8 +51,8 @@ inline void initPoint(Point & entry,
                       lsst::afw::detection::Source::Ptr const & ptr)
 {
     // Note: this will change once the new Source class heirarchy is in.
-    double ra = ptr->getRa() * RADIANS_PER_DEGREE;
-    double dec = ptr->getDec() * RADIANS_PER_DEGREE;
+    double ra = ptr->getRa();
+    double dec = ptr->getDec();
     double cosDec = std::cos(dec);
     entry.coords.coeffRef(0) = std::sin(ra) * cosDec;
     entry.coords.coeffRef(1) = std::cos(ra) * cosDec;

@@ -10,7 +10,6 @@
 #include <cmath>
 
 #include "lsst/pex/exceptions.h"
-#include "lsst/ap/Common.h"
 
 
 namespace except = lsst::pex::exceptions;
@@ -95,21 +94,12 @@ bool PT1SkyTile::contains(double theta, double phi) const {
   * source list.
   *
   * @param[inout] sources   The sources to prune.
-  *
-  * @return     A @c std::pair<size_t,size_t>, where the first element
-  *             of the pair contains the number of input sources falling
-  *             inside the sky-tile, and the second contains the total
-  *             number of input sources.
   */
-std::pair<size_t, size_t> PT1SkyTile::prune(
-    lsst::afw::detection::SourceSet & sources) const
-{
+void PT1SkyTile::prune(lsst::afw::detection::SourceSet & sources) const {
     size_t const n = sources.size();
     size_t j = 0;
     for (size_t i = 0; i < n; ++i) {
-        double ra = sources[i]->getRa() * RADIANS_PER_DEGREE;
-        double dec = sources[i]->getDec() * RADIANS_PER_DEGREE;
-        if (contains(ra, dec)) {
+        if (contains(sources[i]->getRa(), sources[i]->getDec())) {
             if (j != i) {
                 sources[j] = sources[i];
                 sources[i].reset();
@@ -120,7 +110,6 @@ std::pair<size_t, size_t> PT1SkyTile::prune(
     if (j < n) {
         sources.erase(sources.begin() + j, sources.end());
     }
-    return std::make_pair(j, n);
 }
 
 }}} // namespace lsst:ap::cluster

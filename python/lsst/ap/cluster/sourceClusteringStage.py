@@ -80,9 +80,9 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
         prunedSources = detection.SourceSet()
         sourcesInTile, totalSources = 0, 0
         for s in sources:
-            i, n = skyTile.prune(s)
-            sourcesInTile += i
-            totalSources += n
+            totalSources += len(s)
+            skyTile.prune(s)
+            sourcesInTile += len(s)
             prunedSources.append(s.begin(), s.end())
         del sources
         self.log.log(Log.INFO, "Discarded %d of %d sources; %d sources remain" %

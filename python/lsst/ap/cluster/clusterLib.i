@@ -36,8 +36,6 @@ namespace boost {
 
 %lsst_exceptions()
 
-%template(PairSizeSize)   std::pair<size_t, size_t>;
-
 SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::cluster::PT1SkyTile);
 SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceCluster);
 

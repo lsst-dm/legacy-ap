@@ -8,9 +8,6 @@
 #ifndef LSST_AP_CLUSTER_PT1SKYTILE_H
 #define LSST_AP_CLUSTER_PT1SKYTILE_H
 
-#include <vector>
-#include <utility>
-
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
@@ -32,8 +29,7 @@ public:
 
     bool contains(double theta, double phi) const;
 
-    std::pair<size_t, size_t> prune(
-        lsst::afw::detection::SourceSet & sources) const;
+    void prune(lsst::afw::detection::SourceSet & sources) const;
 
 private:
     int _resolution;

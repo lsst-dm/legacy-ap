@@ -7,9 +7,10 @@ setupRequired(pex_policy >= 3.4.2)
 setupRequired(daf_persistence >= 3.3.7)
 setupRequired(utils >= 3.4.4)
 setupRequired(afw >= 3.3.22)
+setupRequired(skypix >= 3.0.2)
 setupRequired(mops >= 3.2.5)
 
-setupOptional(doxygen >= 1.5.4)
+setupOptional(doxygen >= 1.5.9)
 setupOptional(swig >= 1.3.36+2)
 setupOptional(pex_harness >= 3.5)
 
