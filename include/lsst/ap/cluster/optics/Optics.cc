@@ -96,7 +96,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
                           "OPTICS has already been run");
     }
     std::vector<DataT> cluster;
-    size_t s = clusters.size();
+    size_t const s = clusters.size();
     int scanFrom = 0;
 
     _log.log(lsst::pex::logging::Log::INFO, "Clustering sources using OPTICS");
@@ -116,20 +116,24 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
                 break;
             }
             _points[i].state = Point<K, DataT>::PROCESSED;
+            expandClusterOrder(i, metric);
+            if (cluster.size() > 0) {
+                if (_minPoints == 0 || cluster.size() > 1) {
+                    // don't output clusters of size 1 unless minPoints is 0
+                    clusters.push_back(cluster);
+                }
+                cluster.clear();
+            }
+            cluster.push_back(*(_points[i].data));
         } else {
             // expand cluster around seed with smallest reachability-distance
             i = _seeds->pop();
+            expandClusterOrder(i, metric);
+            assert(_points[i].reach != std::numeric_limits<double>::infinity());
+            cluster.push_back(*(_points[i].data));
         }
-        expandClusterOrder(i, metric);
-        if (_points[i].reach == std::numeric_limits<double>::infinity()) {
-            if (clusters.size() != 0) {
-                clusters.push_back(cluster);
-            }
-            cluster.clear();
-        }
-        cluster.push_back(*(_points[i].data));
     }
-    if (cluster.size() > 0) {
+    if (_minPoints == 0 || cluster.size() > 1) {
         clusters.push_back(cluster);
     }
     _log.format(lsst::pex::logging::Log::INFO, "Produced %d clusters",
@@ -170,8 +174,8 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
         j = range;
         while (j != -1) {
             Point<K, DataT> * p = _points + j;
-            if (j != i) {
-                _seeds->update(i, std::max(coreDist, p->dist));
+            if (p->state != Point<K, DataT>::PROCESSED) {
+                _seeds->update(j, std::max(coreDist, p->dist));
             }
             j = p->next;
         }

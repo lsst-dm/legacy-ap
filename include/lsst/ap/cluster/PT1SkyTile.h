@@ -34,8 +34,6 @@ public:
 
     std::pair<size_t, size_t> prune(
         lsst::afw::detection::SourceSet & sources) const;
-    std::pair<size_t, size_t> prune(
-        std::vector<lsst::afw::detection::SourceSet> & sources) const;
 
 private:
     int _resolution;

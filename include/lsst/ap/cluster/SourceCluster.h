@@ -55,10 +55,6 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
     lsst::afw::detection::SourceSet const & sources,
     lsst::pex::policy::Policy::Ptr policy);
 
-LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
-    std::vector<lsst::afw::detection::SourceSet> const & sources,
-    lsst::pex::policy::Policy::Ptr policy);
-
 }}} // namespace lsst:ap::cluster
 
 #endif // LSST_AP_CLUSTER_SOURCECLUSTER_H

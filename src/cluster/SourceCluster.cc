@@ -67,8 +67,6 @@ unsigned int const MAX_SOURCES =
 } // namespace
 
 
-/// @name OPTICS clustering functions.
-//@{
 /** Clusters a set of sources using the OPTICS algorithm. The following
   * parameters are read from @c policy:
   *
@@ -121,53 +119,6 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
     }
     return clusters;
 }
-
-LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
-    std::vector<lsst::afw::detection::SourceSet> & sources,
-    lsst::pex::policy::Policy::Ptr policy)
-{
-    typedef std::vector<detection::SourceSet>::const_iterator SetIter;
-    typedef detection::SourceSet::const_iterator Iter;
-    // find total number of sources
-    size_t n = 0;
-    for (SetIter ss = sources.begin(), es = sources.end(); ss != es; ++ss) {
-        n += ss->size();
-    }
-    if (n > MAX_SOURCES) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
-                          "too many sources to cluster");
-    }
-    boost::scoped_array<Point> entries(new Point[n]);
-    std::vector<lsst::afw::detection::SourceSet> clusters;
-    // Transform sources into a form the OPTICS implementation understands
-    int i = 0;
-    for (SetIter ss = sources.begin(), es = sources.end(); ss != es; ++ss) {
-        for (Iter s = ss->begin(), e = ss->end(); s != e; ++s, ++i) {
-            initPoint(entries[i], *s);
-        }
-    }
-    if (i > 0) {
-        double epsilon = policy->getDouble("epsilon");
-        double leafExtentThreshold = policy->getDouble("leafExtentThreshold");
-        // Convert epsilon and leafExtentThreshold to radians, and account
-        // for the fact that our metric is the squared euclidian distance,
-        // not angular separation.
-        epsilon = std::sin(0.5 * RADIANS_PER_ARCSEC * epsilon);
-        leafExtentThreshold = std::sin(
-            0.5 * RADIANS_PER_ARCSEC * leafExtentThreshold);
-        epsilon = 4.0 * epsilon * epsilon;
-        leafExtentThreshold = 4.0 * leafExtentThreshold * leafExtentThreshold;
-        Optics optics(entries.get(),
-                      i,
-                      policy->getInt("minPoints"),
-                      epsilon,
-                      leafExtentThreshold,
-                      policy->getInt("pointsPerLeaf"));
-        optics.run(clusters, optics::SquaredEuclidianDistanceOverSphere());
-    }
-    return clusters;
-}
-//@}
 
 }}} // namespace lsst:ap::cluster
 

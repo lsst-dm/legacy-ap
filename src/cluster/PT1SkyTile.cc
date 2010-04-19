@@ -91,8 +91,6 @@ bool PT1SkyTile::contains(double theta, double phi) const {
     return _x == ix && _y == iy;
 }
 
-///@name Removing sources falling outside of a sky-tile
-//@{
 /** Removes sources falling outside of this sky-tile from the input
   * source list.
   *
@@ -106,7 +104,7 @@ bool PT1SkyTile::contains(double theta, double phi) const {
 std::pair<size_t, size_t> PT1SkyTile::prune(
     lsst::afw::detection::SourceSet & sources) const
 {
-    size_t n = sources.size();
+    size_t const n = sources.size();
     size_t j = 0;
     for (size_t i = 0; i < n; ++i) {
         double ra = sources[i]->getRa() * RADIANS_PER_DEGREE;
@@ -124,35 +122,5 @@ std::pair<size_t, size_t> PT1SkyTile::prune(
     }
     return std::make_pair(j, n);
 }
-
-std::pair<size_t, size_t> PT1SkyTile::prune(
-    std::vector<lsst::afw::detection::SourceSet> & sources) const
-{
-    typedef std::vector<lsst::afw::detection::SourceSet>::iterator SetIter;
-    std::pair<size_t, size_t> p(0, 0);
-    // prune each SourceSet
-    for (SetIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        std::pair<size_t, size_t> t = prune(*i);
-        p.first += t.first;
-        p.second += t.second;
-    }
-    // remove empty SourceSets
-    size_t n = sources.size();
-    size_t j = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (sources[i].size() == 0) {
-            if (j != i) {
-                sources[j] = sources[i];
-                sources[i].clear();
-            }
-            ++j;
-        }
-    }
-    if (j < n) {
-        sources.erase(sources.begin() + j, sources.end());
-    }
-    return p;
-}
-//@}
 
 }}} // namespace lsst:ap::cluster
