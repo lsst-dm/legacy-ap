@@ -464,10 +464,10 @@ void KDTree<K, DataT>::build(double leafExtentThreshold)
         }
         // move up the tree until a left child is found
         left = right;
-        for (; h >= 0 && (node & 1) == 0; --h) {
+        for (; h > 0 && (node & 1) == 0; --h) {
             node = (node - 1) >> 1;
         }
-        if (h < 0) {
+        if (h == 0) {
             // tree construction complete!
             break;
         }

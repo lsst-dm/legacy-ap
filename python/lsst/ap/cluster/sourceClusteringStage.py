@@ -1,16 +1,15 @@
 #! /usr/bin/env python
 import math
-import lsst.pex.harness.stage as harnessStage
-
-from lsst.pex.logging import Log
-
+import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.skypix as skypix
-import lsst.ap.cluster as cluster
+import clusterLib 
+
+from lsst.pex.logging import Log
 
 
-class SourceClusteringParallel(harnessStage.ParallelProcessing):
+class SourceClusteringParallel(stage.ParallelProcessing):
     """
     Description:
         Discards input sources falling outside the current sky tile
@@ -19,7 +18,6 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
 
     Policy Dictionary:
         policy/SourceClusteringStageDictionary.paf
-        (references policy/SourceClusteringDictionary.paf)
 
     Clipboard Input:
         See inputKeys in policy/SourceClusteringStageDictionary.paf
@@ -28,7 +26,7 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
         See outputKeys in policy/SourceClusteringStageDictionary.paf
     """
     def setup(self):
-        self.log = Log(self.log, "SourceClusteringParallel")
+        self.log = Log(self.log, "lsst.ap.cluster")
         policyFile = policy.DefaultPolicyFile(
             "ap", "SourceClusteringStageDictionary.paf", "policy")
         defaultPolicy = policy.Policy.createPolicy(
@@ -40,10 +38,11 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
     def process(self, clipboard):
         # create a sky-tile from clipboard data
         event = clipboard.get(self.policy.getString("inputKeys.event"))
-        qs = skypix.createQuadSpherePixelization(self.policy)
+        qs = skypix.createQuadSpherePixelization(
+            self.policy.getPolicy("quadSpherePolicy"))
         skyTileId = event.get("skyTileId");
         root, x, y = qs.coords(skyTileId);
-        skyTile = apCluster.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
+        skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
 
         # discard sources outside the current sky-tile
@@ -66,7 +65,7 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
             totalSources += len(ss)
             skyTile.prune(ss)
             sourcesInTile += len(ss)
-            prunedSources.append(ss.begin(), ss.end())
+            prunedSources[len(prunedSources):] = ss
         del sourceSets
         del inputSources
         self.log.log(Log.INFO, "Discarded %d of %d sources; %d sources remain" %
@@ -74,7 +73,7 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
 
         # cluster the remaining sources
         self.log.log(Log.INFO, "Clustering sources")
-        sourceClusters = cluster.cluster(
+        sourceClusters = clusterLib.cluster(
             prunedSources, self.policy.getPolicy("sourceClusteringPolicy"))
         self.log.log(Log.INFO, "Finished clustering sources")
 
@@ -87,6 +86,6 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
         clipboard.put(self.policy.get("outputKeys.sources"), outputSources)
 
 
-class SourceClusteringStage(harnessStage.Stage):
+class SourceClusteringStage(stage.Stage):
     parallelClass = SourceClusteringParallel
 

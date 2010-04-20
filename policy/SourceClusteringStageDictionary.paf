@@ -80,5 +80,13 @@ definitions: {
         description: "Parameters for the OPTICS clustering algorithm."
         maxOccurs: 1
     }
+
+    # quad-sphere sky-pixelization parameters
+    quadSpherePolicy: {
+        type: policy
+        dictionary: @urn:eupspkg:skypix:policy:QuadSpherePixelizationDictionary.paf
+        description: "Quad-sphere sky pixelization parameters."
+        maxOccurs: 1
+    }
 }
 

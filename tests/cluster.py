@@ -59,10 +59,10 @@ class ClusterTestCase(unittest.TestCase):
         p = policy.Policy()
         p.set('epsilonArcsec', 2000.0) # a little more than 0.5 deg
         p.set('minPoints', 2)
-        p.set('pointsPerLeaf', 4)
+        p.set('pointsPerLeaf', 8)
         p.set('leafExtentThresholdArcsec', -1.0)
         ss = detection.SourceSet()
-        # construct parallel streaks of sources
+        # construct 5 parallel streaks of sources
         for i in xrange(-2, 3):
             ra = 0.0
             for j in xrange(20):
@@ -76,7 +76,9 @@ class ClusterTestCase(unittest.TestCase):
         clusters = cluster.cluster(ss, p)
         self.assertEqual(len(clusters), 5)
         for c in clusters:
-            self.assertEqual(len(c), 20)
+            # the 2 sources at the beginning and end of each streak may or
+            # may not be assigned to a cluster
+            self.assertTrue(len(c) >= 18 and len(c) <= 20)
             i = c[0].getObjectId()
             for s in c:
                 self.assertEqual(s.getObjectId(), i)

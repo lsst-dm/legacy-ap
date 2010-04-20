@@ -1,23 +1,24 @@
 import math
 import pdb
+import unittest
 
 import lsst.utils.tests as utilsTests
 import lsst.daf.base as dafBase
 import lsst.pex.policy as pexPolicy
-import lsst.pex.harness as harness
 import lsst.afw.detection as detection
 import lsst.skypix as skypix
 import lsst.ap.cluster as cluster
 
-from harness.simpleStageTester import SimpleStageTester
+from lsst.pex.harness.Clipboard import Clipboard
+from lsst.pex.harness.simpleStageTester import SimpleStageTester
 
 
 class SourceClusteringStageTestCase(unittest.TestCase):
     """Tests the lsst.ap.cluster.SourceClusteringStage pipeline stage.
     """
     def setUp(self):
+        # construct 5 parallel streaks of sources 
         self.sources = detection.SourceSet()
-        self.numInputSources = len(self.sources)
         for i in xrange(-2, 3):
             ra = 0.0
             for j in xrange(20):
@@ -27,22 +28,23 @@ class SourceClusteringStageTestCase(unittest.TestCase):
                 s.setDec(math.radians(i))
                 self.sources.append(s)
                 ra += 0.5
+        self.numInputSources = len(self.sources)
 
     def tearDown(self):
-        for key in self.__dict__.keys():
-            del self.__dict__[key]
+        del self.sources
 
-    def testSourceClusteringStage(self):
+    def testStage(self):
         policyFile = pexPolicy.DefaultPolicyFile(
             "ap", "SourceClusteringStageDictionary.paf", "policy")
         policy = pexPolicy.Policy.createPolicy(
             policyFile, policyFile.getRepositoryPath())
+
         # override various policy defaults
-        policy.set("epsilonArcsec", 2000.0)
-        policy.set("minPoints", 2)
-        policy.set("leafExtentThresholdArcsec", -1.0)
-        policy.set("resolutionPix", 3)
-        policy.set("paddingArcsec", 0.0)
+        policy.set("sourceClusteringPolicy.epsilonArcsec", 2000.0)
+        policy.set("sourceClusteringPolicy.minPoints", 2)
+        policy.set("sourceClusteringPolicy.leafExtentThresholdArcsec", -1.0)
+        policy.set("quadSpherePolicy.resolutionPix", 3)
+        policy.set("quadSpherePolicy.paddingArcsec", 0.0)
 
         # generate fake pipeline trigger event
         qs = skypix.QuadSpherePixelization(3, 0.0)
@@ -50,7 +52,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         event.setInt("skyTileId", qs.id(1, 1, 1))
 
         # create and populat clipboard 
-        clipboard = harness.Clipboard()
+        clipboard = Clipboard()
         clipboard.put(policy.get("inputKeys.event"), event)
         clipboard.put(policy.get("inputKeys.sources"), self.sources)
 
@@ -72,18 +74,20 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         self.assertTrue(self.numInputSources > len(sourceClusters))
         self.assertEqual(len(sourceClusters), 5)
         for c in sourceClusters:
-            self.assertEqual(len(c), 20)
+            # the 2 sources at the beginning and end of each streak may or
+            # may not be assigned to a cluster
+            self.assertTrue(len(c) >= 18 and len(c) <= 20)
             i = c[0].getObjectId()
             for s in c:
                 self.assertEqual(s.getObjectId(), i)
 
+
 def suite():
     """Returns a suite containing all the test cases in this module."""
     utilsTests.init()
-    suites = map(unittest.makeSuite,
-        [SourceClusteringStageTestCase,
-         utilsTests.MemoryTestCase
-        ])
+    suites = [unittest.makeSuite(SourceClusteringStageTestCase),
+              unittest.makeSuite(utilsTests.MemoryTestCase),
+             ]
     return unittest.TestSuite(suites)
 
 def run(shouldExit=False):
