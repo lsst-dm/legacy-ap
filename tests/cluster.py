@@ -19,12 +19,12 @@ class ClusterTestCase(unittest.TestCase):
         s.setDec(0.0)
         ss.append(s)
         self.assertRaises(exceptions.LsstException, cluster.cluster, ss, p)
-        p.set('epsilon', -1.0)
+        p.set('epsilonArcsec', -1.0)
         p.set('minPoints', 0)
         p.set('pointsPerLeaf', 4)
-        p.set('leafExtentThreshold', 7200.0)
+        p.set('leafExtentThresholdArcsec', 7200.0)
         self.assertRaises(exceptions.LsstException, cluster.cluster, ss, p)
-        p.set('epsilon', 0.0)
+        p.set('epsilonArcsec', 0.0)
         p.set('minPoints', -1)
         self.assertRaises(exceptions.LsstException, cluster.cluster, ss, p)
         p.set('minPoints', 0)
@@ -36,7 +36,7 @@ class ClusterTestCase(unittest.TestCase):
         p.set('minPoints', 2)
         c = cluster.cluster(ss, p)
         self.assertEqual(len(c), 0)
-        p.set('epsilon', 3600.0) # 1-degree clustering distance
+        p.set('epsilonArcsec', 3600.0) # 1-degree clustering distance
         s = detection.Source()
         s.setRa(math.radians(0.5))
         s.setDec(0.0)
@@ -51,16 +51,16 @@ class ClusterTestCase(unittest.TestCase):
         c = cluster.cluster(ss, p)
         self.assertEqual(len(c), 0)
         p.set('minPoints', 0)
-        p.set('epsilon', 1.0) # 1 arcsec clustering distance
+        p.set('epsilonArcsec', 1.0) # 1 arcsec clustering distance
         c = cluster.cluster(ss, p)
         self.assertEqual(len(c), 3) 
          
     def testCluster(self):
         p = policy.Policy()
-        p.set('epsilon', 2000.0) # a little more than 0.5 deg
+        p.set('epsilonArcsec', 2000.0) # a little more than 0.5 deg
         p.set('minPoints', 2)
         p.set('pointsPerLeaf', 4)
-        p.set('leafExtentThreshold', -1.0)
+        p.set('leafExtentThresholdArcsec', -1.0)
         ss = detection.SourceSet()
         # construct parallel streaks of sources
         for i in xrange(-2, 3):

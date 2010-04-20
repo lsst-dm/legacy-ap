@@ -91,8 +91,8 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "too many sources to cluster");
     }
-    double epsilon = policy->getDouble("epsilon");
-    double leafExtentThreshold = policy->getDouble("leafExtentThreshold");
+    double epsilon = policy->getDouble("epsilonArcsec");
+    double leafExtentThreshold = policy->getDouble("leafExtentThresholdArcsec");
     if (epsilon < 0.0) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "OPTICS epsilon (clustering distance) policy "

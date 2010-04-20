@@ -1,0 +1,84 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.cluster.SourceClusteringStage
+
+definitions: {
+
+    # input clipboard keys
+    inputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                event: {
+                    type: string
+                    description: "Key for a lsst.daf.base.PropertySet containing properties
+                                  from the pipeline trigger event.  The event must contain
+                                  an integer-valued property named 'skyTileId'"
+                    maxOccurs: 1
+                    default: "triggerSourceAssocEvent"
+                }
+                sources: {
+                    type: string
+                    description: "Key for the sources to cluster. The value can
+                                  be an instance of any of the following types:
+
+                                  lsst.afw.detection.SourceSet
+                                  lsst.afw.detection.PersistableSourceVector
+                                  lsst.afw.detection.PersistableSourceVectorVector"
+                    maxOccurs: 1
+                    default: "sources"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # output clipboard keys:
+    outputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                skyTile: {
+                    type: string
+                    description: "A lsst.ap.cluster.PT1SkyTile instance for the
+                                  current sky-tile."
+                    maxOccurs: 1
+                    default: "skyTile"
+                }
+                sourceClusters: {
+                    type: string
+                    description: "A python list of lsst.afw.detection.SourceSet
+                                  instances corresponding to geerated source
+                                  clusters."
+                    maxOccurs: 1
+                    default: "sourceClusters"
+                }
+                sources: {
+                    type: string
+                    description: "An lsst.afw.detection.PersistableSourceVector
+                                  containing all the lsst.afw.detection.Source
+                                  objects falling inside the current sky-tile.
+                                  Setting this policy value to be the same
+                                  as the value of 'inputKeys.sources' is allowed
+                                  and is in fact desirable - doing so avoids
+                                  keeping 2 large source containers (where
+                                  'outputKeys.sources' is a subset of
+                                  'inputKeys.sources') in memory
+                                  simultaneously."
+                    maxOccurs: 1
+                    default: "sources"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # algorithm parameters
+    sourceClusteringPolicy: {
+        type: policy
+        dictionary: @SourceClusteringDictionary.paf
+        description: "Parameters for the OPTICS clustering algorithm."
+        maxOccurs: 1
+    }
+}
+

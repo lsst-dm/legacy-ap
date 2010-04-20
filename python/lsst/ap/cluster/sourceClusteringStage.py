@@ -13,36 +13,19 @@ import lsst.ap.cluster as cluster
 class SourceClusteringParallel(harnessStage.ParallelProcessing):
     """
     Description:
-       Discards input sources falling outside the current sky tile
-       and runs the OPTICS clustering algorithm over the remaining
-       sources.
+        Discards input sources falling outside the current sky tile
+        and runs the OPTICS clustering algorithm over the remaining
+        sources.
 
     Policy Dictionary:
+        policy/SourceClusteringStageDictionary.paf
+        (references policy/SourceClusteringDictionary.paf)
 
     Clipboard Input:
-        Note that clipboard keys are configurable via policy. The
-        following string-valued policy parameters must be present
-        and set to the name of a clipboard item:
-
-        "inputKeys.event":
-            Key for a PropertySet containing properties for the
-            pipeline trigger event. Must contain an integer-valued
-            property named "skyTileId". 
-
-        "inputKeys.sources":
-            Key for the sources to cluster (read by an InputStage).
-            Sources may be stored as a lsst.afw.detection.SourceSet,
-            lsst.afw.detection.PersistableSourceVector, or a 
-            lsst.afw.detection.PersistableSourceVectorVector.
+        See inputKeys in policy/SourceClusteringStageDictionary.paf
 
     ClipboardOutput:
-        Again, clipboard keys are configurable via policy. The following
-        string-valued policy parameters must be present and set to the
-        name of the desired output clipboard item:
-
-        "outputKeys.skyTile":
-        "outputKeys.clusters":
-        "outputKeys.sources":
+        See outputKeys in policy/SourceClusteringStageDictionary.paf
     """
     def setup(self):
         self.log = Log(self.log, "SourceClusteringParallel")
@@ -61,16 +44,16 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
         skyTileId = event.get("skyTileId");
         root, x, y = qs.coords(skyTileId);
         skyTile = apCluster.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
-        sources = clipboard.get(self.policy.getString("inputKeys.sources"))
+        inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
 
         # discard sources outside the current sky-tile
         self.log.log(Log.INFO, "discarding sources lying outside the sky-tile")
-        if isinstance(sources, detection.SourceSet):
-            sources = [ sources ]
-        elif isinstance(sources, detection.PersistableSourceVector):
-            sources = [ sources.getSources() ]
-        elif isinstance(sources, detection.PersistableSourceVectorVector):
-            sources = [ p.getSources() for p in sources ]
+        if isinstance(inputSources, detection.SourceSet):
+            sourceSets = [ inputSources ]
+        elif isinstance(inputSources, detection.PersistableSourceVector):
+            sourceSets = [ inputSources.getSources() ]
+        elif isinstance(inputSources, detection.PersistableSourceVectorVector):
+            sourceSets = [ psv.getSources() for psv in inputSources ]
         else:
             raise TypeError(
                 "Expecting sources as a %s, %s, or %s - got a %s" %
@@ -79,23 +62,26 @@ class SourceClusteringParallel(harnessStage.ParallelProcessing):
                   detection.PersistableSourceVectorVector, sources)))
         prunedSources = detection.SourceSet()
         sourcesInTile, totalSources = 0, 0
-        for s in sources:
-            totalSources += len(s)
-            skyTile.prune(s)
-            sourcesInTile += len(s)
-            prunedSources.append(s.begin(), s.end())
-        del sources
+        for ss in sourceSets:
+            totalSources += len(ss)
+            skyTile.prune(ss)
+            sourcesInTile += len(ss)
+            prunedSources.append(ss.begin(), ss.end())
+        del sourceSets
+        del inputSources
         self.log.log(Log.INFO, "Discarded %d of %d sources; %d sources remain" %
                      (totalSources - sourcesInTile, totalSources, sourcesInTile))
 
-        # Cluster the remaining sources
+        # cluster the remaining sources
         self.log.log(Log.INFO, "Clustering sources")
-        clusters = cluster.cluster(prunedSources)
+        sourceClusters = cluster.cluster(
+            prunedSources, self.policy.getPolicy("sourceClusteringPolicy"))
         self.log.log(Log.INFO, "Finished clustering sources")
 
         # output products
         clipboard.put(self.policy.get("outputKeys.skyTile"), skyTile)
-        clipboard.put(self.policy.get("outputKeys.clusters"), clusters)
+        clipboard.put(self.policy.get("outputKeys.sourceClusters"),
+                      sourceClusters)
         outputSources = detection.PersistableSourceVector()
         outputSources.setSources(prunedSources)
         clipboard.put(self.policy.get("outputKeys.sources"), outputSources)
