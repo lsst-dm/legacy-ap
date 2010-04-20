@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import math
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
@@ -78,7 +77,6 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         self.log.log(Log.INFO, "Finished clustering sources")
 
         # output products
-        clipboard.put(self.policy.get("outputKeys.skyTile"), skyTile)
         clipboard.put(self.policy.get("outputKeys.sourceClusters"),
                       sourceClusters)
         outputSources = detection.PersistableSourceVector()

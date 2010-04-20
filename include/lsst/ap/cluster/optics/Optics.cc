@@ -41,7 +41,7 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
     _numPoints(numPoints),
     _minPoints(minPoints),
     _ran(false),
-    _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.optics")
+    _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.optics")
 {
     if (_points == 0) {
         throw LSST_EXCEPT(except::InvalidParameterException,

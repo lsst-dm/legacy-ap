@@ -1,0 +1,51 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.cluster.SourceClusterAttributesStage
+
+definitions: {
+
+    # input clipboard keys
+    inputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                event: {
+                    type: string
+                    description: "Key for a lsst.daf.base.PropertySet containing
+                                  properties from the pipeline trigger event.
+                                  The event must contain an integer-valued
+                                  property named 'skyTileId'"
+                    maxOccurs: 1
+                    default: "triggerSourceAssocEvent"
+                }
+                sourceClusters: {
+                    type: string
+                    description: "Key for the source clusters to compute attributes
+                                  for. The value must be a python list of 
+                                  lsst.afw.detection.SourceSet instances."
+                    maxOccurs: 1
+                    default: "sourceClusters"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # output clipboard keys:
+    outputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                sourceClusterAttributes: {
+                    type: string
+                    description: "Key for computed source cluster attributes (an
+                                  lsst.ap.cluster.SourceClusterAttributesSet)."
+                    maxOccurs: 1
+                    default: "sourceClusterAttributes"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+}
+

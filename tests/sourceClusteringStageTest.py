@@ -62,13 +62,10 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         output = tester.runWorker(clipboard)
 
         # verify output
-        self.assertTrue(output.contains(policy.get("outputKeys.skyTile")))
         self.assertTrue(output.contains(policy.get("outputKeys.sourceClusters")))
         self.assertTrue(output.contains(policy.get("outputKeys.sources")))
-        skyTile = output.get(policy.get("outputKeys.skyTile"))
         sourceClusters = output.get(policy.get("outputKeys.sourceClusters"))
         sources = output.get(policy.get("outputKeys.sources"))
-        self.assertTrue(isinstance(skyTile, cluster.PT1SkyTile))
         self.assertTrue(isinstance(sourceClusters, list))
         self.assertTrue(isinstance(sources, detection.PersistableSourceVector))
         self.assertTrue(self.numInputSources > len(sourceClusters))

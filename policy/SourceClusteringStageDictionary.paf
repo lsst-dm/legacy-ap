@@ -11,9 +11,10 @@ definitions: {
             definitions: {
                 event: {
                     type: string
-                    description: "Key for a lsst.daf.base.PropertySet containing properties
-                                  from the pipeline trigger event.  The event must contain
-                                  an integer-valued property named 'skyTileId'"
+                    description: "Key for a lsst.daf.base.PropertySet containing
+                                  properties from the pipeline trigger event.
+                                  The event must contain an integer-valued
+                                  property named 'skyTileId'"
                     maxOccurs: 1
                     default: "triggerSourceAssocEvent"
                 }
@@ -38,13 +39,6 @@ definitions: {
         type: policy
         dictionary: {
             definitions: {
-                skyTile: {
-                    type: string
-                    description: "A lsst.ap.cluster.PT1SkyTile instance for the
-                                  current sky-tile."
-                    maxOccurs: 1
-                    default: "skyTile"
-                }
                 sourceClusters: {
                     type: string
                     description: "A python list of lsst.afw.detection.SourceSet
