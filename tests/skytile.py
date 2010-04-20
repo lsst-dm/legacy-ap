@@ -3,7 +3,6 @@ import pdb
 import unittest
 
 import lsst.utils.tests as utilsTests
-import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.geom as geom
 import lsst.skypix as skypix

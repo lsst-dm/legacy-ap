@@ -91,6 +91,14 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "too many sources to cluster");
     }
+    double epsilon = policy->getDouble("epsilon");
+    double leafExtentThreshold = policy->getDouble("leafExtentThreshold");
+    if (epsilon < 0.0) {
+        throw LSST_EXCEPT(except::InvalidParameterException,
+                          "OPTICS epsilon (clustering distance) policy "
+                          "parameter value is negative");
+    }
+
     boost::scoped_array<Point> entries(new Point[sources.size()]);
     std::vector<lsst::afw::detection::SourceSet> clusters;
     // Transform sources into a form the OPTICS implementation understands
@@ -99,16 +107,16 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> cluster(
         initPoint(entries[i], *s);
     }
     if (i > 0) {
-        double epsilon = policy->getDouble("epsilon");
-        double leafExtentThreshold = policy->getDouble("leafExtentThreshold");
         // Convert epsilon and leafExtentThreshold to radians, and account
         // for the fact that our metric is the squared euclidian distance,
         // not angular separation.
         epsilon = std::sin(0.5 * RADIANS_PER_ARCSEC * epsilon);
-        leafExtentThreshold = std::sin(
-            0.5 * RADIANS_PER_ARCSEC * leafExtentThreshold);
         epsilon = 4.0 * epsilon * epsilon;
-        leafExtentThreshold = 4.0 * leafExtentThreshold * leafExtentThreshold;
+        if (leafExtentThreshold > 0.0) {
+            leafExtentThreshold = std::sin(
+                0.5 * RADIANS_PER_ARCSEC * leafExtentThreshold);
+            leafExtentThreshold = 4.0 * leafExtentThreshold * leafExtentThreshold;
+        }
         Optics optics(entries.get(),
                       i,
                       policy->getInt("minPoints"),
