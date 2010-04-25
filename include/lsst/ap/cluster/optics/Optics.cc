@@ -118,10 +118,8 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
             _points[i].state = Point<K, DataT>::PROCESSED;
             expandClusterOrder(i, metric);
             if (cluster.size() > 0) {
-                if (_minPoints == 0 || cluster.size() > 1) {
-                    // don't output clusters of size 1 unless minPoints is 0
-                    clusters.push_back(cluster);
-                }
+                // clusters of size 1 are generated for noise sources
+                clusters.push_back(cluster);
                 cluster.clear();
             }
             cluster.push_back(*(_points[i].data));
@@ -133,9 +131,7 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
             cluster.push_back(*(_points[i].data));
         }
     }
-    if (_minPoints == 0 || cluster.size() > 1) {
-        clusters.push_back(cluster);
-    }
+    clusters.push_back(cluster);
     _log.format(lsst::pex::logging::Log::INFO, "Produced %d clusters",
                 static_cast<int>(clusters.size() - s));
 }

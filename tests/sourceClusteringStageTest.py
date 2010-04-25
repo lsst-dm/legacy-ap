@@ -13,6 +13,12 @@ from lsst.pex.harness.Clipboard import Clipboard
 from lsst.pex.harness.simpleStageTester import SimpleStageTester
 
 
+def countClusters(clusters):
+    """Counts the number of source cluster containing more than one source.
+    """
+    return sum(map(lambda c: len(c) > 1, clusters))
+
+
 class SourceClusteringStageTestCase(unittest.TestCase):
     """Tests the lsst.ap.cluster.SourceClusteringStage pipeline stage.
     """
@@ -69,14 +75,15 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         self.assertTrue(isinstance(sourceClusters, list))
         self.assertTrue(isinstance(sources, detection.PersistableSourceVector))
         self.assertTrue(self.numInputSources > len(sourceClusters))
-        self.assertEqual(len(sourceClusters), 5)
+        self.assertEqual(countClusters(sourceClusters), 5)
         for c in sourceClusters:
-            # the 2 sources at the beginning and end of each streak may or
-            # may not be assigned to a cluster
-            self.assertTrue(len(c) >= 18 and len(c) <= 20)
-            i = c[0].getObjectId()
-            for s in c:
-                self.assertEqual(s.getObjectId(), i)
+            if len(c) > 1:
+                # the 2 sources at the beginning and end of each streak may or
+                # may not be assigned to a cluster
+                self.assertTrue(len(c) >= 18 and len(c) <= 20)
+                i = c[0].getObjectId()
+                for s in c:
+                    self.assertEqual(s.getObjectId(), i)
 
 
 def suite():

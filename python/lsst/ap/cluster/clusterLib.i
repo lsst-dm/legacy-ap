@@ -13,9 +13,11 @@ Access to association pipeline clustering functions.
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
+#include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
-#include "lsst/afw/detection/Source.h"
+#include "lsst/afw/image.h"
+#include "lsst/afw/detection.h"
 #include "lsst/ap/cluster/PT1SkyTile.h"
 #include "lsst/ap/cluster/SourceCluster.h"
 %}
@@ -29,19 +31,59 @@ namespace boost {
 }
 
 %include "lsst/p_lsstSwig.i"
-// %include "lsst/daf/base/persistenceMacros.i" (will need this later)
+%include "lsst/daf/base/persistenceMacros.i"
 
+%import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
 %import "lsst/afw/detection/detectionLib.i"
 
 %lsst_exceptions()
 
 SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::cluster::PT1SkyTile);
-SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceCluster);
+SWIG_SHARED_PTR(PerFilterSourceClusterAttributes, lsst::ap::cluster::PerFilterSourceClusterAttributes);
+SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceClusterAttributes);
+
+// Forward declaration for Nullable template
+namespace lsst { namespace ap { namespace cluster {
+    template <typename ScalarT> class Nullable;
+}}}
+
+%ignore lsst::ap::cluster::Nullable<double>;
+
+%typemap(out) lsst::ap::cluster::Nullable<double> const & {
+    if (($1)->isNull()) {
+        $result = Py_None;
+    } else {
+        $result = PyFloat_FromDouble(($1)->get());
+    }
+}
+
+%typemap(in) lsst::ap::cluster::Nullable<double> const & (lsst::ap::cluster::Nullable<double> temp) {
+    if (PyFloat_CheckExact($input)) {
+        temp = PyFloat_AsDouble($input);
+    } else if ($input == Py_None) {
+        temp.setNull();
+    } else {
+        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::Nullable<double>");
+    }
+    $1 = &temp;
+}
+
+%typemap(typecheck, precedence=SWIG_TYPECHECK_DOUBLE) lsst::ap::cluster::Nullable<double> const & {
+    $1 = (PyFloat_CheckExact($input) || $input == Py_None) ? 1 : 0; 
+}
+
+%typemap(out) std::vector<int> {
+    int len = ($1).size();
+    $result = PyList_New(len);
+    for (int i = 0; i < len; ++i) {
+        PyList_SetItem($result, i, PyInt_FromLong(($1)[i]));
+    }
+}
 
 %typemap(out) std::vector<lsst::afw::detection::SourceSet> {
     // $1 is a SwigValueWrapper, must dereference contents to call member functions
-    int len = (&($1))->size();
+    int len = (*(&$1)).size();
     swig_type_info * info = SWIGTYPE_p_std__vectorT_boost__shared_ptrT_lsst__afw__detection__Source_t_std__allocatorT_boost__shared_ptrT_lsst__afw__detection__Source_t_t_t;
     // Something like the following should work but does not: 
     // swig_type_info * info =  SWIG_TypeQuery(
@@ -50,7 +92,7 @@ SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceCluster);
     $result = PyList_New(len);
     for (int i = 0; i < len; i++) {
         lsst::afw::detection::SourceSet * sourceSet = 
-            new lsst::afw::detection::SourceSet((&($1))->operator[](i));
+            new lsst::afw::detection::SourceSet((*(&$1))[i]);
         PyObject * obj = SWIG_NewPointerObj(SWIG_as_voidptr(sourceSet), info, SWIG_POINTER_OWN);
         PyList_SetItem($result, i, obj);
     }
@@ -60,5 +102,6 @@ SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceCluster);
 %include "lsst/ap/cluster/PT1SkyTile.h"
 %include "lsst/ap/cluster/SourceCluster.h"
 
-%template(SourceClusterSet) std::vector<lsst::ap::cluster::SourceClusterAttributes::Ptr>;
+%lsst_persistable(lsst::ap::cluster::SourceClusterAttributes);
+%template(SourceClusterAttributesSet) std::vector<lsst::ap::cluster::SourceClusterAttributes::Ptr>;
 

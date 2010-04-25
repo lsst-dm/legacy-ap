@@ -109,6 +109,7 @@ env = scons.makeEnv("ap",
                      ["wcslib", "wcslib/wcs.h", "m wcs"],
                      ["minuit2", "Minuit2/FCNBase.h", "Minuit2:C++"],
                      ["gsl", "gsl/gsl_rng.h", "gslcblas gsl"],
+                     ["Eigen", "Eigen/Core.h"],
                      ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
                      ["utils", "lsst/utils/Utils.h", "utils:C++"],
                      ["daf_base", "lsst/daf/base.h", "daf_base:C++"],
@@ -118,8 +119,8 @@ env = scons.makeEnv("ap",
                      ["daf_persistence", "lsst/daf/persistence.h", "daf_persistence:C++"],
                      ["daf_data", "lsst/daf/data.h", "daf_data:C++"],
                      ["afw", "lsst/afw/detection/DiaSource.h", "afw:C++"],
-                     ["mops", "lsst/mops/MovingObjectPrediction.h"],
-                     ["Eigen", "Eigen/Core.h"]
+                     ["meas_algorithms", "lsst/meas/algorithms/Measure.h", "meas_algorithms:C++"],
+                     ["mops", "lsst/mops/MovingObjectPrediction.h"]
                     ])
 
 env.Help("""

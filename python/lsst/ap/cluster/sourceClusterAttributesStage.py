@@ -39,25 +39,15 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         sourceClusters = clipboard.get(
             self.policy.getString("inputKeys.sourceClusters"))
 
-        # create a SourceClusterAttributes object for each cluster
-        self.log.log(Log.INFO, "Creating cluster attributes objects")
-        sourceClusterAttributes = clusterLib.SourceClusterAttributesSet
+        # compute  SourceClusterAttributes for each cluster
+        self.log.log(Log.INFO, "Computing source cluster attributes")
+        sourceClusterAttributes = clusterLib.SourceClusterAttributesSet()
         for sequenceNum, sources in enumerate(sourceClusters):
-            sc = clusterLib.SourceClusterAttributes()
-            clusterLib.setClusterId(sc, sources, sequenceNum + (skyTileId << 32))
-            sourceClusterAttributes.append(sc)
-
-        # compute position and proper motion estimate for each cluster
-        self.log.log(Log.INFO, "Computing cluster positions and proper motions")
-        for sc, sources in izip(sourceClusterAttributes, sourceClusters):
-            clusterLib.computePositionAndVelocity(sc, sources)
-
-        # compute per-filter properties
-        for sc, sources in izip(sourceClusterAttributes, sourceClusters):
-            # split sources into
-            # compute average PSF magnitude
-            # compute average shape measurements
-            pass
+            clusterId = sequenceNum + (skyTileId << 32)
+            attributes = clusterLib.SourceClusterAttributes(sources, clusterId)
+            clusterLib.updateSources(attributes, sources)
+            sourceClusterAttributes.append(attributes)
+        self.log.log(Log.INFO, "Finished computing source cluster attributes")
 
         # output products
         clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
