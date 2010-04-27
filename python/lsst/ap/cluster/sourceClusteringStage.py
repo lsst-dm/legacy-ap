@@ -1,4 +1,7 @@
 import math
+import operator
+from textwrap import dedent
+
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
@@ -35,17 +38,18 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         self.policy.mergeDefaults(defaultPolicy)
 
     def process(self, clipboard):
-        # create a sky-tile from clipboard data
+        # extract required clipboard data
         event = clipboard.get(self.policy.getString("inputKeys.event"))
         qs = skypix.createQuadSpherePixelization(
             self.policy.getPolicy("quadSpherePolicy"))
-        skyTileId = event.get("skyTileId");
+        skyTileId = event.getInt("skyTileId");
         root, x, y = qs.coords(skyTileId);
         skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
+        badSourceMask = reduce(
+            operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
 
-        # discard sources outside the current sky-tile
-        self.log.log(Log.INFO, "discarding sources lying outside the sky-tile")
+        # turn input into a list of source sets
         if isinstance(inputSources, detection.SourceSet):
             sourceSets = [ inputSources ]
         elif isinstance(inputSources, detection.PersistableSourceVector):
@@ -58,17 +62,41 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                 (t.__class__.__module__ + '.' + t.__class__.__name__ for t in
                  (detection.SourceSet, detection.PersistableSourceVector,
                   detection.PersistableSourceVectorVector, sources)))
-        prunedSources = detection.SourceSet()
-        sourcesInTile, totalSources = 0, 0
+
+        # remove sources with invalid positions
+        self.log.log(Log.INFO, "Segregating sources with invalid positions")
+        invalidSources = detection.SourceSet()
+        total = 0
         for ss in sourceSets:
-            totalSources += len(ss)
+            total += len(ss)
+            clusterLib.segregateInvalidSources(ss, invalidSources)
+        n = len(invalidSources)
+        self.log.log(Log.INFO,
+            "%d of %d sources are invalid; %d sources remain" %
+            (n, total, total - n))
+
+        # discard sources outside the current sky-tile
+        self.log.log(Log.INFO, "Discarding sources lying outside the sky-tile")
+        prunedSources = detection.SourceSet()
+        n, total = 0, 0
+        for ss in sourceSets:
+            total += len(ss)
             skyTile.prune(ss)
-            sourcesInTile += len(ss)
+            n += len(ss)
             prunedSources[len(prunedSources):] = ss
         del sourceSets
         del inputSources
-        self.log.log(Log.INFO, "Discarded %d of %d sources; %d sources remain" %
-                     (totalSources - sourcesInTile, totalSources, sourcesInTile))
+        self.log.log(Log.INFO, dedent("""\
+            %d of %d valid sources are outside the current sky-tile;
+            %d sources remain""") % (total - n, total, n))
+
+        # do not feed "bad" sources to clustering algorithm
+        self.log.log(Log.INFO, "Segregating bad sources")
+        badSources = detection.SourceSet()
+        clusterLib.segregateBadSources(prunedSources, badSources, badSourceMask)
+        self.log.log(Log.INFO, dedent("""\
+            %d of %d valid sources in the current sky-tile are bad; %d
+            sources remain""") % (len(badSources), total, len(prunedSources)))
 
         # cluster the remaining sources
         self.log.log(Log.INFO, "Clustering sources")
@@ -82,6 +110,18 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         outputSources = detection.PersistableSourceVector()
         outputSources.setSources(prunedSources)
         clipboard.put(self.policy.get("outputKeys.sources"), outputSources)
+        clipboard.put(self.policy.get("outputKeys.sourceClusteringPolicy"),
+                      self.policy.getPolicy("sourceClusteringPolicy"))
+        if len(invalidSources) > 0:
+            outputInvalidSources = detection.PersistableSourceVector()
+            outputInvalidSources.setSources(invalidSources)
+            clipboard.put(self.policy.get("outputKeys.invalidSources"),
+                          outputInvalidSources)
+        if len(badSources) > 0:
+            outputBadSources = detection.PersistableSourceVector()
+            outputBadSources.setSources(badSources)
+            clipboard.put(self.policy.get("outputKeys.badSources"),
+                          outputBadSources)
 
 
 class SourceClusteringStage(stage.Stage):

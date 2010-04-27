@@ -70,6 +70,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         # verify output
         self.assertTrue(output.contains(policy.get("outputKeys.sourceClusters")))
         self.assertTrue(output.contains(policy.get("outputKeys.sources")))
+        self.assertTrue(output.contains(
+            policy.get("outputKeys.sourceClusteringPolicy")))
         sourceClusters = output.get(policy.get("outputKeys.sourceClusters"))
         sources = output.get(policy.get("outputKeys.sources"))
         self.assertTrue(isinstance(sourceClusters, list))

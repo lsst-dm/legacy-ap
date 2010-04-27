@@ -93,7 +93,7 @@ bool PT1SkyTile::contains(double theta, double phi) const {
 /** Removes sources falling outside of this sky-tile from the input
   * source list.
   *
-  * @param[inout] sources   The sources to prune.
+  * @param[in,out] sources   The sources to prune.
   */
 void PT1SkyTile::prune(lsst::afw::detection::SourceSet & sources) const {
     size_t const n = sources.size();

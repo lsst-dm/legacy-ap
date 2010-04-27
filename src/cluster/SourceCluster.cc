@@ -22,7 +22,6 @@
 
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/policy.h"
-#include "lsst/meas/algorithms/Measure.h"
 #include "lsst/ap/Common.h"
 #include "lsst/ap/cluster/optics/Metrics.h"
 #include "lsst/ap/cluster/optics/Optics.cc"
@@ -32,7 +31,7 @@ namespace detection = lsst::afw::detection;
 namespace except = lsst::pex::exceptions;
 namespace policy = lsst::pex::policy;
 
-using lsst::meas::algorithms::Flags;
+using std::sqrt;
 
 
 namespace lsst { namespace ap { namespace cluster {
@@ -142,25 +141,163 @@ LSST_AP_API void updateSources(SourceClusterAttributes const & cluster,
     }
 }
 
+/** Removes sources without positions (those with longitude and/or latitude
+  * angles that are NaN or out of bounds) from @c sources and appends them
+  * to @c badSources. Valid longitude angles are in range [0, 2*pi) and valid
+  * latitude angles are in range [-pi/2, pi/2].
+  */
+LSST_AP_API void segregateInvalidSources(
+    lsst::afw::detection::SourceSet & sources,
+    lsst::afw::detection::SourceSet & badSources)
+{
+    size_t const n = sources.size();
+    size_t j = 0;
+    for (size_t i = 0; i < n; ++i) {
+        double ra = sources[i]->getRa();
+        double dec = sources[i]->getDec();
+        if (isnan(ra) || isnan(dec) ||
+            ra < 0.0 || ra >= 2.0 * M_PI ||
+            dec < -0.5 * M_PI || dec > 0.5 * M_PI) {
+            badSources.push_back(sources[i]);
+        } else {
+            if (j != i) {
+                sources[j] = sources[i];
+            }
+            ++j;
+        }
+    }
+    if (j < n) {
+        sources.erase(sources.begin() + j, sources.end());
+    }
+}
+
+/** Removes "bad" sources from @c sources and appends them to @c badSources.
+  * A source is considered bad when one or more of the bits set in its detection
+  * flags matches a bit set in @c badSourceMask.
+  */
+LSST_AP_API void segregateBadSources(
+    lsst::afw::detection::SourceSet & sources,
+    lsst::afw::detection::SourceSet & badSources,
+    int const badSourceMask)
+{
+    size_t const n = sources.size();
+    size_t j = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if ((sources[i]->getFlagForDetection() & badSourceMask) != 0) {
+            badSources.push_back(sources[i]);
+        } else {
+            if (j != i) {
+                sources[j] = sources[i];
+            }
+            ++j;
+        }
+    }
+    if (j < n) {
+        sources.erase(sources.begin() + j, sources.end());
+    }
+}
+
+/** Sets the object id of each of the bad sources to NULL. Also sets
+  * the object position of each of bad source to the source position.
+  * This allows bad sources to be stored in the same table as good
+  * sources (which are partitioned by the position of their associated
+  * objects/clusters).
+  */
+LSST_AP_API void updateBadSources(lsst::afw::detection::SourceSet & badSources)
+{
+    typedef detection::SourceSet::iterator Iter;
+    for (Iter i = badSources.begin(), e = badSources.end(); i != e; ++i) {
+        (*i)->setNull(detection::OBJECT_ID, true);
+        (*i)->setRaObject((*i)->getRa());
+        (*i)->setDecObject((*i)->getDec());
+    }
+}
+
 
 // -- PerFilterSourceClusterAttributes ----
 
 PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes() :
     _filterId(0),
     _numObs(0),
+    _flags(0),
     _earliestObsTime(0.0), _latestObsTime(0.0),
-    _flux(0.0), _fluxSigma(0.0),
+    _flux(), _fluxSigma(),
     _e1(), _e1Sigma(),
     _e2(), _e2Sigma(),
     _radius(), _radiusSigma()
 { }
 
 /** Creates a new PerFilterSourceClusterAttributes, computing attributes
-  * from the given set of sources.
+  * from the given source.
+  *
+  * @param[in] source                   Source to compute attributes from.
+  * @param[in] fluxIgnoreMask           Detection flag bitmask identifying
+  *                                     sources that should be ignored when
+  *                                     determining cluster fluxes.
+  * @param[in] ellipticityIgnoreMask    Detection flag bitmask identifying
+  *                                     sources that should be ignore when
+  *                                     determining cluster ellipticities 
+
   */
 PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
-    lsst::afw::detection::SourceSet const & sources) :
+    lsst::afw::detection::Source const & source,
+    int fluxIgnoreMask,
+    int ellipticityIgnoreMask
+) :
+    _filterId(source.getFilterId()),
+    _numObs(1),
+    _flags(0),
+    _earliestObsTime(source.getTaiMidPoint()),
+    _latestObsTime(source.getTaiMidPoint()),
+    _flux(), _fluxSigma(),
+    _e1(), _e1Sigma(),
+    _e2(), _e2Sigma(),
+    _radius(), _radiusSigma()
+{
+    if (!isNaN(source.getPsfFlux()) &&
+        (source.getFlagForDetection() & fluxIgnoreMask) == 0) {
+        setFlux(source.getPsfFlux(), source.getPsfFluxErr());
+        setNumFluxSamples(1);
+    }
+    if (source.isNull(detection::IXX) ||
+        source.isNull(detection::IYY) ||
+        source.isNull(detection::IXY) ||
+        isNaN(source.getIxx()) ||
+        isNaN(source.getIyy()) ||
+        isNaN(source.getIxy()) ||
+        (source.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
+        return;
+    }
+    double mxx = source.getIxx();
+    double myy = source.getIyy();
+    double mxy = source.getIxy();
+    double t = mxx + myy;
+    setNumEllipticitySamples(1);
+    setEllipticity(static_cast<float>((mxx - myy) / t), Nullable<float>(),
+                   static_cast<float>(2.0 * mxy / t), Nullable<float>(),
+                   static_cast<float>(sqrt(t)), Nullable<float>());
+}
+
+/** Creates a new PerFilterSourceClusterAttributes, computing attributes
+  * from the given set of sources.
+  *
+  * @param[in] sources                  Sources to compute attributes from.
+  * @param[in] fluxIgnoreMask           Detection flag bitmask identifying
+  *                                     sources that should be ignored when
+  *                                     determining cluster fluxes.
+  * @param[in] ellipticityIgnoreMask    Detection flag bitmask identifying
+  *                                     sources that should be ignore when
+  *                                     determining cluster ellipticities 
+
+  */
+PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
+    lsst::afw::detection::SourceSet const & sources,
+    int fluxIgnoreMask,
+    int ellipticityIgnoreMask
+) :
     _numObs(static_cast<int>(sources.size())),
+    _flags(0),
+    _flux(), _fluxSigma(),
     _e1(), _e1Sigma(),
     _e2(), _e2Sigma(),
     _radius(), _radiusSigma()
@@ -171,7 +308,6 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
                           "empty source set");
     }
     _filterId = sources.front()->getFilterId();
-    _numObs = static_cast<int>(sources.size());
     double tbeg = std::numeric_limits<double>::infinity();
     double tend = -tbeg;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
@@ -185,16 +321,16 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     }
     _earliestObsTime = tbeg;
     _latestObsTime = tend;
-    computeFlux(sources);
-    computeEllipticities(sources);
+    computeFlux(sources, fluxIgnoreMask);
+    computeEllipticity(sources, ellipticityIgnoreMask);
 }
 
 PerFilterSourceClusterAttributes::~PerFilterSourceClusterAttributes() { }
 
 /** Sets the earliest and latest cluster observation times in this filter.
   */
-void PerFilterSourceClusterAttributes::setObsTimeRange(
-    double earliest, double latest)
+void PerFilterSourceClusterAttributes::setObsTimeRange(double earliest,
+                                                       double latest)
 {
     if (earliest > latest) {
         throw LSST_EXCEPT(except::InvalidParameterException, "earliest "
@@ -204,21 +340,83 @@ void PerFilterSourceClusterAttributes::setObsTimeRange(
     _latestObsTime = latest;
 }
 
-/** Sets the flux and flux uncertainty for the cluster in this filter.
+/** Returns the number of smaples (sources) used to determine the PSF
+  * flux sample mean.
+  *
+  * @li If this number is zero, then none of the sources satisified the
+  *     the criteria for being included in the PSF flux sample mean, and
+  *     both the flux and its uncertainty are invalid (NULL/NaN).
+  * @li If this number is one, then the flux uncertainty is set to the
+  *     uncertainty of the PSF flux for that single source, rather than
+  *     to an estimate of the standard deviation of the sample mean.
   */
-void PerFilterSourceClusterAttributes::setFlux(double flux, double fluxSigma)
+int PerFilterSourceClusterAttributes::getNumFluxSamples() const {
+    return (_flags >> FLUX_NSAMPLE_OFF) & NSAMPLE_MASK;
+}
+
+/** Sets the number of samples (sources) used to determine the PSF flux 
+  * sample mean.
+  */
+void PerFilterSourceClusterAttributes::setNumFluxSamples(int samples)
 {
-    if (fluxSigma < 0.0) {
+    if (samples < 0 || samples > NSAMPLE_MASK) {
+        throw LSST_EXCEPT(except::InvalidParameterException, "number of "
+                          "flux samples (sources) is negative or too large");
+    }
+    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_NSAMPLE_OFF)) |
+             (samples << FLUX_NSAMPLE_OFF);
+}
+
+/** Sets the PSF flux and uncertainty.
+  */
+void PerFilterSourceClusterAttributes::setFlux(Nullable<float> flux,
+                                               Nullable<float> fluxSigma)
+{
+    if (flux.isNull() && !fluxSigma.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException,
-                          "negative flux sigma");
+                          "flux is null but uncertainty is not");
+    }
+    if (flux < 0.0) {
+        throw LSST_EXCEPT(except::InvalidParameterException,
+                          "negative flux uncertainty");
     }
     _flux = flux;
     _fluxSigma = fluxSigma;
 }
 
+/** Returns the number of smaples (sources) used to determine the ellipticity
+  * parameter sample means.
+  *
+  * @li If this number is zero, then none of the sources satisified the
+  *     the criteria for being included in the ellipticity parameter sample
+  *     means, and the ellipticity parameters and uncertainties are invalid
+  *     (NULL/NaN).
+  * @li If this number is one, then the ellipticity parameter uncertainties
+  *     are invalid (NULL/NaN). In principle, uncertainties could be derived
+  *     from the moment covariance matrix of the source, but sources do not
+  *     carry enough of this matrix for this to be possible.
+  */
+int PerFilterSourceClusterAttributes::getNumEllipticitySamples() const {
+    return (_flags >> ELLIPTICITY_NSAMPLE_OFF) & NSAMPLE_MASK;
+}
+
+/** Sets the number of samples (sources) used to determine the
+  * ellipticity parameter sample means.
+  */
+void PerFilterSourceClusterAttributes::setNumEllipticitySamples(int samples)
+{
+    if (samples < 0 || samples > NSAMPLE_MASK) {
+        throw LSST_EXCEPT(except::InvalidParameterException,
+                          "number of ellipticity parameter samples (sources) "
+                          "is negative or too large");
+    }
+    _flags = (_flags & ~(NSAMPLE_MASK << ELLIPTICITY_NSAMPLE_OFF)) |
+             (samples << ELLIPTICITY_NSAMPLE_OFF);
+}
+
 /** Sets all ellipticity parameters and uncertainties to null.
   */
-void PerFilterSourceClusterAttributes::setEllipticities()
+void PerFilterSourceClusterAttributes::setEllipticity()
 {
     _e1.setNull();
     _e1Sigma.setNull();
@@ -228,16 +426,15 @@ void PerFilterSourceClusterAttributes::setEllipticities()
     _radiusSigma.setNull();
 }
 
-/** Sets the ellipticity parameters and uncertainties for the
-  * cluster in this filter.
+/** Sets the ellipticity parameters and uncertainties. 
   */
-void PerFilterSourceClusterAttributes::setEllipticities(
-    Nullable<double> const & e1,
-    Nullable<double> const & e1Sigma,
-    Nullable<double> const & e2,
-    Nullable<double> const & e2Sigma,
-    Nullable<double> const & radius,
-    Nullable<double> const & radiusSigma)
+void PerFilterSourceClusterAttributes::setEllipticity(
+    Nullable<float> e1,
+    Nullable<float> e1Sigma,
+    Nullable<float> e2,
+    Nullable<float> e2Sigma,
+    Nullable<float> radius,
+    Nullable<float> radiusSigma)
 {
     if (e1.isNull() != e2.isNull() || e2.isNull() != radius.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException, "ellipticity "
@@ -256,7 +453,7 @@ void PerFilterSourceClusterAttributes::setEllipticities(
                           "not");
     }
     if (!e1Sigma.isNull() &&
-        (e1Sigma() < 0.0 || e2Sigma() < 0.0 || radiusSigma() < 0.0)) {
+        (e1Sigma < 0.0 || e2Sigma < 0.0 || radiusSigma < 0.0)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "negative ellipticity parameter uncertainty");
     }
@@ -272,33 +469,54 @@ void PerFilterSourceClusterAttributes::setEllipticities(
   * source from this filter.
   */
 void PerFilterSourceClusterAttributes::computeFlux(
-    lsst::afw::detection::SourceSet const & sources)
+    lsst::afw::detection::SourceSet const & sources,
+    int const fluxIgnoreMask)
 {
     typedef detection::SourceSet::const_iterator Iter;
-    size_t const n = sources.size();
-    if (n == 0) {
+    if (sources.empty()) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "empty source set");
-    } else if (n == 1) {
-        detection::Source::Ptr src = sources.front();
-        _flux = src->getPsfFlux();
-        _fluxSigma = src->getPsfFluxErr();
-        return;
     }
-    // set filter flux to the sample mean
+    int ns = 0;
     double flux = 0.0;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        flux += (*i)->getPsfFlux();
+        double f = (*i)->getPsfFlux();
+        if (isNaN(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
+            continue;
+        }
+        flux += f;
+        ++ns;
     }
-    _flux = flux / n;
-    // set filter flux uncertainty to an estimate of the standard
-    // deviation of the sample mean 
-    double ff = 0.0;
-    for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        double df = (*i)->getPsfFlux() - _flux;
-        ff += df * df;
+    setNumFluxSamples(ns);
+    if (ns == 1) {
+        // set uncertainty to PSF flux uncertainty of the only source
+        // available
+        for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+            float f = (*i)->getPsfFlux();
+            if (!isNaN(f) && 
+                ((*i)->getFlagForDetection() & fluxIgnoreMask) == 0) {
+                setFlux(f, (*i)->getPsfFluxErr());
+                break;
+            }
+        }
+    } else if (ns > 1) {
+        // set flux to the sample mean
+        flux /= ns;
+        // set flux uncertainty to an estimate of the standard
+        // deviation of the sample mean 
+        double ff = 0.0;
+        for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+            double f = (*i)->getPsfFlux();
+            if (isNaN(f) ||
+                ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
+                continue;
+            }
+            double df = f - flux;
+            ff += df * df;
+        }
+        setFlux(static_cast<float>(flux),
+                static_cast<float>(sqrt(ff / (ns * (ns - 1)))));
     }
-    _fluxSigma = std::sqrt(ff / (n * (n - 1)));
 }
 
 /** Computes the sample means and standard errors of the ellipticity
@@ -311,57 +529,68 @@ void PerFilterSourceClusterAttributes::computeFlux(
   *
   * and the implementation of @c lsst::meas::algorithms::Shape .
   */
-void PerFilterSourceClusterAttributes::computeEllipticities(
-    lsst::afw::detection::SourceSet const & sources)
+void PerFilterSourceClusterAttributes::computeEllipticity(
+    lsst::afw::detection::SourceSet const & sources,
+    int const ellipticityIgnoreMask)
 {
     typedef detection::SourceSet::const_iterator Iter;
     if (sources.empty()) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "empty source set");
     }
-    boost::scoped_array<Eigen::Vector3d> ellipticities(
+    boost::scoped_array<Eigen::Vector3d> eparams(
         new Eigen::Vector3d[sources.size()]);
     Eigen::Vector3d m(0.0, 0.0, 0.0);
     int ns = 0;
-    // TODO: should sources flagged as SHAPE_UNWEGHTED also be skipped?
-    int skipMask = Flags::SHAPE_UNWEIGHTED_BAD;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
        if ((*i)->isNull(detection::IXX) ||
            (*i)->isNull(detection::IYY) ||
            (*i)->isNull(detection::IXY) ||
-           ((*i)->getFlagForDetection() & skipMask) != 0) {
+           ((*i)->getFlagForDetection() & ellipticityIgnoreMask) != 0) {
            continue;
        }
        double mxx = (*i)->getIxx();
        double myy = (*i)->getIyy();
        double mxy = (*i)->getIxy();
-       // compute ellipticities from moments
+       // make sure the moments aren't NaN
+       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy)) {
+           continue;
+       }
+       // compute ellipticity parameters from moments
        double t = mxx + myy;
-       Eigen::Vector3d ep((mxx - myy) / t, 2.0 * mxy / t, std::sqrt(t));
+       Eigen::Vector3d ep((mxx - myy) / t, 2.0 * mxy / t, sqrt(t));
        // store for later
-       ellipticities[ns++] = ep;
+       eparams[ns++] = ep;
        // and add to running sum
        m += ep;
     }
+    setNumEllipticitySamples(ns);
     if (ns > 0) {
-        // set cluster ellipticities to sample means
+        // set cluster ellipticity parameters to sample means
         m /= static_cast<double>(ns);
-        _e1 = m(0);
-        _e2 = m(1);
-        _radius = m(2);
-        // If ns = 1, we could estimate ellipticity uncertainties from the
-        // covariance matrix of the moments. Unfortunately, only a subset of
-        // this matrix is stored in Source, so unless ns > 1, the ellipticity
-        // uncertainties are null.
-        if (ns > 1) {
+        if (ns == 1) {
+            // Ellipticity uncertainties could be estimated from the covariance
+            // matrix of the moments. Unfortunately, only a subset of this
+            // matrix is stored in Source, so unless ns > 1, the ellipticity
+            // uncertainties are NULL/NaN.
+            setEllipticity(static_cast<float>(m(0)),
+                           static_cast<float>(m(1)),
+                           static_cast<float>(m(2)),
+                           Nullable<float>(),
+                           Nullable<float>(),
+                           Nullable<float>());
+        } else {
             // compute standard errors
             Eigen::Vector3d v(0.0, 0.0, 0.0);
             for (int i = 0; i < ns; ++i) {
-                v += (ellipticities[i] - m).cwise() * (ellipticities[i] - m);
+                v += (eparams[i] - m).cwise() * (eparams[i] - m);
             }
-            _e1Sigma = std::sqrt(v[0] / (ns * (ns - 1)));
-            _e2Sigma = std::sqrt(v[1] / (ns * (ns - 1)));
-            _radiusSigma = std::sqrt(v[2] / (ns * (ns - 1)));
+            setEllipticity(static_cast<float>(m(0)), 
+                           static_cast<float>(m(1)), 
+                           static_cast<float>(m(2)),
+                           static_cast<float>(sqrt(v[0] / (ns * (ns - 1)))),
+                           static_cast<float>(sqrt(v[1] / (ns * (ns - 1)))),
+                           static_cast<float>(sqrt(v[2] / (ns * (ns - 1)))));
         }
     }
 }
@@ -372,6 +601,7 @@ void PerFilterSourceClusterAttributes::computeEllipticities(
 SourceClusterAttributes::SourceClusterAttributes() :
     _clusterId(0),
     _numObs(0),
+    _flags(0),
     _earliestObsTime(0.0), _latestObsTime(0.0),
     _ra(0.0), _dec(0.0),
     _raSigma(0.0), _decSigma(0.0),
@@ -380,13 +610,64 @@ SourceClusterAttributes::SourceClusterAttributes() :
 { }
 
 /** Creates a new SourceClusterAttributes with the given id, computing
+  * attributes from the given source.
+  *
+  * @param[in] source   Source to compute attributes from.
+  * @param[in] id       Source cluster id
+  * @param[in] fluxIgnoreMask           Detection flag bitmask identifying
+  *                                     sources that should be ignored when
+  *                                     determining cluster fluxes.
+  * @param[in] ellipticityIgnoreMask    Detection flag bitmask identifying
+  *                                     sources that should be ignore when
+  *                                     determining cluster ellipticity
+  *                                     parameters. 
+  */
+SourceClusterAttributes::SourceClusterAttributes(
+    lsst::afw::detection::Source const & source,
+    int64_t id,
+    int fluxIgnoreMask,
+    int ellipticityIgnoreMask
+) :
+    _clusterId(id),
+    _numObs(1),
+    _flags(0),
+    _earliestObsTime(source.getTaiMidPoint()),
+    _latestObsTime(source.getTaiMidPoint()),
+    _raDecCov(),
+    _perFilterAttributes()
+{
+    setPosition(source.getRa(),
+                source.getDec(), 
+                source.getRaAstromErr(),
+                source.getDecAstromErr(),
+                Nullable<float>());
+    _perFilterAttributes.insert(std::make_pair(source.getFilterId(),
+            PerFilterSourceClusterAttributes(
+                source, fluxIgnoreMask, ellipticityIgnoreMask)));
+}
+
+/** Creates a new SourceClusterAttributes with the given id, computing
   * attributes from the given set of sources.
+  *
+  * @param[in] sources  Sources to compute attributes from.
+  * @param[in] id       Source cluster id
+  * @param[in] fluxIgnoreMask           Detection flag bitmask identifying
+  *                                     sources that should be ignored when
+  *                                     determining cluster fluxes.
+  * @param[in] ellipticityIgnoreMask    Detection flag bitmask identifying
+  *                                     sources that should be ignore when
+  *                                     determining cluster ellipticity
+  *                                     parameters. 
   */
 SourceClusterAttributes::SourceClusterAttributes(
     lsst::afw::detection::SourceSet const & sources,
-    int64_t id) :
+    int64_t id,
+    int fluxIgnoreMask,
+    int ellipticityIgnoreMask
+) :
     _clusterId(id),
     _numObs(static_cast<int>(sources.size())),
+    _flags(0),
     _raDecCov(),
     _perFilterAttributes()
 {
@@ -413,14 +694,16 @@ SourceClusterAttributes::SourceClusterAttributes(
         int filterId = (*i)->getFilterId();
         HashIter j = filters.find(filterId);
         if (j == filters.end()) {
-            j = filters.insert(std::make_pair(filterId, detection::SourceSet())).first;
+            j = filters.insert(std::make_pair(
+                filterId, detection::SourceSet())).first;
         }
         j->second.push_back(*i);
     }
     // compute per-filter properties
     for (HashIter i = filters.begin(), e = filters.end(); i != e; ++i) {
-        _perFilterAttributes.insert(std::make_pair(
-            i->first, PerFilterSourceClusterAttributes(i->second)));
+        _perFilterAttributes.insert(std::make_pair(i->first,
+            PerFilterSourceClusterAttributes(
+                i->second, fluxIgnoreMask, ellipticityIgnoreMask)));
     }
 }
 
@@ -475,10 +758,14 @@ void SourceClusterAttributes::setObsTimeRange(double earliest, double latest)
   */
 void SourceClusterAttributes::setPosition(double ra,
                                           double dec,
-                                          double raSigma,
-                                          double decSigma,
-                                          Nullable<double> const & raDecCov)
+                                          Nullable<float> raSigma,
+                                          Nullable<float> decSigma,
+                                          Nullable<float> raDecCov)
 {
+    if (isNaN(ra) || isNaN(dec)) {
+        throw LSST_EXCEPT(except::InvalidParameterException,
+                          "Longitude and/or latitude angle is NaN");
+    }
     if (raSigma < 0.0 || decSigma < 0.0) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "negative position uncertainty");
@@ -536,11 +823,12 @@ void SourceClusterAttributes::computePosition(
                           "empty source set");
     }
     if (n == 1) {
-        detection::Source::Ptr src = sources.front();
-        _ra = src->getRa();
-        _dec = src->getDec();
-        _raSigma = src->getRaAstromErr();
-        _decSigma = src->getDecAstromErr();
+        detection::Source const & source = *sources.front();
+        setPosition(source.getRa(),
+                    source.getDec(),
+                    source.getRaAstromErr(),
+                    source.getDecAstromErr(),
+                    Nullable<float>());
         return;
     }
     // Compute point P such that the sum of the squared angular separations
@@ -557,25 +845,27 @@ void SourceClusterAttributes::computePosition(
         z += std::sin(dec); 
     }
     double d2 = x * x + y * y; 
-    _ra = (d2 == 0.0) ? 0.0 : atan2(y, x);
-    _dec = (z == 0.0) ? 0.0 : atan2(z, std::sqrt(d2)); 
+    double ra = (d2 == 0.0) ? 0.0 : atan2(y, x);
+    double dec = (z == 0.0) ? 0.0 : atan2(z, std::sqrt(d2)); 
     // Compute covariance matrix and store mean position
     // as the object position of each source.
     double covRaRa = 0.0;
     double covDecDec = 0.0;
     double covRaDec = 0.0;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
-       double dr = (*i)->getRa() - _ra;
-       double dd = (*i)->getDec() - _dec;
+       double dr = (*i)->getRa() - ra;
+       double dd = (*i)->getDec() - dec;
        covRaRa += dr * dr;
        covDecDec += dd * dd;
        covRaDec += dr * dd;
     }
     // Set the ra/dec uncertainties to an estimate of the
-    // of the standard deviation of the sample mean
-    _raSigma = std::sqrt(covRaRa / (n * (n - 1)));
-    _decSigma = std::sqrt(covDecDec / (n * (n - 1)));
-    _raDecCov = covRaDec / n;
+    // standard deviation of the sample mean
+    setPosition(ra,
+                dec,
+                static_cast<float>(std::sqrt(covRaRa / (n * (n - 1)))),
+                static_cast<float>(std::sqrt(covDecDec / (n * (n - 1)))),
+                static_cast<float>(covRaDec / n));
 }
 
 }}} // namespace lsst:ap::cluster

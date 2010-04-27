@@ -13,6 +13,7 @@ Access to association pipeline clustering functions.
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
+#include "lsst/tr1/unordered_map.h"
 #include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
@@ -48,28 +49,29 @@ namespace lsst { namespace ap { namespace cluster {
     template <typename ScalarT> class Nullable;
 }}}
 
-%ignore lsst::ap::cluster::Nullable<double>;
+%ignore lsst::ap::cluster::Nullable<float>;
+%ignore lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap;
 
-%typemap(out) lsst::ap::cluster::Nullable<double> const & {
-    if (($1)->isNull()) {
+%typemap(out) lsst::ap::cluster::Nullable<float> const {
+    if ((&$1)->isNull()) {
         $result = Py_None;
     } else {
-        $result = PyFloat_FromDouble(($1)->get());
+        $result = PyFloat_FromDouble(static_cast<double>(*(&$1)));
     }
 }
 
-%typemap(in) lsst::ap::cluster::Nullable<double> const & (lsst::ap::cluster::Nullable<double> temp) {
+%typemap(in) lsst::ap::cluster::Nullable<float> const (lsst::ap::cluster::Nullable<float> temp) {
     if (PyFloat_CheckExact($input)) {
-        temp = PyFloat_AsDouble($input);
+        temp = static_cast<float>(PyFloat_AsDouble($input));
     } else if ($input == Py_None) {
         temp.setNull();
     } else {
-        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::Nullable<double>");
+        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::Nullable<float>");
     }
     $1 = &temp;
 }
 
-%typemap(typecheck, precedence=SWIG_TYPECHECK_DOUBLE) lsst::ap::cluster::Nullable<double> const & {
+%typemap(typecheck, precedence=SWIG_TYPECHECK_FLOAT) lsst::ap::cluster::Nullable<float> {
     $1 = (PyFloat_CheckExact($input) || $input == Py_None) ? 1 : 0; 
 }
 
@@ -81,7 +83,7 @@ namespace lsst { namespace ap { namespace cluster {
     }
 }
 
-%typemap(out) std::vector<lsst::afw::detection::SourceSet> {
+%typemap(out) std::vector<lsst::afw::detection::SourceSet> const {
     // $1 is a SwigValueWrapper, must dereference contents to call member functions
     int len = (*(&$1)).size();
     swig_type_info * info = SWIGTYPE_p_std__vectorT_boost__shared_ptrT_lsst__afw__detection__Source_t_std__allocatorT_boost__shared_ptrT_lsst__afw__detection__Source_t_t_t;
@@ -95,6 +97,18 @@ namespace lsst { namespace ap { namespace cluster {
             new lsst::afw::detection::SourceSet((*(&$1))[i]);
         PyObject * obj = SWIG_NewPointerObj(SWIG_as_voidptr(sourceSet), info, SWIG_POINTER_OWN);
         PyList_SetItem($result, i, obj);
+    }
+}
+
+%typemap(out) lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap const & {
+    $result = PyDict_New();
+    swig_type_info * info = SWIGTYPE_p_boost__shared_ptrT_lsst__ap__cluster__PerFilterSourceClusterAttributes_t;
+    typedef lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap _PFAMap;
+    typedef lsst::ap::cluster::PerFilterSourceClusterAttributes _PFA;
+    for (_PFAMap::const_iterator i = ($1)->begin(), e = ($1)->end(); i != e; ++i) {
+        _PFA::Ptr * pfa = new _PFA::Ptr(new _PFA(i->second));
+        PyObject * obj = SWIG_NewPointerObj(SWIG_as_voidptr(pfa), info, SWIG_POINTER_OWN);
+        PyDict_SetItem($result, PyInt_FromLong(i->first), obj);
     }
 }
 

@@ -1,4 +1,5 @@
 from itertools import izip
+import operator
 
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
@@ -33,25 +34,65 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         self.policy.mergeDefaults(defaultPolicy)
 
     def process(self, clipboard):
-        # retrieve clipboard data
+        # extract input data and parameters
         event = clipboard.get(self.policy.getString("inputKeys.event"))
         skyTileId = event.get("skyTileId");
         sourceClusters = clipboard.get(
             self.policy.getString("inputKeys.sourceClusters"))
+        badSourcesKey = self.policy.getString("inputKeys.badSources")
+        if clipboard.contains(badSourcesKey):
+            badSources = clipboard.get(badSourcesKey).getSources()
+        else:
+            badSources = None
+        fluxIgnoreMask = reduce(
+            operator.__or__, self.policy.getArray("fluxIgnoreMask"), 0)
+        ellipticityIgnoreMask = reduce(
+            operator.__or__, self.policy.getArray("ellipticityIgnoreMask"), 0)
+        createBadClusters = self.policy.getBool("createBadClusters")
+        scpKey = self.policy.getString("inputKeys.sourceClusteringPolicy")
+        if clipboard.contains(scpKey):
+            scp = clipboard.get(scpKey)
+        else:
+            scp = policy.Policy()
+        scp.mergeDefaults(self.policy.getPolicy("sourceClusteringPolicy"))
+        minPoints = scp.getInt("minPoints")
 
-        # compute  SourceClusterAttributes for each cluster
+        # compute SourceClusterAttributes for each cluster
         self.log.log(Log.INFO, "Computing source cluster attributes")
         sourceClusterAttributes = clusterLib.SourceClusterAttributesSet()
-        for sequenceNum, sources in enumerate(sourceClusters):
+        sequenceNum = 0
+        for sources in sourceClusters:
             clusterId = sequenceNum + (skyTileId << 32)
-            attributes = clusterLib.SourceClusterAttributes(sources, clusterId)
-            clusterLib.updateSources(attributes, sources)
-            sourceClusterAttributes.append(attributes)
-        self.log.log(Log.INFO, "Finished computing source cluster attributes")
-
-        # output products
+            sequenceNum += 1
+            sca = clusterLib.SourceClusterAttributes(sources, clusterId)
+            if len(sources) == 1 and minPoints > 0:
+                sca.setFlags(sca.getFlags() |
+                             clusterLib.SourceClusterAttributes.NOISE)
+            clusterLib.updateSources(sca, sources)
+            sourceClusterAttributes.append(sca)
         clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
                       sourceClusterAttributes)
+        self.log.log(Log.INFO, "Finished computing source cluster attributes")
+
+        # create clusters from bad sources
+        if badSources != None and len(badSources) > 0:
+            if createBadClusters:
+                self.log.log(Log.INFO,
+                             "Creating source clusters for bad sources")
+                badSourceClusterAttributes = clusterLib.SourceClusterAttributesSet()
+                for source in badSources:
+                    clusterId = sequenceNum + (skyTileId << 32)
+                    sequenceNum += 1
+                    bad = clusterLib.SourceClusterAttributes(source, clusterId)
+                    bad.setFlags(bad.getFlags() |
+                                 clusterLib.SourceClusterAttributes.BAD)
+                badSourceClusterAttributes.append(bad)
+                clipboard.put(
+                    self.policy.get("outputKeys.badSourceClusterAttributes"),
+                    badSourceClusterAttributes)
+                self.log.log(Log.INFO, "Finished creating bad source clusters")
+            else:
+                clusterLib.updateBadSources(badSources)
 
 
 class SourceClusterAttributesStage(stage.Stage):
