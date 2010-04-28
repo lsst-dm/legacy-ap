@@ -147,29 +147,29 @@ public:
         return _latestObsTime;
     }
     int getNumFluxSamples() const;
-    Nullable<float> const getFlux() const {
+    Nullable<float> const & getFlux() const {
         return _flux;
     }
-    Nullable<float> const getFluxSigma() const {
+    Nullable<float> const & getFluxSigma() const {
         return _fluxSigma;
     }
     int getNumEllipticitySamples() const;
-    Nullable<float> const getE1() const {
+    Nullable<float> const & getE1() const {
         return _e1;
     }
-    Nullable<float> const getE1Sigma() const {
+    Nullable<float> const & getE1Sigma() const {
         return _e1Sigma;
     }
-    Nullable<float> const getE2() const {
+    Nullable<float> const & getE2() const {
         return _e2;
     }
-    Nullable<float> const getE2Sigma() const {
+    Nullable<float> const & getE2Sigma() const {
         return _e2Sigma;
     }
-    Nullable<float> const getRadius() const {
+    Nullable<float> const & getRadius() const {
         return _radius;
     }
-    Nullable<float> const getRadiusSigma() const {
+    Nullable<float> const & getRadiusSigma() const {
         return _radiusSigma;
     }
 
@@ -184,15 +184,16 @@ public:
     }
     void setObsTimeRange(double earliest, double latest);
     void setNumFluxSamples(int samples);
-    void setFlux(Nullable<float> flux, Nullable<float> fluxSigma);
+    void setFlux(Nullable<float> const & flux,
+                 Nullable<float> const & fluxSigma);
     void setNumEllipticitySamples(int samples);
     void setEllipticity();
-    void setEllipticity(Nullable<float> e1,
-                        Nullable<float> e2,
-                        Nullable<float> radius,
-                        Nullable<float> e1Sigma,
-                        Nullable<float> e2Sigma,
-                        Nullable<float> radiusSigma);
+    void setEllipticity(Nullable<float> const & e1,
+                        Nullable<float> const & e2,
+                        Nullable<float> const & radius,
+                        Nullable<float> const & e1Sigma,
+                        Nullable<float> const & e2Sigma,
+                        Nullable<float> const & radiusSigma);
 
 private:
     int _filterId;
@@ -205,10 +206,10 @@ private:
     Nullable<float> _fluxSigma;
     // ellipticities
     Nullable<float> _e1;
-    Nullable<float> _e1Sigma;
     Nullable<float> _e2;
-    Nullable<float> _e2Sigma;
     Nullable<float> _radius;
+    Nullable<float> _e1Sigma;
+    Nullable<float> _e2Sigma;
     Nullable<float> _radiusSigma;
 
     void computeFlux(lsst::afw::detection::SourceSet const & sources,
@@ -262,15 +263,33 @@ public:
     int64_t getClusterId() const {
         return _clusterId;
     }
-    int getNumObs() const { return _numObs; }
-    int getFlags() const { return _flags; }
-    double getEarliestObsTime() const { return _earliestObsTime; }
-    double getLatestObsTime() const { return _latestObsTime; }
-    double getRa() const { return _ra; }
-    double getDec() const { return _dec; }
-    float getRaSigma() const { return _raSigma; }
-    float getDecSigma() const { return _decSigma; }
-    Nullable<float> const & getRaDecCov() const { return _raDecCov; }
+    int getNumObs() const {
+        return _numObs;
+    }
+    int getFlags() const {
+        return _flags;
+    }
+    double getEarliestObsTime() const {
+        return _earliestObsTime;
+    }
+    double getLatestObsTime() const {
+        return _latestObsTime;
+    }
+    double getRa() const {
+        return _ra;
+    }
+    double getDec() const {
+        return _dec;
+    }
+    Nullable<float> const & getRaSigma() const {
+        return _raSigma;
+    }
+    Nullable<float> const & getDecSigma() const {
+        return _decSigma;
+    }
+    Nullable<float> const & getRaDecCov() const {
+        return _raDecCov;
+    }
 
     bool hasFilter(int filterId) const;
     std::vector<int> const getFilterIds() const;
@@ -280,15 +299,21 @@ public:
     PerFilterSourceClusterAttributes const & getPerFilterAttributes(
         int filterId) const;
 
-    void setClusterId(int clusterId) { _clusterId = clusterId; }
-    void setNumObs(int numObs) { _numObs = numObs; }
-    void setFlags(int flags) { _flags = flags; }
+    void setClusterId(int clusterId) {
+        _clusterId = clusterId;
+    }
+    void setNumObs(int numObs) {
+        _numObs = numObs;
+    }
+    void setFlags(int flags) {
+        _flags = flags;
+    }
     void setObsTimeRange(double earliest, double latest);
     void setPosition(double ra,
                      double dec,
-                     Nullable<float> raSigma,
-                     Nullable<float> decSigma,
-                     Nullable<float> raDecCov);
+                     Nullable<float> const & raSigma,
+                     Nullable<float> const & decSigma,
+                     Nullable<float> const & raDecCov);
     void clearPerFilterAttributes();
     bool setPerFilterAttributes(PerFilterSourceClusterAttributes const & attributes);
     bool removePerFilterAttributes(int filterId);

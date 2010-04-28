@@ -222,9 +222,8 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes() :
     _flags(0),
     _earliestObsTime(0.0), _latestObsTime(0.0),
     _flux(), _fluxSigma(),
-    _e1(), _e1Sigma(),
-    _e2(), _e2Sigma(),
-    _radius(), _radiusSigma()
+    _e1(), _e2(), _radius(),
+    _e1Sigma(), _e2Sigma(), _radiusSigma()
 { }
 
 /** Creates a new PerFilterSourceClusterAttributes, computing attributes
@@ -250,9 +249,8 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     _earliestObsTime(source.getTaiMidPoint()),
     _latestObsTime(source.getTaiMidPoint()),
     _flux(), _fluxSigma(),
-    _e1(), _e1Sigma(),
-    _e2(), _e2Sigma(),
-    _radius(), _radiusSigma()
+    _e1(), _e2(), _radius(),
+    _e1Sigma(), _e2Sigma(), _radiusSigma()
 {
     if (!isNaN(source.getPsfFlux()) &&
         (source.getFlagForDetection() & fluxIgnoreMask) == 0) {
@@ -273,9 +271,12 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     double mxy = source.getIxy();
     double t = mxx + myy;
     setNumEllipticitySamples(1);
-    setEllipticity(static_cast<float>((mxx - myy) / t), Nullable<float>(),
-                   static_cast<float>(2.0 * mxy / t), Nullable<float>(),
-                   static_cast<float>(sqrt(t)), Nullable<float>());
+    setEllipticity(static_cast<float>((mxx - myy) / t),
+                   static_cast<float>(2.0 * mxy / t),
+                   static_cast<float>(sqrt(t)),
+                   Nullable<float>(),
+                   Nullable<float>(),
+                   Nullable<float>());
 }
 
 /** Creates a new PerFilterSourceClusterAttributes, computing attributes
@@ -298,9 +299,8 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     _numObs(static_cast<int>(sources.size())),
     _flags(0),
     _flux(), _fluxSigma(),
-    _e1(), _e1Sigma(),
-    _e2(), _e2Sigma(),
-    _radius(), _radiusSigma()
+    _e1(), _e2(), _radius(),
+    _e1Sigma(), _e2Sigma(), _radiusSigma()
 {
     typedef detection::SourceSet::const_iterator Iter;
     if (sources.size() == 0) {
@@ -369,14 +369,15 @@ void PerFilterSourceClusterAttributes::setNumFluxSamples(int samples)
 
 /** Sets the PSF flux and uncertainty.
   */
-void PerFilterSourceClusterAttributes::setFlux(Nullable<float> flux,
-                                               Nullable<float> fluxSigma)
+void PerFilterSourceClusterAttributes::setFlux(
+    Nullable<float> const & flux,
+    Nullable<float> const & fluxSigma)
 {
     if (flux.isNull() && !fluxSigma.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "flux is null but uncertainty is not");
     }
-    if (flux < 0.0) {
+    if (fluxSigma < 0.0) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "negative flux uncertainty");
     }
@@ -419,22 +420,22 @@ void PerFilterSourceClusterAttributes::setNumEllipticitySamples(int samples)
 void PerFilterSourceClusterAttributes::setEllipticity()
 {
     _e1.setNull();
-    _e1Sigma.setNull();
     _e2.setNull();
-    _e2Sigma.setNull();
     _radius.setNull();
+    _e1Sigma.setNull();
+    _e2Sigma.setNull();
     _radiusSigma.setNull();
 }
 
 /** Sets the ellipticity parameters and uncertainties. 
   */
 void PerFilterSourceClusterAttributes::setEllipticity(
-    Nullable<float> e1,
-    Nullable<float> e1Sigma,
-    Nullable<float> e2,
-    Nullable<float> e2Sigma,
-    Nullable<float> radius,
-    Nullable<float> radiusSigma)
+    Nullable<float> const & e1,
+    Nullable<float> const & e2,
+    Nullable<float> const & radius,
+    Nullable<float> const & e1Sigma,
+    Nullable<float> const & e2Sigma,
+    Nullable<float> const & radiusSigma)
 {
     if (e1.isNull() != e2.isNull() || e2.isNull() != radius.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException, "ellipticity "
@@ -458,10 +459,10 @@ void PerFilterSourceClusterAttributes::setEllipticity(
                           "negative ellipticity parameter uncertainty");
     }
     _e1 = e1;
-    _e1Sigma = e1Sigma;
     _e2 = e2;
-    _e2Sigma = e2Sigma;
     _radius = radius;
+    _e1Sigma = e1Sigma;
+    _e2Sigma = e2Sigma;
     _radiusSigma = radiusSigma;
 }
 
@@ -758,9 +759,9 @@ void SourceClusterAttributes::setObsTimeRange(double earliest, double latest)
   */
 void SourceClusterAttributes::setPosition(double ra,
                                           double dec,
-                                          Nullable<float> raSigma,
-                                          Nullable<float> decSigma,
-                                          Nullable<float> raDecCov)
+                                          Nullable<float> const & raSigma,
+                                          Nullable<float> const & decSigma,
+                                          Nullable<float> const & raDecCov)
 {
     if (isNaN(ra) || isNaN(dec)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
