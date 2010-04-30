@@ -50,18 +50,20 @@ class SourceClusteringParallel(stage.ParallelProcessing):
             operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
 
         # turn input into a list of source sets
-        if isinstance(inputSources, detection.SourceSet):
-            sourceSets = [ inputSources ]
-        elif isinstance(inputSources, detection.PersistableSourceVector):
-            sourceSets = [ inputSources.getSources() ]
-        elif isinstance(inputSources, detection.PersistableSourceVectorVector):
-            sourceSets = [ psv.getSources() for psv in inputSources ]
-        else:
-            raise TypeError(
-                "Expecting sources as a %s, %s, or %s - got a %s" %
-                (t.__class__.__module__ + '.' + t.__class__.__name__ for t in
-                 (detection.SourceSet, detection.PersistableSourceVector,
-                  detection.PersistableSourceVectorVector, sources)))
+        sourceSets = []
+        if not isinstance(inputSources, (list, tuple)):
+            inputSources = [ inputSources ]
+        for entry in inputSources:
+            if isinstance(entry, detection.SourceSet):
+                sourceSets.append(entry)
+            elif isinstance(entry, detection.PersistableSourceVector):
+                sourceSets.append(entry.getSources())
+            else:
+                raise TypeError(
+                    "Expecting sources in a [list/tuple of] %s or %s - got a %s" %
+                    (t.__class__.__module__ + '.' + t.__class__.__name__ for t in
+                     (detection.SourceSet, detection.PersistableSourceVector,
+                      sources)))
 
         # remove sources with invalid positions
         self.log.log(Log.INFO, "Segregating sources with invalid positions")
