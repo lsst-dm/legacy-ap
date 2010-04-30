@@ -157,7 +157,7 @@ LSST_AP_API void segregateInvalidSources(
     for (size_t i = 0; i < n; ++i) {
         double ra = sources[i]->getRa();
         double dec = sources[i]->getDec();
-        if (isnan(ra) || isnan(dec) ||
+        if (isNaN(ra) || isNaN(dec) ||
             ra < 0.0 || ra >= 2.0 * M_PI ||
             dec < -0.5 * M_PI || dec > 0.5 * M_PI) {
             badSources.push_back(sources[i]);
@@ -254,7 +254,7 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     _e1(), _e2(), _radius(),
     _e1Sigma(), _e2Sigma(), _radiusSigma()
 {
-    if (!isnan(source.getPsfFlux()) &&
+    if (!isNaN(source.getPsfFlux()) &&
         (source.getFlagForDetection() & fluxIgnoreMask) == 0) {
         setFlux(source.getPsfFlux(), source.getPsfFluxErr());
         setNumFluxSamples(1);
@@ -262,9 +262,9 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     if (source.isNull(detection::IXX) ||
         source.isNull(detection::IYY) ||
         source.isNull(detection::IXY) ||
-        isnan(source.getIxx()) ||
-        isnan(source.getIyy()) ||
-        isnan(source.getIxy()) ||
+        isNaN(source.getIxx()) ||
+        isNaN(source.getIyy()) ||
+        isNaN(source.getIxy()) ||
         (source.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
         return;
     }
@@ -502,7 +502,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
     double flux = 0.0;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
         double f = (*i)->getPsfFlux();
-        if (isnan(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
+        if (isNaN(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
             continue;
         }
         flux += f;
@@ -514,7 +514,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         // available
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             float f = (*i)->getPsfFlux();
-            if (!isnan(f) && 
+            if (!isNaN(f) && 
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) == 0) {
                 setFlux(f, (*i)->getPsfFluxErr());
                 break;
@@ -528,7 +528,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         double ff = 0.0;
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             double f = (*i)->getPsfFlux();
-            if (isnan(f) ||
+            if (isNaN(f) ||
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
                 continue;
             }
@@ -574,7 +574,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
        double myy = (*i)->getIyy();
        double mxy = (*i)->getIxy();
        // make sure the moments aren't NaN
-       if (isnan(mxx) || isnan(myy) || isnan(mxy)) {
+       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy)) {
            continue;
        }
        // compute ellipticity parameters from moments
@@ -801,7 +801,7 @@ void SourceClusterAttributes::setPosition(double ra,
                                           NullOr<float> const & decSigma,
                                           NullOr<float> const & raDecCov)
 {
-    if (isnan(ra) || isnan(dec)) {
+    if (isNaN(ra) || isNaN(dec)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "Longitude and/or latitude angle is NaN");
     }

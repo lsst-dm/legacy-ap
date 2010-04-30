@@ -12,9 +12,12 @@
 #ifndef LSST_AP_COMMON_H
 #define LSST_AP_COMMON_H
 
+#include <math.h>
 #include <cstddef>
 
 #include "boost/cstdint.hpp"
+#include "boost/type_traits/is_floating_point.hpp"
+#include "boost/static_assert.hpp"
 
 
 // -- Shared library support ----------------
@@ -53,7 +56,16 @@ double const RADIANS_PER_ARCSEC = 4.84813681109535993589914102357e-6;
 double const TWO_PI             = 6.28318530717958647692528676656;
 double const ONE_OVER_PI        = 0.318309886183790671537767526745;
 
+template <typename FloatT>
+inline bool isNaN(FloatT x) {
+    BOOST_STATIC_ASSERT(boost::is_floating_point<FloatT>::value);
+#if LSST_AP_HAVE_ISNAN
+    return isnan(x);
+#else
+    return x != x;
+#endif
+}
+
 }}} // end of namespace lsst::ap::<anonymous>
 
 #endif  // LSST_AP_COMMON_H
-

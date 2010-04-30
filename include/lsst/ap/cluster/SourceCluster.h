@@ -9,7 +9,6 @@
 #ifndef LSST_AP_CLUSTER_SOURCECLUSTER_H
 #define LSST_AP_CLUSTER_SOURCECLUSTER_H
 
-#include <math.h>
 #include <limits>
 #include <vector>
 
@@ -61,7 +60,7 @@ public:
     NullOr(FloatT value) : _value(value) { }
 
     bool isNull() const {
-        return isnan(_value);
+        return isNaN(_value);
     }
     operator FloatT() const {
         return _value;
