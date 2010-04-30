@@ -170,6 +170,11 @@ inline void insertFloat(StorageT & db, char const * const col, T const & val) {
     }
 }
 
+template <typename StorageT, typename T>
+inline void insertFloat(StorageT & db, char const * const col, NullOr<T> const & val) {
+    insertFloat(db, col, static_cast<T>(val));
+}
+
 template <typename FloatT> FloatT radians(FloatT deg) {
     return static_cast<FloatT>(deg * (M_PI/180.0));
 }

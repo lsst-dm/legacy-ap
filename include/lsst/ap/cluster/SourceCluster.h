@@ -367,7 +367,7 @@ public:
         _clusters(clusters)
     { }
 
-    virtual ~PersistableSourceClusterVector();
+    virtual ~PersistableSourceClusterVector() { }
 
     size_t size() const {
         return _clusters.size();

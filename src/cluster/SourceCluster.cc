@@ -907,10 +907,5 @@ void SourceClusterAttributes::computePosition(
                 static_cast<float>(covRaDec / n));
 }
 
-
-// -- PersistableSourceClusterVector ----
-
-PersistableSourceClusterVector::~PersistableSourceClusterVector() { }
-
 }}} // namespace lsst:ap::cluster
 
