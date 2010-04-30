@@ -96,10 +96,10 @@ SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSo
     }
 }
 
-%typemap(out) lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap const & {
+%typemap(out) lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributesMap const & {
     $result = PyDict_New();
     swig_type_info * info = SWIGTYPE_p_boost__shared_ptrT_lsst__ap__cluster__PerFilterSourceClusterAttributes_t;
-    typedef lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap _PFAMap;
+    typedef lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributesMap _PFAMap;
     typedef lsst::ap::cluster::PerFilterSourceClusterAttributes _PFA;
     for (_PFAMap::const_iterator i = ($1)->begin(), e = ($1)->end(); i != e; ++i) {
         _PFA::Ptr * pfa = new _PFA::Ptr(new _PFA(i->second));
