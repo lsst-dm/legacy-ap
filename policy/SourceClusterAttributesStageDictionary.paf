@@ -58,7 +58,7 @@ definitions: {
                 sourceClusterAttributes: {
                     type: string
                     description: "Key for computed source cluster attributes (an
-                                  lsst.ap.cluster.SourceClusterAttributesSet).
+                                  lsst.ap.cluster.PersistableSourceClusterVector).
                                  "
                     maxOccurs: 1
                     default: "sourceClusterAttributes"
@@ -67,7 +67,7 @@ definitions: {
                     type: string
                     description: "Key for source cluster attributes computed
                                   from bad sources (an
-                                  lsst.ap.cluster.SourceClusterAttributesSet).
+                                  lsst.ap.cluster.PersistableSourceClusterVector).
                                   If the 'createBadClusters' policy parameter
                                   value is false, the clipboard will not
                                   contain an entry for this key.

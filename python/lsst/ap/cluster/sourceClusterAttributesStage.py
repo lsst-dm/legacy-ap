@@ -80,7 +80,7 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                 self.log.log(Log.INFO,
                              "Creating source clusters for bad sources")
                 badScv = clusterLib.SourceClusterVector()
-                for source in badSources:
+                for source in badSources.getSources():
                     clusterId = sequenceNum + (skyTileId << 32)
                     sequenceNum += 1
                     badSca = clusterLib.SourceClusterAttributes(source, clusterId)
