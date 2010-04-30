@@ -43,11 +43,12 @@ namespace boost {
 SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::cluster::PT1SkyTile);
 SWIG_SHARED_PTR(PerFilterSourceClusterAttributes, lsst::ap::cluster::PerFilterSourceClusterAttributes);
 SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceClusterAttributes);
+SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSourceClusterVector);
 
-%ignore lsst::ap::cluster::Nullable<float>;
+%ignore lsst::ap::cluster::NullOr<float>;
 %ignore lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap;
 
-%typemap(out) lsst::ap::cluster::Nullable<float> const & {
+%typemap(out) lsst::ap::cluster::NullOr<float> const & {
     if (($1)->isNull()) {
         $result = Py_None;
     } else {
@@ -55,18 +56,18 @@ SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceClusterAttribu
     }
 }
 
-%typemap(in) lsst::ap::cluster::Nullable<float> const & (lsst::ap::cluster::Nullable<float> temp) {
+%typemap(in) lsst::ap::cluster::NullOr<float> const & (lsst::ap::cluster::NullOr<float> temp) {
     if (PyFloat_CheckExact($input)) {
         temp = static_cast<float>(PyFloat_AsDouble($input));
     } else if ($input == Py_None) {
         temp.setNull();
     } else {
-        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::Nullable<float>");
+        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::NullOr<float>");
     }
     $1 = &temp;
 }
 
-%typemap(typecheck, precedence=SWIG_TYPECHECK_FLOAT) lsst::ap::cluster::Nullable<float> const & {
+%typemap(typecheck, precedence=SWIG_TYPECHECK_FLOAT) lsst::ap::cluster::NullOr<float> const & {
     $1 = (PyFloat_CheckExact($input) || $input == Py_None) ? 1 : 0; 
 }
 
@@ -111,6 +112,6 @@ SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceClusterAttribu
 %include "lsst/ap/cluster/PT1SkyTile.h"
 %include "lsst/ap/cluster/SourceCluster.h"
 
-%lsst_persistable(lsst::ap::cluster::SourceClusterAttributes);
-%template(SourceClusterAttributesSet) std::vector<lsst::ap::cluster::SourceClusterAttributes::Ptr>;
+%lsst_persistable(lsst::ap::cluster::PersistableSourceClusterVector);
+%template(SourceClusterVector) std::vector<lsst::ap::cluster::SourceClusterAttributes::Ptr>;
 

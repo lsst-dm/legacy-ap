@@ -57,7 +57,9 @@ inline void initPoint(Point & entry,
     entry.data = &ptr;
 }
 
-/// Maximum number of sources that can be processed at once.
+/** @internal
+  * Maximum number of sources that can be processed at once.
+  */
 unsigned int const MAX_SOURCES =
     static_cast<unsigned int>(std::numeric_limits<int>::max());
 
@@ -252,7 +254,7 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     _e1(), _e2(), _radius(),
     _e1Sigma(), _e2Sigma(), _radiusSigma()
 {
-    if (!isNaN(source.getPsfFlux()) &&
+    if (!isnan(source.getPsfFlux()) &&
         (source.getFlagForDetection() & fluxIgnoreMask) == 0) {
         setFlux(source.getPsfFlux(), source.getPsfFluxErr());
         setNumFluxSamples(1);
@@ -260,9 +262,9 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     if (source.isNull(detection::IXX) ||
         source.isNull(detection::IYY) ||
         source.isNull(detection::IXY) ||
-        isNaN(source.getIxx()) ||
-        isNaN(source.getIyy()) ||
-        isNaN(source.getIxy()) ||
+        isnan(source.getIxx()) ||
+        isnan(source.getIyy()) ||
+        isnan(source.getIxy()) ||
         (source.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
         return;
     }
@@ -274,9 +276,9 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     setEllipticity(static_cast<float>((mxx - myy) / t),
                    static_cast<float>(2.0 * mxy / t),
                    static_cast<float>(sqrt(t)),
-                   Nullable<float>(),
-                   Nullable<float>(),
-                   Nullable<float>());
+                   NullOr<float>(),
+                   NullOr<float>(),
+                   NullOr<float>());
 }
 
 /** Creates a new PerFilterSourceClusterAttributes, computing attributes
@@ -370,8 +372,8 @@ void PerFilterSourceClusterAttributes::setNumFluxSamples(int samples)
 /** Sets the PSF flux and uncertainty.
   */
 void PerFilterSourceClusterAttributes::setFlux(
-    Nullable<float> const & flux,
-    Nullable<float> const & fluxSigma)
+    NullOr<float> const & flux,
+    NullOr<float> const & fluxSigma)
 {
     if (flux.isNull() && !fluxSigma.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException,
@@ -430,12 +432,12 @@ void PerFilterSourceClusterAttributes::setEllipticity()
 /** Sets the ellipticity parameters and uncertainties. 
   */
 void PerFilterSourceClusterAttributes::setEllipticity(
-    Nullable<float> const & e1,
-    Nullable<float> const & e2,
-    Nullable<float> const & radius,
-    Nullable<float> const & e1Sigma,
-    Nullable<float> const & e2Sigma,
-    Nullable<float> const & radiusSigma)
+    NullOr<float> const & e1,
+    NullOr<float> const & e2,
+    NullOr<float> const & radius,
+    NullOr<float> const & e1Sigma,
+    NullOr<float> const & e2Sigma,
+    NullOr<float> const & radiusSigma)
 {
     if (e1.isNull() != e2.isNull() || e2.isNull() != radius.isNull()) {
         throw LSST_EXCEPT(except::InvalidParameterException, "ellipticity "
@@ -466,6 +468,24 @@ void PerFilterSourceClusterAttributes::setEllipticity(
     _radiusSigma = radiusSigma;
 }
 
+bool PerFilterSourceClusterAttributes::operator==(
+    PerFilterSourceClusterAttributes const & attributes) const
+{
+    return (_filterId == attributes._filterId &&
+            _numObs == attributes._numObs &&
+            _flags == attributes._flags &&
+            _earliestObsTime == attributes._earliestObsTime &&
+            _latestObsTime == attributes._latestObsTime &&
+            _flux == attributes._flux &&
+            _fluxSigma == attributes._fluxSigma &&
+            _e1 == attributes._e1 &&
+            _e2 == attributes._e2 &&
+            _radius == attributes._radius &&
+            _e1Sigma == attributes._e1Sigma &&
+            _e2Sigma == attributes._e2Sigma &&
+            _radiusSigma == attributes._radiusSigma);
+}
+
 /** Computes the sample mean and standard error of the fluxes of each
   * source from this filter.
   */
@@ -482,7 +502,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
     double flux = 0.0;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
         double f = (*i)->getPsfFlux();
-        if (isNaN(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
+        if (isnan(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
             continue;
         }
         flux += f;
@@ -494,7 +514,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         // available
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             float f = (*i)->getPsfFlux();
-            if (!isNaN(f) && 
+            if (!isnan(f) && 
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) == 0) {
                 setFlux(f, (*i)->getPsfFluxErr());
                 break;
@@ -508,7 +528,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         double ff = 0.0;
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             double f = (*i)->getPsfFlux();
-            if (isNaN(f) ||
+            if (isnan(f) ||
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
                 continue;
             }
@@ -554,7 +574,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
        double myy = (*i)->getIyy();
        double mxy = (*i)->getIxy();
        // make sure the moments aren't NaN
-       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy)) {
+       if (isnan(mxx) || isnan(myy) || isnan(mxy)) {
            continue;
        }
        // compute ellipticity parameters from moments
@@ -577,9 +597,9 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
             setEllipticity(static_cast<float>(m(0)),
                            static_cast<float>(m(1)),
                            static_cast<float>(m(2)),
-                           Nullable<float>(),
-                           Nullable<float>(),
-                           Nullable<float>());
+                           NullOr<float>(),
+                           NullOr<float>(),
+                           NullOr<float>());
         } else {
             // compute standard errors
             Eigen::Vector3d v(0.0, 0.0, 0.0);
@@ -641,7 +661,7 @@ SourceClusterAttributes::SourceClusterAttributes(
                 source.getDec(), 
                 source.getRaAstromErr(),
                 source.getDecAstromErr(),
-                Nullable<float>());
+                NullOr<float>());
     _perFilterAttributes.insert(std::make_pair(source.getFilterId(),
             PerFilterSourceClusterAttributes(
                 source, fluxIgnoreMask, ellipticityIgnoreMask)));
@@ -710,16 +730,34 @@ SourceClusterAttributes::SourceClusterAttributes(
 
 SourceClusterAttributes::~SourceClusterAttributes() { }
 
+bool SourceClusterAttributes::operator==(
+    SourceClusterAttributes const & attributes) const
+{
+    if (_clusterId != attributes._clusterId ||
+        _numObs != attributes._numObs ||
+        _flags != attributes._flags ||
+        _earliestObsTime != attributes._earliestObsTime ||
+        _latestObsTime != attributes._latestObsTime ||
+        _ra != attributes._ra ||
+        _dec != attributes._dec ||
+        _raSigma != attributes._raSigma ||
+        _decSigma != attributes._decSigma ||
+        _raDecCov != attributes._raDecCov) {
+        return false;
+    }
+    return _perFilterAttributes == attributes._perFilterAttributes;
+}
+
 /** Returns @c true if the cluster has attributes specific to the given filter.
   */
 bool SourceClusterAttributes::hasFilter(int filterId) const {
     return _perFilterAttributes.find(filterId) != _perFilterAttributes.end();
 }
 
-/** Returns a vector of the filter ids the cluster has attributes for. 
+/** Returns a vector of the filter ids the cluster has attributes for.
   */
 std::vector<int> const SourceClusterAttributes::getFilterIds() const {
-    typedef PerFilterAttributeMap::const_iterator Iter;
+    typedef PerFilterAttributesMap::const_iterator Iter;
     std::vector<int> filterIds;
     for (Iter i = _perFilterAttributes.begin(), e = _perFilterAttributes.end();
          i != e; ++i) {
@@ -734,7 +772,7 @@ std::vector<int> const SourceClusterAttributes::getFilterIds() const {
 PerFilterSourceClusterAttributes const &
 SourceClusterAttributes::getPerFilterAttributes(int filterId) const
 {
-    typedef PerFilterAttributeMap::const_iterator Iter;
+    typedef PerFilterAttributesMap::const_iterator Iter;
     Iter i = _perFilterAttributes.find(filterId);
     if (i == _perFilterAttributes.end()) {
         throw LSST_EXCEPT(except::NotFoundException, "source cluster "
@@ -759,11 +797,11 @@ void SourceClusterAttributes::setObsTimeRange(double earliest, double latest)
   */
 void SourceClusterAttributes::setPosition(double ra,
                                           double dec,
-                                          Nullable<float> const & raSigma,
-                                          Nullable<float> const & decSigma,
-                                          Nullable<float> const & raDecCov)
+                                          NullOr<float> const & raSigma,
+                                          NullOr<float> const & decSigma,
+                                          NullOr<float> const & raDecCov)
 {
-    if (isNaN(ra) || isNaN(dec)) {
+    if (isnan(ra) || isnan(dec)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "Longitude and/or latitude angle is NaN");
     }
@@ -792,7 +830,7 @@ void SourceClusterAttributes::clearPerFilterAttributes() {
 bool SourceClusterAttributes::setPerFilterAttributes(
     PerFilterSourceClusterAttributes const & attributes)
 {
-    typedef PerFilterAttributeMap::iterator Iter;
+    typedef PerFilterAttributesMap::iterator Iter;
     int filterId = attributes.getFilterId();
     std::pair<Iter, bool> v = _perFilterAttributes.insert(
         std::make_pair(filterId, attributes));
@@ -829,7 +867,7 @@ void SourceClusterAttributes::computePosition(
                     source.getDec(),
                     source.getRaAstromErr(),
                     source.getDecAstromErr(),
-                    Nullable<float>());
+                    NullOr<float>());
         return;
     }
     // Compute point P such that the sum of the squared angular separations
@@ -868,6 +906,11 @@ void SourceClusterAttributes::computePosition(
                 static_cast<float>(std::sqrt(covDecDec / (n * (n - 1)))),
                 static_cast<float>(covRaDec / n));
 }
+
+
+// -- PersistableSourceClusterVector ----
+
+PersistableSourceClusterVector::~PersistableSourceClusterVector() { }
 
 }}} // namespace lsst:ap::cluster
 

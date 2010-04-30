@@ -21,6 +21,7 @@
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
+#include "Formatters.h"
 
 
 namespace lsst { namespace ap { namespace cluster {
@@ -48,44 +49,29 @@ LSST_AP_API void updateBadSources(
      lsst::afw::detection::SourceSet & badSources);
 
 
-inline bool isNaN(double x) {
-#if LSST_AP_HAVE_ISNAND
-    return isnand(x);
-#else
-    return x != x;
-#endif
-}
-
-inline bool isNaN(float x) {
-#if LSST_AP_HAVE_ISNANF
-    return isnanf(x);
-#else
-    return x != x;
-#endif
-}
-
-/** Helper template for nullable floating point types. Nulls are equivalent
+/** Helper template for possibly unset/invalid floating
+    point types. Nulls are represented as NaNs.
   */
 template <typename FloatT>
-class Nullable {
+class NullOr {
 public:
-    Nullable() {
+    NullOr() {
         setNull();
     }
-    Nullable(FloatT value) : _value(value) { }
+    NullOr(FloatT value) : _value(value) { }
 
     bool isNull() const {
-        return isNaN(_value);
+        return isnan(_value);
     }
-    operator FloatT () const {
+    operator FloatT() const {
         return _value;
     }
 
-    Nullable & operator=(Nullable const & n) {
-        _value = n._value;
+    NullOr & operator=(NullOr const & nullable) {
+        _value = nullable._value;
         return *this;
     }
-    Nullable & operator=(FloatT const value) {
+    NullOr & operator=(FloatT const value) {
         _value = value;
         return *this;
     }
@@ -95,6 +81,9 @@ public:
 
 private:
     FloatT _value;
+
+    template <typename Archive> void serialize(Archive &, unsigned int const); 
+    friend class boost::serialization::access;
 };
 
 
@@ -111,11 +100,11 @@ public:
       */
     static int const NSAMPLE_BITS = 12;
     static int const NSAMPLE_MASK = (1 << NSAMPLE_BITS) - 1;
-    /** The first of N_BITS flag bits used to store the number of sources
+    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
       * used to determine the PSF flux sample mean.
       */
     static int const FLUX_NSAMPLE_OFF = 0;
-    /** The first of N_BITS flag bits used to store the number of sources
+    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
       * used to determine the ellipticity parameter sample means.
       */
     static int const ELLIPTICITY_NSAMPLE_OFF = FLUX_NSAMPLE_OFF + NSAMPLE_BITS;
@@ -131,6 +120,7 @@ public:
         int ellipticityIgnoreMask);
     ~PerFilterSourceClusterAttributes();
 
+    // attribute access
     int getFilterId() const {
         return _filterId;
     }
@@ -147,32 +137,34 @@ public:
         return _latestObsTime;
     }
     int getNumFluxSamples() const;
-    Nullable<float> const & getFlux() const {
+    NullOr<float> const & getFlux() const {
         return _flux;
     }
-    Nullable<float> const & getFluxSigma() const {
+    NullOr<float> const & getFluxSigma() const {
         return _fluxSigma;
     }
     int getNumEllipticitySamples() const;
-    Nullable<float> const & getE1() const {
+    NullOr<float> const & getE1() const {
         return _e1;
     }
-    Nullable<float> const & getE1Sigma() const {
+    NullOr<float> const & getE1Sigma() const {
         return _e1Sigma;
     }
-    Nullable<float> const & getE2() const {
+    NullOr<float> const & getE2() const {
         return _e2;
     }
-    Nullable<float> const & getE2Sigma() const {
+    NullOr<float> const & getE2Sigma() const {
         return _e2Sigma;
     }
-    Nullable<float> const & getRadius() const {
+    NullOr<float> const & getRadius() const {
         return _radius;
     }
-    Nullable<float> const & getRadiusSigma() const {
+    NullOr<float> const & getRadiusSigma() const {
         return _radiusSigma;
     }
+    bool operator==(PerFilterSourceClusterAttributes const & attributes) const;
 
+    // attribute modification
     void setFilterId(int filterId) {
         _filterId = filterId;
     }
@@ -184,16 +176,16 @@ public:
     }
     void setObsTimeRange(double earliest, double latest);
     void setNumFluxSamples(int samples);
-    void setFlux(Nullable<float> const & flux,
-                 Nullable<float> const & fluxSigma);
+    void setFlux(NullOr<float> const & flux,
+                 NullOr<float> const & fluxSigma);
     void setNumEllipticitySamples(int samples);
     void setEllipticity();
-    void setEllipticity(Nullable<float> const & e1,
-                        Nullable<float> const & e2,
-                        Nullable<float> const & radius,
-                        Nullable<float> const & e1Sigma,
-                        Nullable<float> const & e2Sigma,
-                        Nullable<float> const & radiusSigma);
+    void setEllipticity(NullOr<float> const & e1,
+                        NullOr<float> const & e2,
+                        NullOr<float> const & radius,
+                        NullOr<float> const & e1Sigma,
+                        NullOr<float> const & e2Sigma,
+                        NullOr<float> const & radiusSigma);
 
 private:
     int _filterId;
@@ -202,35 +194,42 @@ private:
     double _earliestObsTime;
     double _latestObsTime;
     // flux
-    Nullable<float> _flux;
-    Nullable<float> _fluxSigma;
-    // ellipticities
-    Nullable<float> _e1;
-    Nullable<float> _e2;
-    Nullable<float> _radius;
-    Nullable<float> _e1Sigma;
-    Nullable<float> _e2Sigma;
-    Nullable<float> _radiusSigma;
+    NullOr<float> _flux;
+    NullOr<float> _fluxSigma;
+    // ellipticity parameters
+    NullOr<float> _e1;
+    NullOr<float> _e2;
+    NullOr<float> _radius;
+    NullOr<float> _e1Sigma;
+    NullOr<float> _e2Sigma;
+    NullOr<float> _radiusSigma;
 
     void computeFlux(lsst::afw::detection::SourceSet const & sources,
                      int fluxIgnoreMask);
     void computeEllipticity(lsst::afw::detection::SourceSet const & sources,
                             int ellipticityIgnoreMask);
+
+    template <typename Archive> void serialize(Archive &, unsigned int const); 
+    friend class boost::serialization::access;
 };
+
+inline bool operator!=(PerFilterSourceClusterAttributes const & lhs,
+                       PerFilterSourceClusterAttributes const & rhs) {
+    return !(lhs == rhs);
+}
 
 
 /** Attributes derived from a cluster of Sources; i.e. Sources that
   * have been determined to be observations of the same physical object
   * according to some clustering algorithm.
   */
-class LSST_AP_API SourceClusterAttributes :
-    public lsst::daf::base::Persistable
+class LSST_AP_API SourceClusterAttributes
 {
 public:
     typedef boost::shared_ptr<SourceClusterAttributes> Ptr;
     typedef boost::shared_ptr<SourceClusterAttributes const> ConstPtr;
     typedef std::tr1::unordered_map<int, PerFilterSourceClusterAttributes>
-        PerFilterAttributeMap;
+        PerFilterAttributesMap;
 
     /** Source cluster flag bits.
       */
@@ -260,6 +259,7 @@ public:
                             int ellipticityIgnoreMask);
     ~SourceClusterAttributes();
 
+    // attribute access
     int64_t getClusterId() const {
         return _clusterId;
     }
@@ -281,24 +281,29 @@ public:
     double getDec() const {
         return _dec;
     }
-    Nullable<float> const & getRaSigma() const {
+    NullOr<float> const & getRaSigma() const {
         return _raSigma;
     }
-    Nullable<float> const & getDecSigma() const {
+    NullOr<float> const & getDecSigma() const {
         return _decSigma;
     }
-    Nullable<float> const & getRaDecCov() const {
+    NullOr<float> const & getRaDecCov() const {
         return _raDecCov;
     }
 
     bool hasFilter(int filterId) const;
     std::vector<int> const getFilterIds() const;
-    PerFilterAttributeMap const & getPerFilterAttributes() const {
+
+    PerFilterAttributesMap const & getPerFilterAttributes() const {
         return _perFilterAttributes;
     }
+
     PerFilterSourceClusterAttributes const & getPerFilterAttributes(
         int filterId) const;
 
+    bool operator==(SourceClusterAttributes const & attributes) const;
+
+    // attribute modification
     void setClusterId(int clusterId) {
         _clusterId = clusterId;
     }
@@ -311,11 +316,12 @@ public:
     void setObsTimeRange(double earliest, double latest);
     void setPosition(double ra,
                      double dec,
-                     Nullable<float> const & raSigma,
-                     Nullable<float> const & decSigma,
-                     Nullable<float> const & raDecCov);
+                     NullOr<float> const & raSigma,
+                     NullOr<float> const & decSigma,
+                     NullOr<float> const & raDecCov);
     void clearPerFilterAttributes();
-    bool setPerFilterAttributes(PerFilterSourceClusterAttributes const & attributes);
+    bool setPerFilterAttributes(
+        PerFilterSourceClusterAttributes const & attributes);
     bool removePerFilterAttributes(int filterId);
 
 private:
@@ -327,13 +333,56 @@ private:
     // position
     double _ra;
     double _dec;
-    Nullable<float> _raSigma;
-    Nullable<float> _decSigma;
-    Nullable<float> _raDecCov;
+    NullOr<float> _raSigma;
+    NullOr<float> _decSigma;
+    NullOr<float> _raDecCov;
     // per filter propertiesa
-    PerFilterAttributeMap _perFilterAttributes;
+    PerFilterAttributesMap _perFilterAttributes;
  
     void computePosition(lsst::afw::detection::SourceSet const & sources);
+
+    template <typename Archive> void serialize(Archive &, unsigned int const);
+    friend class boost::serialization::access;
+};
+
+inline bool operator!=(SourceClusterAttributes const & lhs,
+                       SourceClusterAttributes const & rhs) {
+    return !(lhs == rhs);
+}
+
+
+typedef std::vector<SourceClusterAttributes::Ptr> SourceClusterVector;
+
+/** A lsst::daf::base::Persistable wrapper for vectors of shared pointers to
+  * SourceClusterAttributes objects.
+  */
+class LSST_AP_API PersistableSourceClusterVector :
+    public lsst::daf::base::Persistable
+{
+public:
+    typedef boost::shared_ptr<PersistableSourceClusterVector> Ptr;
+
+    PersistableSourceClusterVector() : _clusters() { }
+    PersistableSourceClusterVector(SourceClusterVector const & clusters) :
+        _clusters(clusters)
+    { }
+
+    virtual ~PersistableSourceClusterVector();
+
+    size_t size() const {
+        return _clusters.size();
+    }
+    SourceClusterVector const & getClusters() const {
+        return _clusters;
+    }
+
+    void setClusters(SourceClusterVector const & clusters) {
+        _clusters = clusters;
+    }
+
+private:
+    LSST_PERSIST_FORMATTER(lsst::ap::cluster::SourceClusterVectorFormatter);
+    SourceClusterVector _clusters;
 };
 
 }}} // namespace lsst:ap::cluster
