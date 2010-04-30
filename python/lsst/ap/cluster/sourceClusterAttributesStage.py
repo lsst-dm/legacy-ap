@@ -59,7 +59,7 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
 
         # compute SourceClusterAttributes for each cluster
         self.log.log(Log.INFO, "Computing source cluster attributes")
-        sourceClusterAttributes = clusterLib.SourceClusterAttributesSet()
+        scv = clusterLib.SourceClusterVector()
         sequenceNum = 0
         for sources in sourceClusters:
             clusterId = sequenceNum + (skyTileId << 32)
@@ -69,9 +69,9 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                 sca.setFlags(sca.getFlags() |
                              clusterLib.SourceClusterAttributes.NOISE)
             clusterLib.updateSources(sca, sources)
-            sourceClusterAttributes.append(sca)
+            scv.append(sca)
         clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
-                      sourceClusterAttributes)
+                      clusterLib.PersistableSourceClusterVector(scv))
         self.log.log(Log.INFO, "Finished computing source cluster attributes")
 
         # create clusters from bad sources
@@ -79,17 +79,17 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             if createBadClusters:
                 self.log.log(Log.INFO,
                              "Creating source clusters for bad sources")
-                badSourceClusterAttributes = clusterLib.SourceClusterAttributesSet()
+                badScv = clusterLib.SourceClusterVector()
                 for source in badSources:
                     clusterId = sequenceNum + (skyTileId << 32)
                     sequenceNum += 1
-                    bad = clusterLib.SourceClusterAttributes(source, clusterId)
-                    bad.setFlags(bad.getFlags() |
-                                 clusterLib.SourceClusterAttributes.BAD)
-                badSourceClusterAttributes.append(bad)
+                    badSca = clusterLib.SourceClusterAttributes(source, clusterId)
+                    badSca.setFlags(badSca.getFlags() |
+                                    clusterLib.SourceClusterAttributes.BAD)
+                    badScv.append(badSca)
                 clipboard.put(
                     self.policy.get("outputKeys.badSourceClusterAttributes"),
-                    badSourceClusterAttributes)
+                    clusterLib.PersistableSourceClusterVector(badScv))
                 self.log.log(Log.INFO, "Finished creating bad source clusters")
             else:
                 clusterLib.updateBadSources(badSources)

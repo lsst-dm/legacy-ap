@@ -47,7 +47,7 @@ class SourceClusterAttributesStageTestCase(unittest.TestCase):
         sourceClusterAttributes = output.get(
             policy.get("outputKeys.sourceClusterAttributes"))
         self.assertTrue(isinstance(
-            sourceClusterAttributes, cluster.SourceClusterAttributesSet))
+            sourceClusterAttributes, cluster.PersistableSourceClusterVector))
 
 
 def suite():
