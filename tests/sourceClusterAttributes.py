@@ -1,9 +1,13 @@
+from itertools import izip
 import math
 import pdb
+import tempfile
 import unittest
 
 import lsst.utils.tests as utilsTests
 import lsst.pex.exceptions as exceptions
+import lsst.daf.base as base
+import lsst.daf.persistence as persistence
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.ap.cluster as cluster
@@ -19,6 +23,42 @@ def _eparams(source):
 class SourceClusterAttributesTestCase(unittest.TestCase):
     """Tests the source cluster attribute computation code.
     """
+    def setUp(self):
+        self.clusters = cluster.SourceClusterVector()
+        for i in xrange(20):
+            sca = cluster.SourceClusterAttributes()
+            sca.setFlags(i)
+            sca.setNumObs(i + 1)
+            sca.setObsTimeRange(float(i), float(i + 1))
+            if i % 3 == 0:
+                sca.setPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, 0.03*i)
+            elif i % 3 == 1:
+                sca.setPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, None)
+            else:
+                sca.setPosition(0.2*i, 0.1*(i - 10), None, None, None)
+            # add in per-filter attributes
+            for j in xrange(i % 7):
+                pfa = cluster.PerFilterSourceClusterAttributes()
+                pfa.setFilterId(j)
+                pfa.setNumObs(2*j)
+                pfa.setNumFluxSamples(max(0, j -1))
+                pfa.setNumFluxSamples(max(0, j -2))
+                if i % 3 == 0:
+                    pfa.setFlux(float(i), 0.1*i)
+                    pfa.setEllipticity(0.3*i, 0.4*i, 0.5*i,
+                                       0.03*i, 0.04*i, 0.05*i)
+                elif i % 3 == 1:
+                    pfa.setFlux(float(i), None)
+                    pfa.setEllipticity(0.3*i, 0.4*i, 0.5*i, None, None, None)
+                else:
+                    pfa.setFlux(None, None)
+                    pfa.setEllipticity(None, None, None, None, None, None)
+                sca.setPerFilterAttributes(pfa)
+            self.clusters.append(sca)
+
+    def tearDown(self):
+        del self.clusters
+
     def testPosition(self):
         """Tests cluster position computation.
         """
@@ -258,7 +298,26 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         """Tests boost persistence of
         lsst::ap::cluster::SourceClusterAttributes
         """
-        pass
+        inp = cluster.PersistableSourceClusterVector(self.clusters)
+        pol = policy.Policy()
+        p = persistence.Persistence.getPersistence(pol)
+        dp = base.PropertySet()
+        psl = persistence.StorageList()
+        rsl = persistence.StorageList()
+        f = tempfile.NamedTemporaryFile()
+        try:
+            loc  = persistence.LogicalLocation(f.name)
+            psl.append(p.getPersistStorage("BoostStorage", loc))
+            p.persist(inp, psl, dp)
+            rsl.append(p.getRetrieveStorage("BoostStorage", loc))
+            persistable = p.unsafeRetrieve(
+                "PersistableSourceClusterVector", rsl, dp)
+            outp = cluster.PersistableSourceClusterVector.swigConvert(persistable)
+            clusters = outp.getClusters()
+            for sc1, sc2 in izip(self.clusters, clusters):
+                self.assertEqual(sc1, sc2)
+        finally:
+            f.close()
 
     def testDatabasePersistence(self):
         """Tests database persistence of

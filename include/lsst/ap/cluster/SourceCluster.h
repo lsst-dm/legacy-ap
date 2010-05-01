@@ -77,12 +77,34 @@ public:
         _value = std::numeric_limits<FloatT>::quiet_NaN();
     }
 
+    bool operator==(NullOr const & n) const {
+        return n == _value;
+    }
+    bool operator!=(NullOr const & n) const {
+        return !(n == _value);
+    }
+    bool operator==(FloatT const & value) const {
+        return isNull() ? isNaN(value) : value == _value;
+    }
+    bool operator!=(FloatT const & value) const {
+        return isNull() ? !isNaN(value) : value != _value;
+    }
+
 private:
     FloatT _value;
 
     template <typename Archive> void serialize(Archive &, unsigned int const); 
     friend class boost::serialization::access;
 };
+
+template <typename FloatT>
+inline bool operator==(FloatT const & value, NullOr<FloatT> const & n) {
+    return n == value;
+}
+template <typename FloatT>
+inline bool operator!=(FloatT const & value, NullOr<FloatT> const & n) {
+    return n != value;
+}
 
 
 /** Per filter source cluster attributes.

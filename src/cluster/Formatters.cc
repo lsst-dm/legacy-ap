@@ -124,10 +124,12 @@ LSST_AP_LOCAL void getFilterIds(int * const filterIds) {
 // namespace (template name lookups fail).
 
 template <typename Archive, typename FloatT>
-inline void serializeFloat(Archive & ar, FloatT value) {
+inline void serializeFloat(Archive & ar, FloatT & value) {
     bool null = isNaN(value);
     ar & null;
     if (null) {
+        value = std::numeric_limits<FloatT>::quiet_NaN();
+    } else {
         ar & value;
     }
 }
