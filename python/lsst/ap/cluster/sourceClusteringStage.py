@@ -2,6 +2,7 @@ import math
 import operator
 from textwrap import dedent
 
+import lsst.daf.base as base
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
@@ -39,10 +40,17 @@ class SourceClusteringParallel(stage.ParallelProcessing):
 
     def process(self, clipboard):
         # extract required clipboard data
-        event = clipboard.get(self.policy.getString("inputKeys.event"))
+        skyTileIdKey = self.policy.getString("inputKeys.skyTileId")
+        jobIdentity = clipboard.get(
+            self.policy.getString("inputKeys.jobIdentity"))
         qs = skypix.createQuadSpherePixelization(
             self.policy.getPolicy("quadSpherePolicy"))
-        skyTileId = event.getInt("skyTileId");
+        if isinstance(jobIdentity, base.PropertySet):
+            skyTileId = jobIdentity.getInt(skyTileIdKey)
+        else:
+            skyTileId = jobIdentity[skyTileIdKey]
+            if not isinstance(skyTileId, (int, long)):
+                raise TypeError("Sky-tile id must be an integer")
         root, x, y = qs.coords(skyTileId);
         skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))

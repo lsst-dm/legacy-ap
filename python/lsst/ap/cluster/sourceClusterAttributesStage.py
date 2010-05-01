@@ -1,6 +1,7 @@
 from itertools import izip
 import operator
 
+import lsst.daf.base as base
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
@@ -35,8 +36,15 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
 
     def process(self, clipboard):
         # extract input data and parameters
-        event = clipboard.get(self.policy.getString("inputKeys.event"))
-        skyTileId = event.get("skyTileId");
+        skyTileIdKey = self.policy.getString("inputKeys.skyTileId")
+        jobIdentity = clipboard.get(
+            self.policy.getString("inputKeys.jobIdentity"))
+        if isinstance(jobIdentity, base.PropertySet):
+            skyTileId = jobIdentity.getInt(skyTileIdKey)
+        else:
+            skyTileId = jobIdentity[skyTileIdKey]
+            if not isinstance(skyTileId, (int, long)):
+                raise TypeError("Sky-tile id must be an integer")
         sourceClusters = clipboard.get(
             self.policy.getString("inputKeys.sourceClusters"))
         badSourcesKey = self.policy.getString("inputKeys.badSources")

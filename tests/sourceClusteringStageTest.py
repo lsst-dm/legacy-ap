@@ -52,14 +52,14 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         policy.set("quadSpherePolicy.resolutionPix", 3)
         policy.set("quadSpherePolicy.paddingArcsec", 0.0)
 
-        # generate fake pipeline trigger event
+        # generate fake job identity
         qs = skypix.QuadSpherePixelization(3, 0.0)
-        event = dafBase.PropertySet()
-        event.setInt("skyTileId", qs.id(1, 1, 1))
+        jobIdentity = dafBase.PropertySet()
+        jobIdentity.setInt("skyTileId", qs.id(1, 1, 1))
 
         # create and populat clipboard 
         clipboard = Clipboard()
-        clipboard.put(policy.get("inputKeys.event"), event)
+        clipboard.put(policy.get("inputKeys.jobIdentity"), jobIdentity)
         clipboard.put(policy.get("inputKeys.sources"), self.sources)
 
         # run the stage

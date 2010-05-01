@@ -3,7 +3,6 @@ import pdb
 import unittest
 
 import lsst.utils.tests as utilsTests
-import lsst.daf.base as dafBase
 import lsst.pex.policy as pexPolicy
 import lsst.afw.detection as detection
 import lsst.ap.cluster as cluster
@@ -27,13 +26,12 @@ class SourceClusterAttributesStageTestCase(unittest.TestCase):
         policy = pexPolicy.Policy.createPolicy(
             policyFile, policyFile.getRepositoryPath())
 
-        # generate fake pipeline trigger event
-        event = dafBase.PropertySet()
-        event.setInt("skyTileId", 0)
+        # generate fake job identity
+        jobIdentity = { "skyTileId": 0 }
 
         # create and populat clipboard 
         clipboard = Clipboard()
-        clipboard.put(policy.get("inputKeys.event"), event)
+        clipboard.put(policy.get("inputKeys.jobIdentity"), jobIdentity)
         clipboard.put(policy.get("inputKeys.sourceClusters"), self.sourceClusters)
 
         # run the stage

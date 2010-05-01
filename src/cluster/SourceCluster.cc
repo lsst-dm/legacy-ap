@@ -1,13 +1,6 @@
 // -*- lsst-c++ -*-
 /** @file
-  * @brief Implementation of the OPTICS algorithm.
-  *
-  * For details of the algorithm, see the following paper:
-  *
-  * "OPTICS: Ordering Points To Identify the Clustering Structure".
-  * Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, Jörg Sander (1999).
-  * ACM SIGMOD international conference on Management of data.
-  * ACM Press. pp. 49–60.
+  * @brief Implementation of high-level source clustering/attributes API. 
   *
   * @ingroup ap
   * @author Serge Monkewitz
@@ -886,8 +879,7 @@ void SourceClusterAttributes::computePosition(
     double d2 = x * x + y * y; 
     double ra = (d2 == 0.0) ? 0.0 : atan2(y, x);
     double dec = (z == 0.0) ? 0.0 : atan2(z, std::sqrt(d2)); 
-    // Compute covariance matrix and store mean position
-    // as the object position of each source.
+    // Compute covariance matrix
     double covRaRa = 0.0;
     double covDecDec = 0.0;
     double covRaDec = 0.0;

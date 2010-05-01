@@ -1,7 +1,6 @@
 // -*- lsst-c++ -*-
 /** @file
-  * @brief Functions for clustering points (using the OPTICS algorithm)
-  *        and for computing cluster attributes.
+  * @brief High-level API for sources clustering and cluster attributes.
   *
   * @ingroup ap
   * @author Serge Monkewitz

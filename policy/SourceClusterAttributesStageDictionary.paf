@@ -9,14 +9,25 @@ definitions: {
         type: policy
         dictionary: {
             definitions: {
-                event: {
+                jobIdentity: {
                     type: string
-                    description: "Key for a lsst.daf.base.PropertySet containing
-                                  properties from the pipeline trigger event.
-                                  The event must contain an integer-valued
-                                  property named 'skyTileId'"
+                    description: "Key for a lsst.daf.base.PropertySet (e.g.
+                                  corresponding to an event) or a Python dict
+                                  (e.g. corresponding to a job) which must 
+                                  contain an integer valued key identified by
+                                  'inputKeys.skyTileId'.
+                                 "
                     maxOccurs: 1
-                    default: "triggerSourceAssocEvent"
+                    default: "jobIdentity"
+                }
+                skyTileId: {
+                    type: string
+                    description: "Key for the clipboard entry identified by
+                                  'inputKeys.jobIdentity'. Must contain an 
+                                  integer sky-tile id.
+                                 "
+                    maxOccurs: 1
+                    default: "skyTileId"
                 }
                 sourceClusters: {
                     type: string
