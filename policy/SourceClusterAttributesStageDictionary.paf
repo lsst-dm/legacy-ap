@@ -52,6 +52,9 @@ definitions: {
                 sourceClusteringPolicy: {
                     type: string
                     description: "Parameters used to generate source clusters.
+                                  Avoids having to redundantly specify default 
+                                  policy overrides for the source clustering
+                                  and source cluster attributes stages.
                                  "
                     maxOccurs: 1
                     default: "sourceClusteringPolicy"
@@ -131,7 +134,7 @@ definitions: {
                       bad source. Otherwise, the object id of each bad
                       source is set to NULL and the position of the object
                       associated with the bad source is set to the position of
-                      the source itself. This last step is allows bad sources
+                      the source itself. This last step allows bad sources
                       to be stored in the same table as good sources. Good
                       sources are partitioned by position of their containing
                       object (cluster), so in the absence of such an object,

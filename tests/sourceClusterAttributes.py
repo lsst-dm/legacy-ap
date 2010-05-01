@@ -22,8 +22,24 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
     def testPosition(self):
         """Tests cluster position computation.
         """
-        pass
-         
+        sources = detection.SourceSet()
+        for i in xrange(5):
+            s = detection.Source()
+            s.setRa(0.1*i)
+            s.setDec(0.0)
+            sources.append(s)
+            if i != 2:
+                s = detection.Source()
+                s.setRa(0.2)
+                s.setDec(0.1*(i - 2))
+                sources.append(s)
+        sca = cluster.SourceClusterAttributes(sources, 0, 0, 0)
+        self.assertAlmostEqual(sca.getRa(), 0.2)
+        self.assertAlmostEqual(sca.getDec(), 0.0)
+        self.assertAlmostEqual(sca.getRaSigma(), math.sqrt(0.1/72))
+        self.assertAlmostEqual(sca.getDecSigma(), math.sqrt(0.1/72))
+        self.assertAlmostEqual(sca.getRaDecCov(), 0.0)
+
     def testTimes(self):
         """Tests observation time range computation.
         """
