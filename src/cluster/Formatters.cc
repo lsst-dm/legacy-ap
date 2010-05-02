@@ -238,7 +238,7 @@ void insertObjectRow(DbStorageT & db,
     db.setColumnToNull("declRange");
     db.setColumnToNull("parallax_PS");
     db.setColumnToNull("parallax_PS_Sigma");
-    db.setColumnToNull("cannonicalFilterId");
+    db.setColumnToNull("canonicalFilterId");
     db.setColumnToNull("extendedness");
     db.setColumnToNull("varProb");
 

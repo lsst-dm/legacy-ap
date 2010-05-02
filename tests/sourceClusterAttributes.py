@@ -1,6 +1,8 @@
 from itertools import izip
 import math
+import os
 import pdb
+import platform
 import tempfile
 import unittest
 
@@ -10,6 +12,7 @@ import lsst.daf.base as base
 import lsst.daf.persistence as persistence
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
+import lsst.afw.image as image
 import lsst.ap.cluster as cluster
 
 
@@ -41,8 +44,8 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 pfa = cluster.PerFilterSourceClusterAttributes()
                 pfa.setFilterId(j)
                 pfa.setNumObs(2*j)
-                pfa.setNumFluxSamples(max(0, j -1))
-                pfa.setNumFluxSamples(max(0, j -2))
+                pfa.setNumFluxSamples(max(0, j - 1))
+                pfa.setNumFluxSamples(max(0, j - 2))
                 if i % 3 == 0:
                     pfa.setFlux(float(i), 0.1*i)
                     pfa.setEllipticity(0.3*i, 0.4*i, 0.5*i,
@@ -323,7 +326,53 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         """Tests database persistence of
         lsst::ap::cluster::SourceClusterAttributes
         """
-        pass
+        if not persistence.DbAuth.available("lsst10.ncsa.uiuc.edu", "3306"):
+            # skip database test
+            return
+
+        # generate a (hopefully unique) table name for test data
+        tableName = platform.node().replace('.', '_') + str(os.getpid())
+
+        # register filters expected by the formatter
+        image.Filter.reset()
+        image.Filter.define(image.FilterProperty("u"), 0)
+        image.Filter.define(image.FilterProperty("g"), 1)  
+        image.Filter.define(image.FilterProperty("r"), 2)  
+        image.Filter.define(image.FilterProperty("i"), 3)  
+        image.Filter.define(image.FilterProperty("z"), 4)  
+        image.Filter.define(image.FilterProperty("y"), 5)  
+
+        # setup persistence machinery
+        inp = cluster.PersistableSourceClusterVector(self.clusters)
+        pol = policy.Policy()
+        p = persistence.Persistence.getPersistence(pol)
+        dp = base.PropertySet()
+        pol.set("Formatter.PersistableSourceClusterVector.Clusters.templateTableName", "Object")
+        pol.set("Formatter.PersistableSourceClusterVector.Clusters.tableNamePattern", tableName)
+        loc = persistence.LogicalLocation("mysql://lsst10.ncsa.uiuc.edu:3306/test_object_pt1")
+        dp.setString("itemName", "Clusters")
+        for storageType in ("DbStorage", "DbTsvStorage"):
+            psl = persistence.StorageList()
+            rsl = persistence.StorageList()
+            psl.append(p.getPersistStorage(storageType, loc))
+            rsl.append(p.getRetrieveStorage(storageType, loc))
+            try:
+                p.persist(inp, psl, dp)
+                persistable = p.unsafeRetrieve(
+                    "PersistableSourceClusterVector", rsl, dp)
+                outp = cluster.PersistableSourceClusterVector.swigConvert(persistable)
+                clusters = outp.getClusters()
+                for sc1, sc2 in izip(self.clusters, clusters):
+                    self.assertEqual(sc1, sc2)
+            finally:
+                db = persistence.DbStorage()
+                db.setPersistLocation(loc)
+                db.startTransaction()
+                try:
+                    db.dropTable(tableName)
+                except:
+                    pass
+                db.endTransaction()
 
 
 def suite():
