@@ -123,7 +123,7 @@ definitions: {
                 goodSourceHistogram: {
                     type: string
                     description: "Key for a a 2d histogram of good source
-                                  positions (an lsst.afw.image.ImageU).
+                                  positions (an lsst.afw.image.DecoratedImageU).
                                  " 
                     maxOccurs: 1
                     default: "goodSourceHistogram"
@@ -131,7 +131,7 @@ definitions: {
                 badSourceHistogram: {
                     type: string
                     description: "Key for a a 2d histogram of bad source
-                                  positions (an lsst.afw.image.ImageU).
+                                  positions (an lsst.afw.image.DecoratedImageU).
                                  "
                     maxOccurs: 1
                     default: "badSourceHistogram"
@@ -170,7 +170,7 @@ definitions: {
                                   If set, the histogram is made available on
                                   the clipboard under the
                                   'outputKeys.goodSourceHistogram' key as an
-                                  lsst.afw.image.ImageU
+                                  lsst.afw.image.DecoratedImageI.
                                  "
                     maxOccurs: 1
                     default: true
@@ -182,12 +182,12 @@ definitions: {
                                   If set, the histogram is made available on
                                   the clipboard under the
                                   'outputKeys.badSourceHistogram' key as an
-                                  lsst.afw.image.ImageU
+                                  lsst.afw.image.DecoratedImageI
                                  "
                     maxOccurs: 1
                     default: true
                 }
-                histogramResolution: {
+                sourceHistogramResolution: {
                     type: int
                     description: "X/Y resolution of source position histograms.
                                  "

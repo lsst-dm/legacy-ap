@@ -5,7 +5,8 @@ import unittest
 import lsst.utils.tests as utilsTests
 import lsst.daf.base as dafBase
 import lsst.pex.policy as pexPolicy
-import lsst.afw.detection as detection
+import lsst.afw.detection as afwDetection
+import lsst.afw.image as afwImage
 import lsst.skypix as skypix
 import lsst.ap.cluster as cluster
 
@@ -24,11 +25,11 @@ class SourceClusteringStageTestCase(unittest.TestCase):
     """
     def setUp(self):
         # construct 5 parallel streaks of sources 
-        self.sources = detection.SourceSet()
+        self.sources = afwDetection.SourceSet()
         for i in xrange(-2, 3):
             ra = 0.0
             for j in xrange(20):
-                s = detection.Source()
+                s = afwDetection.Source()
                 s.setObjectId(i)
                 s.setRa(math.radians(ra))
                 s.setDec(math.radians(i))
@@ -51,6 +52,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         policy.set("sourceClusteringPolicy.leafExtentThresholdArcsec", -1.0)
         policy.set("quadSpherePolicy.resolutionPix", 3)
         policy.set("quadSpherePolicy.paddingArcsec", 0.0)
+        policy.set("debug.createGoodSourceHistogram", True)
+        policy.set("debug.sourceHistogramResolution", 100)
 
         # generate fake job identity
         qs = skypix.QuadSpherePixelization(3, 0.0)
@@ -68,14 +71,25 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         output = tester.runWorker(clipboard)
 
         # verify output
-        self.assertTrue(output.contains(policy.get("outputKeys.sourceClusters")))
+        self.assertTrue(output.contains(
+            policy.get("outputKeys.sourceClusters")))
         self.assertTrue(output.contains(policy.get("outputKeys.sources")))
+        self.assertTrue(output.contains(
+            policy.get("outputKeys.goodSourceHistogram")))
         self.assertTrue(output.contains(
             policy.get("outputKeys.sourceClusteringPolicy")))
         sourceClusters = output.get(policy.get("outputKeys.sourceClusters"))
         sources = output.get(policy.get("outputKeys.sources"))
+        sourceClusteringPolicy = output.get(
+            policy.get("outputKeys.sourceClusteringPolicy"))
+        goodSourceHistogram = output.get(
+            policy.get("outputKeys.goodSourceHistogram"))
         self.assertTrue(isinstance(sourceClusters, list))
-        self.assertTrue(isinstance(sources, detection.PersistableSourceVector))
+        self.assertTrue(
+            isinstance(sources, afwDetection.PersistableSourceVector))
+        self.assertTrue(isinstance(sourceClusteringPolicy, pexPolicy.Policy))
+        self.assertTrue(
+            isinstance(goodSourceHistogram, afwImage.DecoratedImageI))
         self.assertTrue(self.numInputSources > len(sourceClusters))
         self.assertEqual(countClusters(sourceClusters), 5)
         for c in sourceClusters:

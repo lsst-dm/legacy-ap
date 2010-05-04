@@ -21,6 +21,7 @@ Access to association pipeline clustering functions.
 #include "lsst/afw/detection.h"
 #include "lsst/ap/cluster/PT1SkyTile.h"
 #include "lsst/ap/cluster/SourceCluster.h"
+#include "lsst/ap/cluster/Utils.h"
 %}
 
 namespace boost {
@@ -37,6 +38,7 @@ namespace boost {
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
 %import "lsst/afw/detection/detectionLib.i"
+%import "lsst/afw/image/imageLib.i"
 
 %lsst_exceptions()
 
@@ -111,6 +113,7 @@ SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSo
 %import "lsst/ap/Common.h"
 %include "lsst/ap/cluster/PT1SkyTile.h"
 %include "lsst/ap/cluster/SourceCluster.h"
+%include "lsst/ap/cluster/Utils.h"
 
 %lsst_persistable(lsst::ap::cluster::PersistableSourceClusterVector);
 %template(SourceClusterVector) std::vector<lsst::ap::cluster::SourceClusterAttributes::Ptr>;

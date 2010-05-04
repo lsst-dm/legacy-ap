@@ -265,13 +265,15 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     double myy = source.getIyy();
     double mxy = source.getIxy();
     double t = mxx + myy;
-    setNumEllipticitySamples(1);
-    setEllipticity(static_cast<float>((mxx - myy) / t),
-                   static_cast<float>(2.0 * mxy / t),
-                   static_cast<float>(sqrt(t)),
-                   NullOr<float>(),
-                   NullOr<float>(),
-                   NullOr<float>());
+    if (t != 0.0) {
+        setNumEllipticitySamples(1);
+        setEllipticity(static_cast<float>((mxx - myy) / t),
+                       static_cast<float>(2.0 * mxy / t),
+                       static_cast<float>(sqrt(t)),
+                       NullOr<float>(),
+                       NullOr<float>(),
+                       NullOr<float>());
+    }
 }
 
 /** Creates a new PerFilterSourceClusterAttributes, computing attributes
@@ -566,12 +568,12 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
        double mxx = (*i)->getIxx();
        double myy = (*i)->getIyy();
        double mxy = (*i)->getIxy();
+       double t = mxx + myy;
        // make sure the moments aren't NaN
-       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy)) {
+       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy) || (t == 0.0)) {
            continue;
        }
        // compute ellipticity parameters from moments
-       double t = mxx + myy;
        Eigen::Vector3d ep((mxx - myy) / t, 2.0 * mxy / t, sqrt(t));
        // store for later
        eparams[ns++] = ep;

@@ -7,7 +7,7 @@ import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.skypix as skypix
-import clusterLib 
+import clusterLib, utils 
 
 from lsst.pex.logging import Log
 
@@ -54,6 +54,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         root, x, y = qs.coords(skyTileId);
         skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
+        histogramRes = self.policy.getInt("debug.sourceHistogramResolution")
         badSourceMask = reduce(
             operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
 
@@ -67,11 +68,11 @@ class SourceClusteringParallel(stage.ParallelProcessing):
             elif isinstance(entry, detection.PersistableSourceVector):
                 sourceSets.append(entry.getSources())
             else:
-                raise TypeError(
-                    "Expecting sources in a [list/tuple of] %s or %s - got a %s" %
-                    (t.__class__.__module__ + '.' + t.__class__.__name__ for t in
-                     (detection.SourceSet, detection.PersistableSourceVector,
-                      sources)))
+                raise TypeError(dedent("""\
+                    Expecting sources in a [list/tuple of] %s or %s - got a
+                    %s""") % (t.__class__.__module__ + '.' +
+                    t.__class__.__name__ for t in (detection.SourceSet,
+                    detection.PersistableSourceVector, sources)))
 
         # remove sources with invalid positions
         self.log.log(Log.INFO, "Segregating sources with invalid positions")
@@ -84,6 +85,11 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         self.log.log(Log.INFO,
             "%d of %d sources are invalid; %d sources remain" %
             (n, total, total - n))
+        if n > 0:
+            outputInvalidSources = detection.PersistableSourceVector()
+            outputInvalidSources.setSources(invalidSources)
+            clipboard.put(self.policy.get("outputKeys.invalidSources"),
+                          outputInvalidSources)
 
         # discard sources outside the current sky-tile
         self.log.log(Log.INFO, "Discarding sources lying outside the sky-tile")
@@ -107,21 +113,47 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         self.log.log(Log.INFO, dedent("""\
             %d of %d valid sources in the current sky-tile are bad; %d
             sources remain""") % (len(badSources), total, len(prunedSources)))
+        if len(badSources) > 0:
+            outputBadSources = detection.PersistableSourceVector()
+            outputBadSources.setSources(badSources)
+            clipboard.put(self.policy.get("outputKeys.badSources"),
+                          outputBadSources)
+            if self.policy.getBool("debug.createBadSourceHistogram"):
+                self.log.log(Log.INFO, "Creating bad source histogram")
+                hist, wcs = utils.createImageCoveringSkyTile(
+                    qs, skyTileId, histogramRes)
+                clusterLib.makeSourceHistogram(
+                    badSources, hist.getImage(), wcs, False)
+                clipboard.put(
+                    self.policy.getString("outputKeys.goodSourceHistogram"),
+                    hist)
 
         # cluster the remaining sources
         self.log.log(Log.INFO, "Clustering sources")
         sourceClusters = clusterLib.cluster(
             prunedSources, self.policy.getPolicy("sourceClusteringPolicy"))
         self.log.log(Log.INFO, "Finished clustering sources")
-
-        # output products
+        # output clusters and good sources
         clipboard.put(self.policy.get("outputKeys.sourceClusters"),
                       sourceClusters)
-        outputSources = detection.PersistableSourceVector()
-        outputSources.setSources(prunedSources)
-        clipboard.put(self.policy.get("outputKeys.sources"), outputSources)
-        clipboard.put(self.policy.get("outputKeys.sourceClusteringPolicy"),
-                      self.policy.getPolicy("sourceClusteringPolicy"))
+        if len(prunedSources) > 0:
+            outputSources = detection.PersistableSourceVector()
+            outputSources.setSources(prunedSources)
+            clipboard.put(self.policy.get("outputKeys.sources"), outputSources)
+            clipboard.put(self.policy.get("outputKeys.sourceClusteringPolicy"),
+                          self.policy.getPolicy("sourceClusteringPolicy"))
+
+            if self.policy.getBool("debug.createGoodSourceHistogram"):
+                self.log.log(Log.INFO, "Creating good source histogram")
+                hist, wcs = utils.createImageCoveringSkyTile(
+                    qs, skyTileId, histogramRes) 
+                clusterLib.makeSourceHistogram(
+                    prunedSources, hist.getImage(), wcs, False)
+                clipboard.put(
+                    self.policy.getString("outputKeys.goodSourceHistogram"),
+                    hist)
+
+        # output products
         if len(invalidSources) > 0:
             outputInvalidSources = detection.PersistableSourceVector()
             outputInvalidSources.setSources(invalidSources)
