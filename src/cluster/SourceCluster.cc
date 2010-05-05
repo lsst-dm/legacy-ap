@@ -652,11 +652,24 @@ SourceClusterAttributes::SourceClusterAttributes(
     _raDecCov(),
     _perFilterAttributes()
 {
-    setPosition(source.getRa(),
-                source.getDec(), 
-                source.getRaAstromErr(),
-                source.getDecAstromErr(),
-                NullOr<float>());
+    if (source.isNull(detection::RA_ASTROM_ERR) ||
+        source.isNull(detection::DEC_ASTROM_ERR) ||
+        isNaN(source.getRaAstromErr()) ||
+        source.getRaAstromErr() < 0.0f ||
+        isNaN(source.getDecAstromErr()) ||
+        source.getDecAstromErr() < 0.0f) {
+        setPosition(source.getRa(),
+                    source.getDec(),
+                    NullOr<float>(),
+                    NullOr<float>(),
+                    NullOr<float>());
+    } else {
+        setPosition(source.getRa(),
+                    source.getDec(), 
+                    source.getRaAstromErr(),
+                    source.getDecAstromErr(),
+                    NullOr<float>());
+    }
     _perFilterAttributes.insert(std::make_pair(source.getFilterId(),
             PerFilterSourceClusterAttributes(
                 source, fluxIgnoreMask, ellipticityIgnoreMask)));
@@ -800,7 +813,12 @@ void SourceClusterAttributes::setPosition(double ra,
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "Longitude and/or latitude angle is NaN");
     }
-    if (raSigma < 0.0 || decSigma < 0.0) {
+    if (raSigma.isNull() != decSigma.isNull()) {
+        throw LSST_EXCEPT(except::InvalidParameterException,
+                          "Longitude/latitude angle uncertainties must both "
+                          "be null, or both be valid");
+    }
+    if (!raSigma.isNull() && (raSigma < 0.0 || decSigma < 0.0)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "negative position uncertainty");
     }
@@ -858,11 +876,24 @@ void SourceClusterAttributes::computePosition(
     }
     if (n == 1) {
         detection::Source const & source = *sources.front();
-        setPosition(source.getRa(),
-                    source.getDec(),
-                    source.getRaAstromErr(),
-                    source.getDecAstromErr(),
-                    NullOr<float>());
+        if (source.isNull(detection::RA_ASTROM_ERR) ||
+            source.isNull(detection::DEC_ASTROM_ERR) ||
+            isNaN(source.getRaAstromErr()) ||
+            source.getRaAstromErr() < 0.0f ||
+            isNaN(source.getDecAstromErr()) ||
+            source.getDecAstromErr() < 0.0f) {
+            setPosition(source.getRa(),
+                        source.getDec(),
+                        NullOr<float>(),
+                        NullOr<float>(),
+                        NullOr<float>());
+        } else {
+            setPosition(source.getRa(),
+                        source.getDec(),
+                        source.getRaAstromErr(),
+                        source.getDecAstromErr(),
+                        NullOr<float>());
+        }
         return;
     }
     // Compute point P such that the sum of the squared angular separations

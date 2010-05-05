@@ -112,7 +112,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         clusterLib.segregateBadSources(prunedSources, badSources, badSourceMask)
         self.log.log(Log.INFO, dedent("""\
             %d of %d valid sources in the current sky-tile are bad; %d
-            sources remain""") % (len(badSources), total, len(prunedSources)))
+            sources remain""") % (len(badSources), n, len(prunedSources)))
         if len(badSources) > 0:
             outputBadSources = detection.PersistableSourceVector()
             outputBadSources.setSources(badSources)

@@ -32,8 +32,8 @@ LSST_AP_API void makeSourceHistogram(
 {
     typedef detection::SourceSet::const_iterator SourceIter;
     for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-       geom::Point2D xy = wcs->skyToPixel((*i)->getRa() * RADIANS_PER_DEGREE,
-                                          (*i)->getDec() * RADIANS_PER_DEGREE);
+       geom::Point2D xy = wcs->skyToPixel((*i)->getRa() * DEGREES_PER_RADIAN,
+                                          (*i)->getDec() * DEGREES_PER_RADIAN);
        if (xy[0] < 0.0 || xy[0] + 0.5 >= histogram->getWidth() ||
            xy[1] < 0.0 || xy[1] + 0.5 >= histogram->getHeight()) {
            if (!ignoreOffImage) {

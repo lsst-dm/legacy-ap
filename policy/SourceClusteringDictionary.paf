@@ -11,7 +11,7 @@ definitions: {
                       angular separation between S and T is at most
                       epsilonArcsec arcsec are always assigned to a cluster."
         maxOccurs: 1
-        default: 0.35
+        default: 2.0 
         allowed: {
             min: 0.0
             max: 36000.0
@@ -38,7 +38,7 @@ definitions: {
                       now, there is no way to adjust the value to account for
                       data-sets with non uniform coverage."
         maxOccurs: 1
-        default: 5
+        default: 1 
         allowed: {
             min: 0
         }

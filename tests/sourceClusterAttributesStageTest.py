@@ -16,9 +16,10 @@ class SourceClusterAttributesStageTestCase(unittest.TestCase):
     """
     def setUp(self):
         self.sourceClusters = []
+        #TODO
 
     def tearDown(self):
-        pass
+        del self.sourceClusters
 
     def testStage(self):
         policyFile = pexPolicy.DefaultPolicyFile(

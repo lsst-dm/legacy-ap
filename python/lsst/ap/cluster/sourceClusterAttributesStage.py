@@ -72,7 +72,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         for sources in sourceClusters:
             clusterId = sequenceNum + (skyTileId << 32)
             sequenceNum += 1
-            sca = clusterLib.SourceClusterAttributes(sources, clusterId)
+            sca = clusterLib.SourceClusterAttributes(
+                sources, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
             if len(sources) == 1 and minPoints > 0:
                 sca.setFlags(sca.getFlags() |
                              clusterLib.SourceClusterAttributes.NOISE)
@@ -91,7 +92,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                 for source in badSources.getSources():
                     clusterId = sequenceNum + (skyTileId << 32)
                     sequenceNum += 1
-                    badSca = clusterLib.SourceClusterAttributes(source, clusterId)
+                    badSca = clusterLib.SourceClusterAttributes(
+                        source, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
                     badSca.setFlags(badSca.getFlags() |
                                     clusterLib.SourceClusterAttributes.BAD)
                     badScv.append(badSca)
