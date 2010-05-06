@@ -282,7 +282,7 @@ void insertObjectRow(DbStorageT & db,
     insertFloat(db, "ra_PS_Sigma", degrees(attributes.getRaSigma()));
     insertFloat(db, "decl_PS", degrees(attributes.getDec()));
     insertFloat(db, "decl_PS_Sigma", degrees(attributes.getDecSigma()));
-    insertFloat(db, "radecl_PS_Cov", degrees(attributes.getRaDecCov()));
+    insertFloat(db, "radecl_PS_Cov", degrees(degrees(attributes.getRaDecCov())));
     insertFloat(db, "earliestObsTime", attributes.getEarliestObsTime());
     insertFloat(db, "latestObsTime", attributes.getLatestObsTime());
     db.template setColumn<int>("flags", attributes.getFlags());
@@ -332,6 +332,7 @@ void insertObjectRow(DbStorageT & db,
 #undef LSST_AP_INSERT_FILTER
     // Note - do not set _chunkId or _subChunkId. These are added
     // by the partitioner.
+    db.insertRow();
 }
 
 /** @internal
@@ -546,7 +547,7 @@ void ObjectRow::to(DbStorage * db,
     attributes.setObsTimeRange(earliestObsTime, latestObsTime);
     attributes.setPosition(radians(ra_PS), radians(decl_PS),
                            radians(ra_PS_Sigma), radians(decl_PS_Sigma),
-                           radians(radecl_PS_Cov));
+                           radians(radians(radecl_PS_Cov)));
 
     // per-filter columns
 #define LSST_AP_HANDLE_PF_NULLS(i, filter) \

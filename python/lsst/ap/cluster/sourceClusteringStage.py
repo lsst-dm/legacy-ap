@@ -125,7 +125,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                 clusterLib.makeSourceHistogram(
                     badSources, hist.getImage(), wcs, False)
                 clipboard.put(
-                    self.policy.getString("outputKeys.goodSourceHistogram"),
+                    self.policy.getString("outputKeys.badSourceHistogram"),
                     hist)
 
         # cluster the remaining sources

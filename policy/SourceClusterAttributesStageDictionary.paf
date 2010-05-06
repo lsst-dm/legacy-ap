@@ -87,7 +87,7 @@ definitions: {
                                   contain an entry for this key.
                                  "
                     maxOccurs: 1
-                    default: "sourceClusterAttributes"
+                    default: "badSourceClusterAttributes"
                 }
             }
         }

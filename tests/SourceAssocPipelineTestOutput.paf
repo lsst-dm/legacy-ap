@@ -1,0 +1,87 @@
+#<?cfg paf policy ?>
+#
+# Sample lsst.pex.harness.IOStage.OutputStage policy file that persists
+# SourceAssoc pipeline test results
+parameters: {
+    additionalData: "visitId=jobIdentity.visitId" "ampExposureId=jobIdentity.ampExposureId"
+    outputItems: {
+        sources: {
+            required: false
+            storagePolicy: {
+                storage: "DbStorage"
+                location: "mysql://lsst10.ncsa.uiuc.edu:3306/test_source_assoc"
+            }
+        }
+        invalidSources: {
+            required: false
+            storagePolicy: {
+                storage: "DbStorage"
+                location: "mysql://lsst10.ncsa.uiuc.edu:3306/test_source_assoc"
+            }
+        }
+        badSources: {
+            required: false
+            storagePolicy: {
+                storage: "DbStorage"
+                location: "mysql://lsst10.ncsa.uiuc.edu:3306/test_source_assoc"
+            }
+        }
+        goodSourceHistogram: {
+            required: false
+            storagePolicy: {
+                storage: "FitsStorage"
+                location: "/home/smm/good_hist.fits"
+            }
+        }
+        badSourceHistogram: {
+            required: false
+            storagePolicy: {
+                storage: "FitsStorage"
+                location: "/home/smm/bad_hist.fits"
+            }
+        }
+        sourceClusterAttributes: {
+            required: false
+            storagePolicy: {
+                storage: "DbStorage"
+                location: "mysql://lsst10.ncsa.uiuc.edu:3306/test_source_assoc"
+            }
+        }
+        badSourceClusterAttributes: {
+            required: false
+            storagePolicy: {
+                storage: "DbStorage"
+                location: "mysql://lsst10.ncsa.uiuc.edu:3306/test_source_assoc"
+            }
+        }
+    }
+
+    persistence: {
+        Formatter: {
+            PersistableSourceVector: {
+                sources: {
+                    templateTableName: "SourceTemplate"
+                    tableNamePattern: "Source"
+                }
+                invalidSources: {
+                    templateTableName: "SourceTemplate"
+                    tableNamePattern: "SourceInvalid"
+                }
+                badSources: {
+                    templateTableName: "SourceTemplate"
+                    tableNamePattern: "SourceBad"
+                }
+            }
+            PersistableSourceClusterVector: {
+                sourceClusterAttributes: {
+                    templateTableName: "ObjectTemplate"
+                    tableNamePattern: "Object"
+                }
+                badSourceClusterAttributes: {
+                    templateTableName: "ObjectTemplate"
+                    tableNamePattern: "ObjectBad"
+                }
+            }
+        }
+    }
+}

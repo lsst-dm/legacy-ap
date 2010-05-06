@@ -30,8 +30,9 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         self.clusters = cluster.SourceClusterVector()
         for i in xrange(20):
             sca = cluster.SourceClusterAttributes()
+            sca.setClusterId(i)
             sca.setFlags(i)
-            sca.setNumObs(i + 1)
+            sca.setNumObs(0)
             sca.setObsTimeRange(float(i), float(i + 1))
             if i % 3 == 0:
                 sca.setPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, 0.03*i)
@@ -43,7 +44,8 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             for j in xrange(i % 7):
                 pfa = cluster.PerFilterSourceClusterAttributes()
                 pfa.setFilterId(j)
-                pfa.setNumObs(2*j)
+                pfa.setNumObs(j + 1)
+                sca.setNumObs(sca.getNumObs() + pfa.getNumObs())
                 pfa.setNumFluxSamples(max(0, j - 1))
                 pfa.setNumFluxSamples(max(0, j - 2))
                 if i % 3 == 0:
@@ -317,6 +319,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 "PersistableSourceClusterVector", rsl, dp)
             outp = cluster.PersistableSourceClusterVector.swigConvert(persistable)
             clusters = outp.getClusters()
+            self.assertEqual(len(self.clusters), len(clusters))
             for sc1, sc2 in izip(self.clusters, clusters):
                 self.assertEqual(sc1, sc2)
         finally:
@@ -362,8 +365,28 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                     "PersistableSourceClusterVector", rsl, dp)
                 outp = cluster.PersistableSourceClusterVector.swigConvert(persistable)
                 clusters = outp.getClusters()
+                self.assertEqual(len(self.clusters), len(clusters))
                 for sc1, sc2 in izip(self.clusters, clusters):
-                    self.assertEqual(sc1, sc2)
+                    # cannot test for exact equality since the database formatter
+                    # does unit conversion
+                    self.assertEqual(sc1.getClusterId(), sc2.getClusterId())
+                    self.assertEqual(sc1.getNumObs(), sc2.getNumObs())
+                    self.assertAlmostEqual(sc1.getRa(), sc2.getRa(), 14)
+                    self.assertAlmostEqual(sc1.getDec(), sc2.getDec(), 14)
+                    if sc1.getRaSigma() is None:
+                        self.assertEqual(sc2.getRaSigma(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getRaSigma(), sc2.getRaSigma(), 6)
+                    if sc1.getDecSigma() is None:
+                        self.assertEqual(sc2.getDecSigma(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getDecSigma(), sc2.getDecSigma(), 6)
+                    if sc1.getRaDecCov() is None:
+                        self.assertEqual(sc2.getRaDecCov(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getRaDecCov(), sc2.getRaDecCov())
+                    self.assertEqual(sc1.getPerFilterAttributes(),
+                                     sc2.getPerFilterAttributes())
             finally:
                 db = persistence.DbStorage()
                 db.setPersistLocation(loc)

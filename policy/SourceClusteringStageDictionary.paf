@@ -157,7 +157,7 @@ definitions: {
                      "
         # EDGE, INTERP_CENETER, SATUR_CENTER, DETECT_NEGATIVE
         # from lsst::meas::algorithms::Flags
-        default: 1 512 2048 4096
+        default: 1 256 512 1024 2048 4096
     }
     debug: {
         type: policy
@@ -192,7 +192,7 @@ definitions: {
                     description: "X/Y resolution of source position histograms.
                                  "
                     maxOccurs: 1
-                    default: 500
+                    default: 2000
                 }
             }
         }

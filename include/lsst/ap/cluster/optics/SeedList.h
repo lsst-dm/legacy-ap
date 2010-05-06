@@ -14,8 +14,9 @@
 
 namespace lsst { namespace ap { namespace cluster { namespace optics {
 
-/** TODO
-  *
+/** Class for managing the OPTICS ordered seeds. Methods to add a seed,
+  * remove the seed with smallest reachability distance and to decrease the 
+  * reachability of a seed are provided.
   */
 template <int K, typename DataT>
 class LSST_AP_LOCAL SeedList {

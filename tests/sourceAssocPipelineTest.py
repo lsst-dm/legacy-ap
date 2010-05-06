@@ -32,7 +32,15 @@ class SourceAssocPipelineTestCase(unittest.TestCase):
         self.scPolicy = None
         self.scaPolicy = None
         self.outPolicy = None
-        self.jobIdentity = {}
+        self.jobIdentity = dafBase.PropertySet()
+        # Setup filters
+        afwImage.Filter.reset()
+        afwImage.Filter.define(afwImage.FilterProperty("u"), 0)
+        afwImage.Filter.define(afwImage.FilterProperty("g"), 1)
+        afwImage.Filter.define(afwImage.FilterProperty("r"), 2)
+        afwImage.Filter.define(afwImage.FilterProperty("i"), 3)
+        afwImage.Filter.define(afwImage.FilterProperty("z"), 4)
+        afwImage.Filter.define(afwImage.FilterProperty("y"), 5)
         # Read input sources
         inputFiles = []
         if 'TEST_SAP_INPUT_DIR' in os.environ:
@@ -101,7 +109,10 @@ class SourceAssocPipelineTestCase(unittest.TestCase):
                 maxArea = a
                 skyTileId = id
         self.scPolicy.set("quadSpherePolicy.resolutionPix", qsRes)
-        self.jobIdentity["skyTileId"] = skyTileId
+        self.jobIdentity.set("skyTileId", skyTileId)
+        # required for source persistence
+        self.jobIdentity.set("ampExposureId", 0)
+        self.jobIdentity.set("visitId", 0)
         print "Quad-sphere resolution: %d" % qsRes
         print "Sky-tile id: %d" % skyTileId
 
@@ -113,7 +124,6 @@ class SourceAssocPipelineTestCase(unittest.TestCase):
         del self.jobIdentity
 
     def testPipeline(self):
-        pdb.set_trace()
         clipboard = Clipboard()
         clipboard.put(self.scPolicy.get("inputKeys.jobIdentity"), self.jobIdentity)
         clipboard.put(self.scPolicy.get("inputKeys.sources"), self.sources)
