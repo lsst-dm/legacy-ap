@@ -52,6 +52,7 @@ SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSo
 
 %typemap(out) lsst::ap::cluster::NullOr<float> const & {
     if (($1)->isNull()) {
+        Py_INCREF(Py_None);
         $result = Py_None;
     } else {
         $result = PyFloat_FromDouble(static_cast<double>(*($1)));
