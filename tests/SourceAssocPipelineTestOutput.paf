@@ -1,0 +1,58 @@
+#<?cfg paf policy ?>
+#
+# Sample lsst.pex.harness.IOStage.OutputStage policy file that persists
+# SourceAssoc pipeline test results
+parameters: {
+    #additionalData: "visitId=jobIdentity.visitId" "ampExposureId=jobIdentity.ampExposureId"
+    outputItems: {
+        sources: {
+            required: false
+            storagePolicy: {
+                storage: "BoostStorage"
+                location: "source.boost"
+            }
+        }
+        invalidSources: {
+            required: false
+            storagePolicy: {
+                storage: "BoostStorage"
+                location: "invalidSource.boost"
+            }
+        }
+        badSources: {
+            required: false
+            storagePolicy: {
+                storage: "BoostStorage"
+                location: "badSource.boost"
+            }
+        }
+        goodSourceHistogram: {
+            required: false
+            storagePolicy: {
+                storage: "FitsStorage"
+                location: "sourceHist.fits"
+            }
+        }
+        badSourceHistogram: {
+            required: false
+            storagePolicy: {
+                storage: "FitsStorage"
+                location: "badSourceHist.fits"
+            }
+        }
+        sourceClusterAttributes: {
+            required: false
+            storagePolicy: {
+                storage: "BoostStorage"
+                location: "object.boost"
+            }
+        }
+        badSourceClusterAttributes: {
+            required: false
+            storagePolicy: {
+                storage: "BoostStorage"
+                location: "badObject.boost"
+            }
+        }
+    }
+}

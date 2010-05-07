@@ -1,0 +1,157 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.cluster.SourceClusterAttributesStage
+
+definitions: {
+
+    # input clipboard keys
+    inputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                jobIdentity: {
+                    type: string
+                    description: "Key for a lsst.daf.base.PropertySet (e.g.
+                                  corresponding to an event) or a Python dict
+                                  (e.g. corresponding to a job) which must 
+                                  contain an integer valued key identified by
+                                  'inputKeys.skyTileId'.
+                                 "
+                    maxOccurs: 1
+                    default: "jobIdentity"
+                }
+                skyTileId: {
+                    type: string
+                    description: "Key for the clipboard entry identified by
+                                  'inputKeys.jobIdentity'. Must contain an 
+                                  integer sky-tile id.
+                                 "
+                    maxOccurs: 1
+                    default: "skyTileId"
+                }
+                sourceClusters: {
+                    type: string
+                    description: "Key for the source clusters to compute
+                                  attributes for. The value must be a python
+                                  list of lsst.afw.detection.SourceSet
+                                  objects."
+                    maxOccurs: 1
+                    default: "sourceClusters"
+                }
+                badSources: {
+                    type: string
+                    description: "Key for an
+                                  lsst.afw.detection.PersistableSourceVector
+                                  containing lsst.afw.detection.Source
+                                  objects that were not of high enough quality
+                                  to cluster.
+                                 "
+                    maxOccurs: 1
+                    default: "badSources"
+                }
+                sourceClusteringPolicy: {
+                    type: string
+                    description: "Parameters used to generate source clusters.
+                                  Avoids having to redundantly specify default 
+                                  policy overrides for the source clustering
+                                  and source cluster attributes stages.
+                                 "
+                    maxOccurs: 1
+                    default: "sourceClusteringPolicy"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # output clipboard keys:
+    outputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                sourceClusterAttributes: {
+                    type: string
+                    description: "Key for computed source cluster attributes (an
+                                  lsst.ap.cluster.PersistableSourceClusterVector).
+                                 "
+                    maxOccurs: 1
+                    default: "sourceClusterAttributes"
+                }
+                badSourceClusterAttributes: {
+                    type: string
+                    description: "Key for source cluster attributes computed
+                                  from bad sources (an
+                                  lsst.ap.cluster.PersistableSourceClusterVector).
+                                  If the 'createBadClusters' policy parameter
+                                  value is false, the clipboard will not
+                                  contain an entry for this key.
+                                 "
+                    maxOccurs: 1
+                    default: "badSourceClusterAttributes"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # stage parameters
+    fluxIgnoreMask: {
+        type: int
+        description: "A bit-mask identifying sources to ignore when computing
+                      the sample mean of the PSF flux of the sources in a
+                      given cluster and filter. When the detection flag
+                      integer for a source has any of the mask bits set to 1,
+                      the source is ignored. Multiple values may be specified -
+                      in this case, the bitwise-OR of all the masks is used to
+                      identify which sources to ignore. Sources with PSF fluxes
+                      set to NaN are ignored regardless of these masks.
+                     "
+        # EDGE, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # from lsst::meas::algorithms::Flags
+        default: 1 512 2048 4096
+    }
+    ellipticityIgnoreMask: {
+        type: int
+        description: "A bit-mask identifying sources to ignore when computing
+                      the sample means of the ellipticity parameters of the
+                      sources in a given cluster and filter. When the
+                      detection flag integer for a source has any of the mask
+                      bits set to 1, the source is ignored. Multiple values
+                      may be specified - in this case, the bitwise-OR of all
+                      the masks is used to identify which sources to ignore.
+                      Sources with adaptive moments set to NaN are ignored
+                      regardless of these masks.
+                     "
+        # EDGE, SHAPE_UNWEIGHTED_BAD, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # from lsst::meas::algorithms::Flags
+        default: 1 32 512 2048 4096
+    }
+    createBadClusters: {
+        type: bool
+        description: "A boolean flag indicating whether or not to create
+                      source clusters (objects) for 'bad' sources. When set
+                      to true, a single-source cluster is created for each
+                      bad source. Otherwise, the object id of each bad
+                      source is set to NULL and the position of the object
+                      associated with the bad source is set to the position of
+                      the source itself. This last step allows bad sources
+                      to be stored in the same table as good sources. Good
+                      sources are partitioned by position of their containing
+                      object (cluster), so in the absence of such an object,
+                      bad sources must either be stored in a different table
+                      (partitioned by position) or must have their object
+                      positions set to their source positions.
+                     "
+        maxOccurs: 1
+        default: false
+    }
+
+    # source clustering algorithm parameters
+    sourceClusteringPolicy: {
+        type: policy
+        dictionary: @SourceClusteringDictionary.paf
+        description: "Parameters for the source clustering algorithm."
+        maxOccurs: 1
+    }
+}
+

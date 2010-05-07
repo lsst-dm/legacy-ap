@@ -35,6 +35,7 @@
 #include "boost/format.hpp"
 #include "boost/scoped_array.hpp"
 
+#include "lsst/daf/persistence/LogicalLocation.h"
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/logging/Log.h"
 
@@ -189,7 +190,7 @@ public :
     ) :
         _matches(matches),
         _filter(filter),
-        _threshold(context.getPipelinePolicy()->getInt(VAR_PROB_THRESH_KEY[filter]))
+        _threshold(context.getPipelinePolicy()->getInt(VAR_PROB_THRESH_KEY[filter.getId()]))
     {}
 
     void operator()(DiaSourceEntry & ds, MatchIterator begin, MatchIterator end) {
@@ -280,7 +281,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
         _fovRad(context.getFov().getRadius()),
         _chunks(),
         _filter(context.getFilter()),
-        _idNamespace(static_cast<boost::int64_t>(context.getFilter() + 1) << 56)
+        _idNamespace(static_cast<boost::int64_t>(context.getFilter().getId() + 1) << 56)
     {
         ObjectChunkVector & chunks = context.getChunks();
         // build a map of ids to chunks
@@ -325,13 +326,13 @@ struct LSST_AP_LOCAL NewObjectCreator {
             obj._muDecl             = 0.0;
             obj._parallax           = 0.0;
             obj._radialVelocity     = 0.0; 
-            obj._varProb[Filter::U] = 0;
-            obj._varProb[Filter::G] = 0;
-            obj._varProb[Filter::R] = 0;
-            obj._varProb[Filter::I] = 0;
-            obj._varProb[Filter::Z] = 0;
-            obj._varProb[Filter::Y] = 0;
-            obj._varProb[_filter]   = 100;
+            obj._varProb[0] = 0;
+            obj._varProb[1] = 0;
+            obj._varProb[2] = 0;
+            obj._varProb[3] = 0;
+            obj._varProb[4] = 0;
+            obj._varProb[5] = 0;
+            obj._varProb[_filter.getId()]   = 100;
 
             _results.push_back(IdPair(id, obj._objectId));
 
@@ -550,7 +551,7 @@ VisitProcessingContext::VisitProcessingContext(
     _deadline.tv_sec += 600;
     std::string filterName = event->getAsString("filter");
     LogicalLocation location(policy->getString("filterTableLocation"));
-    _filter = Filter(location, filterName);
+    _filter = Filter(filterName);
 }
 
 

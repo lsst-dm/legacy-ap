@@ -6,7 +6,7 @@ import lsst.SConsUtils as scons
 visCheckSrc = """
     __attribute__((visibility("hidden")))  void hiddenFunc() {}
     __attribute__((visibility("default"))) void defaultFunc() {}
-    int main(int argc, char **argv) {
+    int main() {
         hiddenFunc();
         defaultFunc();
         return 0;
@@ -14,7 +14,7 @@ visCheckSrc = """
     """
 
 popcountCheckSrc = """
-    int main(int argc, char **argv) {
+    int main() {
         unsigned long long ull = 0;
         unsigned long      ul  = 0;
         unsigned int       ui  = 0;
@@ -26,7 +26,7 @@ noatimeCheckSrc = """
     #include <sys/types.h>
     #include <sys/stat.h>
     #include <fcntl.h>
-    int main(int argc, char **argv) {
+    int main() {
         open('/tmp/dummy', O_RDONLY | O_NOATIME, 0);
         return 0;
     }
@@ -36,25 +36,32 @@ nocacheCheckSrc = """
     #include <sys/types.h>
     #include <sys/stat.h>
     #include <fcntl.h>
-    int main(int argc, char **argv) {
+    int main() {
         fcntl(-1, F_NOCACHE, 1);
         return 0;
     }
     """
 
 rshiftCheckSrc = """
-    int main(int argc, char **argv) {
+    int main() {
         char test[-1 >> 1];
         return 0;
     }
     """
 
 long64CheckSrc = """
-    int main(int argc, char **argv) {
+    int main() {
         char test[sizeof(long) - 8];
         return 0;
     }
     """
+
+isnanCheckSrc = """
+    #include <math.h>
+    int main() {
+        return isnan(0.0) + isnan(0.0f);
+    }
+"""
 
 
 def CustomCompilerFlag(context, flag):
@@ -88,10 +95,22 @@ def IsGccBelow4(context):
     return result
 
 # Direct and indirect dependencies of ap
-dependencies = ["boost", "python", "mysqlclient", "wcslib", 'minuit',
-                "pex_exceptions", "utils", "daf_base", "pex_logging",
-                "security", "pex_policy", "daf_persistence",
-                "daf_data", "afw", "mops","Eigen"]
+dependencies = ["boost",
+                "python",
+                "mysqlclient",
+                "wcslib",
+                "minuit2",
+                "Eigen",
+                "pex_exceptions",
+                "utils",
+                "daf_base",
+                "pex_logging",
+                "security",
+                "pex_policy",
+                "daf_persistence",
+                "daf_data",
+                "afw",
+                "mops"]
 
 #
 # Setup our environment
@@ -107,8 +126,9 @@ env = scons.makeEnv("ap",
                      ["python", "Python.h"],
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
                      ["wcslib", "wcslib/wcs.h", "m wcs"],
-                     ["minuit", "Minuit/FCNBase.h", "lcg_Minuit:C++"],
+                     ["minuit2", "Minuit2/FCNBase.h", "Minuit2:C++"],
                      ["gsl", "gsl/gsl_rng.h", "gslcblas gsl"],
+                     ["Eigen", "Eigen/Core.h"],
                      ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
                      ["utils", "lsst/utils/Utils.h", "utils:C++"],
                      ["daf_base", "lsst/daf/base.h", "daf_base:C++"],
@@ -118,8 +138,7 @@ env = scons.makeEnv("ap",
                      ["daf_persistence", "lsst/daf/persistence.h", "daf_persistence:C++"],
                      ["daf_data", "lsst/daf/data.h", "daf_data:C++"],
                      ["afw", "lsst/afw/detection/DiaSource.h", "afw:C++"],
-                     ["mops", "lsst/mops/MovingObjectPrediction.h"],
-                     ["Eigen", "Eigen/Core.h"]
+                     ["mops", "lsst/mops/MovingObjectPrediction.h"]
                     ])
 
 env.Help("""
@@ -165,6 +184,8 @@ if not env.CleanFlagIsSet():
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
     if not conf.CustomCompileCheck('Checking for unsigned right shift ... ', rshiftCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_SIGNED_RSHIFT=1')
+    if conf.CustomCompileCheck('Checking for isnan in <math.h> ... ', isnanCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_ISNAN=1')
     # Without some help, SWIG disagrees with boost on the actual type of int64_t
     if conf.CustomCompileCheck('Checking whether long is at least 8 bytes ... ', long64CheckSrc):
         conf.env.Append(SWIGFLAGS = '-DSWIGWORDSIZE64')
@@ -175,7 +196,7 @@ if not env.CleanFlagIsSet():
 
 
 # Build/install things
-for d in Split("bin lib python/lsst/" + re.sub(r'_', "/", pkg) + " tests doc"):
+for d in Split("bin lib python/lsst/" + pkg + " python/lsst/" + pkg + "/cluster tests doc"):
     try:
         SConscript(os.path.join(d, "SConscript"))
     except Exception, e:
@@ -187,8 +208,7 @@ Alias("install", [env.Install(env['prefix'], "python"),
                   env.Install(env['prefix'], "include"),
                   env.Install(env['prefix'], "lib"),
                   env.Install(env['prefix'], "bin"),
-                  env.InstallAs(os.path.join(env['prefix'], "doc", "doxygen"),
-                                os.path.join("doc", "htmlDir")),
+                  env.Install(env['prefix'], "doc"),
                   env.InstallEups(env['prefix'] + "/ups")])
 
 scons.CleanTree(r"*~ core *.so *.os *.o")

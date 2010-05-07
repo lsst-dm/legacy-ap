@@ -239,9 +239,9 @@ int main(int argc, char** argv) {
 
     // Set up the result bindings.
     Object obj;                                      // Retrieved object
-    MYSQL_BIND resultArray[7 + Filter::NUM_FILTERS]; // Result binding array
-    my_bool isNull[7 + Filter::NUM_FILTERS];         // Null flags for object fields
-    my_bool error[7 + Filter::NUM_FILTERS];          // Error flags for object fields
+    MYSQL_BIND resultArray[7 + Object::NUM_FILTERS]; // Result binding array
+    my_bool isNull[7 + Object::NUM_FILTERS];         // Null flags for object fields
+    my_bool error[7 + Object::NUM_FILTERS];          // Error flags for object fields
 
     // Initialize object to junk values to help detect bugs.
     obj._objectId = 0xcafefeeddeadbeefLL;
@@ -254,10 +254,10 @@ int main(int argc, char** argv) {
     obj._muDecl = 0.0;
     obj._parallax = 0.0;
     obj._radialVelocity = 0.0;
-    for (int i = 0; i < Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < Object::NUM_FILTERS; ++i) {
         obj._varProb[i] = 0;
     }
-    for (int i = 0; i < 7 + Filter::NUM_FILTERS; ++i) {
+    for (int i = 0; i < 7 + Object::NUM_FILTERS; ++i) {
         isNull[i] = false;
     }
     std::memset(resultArray, 0, sizeof(resultArray));
@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
 
     while ((err = mysql_stmt_fetch(stmt)) == 0) {
         // Check for nulls.
-        for (int i = 0; i < 7 + Filter::NUM_FILTERS; ++i) {
+        for (int i = 0; i < 7 + Object::NUM_FILTERS; ++i) {
             if (isNull[i]) {
                 throw LSST_EXCEPT(ex::RuntimeErrorException, "Unexpected null value found");
             }

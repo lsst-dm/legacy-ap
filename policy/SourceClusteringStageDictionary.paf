@@ -1,0 +1,218 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.cluster.SourceClusteringStage
+
+definitions: {
+
+    # input clipboard keys
+    inputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                jobIdentity: {
+                    type: string
+                    description: "Key for a lsst.daf.base.PropertySet (e.g.
+                                  corresponding to an event) or a Python dict
+                                  (e.g. corresponding to a job) which must
+                                  contain an integer valued key identified by
+                                  'inputKeys.skyTileId'.
+                                 "
+                    maxOccurs: 1
+                    default: "jobIdentity"
+                }
+                skyTileId: {
+                    type: string
+                    description: "Key for the clipboard entry identified by
+                                  'inputKeys.jobIdentity'. Must contain an
+                                  integer sky-tile id.
+                                 "
+                    maxOccurs: 1
+                    default: "skyTileId"
+                }
+                sources: {
+                    type: string
+                    description: "Key for the sources to cluster. The value can
+                                  be an instance of any of the following types:
+
+                                  lsst.afw.detection.SourceSet
+                                  lsst.afw.detection.PersistableSourceVector
+                                  lsst.afw.detection.PersistableSourceVectorVector
+                                 "
+                    maxOccurs: 1
+                    default: "sources"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # output clipboard keys
+    outputKeys: {
+        type: policy
+        dictionary: {
+            definitions: {
+                sourceClusters: {
+                    type: string
+                    description: "Key for a python list of
+                                  lsst.afw.detection.SourceSet instances
+                                  corresponding to geerated source clusters.
+                                 "
+                    maxOccurs: 1
+                    default: "sourceClusters"
+                }
+                sources: {
+                    type: string
+                    description: "Key for an
+                                  lsst.afw.detection.PersistableSourceVector
+                                  containing all 'good' lsst.afw.detection.Source
+                                  objects falling inside the current sky-tile.
+                                  Setting this policy value to be the same
+                                  as the value of 'inputKeys.sources' is allowed
+                                  and is in fact desirable - doing so avoids
+                                  keeping 2 large source containers (where
+                                  'outputKeys.sources' is a subset of
+                                  'inputKeys.sources') in memory
+                                  simultaneously.
+                                 "
+                    maxOccurs: 1
+                    default: "sources"
+                }
+                sourceClusteringPolicy: {
+                    type: string
+                    description: "An lsst.pex.policy.Policy object containing
+                                  the source clustering parameters used by
+                                  this stage. This is made available on the
+                                  clipboard for use by subsequent stages so
+                                  that parameter overrides do not have to
+                                  occur in multiple production stage policies.
+                                 "
+                    maxOccurs: 1
+                    default: "sourceClusteringPolicy"
+                }
+                invalidSources: {
+                    type: string
+                    description: "Key for an
+                                  lsst.afw.detection.PersistableSourceVector
+                                  containing all lsst.afw.detection.Source
+                                  objects with bad positions, i.e. ra and/or
+                                  dec that are NaN or out-of-bounds. Latitude
+                                  angles are expected to be in range
+                                  [-pi/2, pi/2] and longitude angles in range
+                                  [0, 2*pi). If no invalid sources are found,
+                                  the clipboard will not have an entry for
+                                  this key.
+                                 "
+                    maxOccurs: 1
+                    default: "invalidSources"
+                }
+                badSources: {
+                    type: string
+                    description: "Key for an
+                                  lsst.afw.detection.PersistableSourceVector
+                                  containing all lsst.afw.detection.Source
+                                  objects identified as bad (by checking their
+                                  detection flags against the 'badSourceMask'
+                                  policy parameter value). These sources are
+                                  ignored by the clustering algorithm. If no
+                                  bad sources are found, the clipboard will
+                                  not have an entry for this key.
+                                 "
+                    maxOccurs: 1
+                    default: "badSources"
+                }
+                goodSourceHistogram: {
+                    type: string
+                    description: "Key for a a 2d histogram of good source
+                                  positions (an lsst.afw.image.DecoratedImageU).
+                                 " 
+                    maxOccurs: 1
+                    default: "goodSourceHistogram"
+                }
+                badSourceHistogram: {
+                    type: string
+                    description: "Key for a a 2d histogram of bad source
+                                  positions (an lsst.afw.image.DecoratedImageU).
+                                 "
+                    maxOccurs: 1
+                    default: "badSourceHistogram"
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # stage parameters
+    badSourceMask: {
+        type: int
+        description: "A bit-mask identifying 'bad' sources. In particular, if
+                      the detection flag integer for a source has any of the
+                      mask bits set to 1, then the source is considered bad.
+                      All others are considered 'good'. Bad sources are not
+                      fed to the clustering algorithm and are segregated from
+                      good sources: they are made available on the clipboard
+                      under the 'outputKeys.badSources' key. Note that multiple
+                      values mask may be specified - in this case, the
+                      bitwise-OR of all the masks is used to identify bad
+                      sources.
+                     "
+        # EDGE, INTERP_CENETER, SATUR_CENTER, DETECT_NEGATIVE
+        # from lsst::meas::algorithms::Flags
+        default: 1 512 2048 4096
+    }
+    debug: {
+        type: policy
+        dictionary: {
+            definitions: {
+                createGoodSourceHistogram: {
+                    type: bool
+                    description: "A flag indicating whether a 2D histogram of
+                                  good source positions should be generated.
+                                  If set, the histogram is made available on
+                                  the clipboard under the
+                                  'outputKeys.goodSourceHistogram' key as an
+                                  lsst.afw.image.DecoratedImageI.
+                                 "
+                    maxOccurs: 1
+                    default: true
+                }
+                createBadSourceHistogram: {
+                    type: bool
+                    description: "A flag indicating whether a 2D histogram of 
+                                  bad source positions should be generated.
+                                  If set, the histogram is made available on
+                                  the clipboard under the
+                                  'outputKeys.badSourceHistogram' key as an
+                                  lsst.afw.image.DecoratedImageI
+                                 "
+                    maxOccurs: 1
+                    default: true
+                }
+                sourceHistogramResolution: {
+                    type: int
+                    description: "X/Y resolution of source position histograms.
+                                 "
+                    maxOccurs: 1
+                    default: 2000
+                }
+            }
+        }
+        maxOccurs: 1
+    }
+
+    # clustering algorithm parameters
+    sourceClusteringPolicy: {
+        type: policy
+        dictionary: @SourceClusteringDictionary.paf
+        description: "Parameters for the OPTICS clustering algorithm."
+        maxOccurs: 1
+    }
+
+    # quad-sphere sky-pixelization parameters
+    quadSpherePolicy: {
+        type: policy
+        dictionary: @urn:eupspkg:skypix:policy:QuadSpherePixelizationDictionary.paf
+        description: "Quad-sphere sky pixelization parameters."
+        maxOccurs: 1
+    }
+}
+
