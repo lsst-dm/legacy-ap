@@ -26,7 +26,7 @@ namespace lsst { namespace ap { namespace cluster {
   */
 LSST_AP_API void makeSourceHistogram(
     lsst::afw::detection::SourceSet const & sources,
-    lsst::afw::image::Image<int>::Ptr histogram,
+    lsst::afw::image::Image<unsigned short>::Ptr histogram,
     lsst::afw::image::Wcs::Ptr wcs,
     bool ignoreOffImage)
 {

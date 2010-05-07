@@ -47,7 +47,7 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
     return afwImage.createWcs(crval, crpix, scale, 0.0, 0.0, scale)
 
 def createImageCoveringSkyTile(skyPixelization, skyTileId, imageRes,
-                               imageType=afwImage.DecoratedImageI):
+                               imageType=afwImage.DecoratedImageU):
     """Creates an image of the specified type and resolution along with
     a WCS that covers the given sky tile. If the requested image type
     is an lsst.afw.image.ExposureX, the exposure WCS is set automatically.
