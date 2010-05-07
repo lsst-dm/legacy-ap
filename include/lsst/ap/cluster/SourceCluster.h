@@ -14,6 +14,7 @@
 #include "boost/shared_ptr.hpp"
 
 #include "lsst/tr1/unordered_map.h"
+#include "lsst/utils/ieee.h"
 #include "lsst/daf/base/Persistable.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/detection/Source.h"
@@ -59,7 +60,7 @@ public:
     NullOr(FloatT value) : _value(value) { }
 
     bool isNull() const {
-        return isNaN(_value);
+        return lsst::utils::isnan(_value);
     }
     operator FloatT() const {
         return _value;
@@ -84,10 +85,10 @@ public:
         return !(n == _value);
     }
     bool operator==(FloatT const & value) const {
-        return isNull() ? isNaN(value) : value == _value;
+        return isNull() ? lsst::utils::isnan(value) : value == _value;
     }
     bool operator!=(FloatT const & value) const {
-        return isNull() ? !isNaN(value) : value != _value;
+        return isNull() ? !lsst::utils::isnan(value) : value != _value;
     }
 
 private:

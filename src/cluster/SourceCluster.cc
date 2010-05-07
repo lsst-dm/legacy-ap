@@ -150,7 +150,7 @@ LSST_AP_API void segregateInvalidSources(
     for (size_t i = 0; i < n; ++i) {
         double ra = sources[i]->getRa();
         double dec = sources[i]->getDec();
-        if (isNaN(ra) || isNaN(dec) ||
+        if (lsst::utils::isnan(ra) || lsst::utils::isnan(dec) ||
             ra < 0.0 || ra >= 2.0 * M_PI ||
             dec < -0.5 * M_PI || dec > 0.5 * M_PI) {
             badSources.push_back(sources[i]);
@@ -247,7 +247,7 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     _e1(), _e2(), _radius(),
     _e1Sigma(), _e2Sigma(), _radiusSigma()
 {
-    if (!isNaN(source.getPsfFlux()) &&
+    if (!lsst::utils::isnan(source.getPsfFlux()) &&
         (source.getFlagForDetection() & fluxIgnoreMask) == 0) {
         setFlux(source.getPsfFlux(), source.getPsfFluxErr());
         setNumFluxSamples(1);
@@ -255,9 +255,9 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes(
     if (source.isNull(detection::IXX) ||
         source.isNull(detection::IYY) ||
         source.isNull(detection::IXY) ||
-        isNaN(source.getIxx()) ||
-        isNaN(source.getIyy()) ||
-        isNaN(source.getIxy()) ||
+        lsst::utils::isnan(source.getIxx()) ||
+        lsst::utils::isnan(source.getIyy()) ||
+        lsst::utils::isnan(source.getIxy()) ||
         (source.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
         return;
     }
@@ -497,7 +497,8 @@ void PerFilterSourceClusterAttributes::computeFlux(
     double flux = 0.0;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
         double f = (*i)->getPsfFlux();
-        if (isNaN(f) || ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
+        if (lsst::utils::isnan(f) ||
+            ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
             continue;
         }
         flux += f;
@@ -509,7 +510,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         // available
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             float f = (*i)->getPsfFlux();
-            if (!isNaN(f) && 
+            if (!lsst::utils::isnan(f) && 
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) == 0) {
                 setFlux(f, (*i)->getPsfFluxErr());
                 break;
@@ -523,7 +524,7 @@ void PerFilterSourceClusterAttributes::computeFlux(
         double ff = 0.0;
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             double f = (*i)->getPsfFlux();
-            if (isNaN(f) ||
+            if (lsst::utils::isnan(f) ||
                 ((*i)->getFlagForDetection() & fluxIgnoreMask) != 0) {
                 continue;
             }
@@ -570,7 +571,8 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
        double mxy = (*i)->getIxy();
        double t = mxx + myy;
        // make sure the moments aren't NaN
-       if (isNaN(mxx) || isNaN(myy) || isNaN(mxy) || (t == 0.0)) {
+       if (lsst::utils::isnan(mxx) || lsst::utils::isnan(myy) ||
+           lsst::utils::isnan(mxy) || (t == 0.0)) {
            continue;
        }
        // compute ellipticity parameters from moments
@@ -654,9 +656,9 @@ SourceClusterAttributes::SourceClusterAttributes(
 {
     if (source.isNull(detection::RA_ASTROM_ERR) ||
         source.isNull(detection::DEC_ASTROM_ERR) ||
-        isNaN(source.getRaAstromErr()) ||
+        lsst::utils::isnan(source.getRaAstromErr()) ||
         source.getRaAstromErr() < 0.0f ||
-        isNaN(source.getDecAstromErr()) ||
+        lsst::utils::isnan(source.getDecAstromErr()) ||
         source.getDecAstromErr() < 0.0f) {
         setPosition(source.getRa(),
                     source.getDec(),
@@ -809,7 +811,7 @@ void SourceClusterAttributes::setPosition(double ra,
                                           NullOr<float> const & decSigma,
                                           NullOr<float> const & raDecCov)
 {
-    if (isNaN(ra) || isNaN(dec)) {
+    if (lsst::utils::isnan(ra) || lsst::utils::isnan(dec)) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "Longitude and/or latitude angle is NaN");
     }
@@ -878,9 +880,9 @@ void SourceClusterAttributes::computePosition(
         detection::Source const & source = *sources.front();
         if (source.isNull(detection::RA_ASTROM_ERR) ||
             source.isNull(detection::DEC_ASTROM_ERR) ||
-            isNaN(source.getRaAstromErr()) ||
+            lsst::utils::isnan(source.getRaAstromErr()) ||
             source.getRaAstromErr() < 0.0f ||
-            isNaN(source.getDecAstromErr()) ||
+            lsst::utils::isnan(source.getDecAstromErr()) ||
             source.getDecAstromErr() < 0.0f) {
             setPosition(source.getRa(),
                         source.getDec(),

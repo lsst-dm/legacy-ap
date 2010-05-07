@@ -72,8 +72,11 @@ LSST_AP_LOCAL std::string const getTemplateTableName(Policy::Ptr policy,
 
 template <typename StorageT, typename T>
 inline void insertFloat(StorageT & db, char const * const col, T const & val) {
-    if (isNaN(val)) {
+    if (lsst::utils::isnan(val)) {
         db.setColumnToNull(col);
+    } else if (lsst::utils::isinf(val)) {
+        T r = (val > 0.0) ? std::numeric_limits<T>::max() : -std::numeric_limits<T>::max();
+        db.template setColumn<T>(col, r);
     } else {
         db.template setColumn<T>(col, val);
     }
@@ -125,12 +128,25 @@ LSST_AP_LOCAL void getFilterIds(int * const filterIds) {
 
 template <typename Archive, typename FloatT>
 inline void serializeFloat(Archive & ar, FloatT & value) {
-    bool null = isNaN(value);
-    ar & null;
-    if (null) {
-        value = std::numeric_limits<FloatT>::quiet_NaN();
-    } else {
-        ar & value;
+    int fpClass = 0;
+    if (lsst::utils::isnan(value)) {
+        fpClass = 1;
+    } else if (lsst::utils::isinf(value)) {
+        fpClass = value > 0.0 ? 2 : 3;
+    }
+    ar & fpClass;
+    switch (fpClass) {
+        case 1:
+            value = std::numeric_limits<FloatT>::quiet_NaN();
+            break;
+        case 2:
+            value = std::numeric_limits<FloatT>::infinity();
+            break;
+        case 3:
+            value = -std::numeric_limits<FloatT>::infinity();
+            break;
+        default:
+            ar & value;
     }
 }
 

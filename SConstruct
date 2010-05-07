@@ -184,8 +184,6 @@ if not env.CleanFlagIsSet():
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
     if not conf.CustomCompileCheck('Checking for unsigned right shift ... ', rshiftCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_SIGNED_RSHIFT=1')
-    if conf.CustomCompileCheck('Checking for isnan in <math.h> ... ', isnanCheckSrc):
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_ISNAN=1')
     # Without some help, SWIG disagrees with boost on the actual type of int64_t
     if conf.CustomCompileCheck('Checking whether long is at least 8 bytes ... ', long64CheckSrc):
         conf.env.Append(SWIGFLAGS = '-DSWIGWORDSIZE64')
@@ -207,6 +205,7 @@ env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 Alias("install", [env.Install(env['prefix'], "python"),
                   env.Install(env['prefix'], "include"),
                   env.Install(env['prefix'], "lib"),
+                  env.Install(env['prefix'], "policy"),
                   env.Install(env['prefix'], "bin"),
                   env.Install(env['prefix'], "doc"),
                   env.InstallEups(env['prefix'] + "/ups")])
