@@ -89,7 +89,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
             isinstance(sources, afwDetection.PersistableSourceVector))
         self.assertTrue(isinstance(sourceClusteringPolicy, pexPolicy.Policy))
         self.assertTrue(
-            isinstance(goodSourceHistogram, afwImage.DecoratedImageI))
+            isinstance(goodSourceHistogram, afwImage.DecoratedImageU))
         self.assertTrue(self.numInputSources > len(sourceClusters))
         self.assertEqual(countClusters(sourceClusters), 5)
         for c in sourceClusters:
