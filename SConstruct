@@ -56,13 +56,6 @@ long64CheckSrc = """
     }
     """
 
-isnanCheckSrc = """
-    #include <math.h>
-    int main() {
-        return isnan(0.0) + isnan(0.0f);
-    }
-"""
-
 
 def CustomCompilerFlag(context, flag):
     context.Message('Checking if compiler supports ' + flag + ' flag ')
