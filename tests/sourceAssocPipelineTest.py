@@ -58,7 +58,7 @@ class SourceAssocPipelineTestCase(unittest.TestCase):
         dp = dafBase.PropertySet()
         for f in inputFiles:
             rsl = dafPersistence.StorageList()
-            loc  = dafPersistence.LogicalLocation(f)
+            loc = dafPersistence.LogicalLocation(f)
             rsl.append(p.getRetrieveStorage("BoostStorage", loc))
             persistable = p.unsafeRetrieve("PersistableSourceVector", rsl, dp)
             self.sources.append(
@@ -110,9 +110,6 @@ class SourceAssocPipelineTestCase(unittest.TestCase):
                 skyTileId = id
         self.scPolicy.set("quadSpherePolicy.resolutionPix", qsRes)
         self.jobIdentity.set("skyTileId", skyTileId)
-        # required for source persistence
-        self.jobIdentity.set("ampExposureId", 0)
-        self.jobIdentity.set("visitId", 0)
         print "Quad-sphere resolution: %d" % qsRes
         print "Sky-tile id: %d" % skyTileId
 

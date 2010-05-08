@@ -63,7 +63,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         # create and populat clipboard 
         clipboard = Clipboard()
         clipboard.put(policy.get("inputKeys.jobIdentity"), jobIdentity)
-        clipboard.put(policy.get("inputKeys.sources"), self.sources)
+        clipboard.put(policy.get("inputKeys.sources"),
+                      afwDetection.PersistableSourceVector(self.sources))
 
         # run the stage
         stage = cluster.SourceClusteringStage(policy)

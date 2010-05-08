@@ -31,12 +31,8 @@ definitions: {
                 }
                 sources: {
                     type: string
-                    description: "Key for the sources to cluster. The value can
-                                  be an instance of any of the following types:
-
-                                  lsst.afw.detection.SourceSet
-                                  lsst.afw.detection.PersistableSourceVector
-                                  lsst.afw.detection.PersistableSourceVectorVector
+                    description: "Key for the sources to cluster. The value must 
+                                  be a lsst.afw.detection.PersistableSourceVector
                                  "
                     maxOccurs: 1
                     default: "sources"

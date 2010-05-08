@@ -3,7 +3,6 @@ import operator
 from textwrap import dedent
 
 import lsst.daf.base as base
-import lsst.daf.persistence as persistence
 import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
@@ -64,21 +63,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         if not isinstance(inputSources, (list, tuple)):
             inputSources = [ inputSources ]
         for entry in inputSources:
-            if isinstance(entry, detection.SourceSet):
-                sourceSets.append(entry)
-            elif isinstance(entry, detection.PersistableSourceVector):
-                sourceSets.append(entry.getSources())
-            elif isinstance(entry, persistence.ReadProxy):
-                sourceSets.append(entry.getSources())
-            else:
-                types = [t.__class__.__module__ + '.' + t.__class__.__name__
-                         for t in (detection.SourceSet,
-                                   detection.PersistableSourceVector,
-                                   persistence.ReadProxy,
-                                   entry)]
-                raise TypeError(dedent("""\
-                    Expecting sources in a [list/tuple of] %s or %s - got a
-                    %s""") % types)
+            sourceSets.append(entry.getSources())
 
         # remove sources with invalid positions
         self.log.log(Log.INFO, "Segregating sources with invalid positions")
