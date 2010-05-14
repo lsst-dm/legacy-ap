@@ -11,7 +11,7 @@ definitions: {
                       angular separation between S and T is at most
                       epsilonArcsec arcsec are always assigned to a cluster."
         maxOccurs: 1
-        default: 2.0
+        default: 0.5
         allowed: {
             min: 0.0
             max: 36000.0
@@ -71,7 +71,8 @@ definitions: {
                       that in this k-d tree implementation, nodes do not store
                       bounding boxes for their contents. Therefore, an entire
                       node cannot be determined to satify a range query without
-                      traversal of its children. So, tiny nodes just waste time."
+                      traversal of its children/contents. So, tiny nodes just
+                      waste time."
         maxOccurs: 1
         default: 2.0
     }

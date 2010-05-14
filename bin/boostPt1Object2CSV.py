@@ -17,58 +17,63 @@ filterMap = { 'u': 0,
               'y': 5, 'i2': 5
             }
 
-def rangeReduce(val):
+def rangeReduce(val, nullstr):
     if val == None:
-        return None
+        return nullstr
     v = math.fmod(math.degrees(val), 360.0)
     if v < 0.0:
         v += 360.0
     return v
 
-def deg(val):
-    if val == None:
-        return None
+def deg(val, nullstr):
+    if val == None or val == nullstr:
+        return nullstr
     return math.degrees(val)
 
+def deg2(val, nullstr):
+    if val == None or val == nullstr:
+        return nullstr
+    return math.degrees(math.degrees(val))
 
-def convertFilter(object, row, filter):
+
+def convertFilter(object, row, filter, nullstr):
     i = filterMap[filter]
     if object.hasFilter(i):
         pfa = object.getPerFilterAttributes(i)
         row.append(pfa.getNumObs())
-        row.extend([None]*14)
-        row.append(pfa.getFlux())
-        row.append(pfa.getFluxSigma())
-        row.extend([None]*5)
+        row.extend([nullstr]*14)
+        row.append(pfa.getFlux() or nullstr)
+        row.append(pfa.getFluxSigma() or nullstr)
+        row.extend([nullstr]*5)
         row.append(pfa.getEarliestObsTime())
         row.append(pfa.getLatestObsTime())
-        row.extend([None, None])
-        row.append(pfa.getE1())
-        row.append(pfa.getE1Sigma())
-        row.append(pfa.getE2())
-        row.append(pfa.getE2Sigma())
-        row.append(pfa.getRadius())
-        row.append(pfa.getRadiusSigma())
+        row.extend([nullstr, nullstr])
+        row.append(pfa.getE1() or nullstr)
+        row.append(pfa.getE1Sigma() or nullstr)
+        row.append(pfa.getE2() or nullstr)
+        row.append(pfa.getE2Sigma() or nullstr)
+        row.append(pfa.getRadius() or nullstr)
+        row.append(pfa.getRadiusSigma() or nullstr)
         row.append(pfa.getFlags())
     else:
-        row.extend([None]*33)
+        row.extend([nullstr]*33)
 
-def objects2CSV(objects, csvWriter):
+def objects2CSV(objects, csvWriter, nullstr):
     for o in objects:
         row = []
         row.append(o.getClusterId())
-        row.append(None)
-        row.append(rangeReduce(o.getRa()))
-        row.append(deg(o.getRaSigma()))
-        row.append(deg(o.getDec()))
-        row.append(deg(o.getDecSigma()))
-        row.append(deg(deg(o.getRaDecCov())))
-        row.extend([None]*17)
+        row.append(nullstr)
+        row.append(rangeReduce(o.getRa(), nullstr))
+        row.append(deg(o.getRaSigma(), nullstr))
+        row.append(deg(o.getDec(), nullstr))
+        row.append(deg(o.getDecSigma(), nullstr))
+        row.append(deg2(o.getRaDecCov(), nullstr))
+        row.extend([nullstr]*17)
         row.append(o.getEarliestObsTime())
         row.append(o.getLatestObsTime())
         row.append(o.getFlags())
         for filter in ('u', 'g', 'r', 'i', 'z', 'y'):
-            convertFilter(o, row, filter)
+            convertFilter(o, row, filter, nullstr)
         csvWriter.writerow(row)
 
 
@@ -112,9 +117,8 @@ usage: %prog [options] in_file_1 in_file_2 ... out_csv_file
         help=dedent("""\
         One character string to quote fields with; defaults to %default."""))
     fmt.add_option(
-        "-I", "--skipinitialspace", dest="skipinitialspace",
-        action="store_true", help=dedent("""\
-        Ignore whitespace immediately following delimiters."""))
+        "-N", "--null", dest="null", default=r"\N", help=dedent("""\
+        String to output for null fields."""))
     parser.add_option_group(fmt)
     (opts, inputs) = parser.parse_args()
     if len(inputs) < 2:
@@ -126,7 +130,6 @@ usage: %prog [options] in_file_1 in_file_2 ... out_csv_file
                            escapechar=opts.escapechar,
                            quoting=opts.quoting,
                            quotechar=opts.quotechar,
-                           skipinitialspace=opts.skipinitialspace,
                            lineterminator='\n')
     persistence = dafPersistence.Persistence.getPersistence(pexPolicy.Policy())
     props = dafBase.PropertySet()
@@ -134,7 +137,8 @@ usage: %prog [options] in_file_1 in_file_2 ... out_csv_file
         sl = dafPersistence.StorageList()
         loc = dafPersistence.LogicalLocation(f)
         sl.append(persistence.getRetrieveStorage("BoostStorage", loc))
-        persistable = persistence.unsafeRetrieve("PersistableSourceClusterVector", sl, props)
+        persistable = persistence.unsafeRetrieve(
+            "PersistableSourceClusterVector", sl, props)
         psv = apCluster.PersistableSourceClusterVector.swigConvert(persistable)
-        objects2CSV(psv.getClusters(), outWriter)
+        objects2CSV(psv.getClusters(), outWriter, opts.null)
  

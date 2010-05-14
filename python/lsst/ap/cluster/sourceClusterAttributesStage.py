@@ -69,19 +69,23 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         self.log.log(Log.INFO, "Computing source cluster attributes")
         scv = clusterLib.SourceClusterVector()
         sequenceNum = 0
+        numNoise = 0
         for sources in sourceClusters:
             clusterId = sequenceNum + (skyTileId << 32)
             sequenceNum += 1
             sca = clusterLib.SourceClusterAttributes(
                 sources, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
             if len(sources) == 1 and minPoints > 0:
+                numNoise += 1
                 sca.setFlags(sca.getFlags() |
                              clusterLib.SourceClusterAttributes.NOISE)
             clusterLib.updateSources(sca, sources)
             scv.append(sca)
         clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
                       clusterLib.PersistableSourceClusterVector(scv))
-        self.log.log(Log.INFO, "Finished computing source cluster attributes")
+        self.log.log(Log.INFO,
+            "Computed source cluster attributes for %d (%d noise) clusters" %
+            (len(sourceClusters), numNoise))
 
         # create clusters from bad sources
         if badSources != None and len(badSources) > 0:
@@ -100,7 +104,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                 clipboard.put(
                     self.policy.get("outputKeys.badSourceClusterAttributes"),
                     clusterLib.PersistableSourceClusterVector(badScv))
-                self.log.log(Log.INFO, "Finished creating bad source clusters")
+                self.log.log(Log.INFO, "Created %d bad source clusters" %
+                             len(badSources))
             else:
                 clusterLib.updateBadSources(badSources)
 

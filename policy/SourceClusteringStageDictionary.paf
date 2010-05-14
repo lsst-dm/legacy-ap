@@ -151,9 +151,10 @@ definitions: {
                       bitwise-OR of all the masks is used to identify bad
                       sources.
                      "
-        # EDGE, INTERP_CENETER, SATUR_CENTER, DETECT_NEGATIVE
+        # EDGE, SHAPE_UNWEIGHTED_BAD, PEAKCENTER,
+        # INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
         # from lsst::meas::algorithms::Flags
-        default: 1 512 2048 4096
+        default: 1 32 64 512 2048 4096
     }
     debug: {
         type: policy

@@ -106,9 +106,9 @@ definitions: {
                       identify which sources to ignore. Sources with PSF fluxes
                       set to NaN are ignored regardless of these masks.
                      "
-        # EDGE, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # EDGE, PEAKCENTER, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
         # from lsst::meas::algorithms::Flags
-        default: 1 512 2048 4096
+        default: 1 64 512 2048 4096
     }
     ellipticityIgnoreMask: {
         type: int
@@ -122,9 +122,10 @@ definitions: {
                       Sources with adaptive moments set to NaN are ignored
                       regardless of these masks.
                      "
-        # EDGE, SHAPE_UNWEIGHTED_BAD, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # EDGE, SHAPE_UNWEIGHTED_BAD, PEAKCENTER,
+        # INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
         # from lsst::meas::algorithms::Flags
-        default: 1 32 512 2048 4096
+        default: 1 32 64 512 2048 4096
     }
     createBadClusters: {
         type: bool
