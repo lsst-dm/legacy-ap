@@ -49,13 +49,16 @@ rshiftCheckSrc = """
     }
     """
 
-long64CheckSrc = """
+boostInt64IsLongCheckSrc = """
+    #include "boost/cstdint.hpp"
+    #include "boost/static_assert.hpp"
+    #include "boost/type_traits/is_same.hpp"
+
     int main() {
-        char test[sizeof(long) - 8];
+        BOOST_STATIC_ASSERT((boost::is_same<long, boost::int64_t>::value));
         return 0;
     }
     """
-
 
 def CustomCompilerFlag(context, flag):
     context.Message('Checking if compiler supports ' + flag + ' flag ')
@@ -178,7 +181,8 @@ if not env.CleanFlagIsSet():
     if not conf.CustomCompileCheck('Checking for unsigned right shift ... ', rshiftCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_SIGNED_RSHIFT=1')
     # Without some help, SWIG disagrees with boost on the actual type of int64_t
-    if conf.CustomCompileCheck('Checking whether long is at least 8 bytes ... ', long64CheckSrc):
+    if conf.CustomCompileCheck('Checking whether boost::int64_t is long ... ',
+                               boostInt64IsLongCheckSrc, extension='.cc'):
         conf.env.Append(SWIGFLAGS = '-DSWIGWORDSIZE64')
     # Platform features
     if conf.CheckFunc('clock_gettime'): # Linux/Solaris: prototype in <time.h>
