@@ -19,6 +19,7 @@
 
 #include "lsst/daf/base/PropertySet.h"
 #include "lsst/pex/policy/Policy.h"
+#include "lsst/daf/persistence/DbAuth.h"
 #include "lsst/daf/persistence/DbStorage.h"
 #include "lsst/daf/persistence/Persistence.h"
 #include "lsst/daf/persistence/LogicalLocation.h"
@@ -34,6 +35,7 @@
 
 using lsst::daf::base::PropertySet;
 using lsst::pex::policy::Policy;
+using lsst::daf::persistence::DbAuth;
 using lsst::daf::persistence::LogicalLocation;
 using lsst::daf::persistence::Persistence;
 using lsst::daf::base::Persistable;
@@ -214,6 +216,12 @@ void doTestDb(
 ) {
     typedef typename TraitsT::Vector Vector;
     typedef typename TraitsT::PersistableVector PersistableVector;
+
+    if (!DbAuth::available("lsst10.ncsa.uiuc.edu", "3306")) {
+        std::clog << "Skipping database tests - no authorization "
+                     "credentials for lsst10.ncsa.uiuc.edu:3306" << std::endl;
+        return;
+    }
 
     // Create the required Policy and DataProperty
     Policy::Ptr policy(new Policy);
