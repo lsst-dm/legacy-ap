@@ -19,13 +19,13 @@ def translate(source, method, nullstr, flag=-1):
     return val
 
 def translateDeg(source, method, nullstr, flag=-1):
-    val = translate(source, method, flag)
+    val = translate(source, method, nullstr, flag)
     if val != nullstr:
         val = math.degrees(val)
     return val
 
 def translateDegRangeReduce(source, method, nullstr, flag=-1):
-    val = translate(source, method, flag)
+    val = translate(source, method, nullstr, flag)
     if val != nullstr:
         val = math.fmod(math.degrees(val), 360.0)
         if val < 0.0:
