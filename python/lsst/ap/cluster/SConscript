@@ -12,5 +12,7 @@ except:
 env.CheckSwig("python", ilang="c++", includedProducts="utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data afw")
 # Append app specific SWIG flags to the environment
 env.Append(SWIGFLAGS = swigflags)
-env.LoadableModuleIncomplete("_clusterLib", Split("clusterLib.i"), LIBS=env.getlibs(pkg))
+env.LoadableModuleIncomplete("_clusterLib", Split("clusterLib.i"),
+                             CCFLAGS=re.sub("-Wall", "", " ".join(env['CCFLAGS'])),
+                             LIBS=env.getlibs(pkg))
 
