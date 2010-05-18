@@ -85,7 +85,7 @@ class ClusterTestCase(unittest.TestCase):
         for c in clusters:
             # the 2 sources at the beginning and end of each streak may or
             # may not be assigned to a cluster
-            self.assertTrue(len(c) >= 18 and len(c) <= 20)
+            self.assertTrue((len(c) >= 18 and len(c) <= 20) or len(c) == 1)
             i = c[0].getObjectId()
             for s in c:
                 self.assertEqual(s.getObjectId(), i)

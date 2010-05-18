@@ -290,19 +290,7 @@ LSST_AP_LOCAL std::size_t distanceMatch(
                     do {
 
                         // test whether entry se is within dec range
-                        boost::int32_t ddec = dec - sze[se]._dec;
-                        // C standard says: result of a right shifting a negative integer
-                        // is implementation defined. If a signed right shift is available,
-                        // use it to perform a branchless abs().
-#if LSST_AP_HAVE_SIGNED_RSHIFT
-                        boost::int32_t sgn  = ddec >> 31;
-                        ddec = (ddec ^ sgn) - sgn; // abs(dec - sze[se]._dec)
-#else
-                        if (ddec < 0) {
-                            ddec = -ddec;
-                        }
-#endif
-                        if (ddec <= deltaDec) {
+                        if (abs(dec - sze[se]._dec) <= deltaDec) {
                             // yes -- perform detailed distance test
                             double xd = (fx - sze[se]._x);
                             double yd = (fy - sze[se]._y);

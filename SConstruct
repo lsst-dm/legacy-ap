@@ -22,33 +22,6 @@ popcountCheckSrc = """
     }
     """
 
-noatimeCheckSrc = """
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    int main() {
-        open('/tmp/dummy', O_RDONLY | O_NOATIME, 0);
-        return 0;
-    }
-    """
-
-nocacheCheckSrc = """
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <fcntl.h>
-    int main() {
-        fcntl(-1, F_NOCACHE, 1);
-        return 0;
-    }
-    """
-
-rshiftCheckSrc = """
-    int main() {
-        char test[-1 >> 1];
-        return 0;
-    }
-    """
-
 boostInt64IsLongCheckSrc = """
     #include "boost/cstdint.hpp"
     #include "boost/static_assert.hpp"
@@ -178,8 +151,6 @@ if not env.CleanFlagIsSet():
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
     if conf.CustomCompileCheck('Checking for __builtin_popcount... ', popcountCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
-    if not conf.CustomCompileCheck('Checking for unsigned right shift ... ', rshiftCheckSrc):
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_SIGNED_RSHIFT=1')
     # Without some help, SWIG disagrees with boost on the actual type of int64_t
     if conf.CustomCompileCheck('Checking whether boost::int64_t is long ... ',
                                boostInt64IsLongCheckSrc, extension='.cc'):
