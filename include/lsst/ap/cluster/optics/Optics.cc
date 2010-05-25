@@ -151,14 +151,11 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
             double d = p->dist;
             if (n < _minPoints) {
                 _distances[n++] = d;
-                std::push_heap(_distances.get(), _distances.get() + n,
-                               std::greater<double>());
+                std::push_heap(_distances.get(), _distances.get() + n);
             } else if (_distances[0] > d) {
-                std::pop_heap(_distances.get(), _distances.get() + n,
-                              std::greater<double>());
+                std::pop_heap(_distances.get(), _distances.get() + n);
                 _distances[n - 1] = d;
-                std::push_heap(_distances.get(), _distances.get() + n,
-                               std::greater<double>());
+                std::push_heap(_distances.get(), _distances.get() + n);
             }
         }
         j = p->next;
