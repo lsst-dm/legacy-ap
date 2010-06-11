@@ -10,6 +10,7 @@
 
 #include "KDTree.h"
 
+#include <algorithm>
 #include <utility>
 
 
@@ -61,230 +62,18 @@ std::pair<double, int> maxExtentAndDim(Point<K, DataT> const * const points,
 }
 
 /** @internal
-  * Partitions the given array of points around the i-th point in the array.
-  *
-  * @pre    points != 0
-  * @pre    numPoints > 0
-  * @pre    dim >= 0 && dim < K
-  * @pre    i >= 0 && i < numPoints
-  *
-  * @return The new index of the pivot point.
+  * Orders N-dimensional points along a single dimension.
   */
-template <int K, typename DataT>
-int partition(Point<K, DataT> * const points,
-              int const numPoints,
-              int const dim,
-              int const i)
-{
-    Point<K, DataT> pivot = points[i];
-    double pivotValue = pivot.coords.coeff(dim);
-    points[i] = points[numPoints - 1];
-    int j = 0;
-    for (int k = 0; k < numPoints - 1; ++k) {
-        if (points[k].coords.coeff(dim) < pivotValue) {
-            std::swap(points[j], points[k]);
-            ++j;
-        }
+struct PointCmp {
+    int d;
+
+    PointCmp(int dim) : d(dim) { }
+
+    template <int K, typename DataT>
+    bool operator()(Point<K, DataT> const & p1, Point<K, DataT> const & p2) const {
+        return p1.coords.coeff(d) < p2.coords.coeff(d);
     }
-    points[numPoints - 1] = points[j];
-    points[j] = pivot;
-    return j;
-}
-
-///@internal Finds the median of 2 points along dimension @c dim.
-template <int K, typename DataT>
-inline int median2(Point<K, DataT> * const points, int const dim) {
-    return (points[0].coords.coeff(dim) < points[1].coords.coeff(dim)) ? 0 : 1;
-}
-
-///@internal Finds the median of 3 points along dimension @c dim.
-template <int K, typename DataT>
-inline int median3(Point<K, DataT> * const points, int const dim) {
-    double v0 = points[0].coords.coeff(dim);
-    double v1 = points[1].coords.coeff(dim);
-    double v2 = points[2].coords.coeff(dim);
-    if (v0 < v1) {
-        return v1 < v2 ? 1 : (v0 < v2 ? 2 : 0);
-    } else {
-        return v1 < v2 ? (v0 < v2 ? 0 : 2) : 1;
-    }
-}
-
-///@name Median finding lookup tables
-//@{
-/** @internal
-  * Lookup tables for the 4 and 5 element median finding algorithms.
-  * Computed with the following python 2.6 script:
-  *
-  * @code
-  * import itertools
-  * 
-  * def computeLut(n):
-  *     nbits = (n * (n - 1)) / 2
-  *     lut = [-1] * 2**nbits
-  *     array = range(n)
-  *     median = array[len(array) >> 1]
-  *     for p in itertools.permutations(array):
-  *         res = []
-  *         for i in xrange(n - 1):
-  *             for j in xrange(i + 1, n):
-  *                 res.append(1 if p[i] < p[j] else 0)
-  *         index = 0
-  *         for i in xrange(len(res)):
-  *             index += res[i] << (len(res) - i - 1)
-  *         lut[index] = p.index(median)
-  *     return lut
-  * @endcode
-  */
-signed char const lut4[64] = {
-     1, 1,-1, 3, 2,-1, 2, 3,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1,-1, 0,-1, 0,-1,-1,-1,-1,-1,-1,-1, 3, 2,
-     0, 0,-1,-1,-1,-1,-1,-1,-1, 3,-1, 1,-1,-1,-1,-1, 2,-1,-1,-1, 1,-1,-1,-1, 2, 3,-1, 1, 1,-1, 3, 2
 };
-
-signed char const lut5[1024] = {
-     2, 2,-1, 4, 3,-1, 3, 4,-1,-1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1,-1, 4, 3,
-     1, 1,-1,-1,-1,-1,-1,-1,-1, 4,-1, 2,-1,-1,-1,-1, 3,-1,-1,-1, 2,-1,-1,-1, 3, 4,-1, 2, 2,-1, 4, 3,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 2,-1,-1,-1, 3,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1,-1, 4,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1, 2,-1, 4,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     1, 1,-1,-1,-1,-1,-1,-1,-1, 4,-1,-1,-1,-1,-1,-1, 3,-1,-1,-1,-1,-1,-1,-1, 3, 4,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1, 0,-1, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0,-1, 0,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 4, 3,-1, 3, 4,-1, 2, 2,
-     2, 2,-1, 4, 3,-1, 3, 4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1, 0,-1, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0,-1, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1,-1,-1,-1,-1,-1, 4, 3,-1,-1,-1,-1,-1,-1,-1, 3,-1,-1,-1,-1,-1,-1, 4,-1,-1,-1,-1,-1,-1,-1, 1, 1,
-    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1, 4,-1, 2,-1,-1,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-    -1, 4,-1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     3,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-     3, 4,-1, 2, 2,-1, 4, 3,-1,-1,-1, 2,-1,-1,-1, 3,-1,-1,-1,-1, 2,-1, 4,-1,-1,-1,-1,-1,-1,-1, 1, 1,
-     3, 4,-1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1, 1,-1,-1,-1, 1,-1,-1,-1, 4, 3,-1, 3, 4,-1, 2, 2
-};
-//@}
-
-///@internal Finds the median of 4 points along dimension @c dim.
-template <int K, typename DataT>
-inline int median4(Point<K, DataT> * const points, int const dim) {
-    double v0 = points[0].coords.coeff(dim);
-    double v1 = points[1].coords.coeff(dim);
-    double v2 = points[2].coords.coeff(dim);
-    double v3 = points[3].coords.coeff(dim);
-    // avoids branches, but always requires 6 comparisons rather than
-    // the 3-5 required by the optimal sorting network approach.
-    int i = (static_cast<int>(v0 < v1) << 5) |
-            (static_cast<int>(v0 < v2) << 4) |
-            (static_cast<int>(v0 < v3) << 3) |
-            (static_cast<int>(v1 < v2) << 2) |
-            (static_cast<int>(v1 < v3) << 1) |
-            static_cast<int>(v2 < v3);
-    return lut4[i];
-}
-
-///@internal Finds the median of 5 points along dimension @c dim.
-template <int K, typename DataT>
-inline int median5(Point<K, DataT> * const points, int const dim) {
-    double v0 = points[0].coords.coeff(dim);
-    double v1 = points[1].coords.coeff(dim);
-    double v2 = points[2].coords.coeff(dim);
-    double v3 = points[3].coords.coeff(dim);
-    double v4 = points[4].coords.coeff(dim);
-    // avoids branches but always performs 10 comparisons, whereas
-    // an optimal sorting network approach would take at most 9.
-    int i = (static_cast<int>(v0 < v1) << 9) |
-            (static_cast<int>(v0 < v2) << 8) |
-            (static_cast<int>(v0 < v3) << 7) |
-            (static_cast<int>(v0 < v4) << 6) |
-            (static_cast<int>(v1 < v2) << 5) |
-            (static_cast<int>(v1 < v3) << 4) |
-            (static_cast<int>(v1 < v4) << 3) |
-            (static_cast<int>(v2 < v3) << 2) |
-            (static_cast<int>(v2 < v4) << 1) |
-             static_cast<int>(v3 < v4);
-    return lut5[i];
-}
-
-/** @internal
-  * Returns the index of the "median of medians" for an array. This primitive
-  * is used for pivot selection in the median finding algorithm.
-  *
-  * @pre    points != 0
-  * @pre    numPoints > 0
-  * @pre    dim >= 0 && dim < K
-  */
-template <int K, typename DataT>
-int medianOfMedians(Point<K, DataT> * const points,
-                    int const numPoints,
-                    int const dim)
-{
-    int n = numPoints;
-    int m = 0;
-    while (true) {
-        if (n <= 5) {
-            switch (n) {
-                case 1: break;
-                case 2: m = median2(points, dim); break;
-                case 3: m = median3(points, dim); break;
-                case 4: m = median4(points, dim); break;
-                case 5: m = median5(points, dim); break;
-            }
-            break;
-        }
-        int j = 0;
-        for (int i = 0; i < n - 4; i += 5, ++j) {
-            std::swap(points[j], points[i + median5(points + i, dim)]);
-        }
-        n = j;
-    }
-    return m;
-}
-
-/** @internal
-  * Finds the median element of the input point array along dimension @c dim
-  * and partitions the array around this element. The implementation uses the
-  * linear-time "median-of-medians" algorithm.
-  *
-  * @pre    points != 0
-  * @pre    numPoints > 0
-  * @pre    dim >= 0 && dim < K
-  *
-  * @return The index of the median element - always equal to @c numPoints/2
-  *         (rounded down).
-  */
-template <int K, typename DataT>
-int median(Point<K, DataT> * const points,
-           int const numPoints,
-           int const dim)
-{
-    int k = numPoints >> 1;
-    int left = 0;
-    int right = numPoints;
-    while (true) {
-        int i = medianOfMedians(points + left, right - left, dim);
-        i = left + partition(points + left, right - left, dim, i);
-        if (k == i) {
-            return k;
-        } else if (k < i) {
-            right = i;
-        } else {
-            left = i + 1;
-        }
-    }
-}
 
 } // namespace
 
@@ -445,7 +234,10 @@ void KDTree<K, DataT>::build(double leafExtentThreshold)
             if (extDim.first > leafExtentThreshold) {
                 _nodes[node].splitDim = extDim.second;
                 // find median of array
-                right = left + median(_points + left, right - left, extDim.second);
+                int median = left + ((right - left) >> 1);
+                std::nth_element(_points + left, _points + median,
+                                 _points + right, PointCmp(extDim.second));
+                right = median;
                 _nodes[node].split = _points[right].coords.coeff(extDim.second);
                 // process left child
                 node = (node << 1) + 1;

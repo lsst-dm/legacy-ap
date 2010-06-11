@@ -127,56 +127,6 @@ void makePoints(std::vector<Point> & points,
 
 } // namespace
 
-// tests the median finding algorithm
-BOOST_AUTO_TEST_CASE(Median) {
-    static Random rng(Random::MT19937);
-    // arrays containing 1 coordinate value
-    for (int n = 1; n < 50; ++n) {
-        boost::shared_array<Point1> points(new Point1[n]);
-        for (int i = 0; i < n; ++i) {
-            points[i].coords[0] = 1.0;
-        }
-        BOOST_CHECK_EQUAL(optics::median(points.get(), n, 0), n >> 1);
-    }
-    // arrays containing distinct coordinate values
-    for (int n = 1; n < 100; ++n) {
-        boost::shared_array<Point1> points(new Point1[n]);
-        for (int i = 0; i < n; ++i) {
-            points[i].coords[0] = i;
-        }
-        BOOST_CHECK_EQUAL(optics::median(points.get(), n, 0), n >> 1);
-        double medianValue = points[n >> 1].coords[0];
-        std::reverse(points.get(), points.get() + n);
-        int m = optics::median(points.get(), n, 0);
-        BOOST_CHECK_EQUAL(points[m].coords[0], medianValue);
-        shuffle(points.get(), points.get() + n);
-        m = optics::median(points.get(), n, 0);
-        BOOST_CHECK_EQUAL(points[m].coords[0], medianValue);
-    }
-    // arrays containing repeated values
-    for (int n = 2; n < 50; ++n) {
-        std::vector<Point1> points;
-        for (int i = 0; i < n; ++i) {
-            unsigned long nr = rng.uniformInt(10u) + 1;
-            for (unsigned long j = 0; j < nr; ++j) {
-                Point1 p;
-                p.coords[0] = i;
-                points.push_back(p);
-            }
-        }
-        int sz = static_cast<int>(points.size());
-        int medianIndex = sz >> 1;
-        double medianValue = points[medianIndex].coords[0];
-        BOOST_CHECK_EQUAL(optics::median(&points[0], sz, 0), medianIndex);
-        std::reverse(points.begin(), points.end());
-        int m = optics::median(&points[0], sz, 0);
-        BOOST_CHECK_EQUAL(points[m].coords[0], medianValue);
-        shuffle(points.begin(), points.end());
-        m = optics::median(&points[0], sz, 0);
-        BOOST_CHECK_EQUAL(points[m].coords[0], medianValue);
-    }
-}
-
 // tests kdtree range search
 BOOST_AUTO_TEST_CASE(RangeQuery) {
     typedef std::vector<MatchOracle>::const_iterator Iter;

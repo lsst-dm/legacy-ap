@@ -16,6 +16,7 @@
 #include "boost/test/unit_test.hpp"
 
 #include "lsst/afw/math/Random.h"
+#include "lsst/afw/detection/Source.h"
 
 #include "lsst/ap/EllipseTypes.h"
 #include "lsst/ap/Match.h"
