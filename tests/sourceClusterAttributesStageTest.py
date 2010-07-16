@@ -40,14 +40,6 @@ class SourceClusterAttributesStageTestCase(unittest.TestCase):
         tester = SimpleStageTester(stage)
         output = tester.runWorker(clipboard)
 
-        # verify output
-        self.assertTrue(output.contains(
-            policy.get("outputKeys.sourceClusterAttributes")))
-        sourceClusterAttributes = output.get(
-            policy.get("outputKeys.sourceClusterAttributes"))
-        self.assertTrue(isinstance(
-            sourceClusterAttributes, cluster.PersistableSourceClusterVector))
-
 
 def suite():
     """Returns a suite containing all the test cases in this module."""

@@ -81,8 +81,9 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                              clusterLib.SourceClusterAttributes.NOISE)
             clusterLib.updateSources(sca, sources)
             scv.append(sca)
-        clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
-                      clusterLib.PersistableSourceClusterVector(scv))
+        if len(sourceClusters) > 0:
+            clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
+                          clusterLib.PersistableSourceClusterVector(scv))
         self.log.log(Log.INFO,
             "Computed source cluster attributes for %d (%d noise) clusters" %
             (len(sourceClusters), numNoise))

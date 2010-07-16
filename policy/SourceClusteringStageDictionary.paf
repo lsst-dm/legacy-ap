@@ -33,9 +33,11 @@ definitions: {
                     type: string
                     description: "Key for the sources to cluster. The value must 
                                   be a lsst.afw.detection.PersistableSourceVector
+                                  or a list/tuple of PersistableSourceVector
+                                  objects.
                                  "
                     maxOccurs: 1
-                    default: "sources"
+                    default: "inputSources"
                 }
             }
         }
@@ -62,13 +64,6 @@ definitions: {
                                   lsst.afw.detection.PersistableSourceVector
                                   containing all 'good' lsst.afw.detection.Source
                                   objects falling inside the current sky-tile.
-                                  Setting this policy value to be the same
-                                  as the value of 'inputKeys.sources' is allowed
-                                  and is in fact desirable - doing so avoids
-                                  keeping 2 large source containers (where
-                                  'outputKeys.sources' is a subset of
-                                  'inputKeys.sources') in memory
-                                  simultaneously.
                                  "
                     maxOccurs: 1
                     default: "sources"

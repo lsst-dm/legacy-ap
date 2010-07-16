@@ -54,6 +54,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         root, x, y = qs.coords(skyTileId);
         skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
+        clipboard.put(self.policy.getString("inputKeys.sources"), None)
         histogramRes = self.policy.getInt("debug.sourceHistogramResolution")
         badSourceMask = reduce(
             operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
