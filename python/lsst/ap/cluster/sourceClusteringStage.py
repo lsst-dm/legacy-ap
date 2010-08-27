@@ -115,7 +115,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                 hist, wcs = utils.createImageCoveringSkyTile(
                     qs, skyTileId, histogramRes)
                 clusterLib.makeSourceHistogram(
-                    badSources, hist.getImage(), wcs, False)
+                    hist.getImage(), badSources, wcs, False)
                 clipboard.put(
                     self.policy.getString("outputKeys.badSourceHistogram"),
                     hist)
@@ -140,7 +140,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                 hist, wcs = utils.createImageCoveringSkyTile(
                     qs, skyTileId, histogramRes) 
                 clusterLib.makeSourceHistogram(
-                    prunedSources, hist.getImage(), wcs, False)
+                    hist.getImage(), prunedSources, wcs, False)
                 clipboard.put(
                     self.policy.getString("outputKeys.goodSourceHistogram"),
                     hist)
