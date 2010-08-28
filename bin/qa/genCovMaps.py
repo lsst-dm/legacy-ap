@@ -149,7 +149,7 @@ def persistCovMaps(covMaps, outputDir):
         storageList.append(persistence.getPersistStorage("FitsStorage",
             dafPersist.LogicalLocation(outPath)))
         persistence.persist(covMap, storageList, dafBase.PropertySet())
-        subprocess.check_call(['gzip', outPath])
+        subprocess.check_call(['gzip', '-f', outPath])
     allCovMap = covMaps.pop()
     allCovMapImg = allCovMap.getImage()
     for covMap in covMaps:
