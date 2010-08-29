@@ -31,6 +31,7 @@
 #include "lsst/ap/cluster/Utils.h"
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 #include "lsst/pex/exceptions.h"
@@ -47,13 +48,45 @@ namespace lsst { namespace ap { namespace cluster {
 
 namespace {
 
+double orient2d(lsst::afw::geom::Point2D const &a,
+                lsst::afw::geom::Point2D const &b,
+                lsst::afw::geom::Point2D const &c)
+{
+    double detLeft = (a.getX() - c.getX()) * (b.getY() - c.getY());
+    double detRight = (a.getY() - c.getY()) * (b.getX() - c.getX());
+    double det = detLeft - detRight;
+    double detSum;
+
+    if (detLeft > 0.0) {
+        if (detRight <= 0.0) {
+            return det;
+        } else {
+            detSum = detLeft + detRight;
+        }
+    } else if (detLeft < 0.0) {
+        if (detRight >= 0.0) {
+            return det;
+        } else {
+            detSum = -detLeft - detRight;
+        }
+    } else {
+        return det;
+    }
+    double epsilon = std::numeric_limits<double>::epsilon();
+    double errBound = detSum * ((3.0 + 16.0 * epsilon) * epsilon);
+    if (det >= errBound || -det >= errBound) {
+        return det;
+    }
+    return 0.0;
+}
+
 /** A polygon edge, including pointers to vertices (ordered by y),
   * the corresponding line equation, and an embedded singly linked list.
   */
 struct Edge {
     lsst::afw::geom::Point2D const *v1; /**< First (bottom) vertex */
     lsst::afw::geom::Point2D const *v2; /**< Second (top) vertex */
-    double a, b, c; /**< Line eqn. (a,b,c); ax + by + c = 0. */
+    double dx, dy;
     Edge *next;
 
     Edge(lsst::afw::geom::Point2D const & p1,
@@ -62,9 +95,8 @@ struct Edge {
         v2(p1.getY() < p2.getY() ? &p2 : &p1),
         next(0)
     {
-        a = v1->getY() - v2->getY();
-        b = v2->getX() - v1->getX();
-        c = v1->getX() * v2->getY() - v2->getX() * v1->getY();
+        dy = v2->getY() - v1->getY();
+        dx = v2->getX() - v1->getX();
     }
 
     // edges are compared by minimum y
@@ -78,39 +110,45 @@ struct Edge {
     /** Returns true if this edge is to the right of e.
       */
     bool rightOf(Edge const &e) const {
-        double const EPSILON = 1.0e-8;
+        double det;
         if (v1 == e.v1) {
-            return a * e.v2->getX() + b * e.v2->getY() + c > EPSILON;
+            det = orient2d(*e.v1, *e.v2, *v2);
         } else if (v2 == e.v2) {
-            return a * e.v1->getX() + b * e.v1->getY() + c > EPSILON;
+            det = orient2d(*e.v1, *e.v2, *v1);
         } else {
-            return std::max(a * e.v1->getX() + b * e.v1->getY() + c,
-                            a * e.v2->getX() + b * e.v2->getY() + c) > EPSILON;
+            det = orient2d(*e.v1, *e.v2, *v1);
+            if (det == 0.0) {
+                det = orient2d(*e.v1, *e.v2, *v2);
+            }
         }
+        return det < 0.0;
     }
 
     /** Returns x-bounds of this edge within the given y-bounds.
       * Assumes that yMin < yMax, yMin >= v1->getY(), and yMax <= v2->getY().
       */
     std::pair<int, int> const getXBounds(double yMin, double yMax, int width) const {
-        double xd1 = -(b * yMin + c) / a;
-        double xd2 = -(b * yMax + c) / a;
-        if (b > 0.0) {
-            xd1 = std::max(xd1, v1->getX());
-            xd2 = std::min(xd2, v2->getX());
+        double xd1 = v1->getX() + ((yMin - v1->getY()) * dx) / dy;
+        double xd2 = v1->getX() + ((yMax - v1->getY()) * dx) / dy;
+        int x1 = width, x2 = width;
+        if (dx > 0.0) {
+            xd1 = xd1 < v1->getX() ? v1->getX() : (xd1 > v2->getX() ? v2->getX() : xd1);
+            xd2 = xd2 < xd1 ? xd1 : (xd2 > v2->getX() ? v2->getX() : xd2);
+            if (xd1 < image::PixelZeroPos - 0.5 + width) {
+                x1 = (xd1 < image::PixelZeroPos - 0.5) ? 0 : image::positionToIndex(xd1);
+            }
+            if (xd2 < image::PixelZeroPos - 0.5 + width) {
+                x2 = (xd2 < image::PixelZeroPos - 0.5) ? 0 : image::positionToIndex(xd2) + 1;
+            }
         } else {
-            xd1 = std::min(xd1, v1->getX());
-            xd2 = std::max(xd2, v2->getX());
-        }
-        // if |x| is large, positionToIndex() will have problems - avoid them.
-        int x1 = -1, x2 = -1;
-        if (xd1 >= image::PixelZeroPos - 0.5) {
-            x1 = (xd1 >= image::PixelZeroPos - 0.5 + width) ? width :
-                 image::positionToIndex(xd1);
-        }
-        if (xd2 >= image::PixelZeroPos - 0.5) {
-            x2 = (xd2 >= image::PixelZeroPos - 0.5 + width) ? width :
-                  image::positionToIndex(xd2);
+            xd2 = xd2 < v2->getX() ? v2->getX() : (xd2 > v1->getX() ? v1->getX() : xd2);
+            xd1 = xd1 < xd2 ? xd2 : (xd1 > v1->getX() ? v1->getX() : xd1);
+            if (xd2 < image::PixelZeroPos - 0.5 + width) {
+                x1 = (xd2 < image::PixelZeroPos - 0.5) ? 0 : image::positionToIndex(xd2);
+            }
+            if (xd1 < image::PixelZeroPos - 0.5 + width) {
+                x2 = (xd1 < image::PixelZeroPos - 0.5) ? 0 : image::positionToIndex(xd1) + 1;
+            }
         }
         return std::make_pair(std::min(x1, x2), std::max(x1, x2));
     }
@@ -127,31 +165,31 @@ double Edge::getCoverage(double const yMin, double const yMax, int x) const {
    double const xMin = xp - 0.5;
    double const xMax = xp + 0.5;
    double cov = 0.0;
-   if (b == 0.0) { // vertical edge
+   if (dx == 0.0) { // vertical edge
        return (yMax - yMin) * (xMax - v1->getX());
-   } else if (b > 0.0) { // edge with positive slope
+   } else if (dx > 0.0) { // edge with positive slope
        double x1 = xMin;
-       double y1 = -(a * xMin + c) / b;
+       // compute intersection with left pixel boundary
+       double y1 = v1->getY() + ((xMin - v1->getX()) * dy) / dx;
        if (y1 > yMin) {
-           // edge intersects left pixel boundary
            if (y1 >= yMax) {
                return yMax - yMin;
            }
            cov = y1 - yMin;
        } else {
-           double x = -(b * yMin + c) / a;
+           double x = v1->getX() + ((yMin - v1->getY()) * dx) / dy;
            x1 = (x < xMin) ? xMin : (x > xMax) ? xMax : x;
            y1 = yMin;
        }
        double x2 = xMax;
-       double y2 = -(a * xMax + c) / b;
+       // compute intersection with right pixel boundary
+       double y2 = v1->getY() + ((xMax - v1->getX()) * dy) / dx;
        if (y2 < yMax) {
-           // edge intersects right pixel boundary
            if (y2 <= yMin) {
                return 0.0;
            }
        } else {
-           double x = -(b * yMax + c) / a;
+           double x = v1->getX() + ((yMax - v1->getY()) * dx) / dy;
            x2 = (x < xMin) ? xMin : (x > xMax) ? xMax : x;
            y2 = yMax;
        }
@@ -164,27 +202,27 @@ double Edge::getCoverage(double const yMin, double const yMax, int x) const {
        cov += (xMax - x2 + 0.5 * (x2 - x1)) * (y2 - y1);
    } else { // edge with negative slope
        double x1 = xMax;
-       double y1 = -(a * xMax + c) / b;
+       // compute intersection with right pixel boundary
+       double y1 = v1->getY() + ((xMax - v1->getX()) * dy) / dx;
        if (y1 > yMin) {
-           // edge intersects right pixel boundary
            if (y1 >= yMax) {
                return 0.0;
            }
        } else {
-           double x = -(b * yMin + c) / a;
+           double x = v1->getX() + ((yMin - v1->getY()) * dx) / dy;
            x1 = (x < xMin) ? xMin : (x > xMax) ? xMax : x;
            y1 = yMin;
        }
        double x2 = xMin;
-       double y2 = -(a * xMin + c) / b;
+       // compute intersection with left pixel boundary
+       double y2 = v1->getY() + ((xMin - v1->getX()) * dy) / dx;
        if (y2 < yMax) {
-           // edge intersects left pixel boundary
            if (y2 <= yMin) {
                return yMax - yMin;
            }
            cov = yMax - y2;
        } else {
-           double x = -(b * yMax + c) / a;
+           double x = v1->getX() + ((yMax - v1->getY()) * dx) / dy;
            x2 = (x < xMin) ? xMin : (x > xMax) ? xMax : x;
            y2 = yMax;
        }
@@ -306,24 +344,14 @@ void SweepLine::rasterizeCoverage(double yMin, double yMax) {
         }
         std::pair<int, int> xl = left->getXBounds(yMin, yMax, width);
         std::pair<int, int> xr = right->getXBounds(yMin, yMax, width);
-        if (xl.first < width && xr.second >= 0) {
-           int xlBeg = std::max(0, xl.first);
-           int xlEnd = std::min(width - 1, xl.second) + 1;
-           int xrBeg = std::max(0, xr.first);
-           int xrEnd = std::min(width - 1, xr.second) + 1;
-           if (xl.second >= 0) {
-               for (int x = xlBeg; x < xlEnd; ++x) {
-                   _cov[x] += left->getCoverage(yMin, yMax, x);
-               }
-           }
-           for (int x = xlEnd; x < xrEnd; ++x) {
-               _cov[x] += yMax - yMin;
-           }
-           if (xr.first < width) {
-               for (int x = xrBeg; x <= xrEnd; ++x) {
-                   _cov[x] -= right->getCoverage(yMin, yMax, x);
-               }
-           }
+        for (int x = xl.first; x < xl.second; ++x) {
+            _cov[x] += left->getCoverage(yMin, yMax, x);
+        }
+        for (int x = xl.second; x < xr.second; ++x) {
+            _cov[x] += yMax - yMin;
+        }
+        for (int x = xr.first; x < xr.second; ++x) {
+            _cov[x] -= right->getCoverage(yMin, yMax, x);
         }
         left = right->next;
     }
@@ -476,15 +504,13 @@ LSST_AP_API void rasterizePolygon(
   * @param[in] wcs          WCS of image to rasterize.
   * @param[in] width        Width of image to rasterize.
   * @param[in] height       Height of image to rasterize.
-  * @param[in] cornersOnly  If true, the input image is rasterized as a
+  * @param[in] step         If <= 0, the input image is rasterized as a
   *                         polygon formed by connecting the positions of
   *                         the 4 image corners with straight lines in
-  *                         coverage-map pixel space. Otherwise, the edges
-  *                         of all 2*NAXIS1 + 2*NAXIS2 - 2 edge pixels in
-  *                         the input image are connected by straight lines
-  *                         to form a more accurate (and not necessarily
-  *                         convex) polygon for the region covered by the
-  *                         input image.
+  *                         coverage-map pixel space. Otherwise, the boundary
+  *                         of the input image is rasterize by connecting
+  *                         step boundary pixels at a time (corners are
+  *                         always included). 
   */
 LSST_AP_API void updateCoverageMap(
     lsst::afw::image::Image<float>::Ptr covMap,
@@ -492,7 +518,7 @@ LSST_AP_API void updateCoverageMap(
     lsst::afw::image::Wcs::Ptr wcs,
     int width,
     int height,
-    bool cornersOnly)
+    int step)
 {
     typedef std::vector<geom::Point2D>::iterator VertexIter;
     if (width <= 0 || height <= 0) {
@@ -500,7 +526,7 @@ LSST_AP_API void updateCoverageMap(
                               "Width/height of input image must be positive");
     }
     std::vector<geom::Point2D> v;
-    if (cornersOnly) {
+    if (step <= 0) {
         v.reserve(4);
         v.push_back(geom::makePointD(-0.5, -0.5));
         v.push_back(geom::makePointD(width - 0.5, -0.5));
@@ -508,16 +534,16 @@ LSST_AP_API void updateCoverageMap(
         v.push_back(geom::makePointD(-0.5, height - 0.5));
     } else {
         v.reserve(2 * width + 2 * height + 2);
-        for (int i = 0; i <= width; ++i) {
+        for (int i = 0; i < width; i += step) {
             v.push_back(geom::makePointD(i - 0.5, -0.5));
         }
-        for (int i = 1; i < height; ++i) {
+        for (int i = 0; i < height; i += step) {
             v.push_back(geom::makePointD(width - 0.5, i - 0.5));
         }
-        for (int i = width; i >= 0; --i) {
+        for (int i = width; i > 0; i -= step) {
             v.push_back(geom::makePointD(i - 0.5, height - 0.5));
         }
-        for (int i = height - 1; i > 0; --i) {
+        for (int i = height; i > 0; i -= step) {
             v.push_back(geom::makePointD(-0.5, i - 0.5));
         }
     }

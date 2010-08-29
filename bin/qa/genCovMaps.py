@@ -162,7 +162,7 @@ def persistCovMaps(covMaps, outputDir):
     subprocess.check_call(['gzip', '-f', outPath])
 
 
-def processSkyTile(wcsMap, outputDir, kind, skyTile, qsp, res):
+def processSkyTile(wcsMap, outputDir, kind, skyTile, qsp, res, step):
     """Creates and persists coverage maps for a particular sky tile.
     """
     if skyTile not in wcsMap:
@@ -179,7 +179,7 @@ def processSkyTile(wcsMap, outputDir, kind, skyTile, qsp, res):
     for wcs, filter in wcsMap[skyTile]:
         assert filter >= 0 and filter < 6
         apCluster.updateCoverageMap(covMaps[filter].getImage(), tileWcs,
-                                    wcs, width, height, False)
+                                    wcs, width, height, step)
     persistCovMaps(covMaps, os.path.join(outputDir, "st%d" % skyTile))
 
 def processRun(wcsList, outputDir, kind, bc, res):
@@ -204,7 +204,7 @@ def processRun(wcsList, outputDir, kind, bc, res):
     for wcs, filter in wcsList:
         assert filter >= 0 and filter < 6
         apCluster.updateCoverageMap(covMaps[filter].getImage(), runWcs,
-                                    wcs, width, height, True)
+                                    wcs, width, height, 0)
     persistCovMaps(covMaps, outputDir)
 
 def hostPort(sv):
@@ -234,6 +234,9 @@ def main():
     parser.add_option(
         "-s", "--server", dest="server", default="lsst10.ncsa.uiuc.edu:3306",
         help="host:port of MySQL server to connect to; defaults to %default")
+    parser.add_option(
+        "-S", "--step", type="int", dest="step", default=5,
+        help="rasterization step size (pixels) for per-tile coverage maps")
     parser.add_option(
         "-r", "--tile-res", type="int", dest="tileRes", default=2000,
         help=dedent("""\
@@ -273,7 +276,7 @@ def main():
     if opts.tileRes > 0:
         for skyTile in wcsMap.keys():
             print "Processing sky-tile %d" % skyTile
-            processSkyTile(wcsMap, args[2], kind, skyTile, qsp, opts.tileRes)
+            processSkyTile(wcsMap, args[2], kind, skyTile, qsp, opts.tileRes, opts.step)
 
 
 if __name__ == "__main__":

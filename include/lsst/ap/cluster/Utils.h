@@ -59,7 +59,7 @@ LSST_AP_API void updateCoverageMap(
     lsst::afw::image::Wcs::Ptr wcs,
     int width,
     int height,
-    bool cornersOnly);
+    int step);
 
 }}} // namespace lsst:ap::cluster
 
