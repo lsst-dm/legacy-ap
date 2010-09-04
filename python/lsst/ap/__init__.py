@@ -20,5 +20,5 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from apLib import *
-import SqlAppendTables, SqlDropTables, SqlStoreOutputs
+#from apLib import *
+#import SqlAppendTables, SqlDropTables, SqlStoreOutputs

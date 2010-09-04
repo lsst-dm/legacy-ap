@@ -9,7 +9,6 @@ setupRequired(utils >= 3.4.5)
 setupRequired(afw >= 3.4.2)
 setupRequired(geom >= 3.0.4)
 setupRequired(skypix >= 3.0.3)
-setupRequired(mops >= 3.2.5)
 
 setupOptional(doxygen >= 1.5.9)
 setupOptional(swig >= 1.3.36+2)

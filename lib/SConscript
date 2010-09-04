@@ -4,9 +4,10 @@ import os, fnmatch
 
 pkg = env["eups_product"]
 sources = []
-for root, dirs, files in os.walk("../src"):
+for root, dirs, files in os.walk("../src/cluster"):
     sources += [os.path.join(root, f) for f in fnmatch.filter(files, "*.cc")]
     dirs = [d for d in dirs if not fnmatch.fnmatch(d, ".*")]
+sources += [os.path.join("../src", s) for s in ("Point.cc", "SpatialUtil.cc", "Time.cc")]
 env.SharedLibrary(pkg, sources,
     LIBS=filter(lambda x: x != pkg, env.getlibs(pkg)))
 

@@ -2,9 +2,9 @@
 Import('env')
 import glob, os
 
-ignoreList=[ "NightlyPipelineTest.py" ] # broken, will be fixed during nightly rewrite
+ignoreList=[ "NightlyPipelineTest.py", "ResultsTest.py" ] # broken, will be fixed during nightly rewrite
 
-for src in glob.glob("*.cc"):
+for src in ("kdtree.cc", "seedList.cc"): #glob.glob("*.cc"):
     env.Program(src, LIBS=env.getlibs(env["eups_product"]))
 
 if not env.CleanFlagIsSet():
@@ -20,5 +20,5 @@ if not env.CleanFlagIsSet():
 
     tests.run("*.cc")
     for target in tests.run("*.py"):
-        env.Depends(target, "../python/lsst/ap/_apLib%s" % env['LDMODULESUFFIX'])
+        env.Depends(target, "../python/lsst/ap/cluster/_clusterLib%s" % env['LDMODULESUFFIX'])
 
