@@ -478,22 +478,24 @@ LSST_AP_API void rasterizePolygon(
         }
         edges.push_back(Edge(*v, *v2));
     }
-    std::sort(edges.begin(), edges.end());
-    SweepLine sweeper(img, edges.front().v1->getY());
-    EdgeIter i = edges.begin(), e = edges.end();
-    // add all edges intersecting minY to sweep line
-    for (; i != e && i->v1->getY() <= minY; ++i) {
-        sweeper.add(*i);
-    }
-    while (i != e) {
-        double y = i->v1->getY();
-        sweeper.advance(y);
-        sweeper.add(*i);
-        for (++i; i != e && i->v1->getY() == y; ++i) {
+    if (edges.size() > 0) {
+        std::sort(edges.begin(), edges.end());
+        SweepLine sweeper(img, edges.front().v1->getY());
+        EdgeIter i = edges.begin(), e = edges.end();
+        // add all edges intersecting minY to sweep line
+        for (; i != e && i->v1->getY() <= minY; ++i) {
             sweeper.add(*i);
         }
+        while (i != e) {
+            double y = i->v1->getY();
+            sweeper.advance(y);
+            sweeper.add(*i);
+            for (++i; i != e && i->v1->getY() == y; ++i) {
+                sweeper.add(*i);
+            }
+        }
+        sweeper.finish();
     }
-    sweeper.finish();
 }
 
 /** Updates a coverage map to include contributions from the given image
