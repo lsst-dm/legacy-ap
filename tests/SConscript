@@ -18,7 +18,8 @@ if not env.CleanFlagIsSet():
         if os.environ.has_key(key):
             env['ENV'][key] = os.environ[key]
 
-    tests.run("*.cc")
+    tests.run("kdtree.cc")
+    tests.run("seedList.cc")
     for target in tests.run("*.py"):
         env.Depends(target, "../python/lsst/ap/cluster/_clusterLib%s" % env['LDMODULESUFFIX'])
 
