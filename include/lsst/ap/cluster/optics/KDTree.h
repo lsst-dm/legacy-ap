@@ -65,7 +65,6 @@ struct LSST_AP_LOCAL KDTreeNode {
   * It contains point coordinates, along with the following additional
   * pieces of information:
   *
-  *   @li The index of the k-d tree leaf node containing the point
   *   @li An integer used to embed a singly linked list of range
   *       query results in the data array.
   *   @li A double used to store the distance of the point to the

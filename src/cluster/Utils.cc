@@ -435,9 +435,9 @@ LSST_AP_API void makeSourceHistogram(
     }
 }
 
-/** Rasterizes the not necessarily convex polygon obtained by connecting the
-  * the given vertices. For each pixel in the image, the fraction of pixel
-  * area which overlaps the input polygon is stored.
+/** Rasterizes the (not necessarily convex) polygon obtained by connecting the
+  * the given vertices. For each pixel in the output image, the fraction of the
+  * pixel area overlapping the input polygon is stored.
   *
   * @param[in,out] img  Image to rasterize to.
   * @param[in] verts    Polygon vertices
