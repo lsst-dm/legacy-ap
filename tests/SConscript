@@ -4,7 +4,7 @@ import glob, os
 
 ignoreList=[ "NightlyPipelineTest.py", "ResultsTest.py" ] # broken, will be fixed during nightly rewrite
 
-for src in ("kdtree.cc", "seedList.cc"): #glob.glob("*.cc"):
+for src in ("kdtree.cc", "seedList.cc", "csv.cc"): #glob.glob("*.cc"):
     env.Program(src, LIBS=env.getlibs(env["eups_product"]))
 
 if not env.CleanFlagIsSet():
@@ -20,6 +20,7 @@ if not env.CleanFlagIsSet():
 
     tests.run("kdtree.cc")
     tests.run("seedList.cc")
+    tests.run("csv.cc")
     for target in tests.run("*.py"):
         env.Depends(target, "../python/lsst/ap/cluster/_clusterLib%s" % env['LDMODULESUFFIX'])
 
