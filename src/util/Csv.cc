@@ -752,42 +752,43 @@ void CsvReader::_checkWhitespace(char const *s, char const *msg) const {
 template <> bool CsvReader::_get<bool>(char const *field) const {
     for (; WHITESPACE.find(*field) != string::npos; ++field) { }
     bool value = false;
-    switch (*field) {
+    char c = *field++;
+    switch (c) {
         case '1':
             value = true;
             break;
         case 't':
         case 'T':
             value = true;
-            if ((field[1] == 'r' || field[1] == 'R') &&
-                (field[2] == 'u' || field[2] == 'U') &&
-                (field[3] == 'e' || field[3] == 'E')) {
-                field += 4;
+            if ((field[0] == 'r' || field[0] == 'R') &&
+                (field[1] == 'u' || field[1] == 'U') &&
+                (field[2] == 'e' || field[2] == 'E')) {
+                field += 3;
             }
             break;
         case 'y':
         case 'Y':
             value = true;
-            if ((field[1] == 'e' || field[1] == 'E') &&
-                (field[2] == 's' || field[2] == 'S')) {
-                field += 3;
+            if ((field[0] == 'e' || field[0] == 'E') &&
+                (field[1] == 's' || field[1] == 'S')) {
+                field += 2;
             }
             break;
         case '0':
             break;
         case 'f':
         case 'F':
-            if ((field[1] == 'a' || field[1] == 'A') &&
-                (field[2] == 'l' || field[2] == 'L') &&
-                (field[3] == 's' || field[3] == 'S') &&
-                (field[4] == 'e' || field[4] == 'E')) {
-                field += 5;
+            if ((field[0] == 'a' || field[0] == 'A') &&
+                (field[1] == 'l' || field[1] == 'L') &&
+                (field[2] == 's' || field[2] == 'S') &&
+                (field[3] == 'e' || field[3] == 'E')) {
+                field += 4;
             }
             break;
         case 'n':
         case 'N':
-            if (field[1] == 'o' || field[1] == 'O') {
-                field += 2;
+            if (field[0] == 'o' || field[0] == 'O') {
+                ++field;
             }
             break;
         default:

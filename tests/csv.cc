@@ -284,6 +284,15 @@ static void fpIoTest(T const tolerance) {
     writer.appendField("1.0e50000");
     writer.appendField("-1.0e50000");
     writer.endRecord();
+    // check insensitivity to whitespace, and that exceptions are thrown
+    // for illegal values
+    writer.appendField("1.0    ");
+    writer.appendField("    1.0");
+    writer.appendField("  0.0   ");
+    writer.appendField("  a   ");
+    writer.appendField("  1..0   ");
+    writer.appendField("1.0   abc");
+    writer.endRecord();
 
     istringstream iss(oss.str());
     CsvReader reader(iss, dialect);
@@ -306,14 +315,26 @@ static void fpIoTest(T const tolerance) {
         BOOST_CHECK_EQUAL(reader.isDone(), false);
         reader.nextRecord();
     }
-    BOOST_CHECK(!reader.isDone());
+
     // check specials
+    BOOST_CHECK(!reader.isDone());
     BOOST_CHECK(lsst::utils::isnan(reader.get<T>(0)));
     BOOST_CHECK(lsst::utils::isinf(reader.get<T>(1)) && reader.get<T>(1) > 0);
     BOOST_CHECK(lsst::utils::isinf(reader.get<T>(2)) && reader.get<T>(2) < 0);
     BOOST_CHECK_EQUAL(reader.get<T>(3), 0.0);
     BOOST_CHECK(lsst::utils::isinf(reader.get<T>(4)) && reader.get<T>(4) > 0);
     BOOST_CHECK(lsst::utils::isinf(reader.get<T>(5)) && reader.get<T>(5) < 0);
+
+    // check whitespace/illegal values
+    reader.nextRecord();
+    BOOST_CHECK(!reader.isDone());
+    BOOST_CHECK_EQUAL(reader.get<T>(0), static_cast<T>(1));
+    BOOST_CHECK_EQUAL(reader.get<T>(1), static_cast<T>(1));
+    BOOST_CHECK_EQUAL(reader.get<T>(2), static_cast<T>(0));
+    BOOST_CHECK_THROW(reader.get<T>(3), Exception);
+    BOOST_CHECK_THROW(reader.get<T>(4), Exception);
+    BOOST_CHECK_THROW(reader.get<T>(5), Exception);
+
     reader.nextRecord();
     BOOST_CHECK(reader.isDone());
 }
@@ -330,7 +351,7 @@ BOOST_AUTO_TEST_CASE(longDoubleIo) {
 
 BOOST_AUTO_TEST_CASE(hardRounding) {
     static double const TWO_ULP = DBL_EPSILON*2.0;
-    // Fred Tydeman's hard double precision binary float to decimal
+    // Fred Tydeman's hard IEEE 754 double precision binary float to decimal
     // conversion cases, taken from a 1996 comp.arch.arithmetic post.
     static double const TYDEMAN_HARD[] = {
         9e0306, 4e-079, 7e-261, 6e-025,
@@ -505,16 +526,164 @@ BOOST_AUTO_TEST_CASE(hardRounding) {
     BOOST_CHECK(reader.isDone());
 }
 
-#if 0
-BOOST_AUTO_TEST_CASE(integerIo) {
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
+template <typename T>
+static void integerIoTest() {
+    ostringstream oss;
+    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '\t', '\\', '\'');
+    CsvWriter writer(oss, dialect);
+    for (int i = 0; i < 100; ++i) {
+        writer.appendField(static_cast<T>(i));
+        if (numeric_limits<T>::is_signed) {
+            writer.appendField(-static_cast<T>(i));
+        } else {
+            writer.appendField(numeric_limits<T>::max() - static_cast<T>(i));
+        }
+    }
+    writer.endRecord();
+    // check limits, whitespace insensitivity, illegal values, overflow
+    writer.appendField(numeric_limits<T>::min());
+    writer.appendField(numeric_limits<T>::max());
+    writer.appendField("   1");
+    writer.appendField("1  ");
+    writer.appendField(" 0 ");
+    writer.appendField(" a ");
+    writer.appendField("1 a");
+    writer.appendField("1.0");
+    writer.appendField("12345678901234567890123456789012345678901234567890123456789012345678901234567890");
+    writer.appendField("-12345678901234567890123456789012345678901234567890123456789012345678901234567890");
+    writer.endRecord();
+
+    istringstream iss(oss.str());
+    CsvReader reader(iss, dialect);
+    for (int i = 0; i < 100; ++i) {
+        BOOST_CHECK_EQUAL(reader.get<T>(i*2), static_cast<T>(i));
+        if (numeric_limits<T>::is_signed) {
+            BOOST_CHECK_EQUAL(reader.get<T>(i*2 + 1), -static_cast<T>(i));
+        } else {
+            BOOST_CHECK_EQUAL(reader.get<T>(i*2 + 1),
+                              numeric_limits<T>::max() - static_cast<T>(i));
+        }
+    }
+    reader.nextRecord();
+    BOOST_CHECK_EQUAL(reader.get<T>(0), numeric_limits<T>::min());
+    BOOST_CHECK_EQUAL(reader.get<T>(1), numeric_limits<T>::max());
+    BOOST_CHECK_EQUAL(reader.get<T>(2), static_cast<T>(1));
+    BOOST_CHECK_EQUAL(reader.get<T>(3), static_cast<T>(1));
+    BOOST_CHECK_EQUAL(reader.get<T>(4), static_cast<T>(0));
+    for (int i = 5; i < 10; ++i) {
+        BOOST_CHECK_THROW(reader.get<T>(i), Exception);
+    }
+    reader.nextRecord();
+    BOOST_CHECK(reader.isDone());
 }
 
+BOOST_AUTO_TEST_CASE(signedCharIo)       { integerIoTest<signed char>();        }
+BOOST_AUTO_TEST_CASE(unsignedCharIo)     { integerIoTest<unsigned char>();      }
+BOOST_AUTO_TEST_CASE(shortIo)            { integerIoTest<short>();              }
+BOOST_AUTO_TEST_CASE(unsignedShortIo)    { integerIoTest<unsigned short>();     }
+BOOST_AUTO_TEST_CASE(intIo)              { integerIoTest<int>();                }
+BOOST_AUTO_TEST_CASE(unsignedIntIo)      { integerIoTest<unsigned int>();       }
+BOOST_AUTO_TEST_CASE(longIo)             { integerIoTest<long>();               }
+BOOST_AUTO_TEST_CASE(unsignedLongIo)     { integerIoTest<unsigned long>();      }
+BOOST_AUTO_TEST_CASE(longLongIo)         { integerIoTest<long long>();          }
+BOOST_AUTO_TEST_CASE(unsignedLongLongIo) { integerIoTest<unsigned long long>(); }
+
 BOOST_AUTO_TEST_CASE(boolIo) {
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
+    ostringstream oss;
+    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'');
+    CsvWriter writer(oss, dialect);
+    writer.appendField(true);
+    writer.appendField(false);
+    writer.appendField("2");
+    writer.appendField("Foo");
+    writer.appendField("falsely");
+    writer.appendField("Ta");
+    writer.appendField("Truest");
+    writer.endRecord();
+    writer.appendField("True  ");
+    writer.appendField(" yes");
+    writer.appendField("  1  ");
+    writer.appendField("NO  ");
+    writer.appendField(" f");
+    writer.appendField(" 0  ");
+    writer.endRecord();
+    writer.appendField('t');
+    writer.appendField('T');
+    writer.appendField("true");
+    writer.appendField("TRUE");
+    writer.appendField('y');
+    writer.appendField('Y');
+    writer.appendField("yes");
+    writer.appendField("YES");
+    writer.endRecord();
+    writer.appendField('f');
+    writer.appendField('F');
+    writer.appendField("false");
+    writer.appendField("FALSE");
+    writer.appendField('n');
+    writer.appendField('N');
+    writer.appendField("no");
+    writer.appendField("NO");
+    istringstream iss(oss.str());
+    CsvReader reader(iss, dialect);
+    BOOST_CHECK_EQUAL(reader.get<char>(0), '1');
+    BOOST_CHECK_EQUAL(reader.get<char>(1), '0');
+    BOOST_CHECK(reader.get<bool>(0));
+    BOOST_CHECK(!reader.get<bool>(1));
+    for (int i = 2; i < 7; ++i) {
+        BOOST_CHECK_THROW(reader.get<bool>(i), Exception);
+    }
+    reader.nextRecord();
+    BOOST_CHECK(!reader.isDone());
+    BOOST_CHECK(reader.get<bool>(0));
+    BOOST_CHECK(reader.get<bool>(1));
+    BOOST_CHECK(reader.get<bool>(2));
+    BOOST_CHECK(!reader.get<bool>(3));
+    BOOST_CHECK(!reader.get<bool>(4));
+    BOOST_CHECK(!reader.get<bool>(5));
+    reader.nextRecord();
+    BOOST_CHECK(!reader.isDone());
+    for (int i = 0; i < reader.getNumFields(); ++i) {
+        BOOST_CHECK(reader.get<bool>(i));
+    }
+    reader.nextRecord();
+    BOOST_CHECK(!reader.isDone());
+    for (int i = 0; i < reader.getNumFields(); ++i) {
+        BOOST_CHECK(!reader.get<bool>(i));
+    }
+    reader.nextRecord();
+    BOOST_CHECK(reader.isDone());
 }
 
 BOOST_AUTO_TEST_CASE(charIo) {
+    string characters("abcdefgHIJKLMNOP");
+    ostringstream oss;
     CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
+    CsvWriter writer(oss, dialect);
+    for (size_t i = 0; i < characters.size(); ++i) {
+        writer.appendField(characters[i]);
+    }
+    writer.endRecord();
+    writer.appendField("");
+    writer.appendField("more than one character");
+    writer.appendField('\\');
+    writer.appendField('|');
+    writer.appendField('\'');
+    writer.endRecord();
+
+    istringstream iss(oss.str());
+    CsvReader reader(iss, dialect);
+    for (size_t i = 0; i < characters.size(); ++i) {
+        BOOST_CHECK_EQUAL(reader.get<char>(static_cast<int>(i)), characters[i]);
+    }
+    reader.nextRecord();
+    BOOST_CHECK(!reader.isDone());
+    // check that retrieving empty or multi-character fields as a char throws
+    BOOST_CHECK_THROW(reader.get<char>(0), Exception);
+    BOOST_CHECK_THROW(reader.get<char>(1), Exception);
+    BOOST_CHECK_EQUAL(reader.get<char>(2), '\\');
+    BOOST_CHECK_EQUAL(reader.get<char>(3), '|');
+    BOOST_CHECK_EQUAL(reader.get<char>(4), '\'');
+    reader.nextRecord();
+    BOOST_CHECK(reader.isDone());
 }
-#endif
