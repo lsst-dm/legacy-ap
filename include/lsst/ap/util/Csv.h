@@ -347,8 +347,6 @@ public:
     void appendNull();
 
 private:
-    static size_t const BUFFER_CAPACITY = 16384;
-
     // disable copy construction/assignment
     CsvWriter(CsvWriter const &);
     CsvWriter & operator=(CsvWriter const &);

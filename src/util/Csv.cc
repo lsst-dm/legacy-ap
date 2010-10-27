@@ -840,8 +840,6 @@ template <> char CsvReader::_get<char>(char const *field) const {
         T v = fun(field, &e); \
         if (e == field) { \
             _runtimeError("failed to convert field value to " #T); \
-        } else if (errno == ERANGE) { \
-            _runtimeError("field value overflow during conversion to " #T); \
         } \
         _checkWhitespace(e, "failed to convert field value to " #T); \
         return v; \
