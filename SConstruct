@@ -13,8 +13,8 @@ visCheckSrc = """
     }
     """
 
-alignCheckSrc = """
-    double a[4] __attribute__((alignment(32)));
+alignedCheckSrc = """
+    double a[4] __attribute__((aligned(32)));
     int main() {
         return 0;
     }
@@ -158,8 +158,8 @@ if not env.CleanFlagIsSet():
         conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
     if conf.CustomCompileCheck('Checking for __attribute__((visibility)) support... ', visCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
-    if conf.CustomCompileCheck('Checking for __attribute__((alignment)) support... ', alignCheckSrc):
-        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_ALIGN=1')
+    if conf.CustomCompileCheck('Checking for __attribute__((aligned)) support... ', alignedCheckSrc):
+        conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_ALIGNED=1')
     if conf.CustomCompileCheck('Checking for __builtin_popcount... ', popcountCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_BUILTIN_POPCOUNT=1')
     # Without some help, SWIG disagrees with boost on the actual type of int64_t
