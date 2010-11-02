@@ -144,7 +144,7 @@ inline void * operator new(size_t, lsst::ap::util::Arena<T> &arena) {
 
 template <typename T>
 inline void operator delete(void *ptr, lsst::ap::util::Arena<T> &arena) {
-   return arena.dealloc(ptr);
+   arena.dealloc(ptr);
 }
 
 #endif // LSST_AP_UTIL_ARENA_H

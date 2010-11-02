@@ -285,8 +285,8 @@ private:
     template <typename OtherRegion, typename MatchProcessor>
     void _search(OtherRegion *r, MatchProcessor &f, double min, double max);
 
-    unsigned int _searchId; ///< Id for next search() call - must never be equal
-                            ///  to the search id of any node in the tree.
+    unsigned int _searchId; ///< Id for next search() call - must be greater
+                            ///  than the search id of any tree node.
 };
 
 }}}} // namespace lsst::ap::match::detail

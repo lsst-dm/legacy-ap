@@ -58,7 +58,7 @@ inline CartesianNode::CartesianNode() :
 }
 
 /** Creates a new CartesianNode from the given BBox.
-  * Ownership of the given BBox is @b not assumed.
+  * Ownership of the given BBox is @b not transferred.
   */
 inline CartesianNode::CartesianNode(BBox *b) :
     color(RED),
@@ -73,7 +73,8 @@ inline CartesianNode::CartesianNode(BBox *b) :
 
 inline CartesianNode::~CartesianNode() { }
 
-/** Orders tree nodes by minimum coordinate-0 (x) value.
+/** Orders tree nodes by minimum coordinate-0 (x) value, using
+  * the addresses of embedded BBox instances to break ties.
   */
 inline bool lessThan(CartesianNode const *a, CartesianNode const *b) {
     return (a->minCoord0 == b->minCoord0) ?
@@ -105,7 +106,7 @@ inline SphericalNode::SphericalNode() :
 }
 
 /** Creates a new SphericalNode from the given BBox and theta interval.
-  * Ownership of the given BBox is @b not assumed.
+  * Ownership of the given BBox is @b not transferred.
   */
 inline SphericalNode::SphericalNode(BBox *b,
                                     double minC0,
@@ -135,7 +136,8 @@ inline bool SphericalNode::markFound(unsigned int searchId) {
     return (id == searchId || (twin != 0 && twin->foundBy == searchId));
 }
 
-/** Orders tree nodes by minimum coordinate-0 (longitude/right-ascension) value.
+/** Orders tree nodes by minimum coordinate-0 (longitude/right-ascension)
+  * value, using the addresses of embedded BBox instances to break ties.
   */
 inline bool lessThan(SphericalNode const *a, SphericalNode const *b) {
     return (a->minCoord0 == b->minCoord0) ?
@@ -216,7 +218,7 @@ inline Node * SweepStructure<Node>::_doubleRotate(Node *n, int dir) {
 // -- CartesianSweep implementation ---
 
 /** Inserts the given Region into the sweep structure - the sweep
-  * structure assumes ownership of the region.
+  * structure does @b not assume ownership of the region.
   */
 template <typename Region>
 inline void CartesianSweep<Region>::insert(Region *region) {
@@ -329,7 +331,7 @@ void CartesianSweep<Region>::search(OtherRegion *r,
 // -- SphericalSweep implementation ----
 
 /** Inserts the given Region into the sweep structure - the sweep
-  * structure assumes ownership of the region.
+  * structure does @b not assume ownership of the region.
   */
 template <typename Region>
 inline void SphericalSweep<Region>::insert(Region *region) {

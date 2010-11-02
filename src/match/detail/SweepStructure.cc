@@ -310,8 +310,8 @@ double SweepStructure<Node>::_checkReach(Node const *n) {
 
 // -- SweepStructure<CartesianNode> method specializations ----
 
-/** Inserts the given BBox into the sweep structure, assuming ownership
-  * of the box.
+/** Inserts the given BBox into the sweep structure - note that ownership
+  * of the box is @b not transferred to the sweep structure.
   */
 template <>
 void SweepStructure<CartesianNode>::_insert(BBox *b) {
@@ -328,8 +328,8 @@ void SweepStructure<CartesianNode>::_insert(BBox *b) {
 
 // -- SweepStructure<SphericalNode> method specializations ----
 
-/** Inserts the given BBox into the sweep structure, assuming ownership
-  * of the box.
+/** Inserts the given BBox into the sweep structure - note that ownership
+  * of the box is @b not transferred to the sweep structure.
   */
 template <>
 void SweepStructure<SphericalNode>::_insert(BBox *b) {
