@@ -3,6 +3,7 @@ Import('env')
 import glob, os
 
 ignoreList=[ "NightlyPipelineTest.py", "ResultsTest.py" ] # broken, will be fixed during nightly rewrite
+ignoreList+=[ "sourceAssocPipelineTest.py" ] # waiting on afw tag and updated boost persisted source inputs
 
 for src in ("kdtree.cc", "seedList.cc", "csv.cc", "earthPosition.cc", "sweepStructure.cc"): #glob.glob("*.cc"):
     env.Program(src, LIBS=env.getlibs(env["eups_product"]))
