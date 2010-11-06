@@ -25,14 +25,14 @@
 /** @file
   * @brief  Implementation of earth position computation.
   */
-#include "lsst/ap/util/EarthPosition.h"
+#include "lsst/ap/utils/EarthPosition.h"
 
 #include <cmath>
 
 #include "lsst/ap/Common.h"
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 /** @internal Coefficient array alignment in bytes - must be a power of 2.
   *
@@ -1917,5 +1917,5 @@ LSST_AP_API Eigen::Vector3d const earthPosition(
     );
 }
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 

@@ -37,7 +37,7 @@
 #include "lsst/pex/exceptions.h"
 #include "lsst/afw/math/Random.h"
 
-#include "lsst/ap/util/Csv.h"
+#include "lsst/ap/utils/Csv.h"
 
 
 using std::ostringstream;
@@ -48,9 +48,9 @@ using std::vector;
 
 using lsst::pex::exceptions::Exception;
 using lsst::afw::math::Random;
-using lsst::ap::util::CsvDialect;
-using lsst::ap::util::CsvReader;
-using lsst::ap::util::CsvWriter;
+using lsst::ap::utils::CsvDialect;
+using lsst::ap::utils::CsvReader;
+using lsst::ap::utils::CsvWriter;
 
 
 BOOST_AUTO_TEST_CASE(dialect) {

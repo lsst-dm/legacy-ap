@@ -26,8 +26,8 @@
   * @brief  Classes for CSV I/O.
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_UTIL_CSV_H
-#define LSST_AP_UTIL_CSV_H
+#ifndef LSST_AP_UTILS_CSV_H
+#define LSST_AP_UTILS_CSV_H
 
 #include <fstream>
 #include <string>
@@ -41,7 +41,7 @@
 #include "lsst/pex/policy/Policy.h"
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 /** @brief Parameters that define a Character-Separated-Value dialect.
   *
@@ -374,9 +374,9 @@ inline CsvWriter & flush(CsvWriter &);
 template <typename T> inline CsvWriter & operator<<(CsvWriter &, T const &);
 template <typename T> inline CsvWriter& operator<<(CsvWriter&, CsvWriter& (*)(CsvWriter&));
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 
 #include "Csv.cc" // for inline/template members
 
-#endif // LSST_AP_UTIL_CSV_H
+#endif // LSST_AP_UTILS_CSV_H
 

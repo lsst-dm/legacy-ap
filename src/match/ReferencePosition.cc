@@ -30,13 +30,18 @@
 #include <algorithm>
 #include <cmath>
 
+using lsst::ap::utils::angularSeparation;
+using lsst::ap::utils::cartesianToSpherical;
+using lsst::ap::utils::maxAlpha;
+using lsst::ap::utils::sphericalToCartesian;
+
 
 namespace lsst { namespace ap { namespace match {
 
 /** Clears the motion parameters of this reference position.
   */
 void ReferencePosition::clearMotion() {
-    _p = lsst::ap::util::sphericalToCartesian(_sc.x(), _sc.y());
+    _p = sphericalToCartesian(_sc.x(), _sc.y());
     _v = Eigen::Vector3d::Zero();
     _parallax = 0.0;
     _minDecl = _sc.y();
@@ -110,13 +115,13 @@ void ReferencePosition::setTimeRange(double epoch1, double epoch2) {
         Eigen::Vector3d p1 = _p + _v*(epoch1 - _epoch);
         Eigen::Vector3d p2 = _p + _v*(epoch2 - _epoch);
         Eigen::Vector3d m = p1 + p2;
-        double r = std::max(lsst::ap::util::angularSeparation(m, p1),
-                            lsst::ap::util::angularSeparation(m, p2));
+        double r = std::max(angularSeparation(m, p1),
+                            angularSeparation(m, p2));
         if ((_flags & SSB_TO_GEO) != 0) {
             r += 2.0*_parallax;
         }
-        Eigen::Vector2d sc = lsst::ap::util::cartesianToSpherical(m);
-        double alpha = lsst::ap::util::maxAlpha(r, sc.y());
+        Eigen::Vector2d sc = cartesianToSpherical(m);
+        double alpha = maxAlpha(r, sc.y());
         _minDecl = sc.y() - r;
         _maxDecl = sc.y() + r;
         _minRa = sc.x() - alpha;

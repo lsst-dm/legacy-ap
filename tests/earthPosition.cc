@@ -31,7 +31,7 @@
 
 #include "lsst/afw/math/Random.h"
 #include "lsst/ap/Time.h"
-#include "lsst/ap/util/EarthPosition.h"
+#include "lsst/ap/utils/EarthPosition.h"
 
 // Include IAU SOFA reference implementation for comparison
 #include "iausofa/sofam.h"
@@ -44,7 +44,7 @@ using std::vector;
 
 using lsst::afw::math::Random;
 using lsst::ap::Stopwatch;
-using lsst::ap::util::earthPosition;
+using lsst::ap::utils::earthPosition;
 
 
 BOOST_AUTO_TEST_CASE(compareToReference) {

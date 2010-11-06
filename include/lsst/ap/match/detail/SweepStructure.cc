@@ -38,7 +38,7 @@
 #include <algorithm>
 
 #include "lsst/pex/exceptions.h"
-#include "../../util/SpatialUtils.h"
+#include "../../utils/SpatialUtils.h"
 
 
 namespace lsst { namespace ap { namespace match { namespace detail {
@@ -422,7 +422,7 @@ void SphericalSweep<Region>::search(OtherRegion *r,
     }
     double min = r->getMinCoord0();
     double max = r->getMaxCoord0();
-    lsst::ap::util::thetaRangeReduce(min, max);
+    lsst::ap::utils::thetaRangeReduce(min, max);
     if (min > max) {
         _search(r, f, 0.0, max);
         max = 2*M_PI;

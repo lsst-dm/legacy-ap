@@ -31,8 +31,8 @@
 #include "Eigen/Core"
 
 #include "../Common.h"
-#include "../util/SpatialUtils.h"
-#include "../util/EarthPosition.h"
+#include "../utils/SpatialUtils.h"
+#include "../utils/EarthPosition.h"
 #include "BBox.h"
 
 

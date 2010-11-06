@@ -25,15 +25,16 @@
 /** @file
   * @brief  Utility function for computing barycentric earth coordinates.
   */
-#ifndef LSST_AP_UTIL_EARTHPOSITION_H
+#ifndef LSST_AP_UTILS_EARTHPOSITION_H
+#define LSST_AP_UTILS_EARTHPOSITION_H
 
 #include "Eigen/Core"
 #include "../Common.h"
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 LSST_AP_API Eigen::Vector3d const earthPosition(double const epoch);
 
-}}}
+}}} // namespace lsst::ap::utils
 
-#endif // LSST_AP_UTIL_EARTHPOSITION_H
+#endif // LSST_AP_UTILS_EARTHPOSITION_H

@@ -37,7 +37,7 @@
 #include "lsst/afw/math/Random.h"
 
 #include "lsst/ap/match/detail/SweepStructure.h"
-#include "lsst/ap/util/SpatialUtils.h"
+#include "lsst/ap/utils/SpatialUtils.h"
 
 using std::min;
 using std::max;

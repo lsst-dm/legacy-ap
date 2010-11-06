@@ -4,7 +4,7 @@ import os, fnmatch
 
 pkg = env["eups_product"]
 sources = []
-for top in ("../src/cluster", "../src/util", "../src/match"):
+for top in ("../src/cluster", "../src/utils", "../src/match"):
     for root, dirs, files in os.walk(top):
         sources += [os.path.join(root, f) for f in fnmatch.filter(files, "*.cc")]
         dirs = [d for d in dirs if not fnmatch.fnmatch(d, ".*")]

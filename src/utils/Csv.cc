@@ -26,7 +26,7 @@
   * @brief  CSV I/O class implementations.
   * @author Serge Monkewitz
   */
-#include "lsst/ap/util/Csv.h"
+#include "lsst/ap/utils/Csv.h"
 
 #include <cerrno>
 #include <cfloat>
@@ -61,7 +61,7 @@ using std::vector;
 namespace pexExcept = lsst::pex::exceptions;
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 // -- CsvDialect implementation ----
 
@@ -1278,4 +1278,4 @@ void CsvWriter::_writeUnquoted(char const *s) {
     }
 }
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils

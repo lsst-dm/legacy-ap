@@ -25,8 +25,8 @@
 /** @file
   * @brief  Spatial utility functions.
   */
-#ifndef LSST_AP_UTIL_SPATIALUTILS_H
-#define LSST_AP_UTIL_SPATIALUTILS_H
+#ifndef LSST_AP_UTILS_SPATIALUTILS_H
+#define LSST_AP_UTILS_SPATIALUTILS_H
 
 #include <math.h>
 
@@ -36,7 +36,7 @@
 #include "../Common.h"
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 /** Converts degrees to radians.
   */
@@ -91,6 +91,6 @@ inline double angularSeparation(Eigen::Vector3d const &v1,
 }
 
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 
-#endif // LSST_AP_UTIL_SPATIALUTILS_H
+#endif // LSST_AP_UTILS_SPATIALUTILS_H

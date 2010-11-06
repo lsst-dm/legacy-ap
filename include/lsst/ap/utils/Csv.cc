@@ -26,8 +26,8 @@
   * @brief  Inlines for CSV I/O classes.
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_UTIL_CSV_CC
-#define LSST_AP_UTIL_CSV_CC
+#ifndef LSST_AP_UTILS_CSV_CC
+#define LSST_AP_UTILS_CSV_CC
 
 #include "Csv.h"
 
@@ -40,7 +40,7 @@
 #include "boost/type_traits/is_same.hpp"
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 // -- CsvDialect inline members ----
 
@@ -426,6 +426,6 @@ inline CsvWriter& operator<<(CsvWriter& w, CsvWriter& (*manip)(CsvWriter&)) {
     return manip(w);
 }
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 
-#endif // LSST_AP_UTIL_CSV_CC
+#endif // LSST_AP_UTILS_CSV_CC

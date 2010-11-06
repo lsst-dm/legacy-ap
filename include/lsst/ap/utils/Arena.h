@@ -25,7 +25,8 @@
 /** @file
   * @brief  Single threaded arena (pool) memory allocator.
   */
-#ifndef LSST_AP_UTIL_ARENA_H
+#ifndef LSST_AP_UTILS_ARENA_H
+#define LSST_AP_UTILS_ARENA_H
 
 #include <cstdlib>
 #include <vector>
@@ -33,7 +34,7 @@
 #include "lsst/pex/exceptions.h"
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 /** A free-list based single-threaded arena allocator for objects of class T.
   *
@@ -135,17 +136,17 @@ private:
     unsigned char *_free;  ///< Head of linked free-list or 0 if the arena is full.
 };
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 
 template <typename T>
-inline void * operator new(size_t, lsst::ap::util::Arena<T> &arena) {
+inline void * operator new(size_t, lsst::ap::utils::Arena<T> &arena) {
    return arena.alloc();
 }
 
 template <typename T>
-inline void operator delete(void *ptr, lsst::ap::util::Arena<T> &arena) {
+inline void operator delete(void *ptr, lsst::ap::utils::Arena<T> &arena) {
    arena.dealloc(ptr);
 }
 
-#endif // LSST_AP_UTIL_ARENA_H
+#endif // LSST_AP_UTILS_ARENA_H
 

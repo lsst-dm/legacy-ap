@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "../BBox.h"
-#include "../../util/Arena.h"
+#include "../../utils/Arena.h"
 
 
 namespace lsst { namespace ap { namespace match { namespace detail {
@@ -117,7 +117,7 @@ protected:
     void _insert(BBox *b);
     void _remove(Node *n);
 
-    lsst::ap::util::Arena<Node> _arena;
+    lsst::ap::utils::Arena<Node> _arena;
     Node *_root; ///< Root of the interval tree.
     std::vector<HeapEntry> _heap; ///< Min-heap on maximum coordinate-1 value.
 

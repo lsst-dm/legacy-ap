@@ -44,7 +44,7 @@ ReferencePosition::ReferencePosition(
     _sc(ra, decl),
     _id(id),
     _epoch(epoch),
-    _p(lsst::ap::util::sphericalToCartesian(ra, decl)),
+    _p(lsst::ap::utils::sphericalToCartesian(ra, decl)),
     _v(),
     _parallax(0.0),
     _minDecl(decl),
@@ -99,7 +99,7 @@ inline Eigen::Vector3d const & ReferencePosition::getVelocity() const {
   * and optionally adjusting the coordinates to be geocentric rather than
   * barycentric. The return value is normalized to be a unit 3-vector,
   * which can then be converted to spherical coordinates using
-  * lsst::ap::util::cartesianToSpherical().
+  * lsst::ap::utils::cartesianToSpherical().
   *
   * Note that the change to a geocentric origin is only performed if the
   * the reference position flags contain the PARALLAX bit and @a ssbToGeo
@@ -113,7 +113,7 @@ inline Eigen::Vector3d const ReferencePosition::getPosition(double epoch) const 
     }
     Eigen::Vector3d p = _p + _v*(epoch - _epoch);
     if ((_flags & SSB_TO_GEO) != 0) {
-        p -= lsst::ap::util::earthPosition(epoch);
+        p -= lsst::ap::utils::earthPosition(epoch);
     }
     return p.normalized();
 }

@@ -25,7 +25,7 @@
 /** @file
   * @brief  Implementation of spatial utility functions.
   */
-#include "lsst/ap/util/SpatialUtils.h"
+#include "lsst/ap/utils/SpatialUtils.h"
 
 #include <cfloat>
 
@@ -34,7 +34,7 @@
 namespace pexExcept = lsst::pex::exceptions;
 
 
-namespace lsst { namespace ap { namespace util {
+namespace lsst { namespace ap { namespace utils {
 
 /** Reduces a theta (longitude/right-ascension) range. The resulting
   * range will have <tt> min \> max </tt> if it wraps across the 0/2*M_PI
@@ -152,5 +152,5 @@ Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
     return Eigen::Vector2d(theta, phi);
 }
 
-}}} // namespace lsst::ap::util
+}}} // namespace lsst::ap::utils
 

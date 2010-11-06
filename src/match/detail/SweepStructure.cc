@@ -338,7 +338,7 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
     }
     double min = b->getMinCoord0();
     double max = b->getMaxCoord0();
-    lsst::ap::util::thetaRangeReduce(min, max);
+    lsst::ap::utils::thetaRangeReduce(min, max);
     if (min > max) {
         // box wraps across the 0/2*M_PI longitude angle
         // discontinuity - insert twin nodes for [0, min] and
