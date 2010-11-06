@@ -1803,7 +1803,7 @@ static double const AM33 =  0.917482137087;
   * sufficiently large input vectors:
   * http://software.intel.com/sites/products/documentation/hpc/mkl/vml/functions/cos.html
   */
-LSST_AP_API lsst::afw::geom::Point3D const earthPosition(
+LSST_AP_API Eigen::Vector3d const earthPosition(
     double const epoch ///< epoch, MJD TDB. Using TT is acceptable for most applications.
 ) {
     static double const J2000_MJD = 51544.5;
@@ -1910,7 +1910,7 @@ LSST_AP_API lsst::afw::geom::Point3D const earthPosition(
     }
 
     // Rotate from ecliptic to BCRS coordinates
-    return lsst::afw::geom::makePointD(
+    return Eigen::Vector3d(
              earth[0] + AM12*earth[1] + AM13*earth[2],
         AM21*earth[0] + AM22*earth[1] + AM23*earth[2],
                         AM32*earth[1] + AM33*earth[2]

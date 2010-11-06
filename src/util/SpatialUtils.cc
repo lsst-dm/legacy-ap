@@ -27,71 +27,73 @@
   */
 #include "lsst/ap/util/SpatialUtils.h"
 
-#include <cmath>
+#include <cfloat>
 
 #include "lsst/pex/exceptions.h"
+
+namespace pexExcept = lsst::pex::exceptions;
 
 
 namespace lsst { namespace ap { namespace util {
 
 /** Reduces a theta (longitude/right-ascension) range. The resulting
-  * range will have <tt> min \> max </tt> if it wraps across the 0/360 degree
-  * discontinuity. Valid inputs are:
+  * range will have <tt> min \> max </tt> if it wraps across the 0/2*M_PI
+  * radiandiscontinuity. Valid inputs are:
   *
   * @li  any <tt> min, max </tt> with <tt> min \<= max </tt>
   * @li  <tt> min \> max </tt> so long as
-  *      <tt> min \<= 360.0 && max \>= 0.0 </tt>
+  *      <tt> min \<= 2*M_PI && max \>= 0.0 </tt>
   */
 void thetaRangeReduce(double &min, double &max) {
     if (min > max) {
-        if (max < 0.0 || min >= 360.0) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
-                              "Invalid longitude interval");
+        if (max < 0.0 || min >= 2.0*M_PI) {
+            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                              "Invalid longitude angle interval");
         }
-    } else if (max - min >= 360.0) {
+    } else if (max - min >= 2.0*M_PI) {
         min = 0.0;
-        max = 360.0;
-    } else if (min < 0.0 || max >= 360.0) {
+        max = 2.0*M_PI;
+    } else if (min < 0.0 || max >= 2.0*M_PI) {
         // range reduce
-        min = std::fmod(min, 360.0);
-        max = std::fmod(max, 360.0);
-        if (min < 0.0) { min += 360.0; }
-        if (max < 0.0) { max += 360.0; }
+        min = std::fmod(min, 2.0*M_PI);
+        max = std::fmod(max, 2.0*M_PI);
+        if (min < 0.0) { min += 2.0*M_PI; }
+        if (max < 0.0) { max += 2.0*M_PI; }
     }
 }
 
-/** Computes the extent in longitude angle <tt> [-alpha, alpha] </tt> of the
-  * circle with radius @a radius and center at latitude angle @a centerPhi.
+/** Computes the extent in longitude angle <tt> [-alpha, alpha] </tt> (rad) of
+  * the circle with radius @a radius and center at latitude angle @a centerPhi.
   *
-  * @pre  <tt> radius > 0.0 && radius <= 90.0 </tt>
-  * @pre  <tt> centerPhi >= -90.0 && centerPhi <= 90.0 </tt>
+  * @pre  <tt> radius >= 0.0 && radius <= M_PI/2 </tt>
+  *
+  * Note that @a centerPhi is clamped to lie in [-M_PI/2, M_PI/2].
   */
-double maxAlpha(double radius,   ///< circle radius (deg)
-                double centerPhi ///< latitude angle of circle center (deg)
+double maxAlpha(double radius,   ///< circle radius (rad)
+                double centerPhi ///< latitude angle of circle center (rad)
                )
 {
-    static const double POLE_EPSILON = 1e-6;
+    static const double POLE_EPSILON = 1e-7;
 
-    if (radius < 0.0 || radius > 90.0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
-                          "radius must be in range [0, 90] deg");
+    if (radius < 0.0 || radius > M_PI*0.5) {
+        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                          "radius must be in range [0, M_PI/2] deg");
     }
     if (radius == 0.0) {
         return 0.0;
     }
     centerPhi = clampPhi(centerPhi);
-    if (std::fabs(centerPhi) + radius > 90.0 - POLE_EPSILON) {
-        return 180.0;
+    if (std::fabs(centerPhi) + radius > M_PI*0.5 - POLE_EPSILON) {
+        return M_PI*(1 + 2.0*DBL_EPSILON);
     }
-    double r = radians(radius);
-    double c = radians(centerPhi);
-    double y = std::sin(r);
-    double x = std::sqrt(std::fabs(std::cos(c - r) * std::cos(c + r)));
-    return degrees(std::fabs(std::atan(y / x)));
+    double y = std::sin(radius);
+    double x = std::sqrt(std::fabs(std::cos(centerPhi - radius) *
+                                   std::cos(centerPhi + radius)));
+    return std::fabs(std::atan(y / x));
 }
 
-/** Applies the classical space-motion transform to obtain the barycentric
-  * coordinates of the input position at @a toEpoch.
+/** Converts from spherical coordinates, proper motions, parallax and
+  * radial velocity to position (AU) and velocity (AU/day) 3-vectors.
   *
   * @par
   * See the following paper for details:
@@ -110,24 +112,20 @@ double maxAlpha(double radius,   ///< circle radius (deg)
   *
   * @par
   * Note that the input and output data are for an observer situated at the
-  * solar system barycenter - before matching these positions against the
-  * source positions computed by the LSST pipelines, a reduction for parallax
-  * from barycentric to topocentric place should be applied.
-  *
-  * @return  The barycentric coordinates of the star (AU) at the desired epoch.
+  * solar system barycenter.
   *
   * @sa earthPosition(double)
   */
-lsst::afw::geom::Point3D const starProperMotion(
-    double ra,          ///< right ascension at @a fromEpoch (ICRS), rad
-    double decl,        ///< declination at @a fromEpoch (ICRS), rad
-    double muRa,        ///< proper motion in RA, rad per Julian day
-    double muDecl,      ///< proper motion in Dec, rad per Julian day
-    double vRadial,     ///< radial velocity, AU per Julian day
-    double parallax,    ///< parallax, rad
-    double fromEpoch,   ///< starting epoch, JD or MJD
-    double toEpoch      ///< ending epoch, JD or MJD
-) {
+void positionAndVelocity(Eigen::Vector3d &p, ///< [out] position, AU
+                         Eigen::Vector3d &v, ///< [out] velocity, AU/day
+                         double ra,          ///< right ascension, rad
+                         double decl,        ///< declination, rad
+                         double muRa,        ///< proper motion in RA, rad/day
+                         double muDecl,      ///< proper motion in Dec, rad/day
+                         double vRadial,     ///< radial velocity, AU/day
+                         double parallax     ///< parallax, rad
+                        )
+{
     // distance (AU)
     double r = 1.0 / parallax;
 
@@ -138,28 +136,20 @@ lsst::afw::geom::Point3D const starProperMotion(
     double cosDecl = cos(decl);
     double s = r*cosDecl;
     double t = r*muDecl*sinDecl;
-    double dt = toEpoch - fromEpoch;
-    Eigen::Vector3d p(s*cosRa,
-                      s*sinRa,
-                      r*sinDecl);
-    Eigen::Vector3d v(p.x()*vRadial - p.y()*muRa - cosRa*t,
-                      p.y()*vRadial + p.x()*muRa - sinRa*t,
-                      p.z()*vRadial              + s*muDecl);
-    // compute position at toEpoch
-    return lsst::afw::geom::Point3D(p + v*dt);
+    p = Eigen::Vector3d(s*cosRa, s*sinRa, r*sinDecl);
+    v = Eigen::Vector3d(p.x()*vRadial - p.y()*muRa - cosRa*t,
+                        p.y()*vRadial + p.x()*muRa - sinRa*t,
+                        p.z()*vRadial              + s*muDecl);
 }
 
 /** Converts the input position vector, which need not have unit magnitude,
   * to spherical coordinates (rad).
   */
-lsst::afw::geom::Point2D const cartesianToSpherical(lsst::afw::geom::Point3D const &v) {
-    double x = v.coeffRef(0);
-    double y = v.coeffRef(1);
-    double z = v.coeffRef(2);
-    double d2 = x*x + y*y;
-    double theta = (d2 == 0.0) ? 0.0 : std::atan2(y, x);
-    double phi = (z == 0.0) ? 0.0 : std::atan2(z, std::sqrt(d2));
-    return lsst::afw::geom::makePointD(theta, phi);
+Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
+    double d2 = v.x()*v.x() + v.y()*v.y();
+    double theta = (d2 == 0.0) ? 0.0 : std::atan2(v.y(), v.x());
+    double phi = (v.z() == 0.0) ? 0.0 : std::atan2(v.z(), std::sqrt(d2));
+    return Eigen::Vector2d(theta, phi);
 }
 
 }}} // namespace lsst::ap::util

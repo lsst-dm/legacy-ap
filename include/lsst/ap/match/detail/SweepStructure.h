@@ -208,14 +208,14 @@ public:
   * Coordinate 0 must correspond to a longitude/right ascension (theta) and
   * coordinate 1 to a latitude/declination (phi); the sweep-line is a line
   * of constant phi. The theta interval need not be range reduced; e.g. valid
-  * theta intervals for a box 20 degrees wide centered on
+  * theta intervals for a box 2 radians wide centered on
   * (theta, phi) = (0, 0) are:
   *
-  *   @li <tt> getMinCoord0() == -10.0 && getMaxCoord0() == 10.0  </tt>
-  *   @li <tt> getMinCoord0() == 350.0 && getMaxCoord0() == 370.0 </tt>
-  *   @li <tt> getMinCoord0() == 350.0 && getMaxCoord0() == 10.0  </tt>
+  *   @li <tt> [-1.0, 1.0] </tt>
+  *   @li <tt> [2*M_PI - 1, 2*M_PI + 1] </tt>
+  *   @li <tt> [2*M_PI - 1, 1] </tt>
   *
-  * Coordinate values are assumed to be in units of degrees.
+  * Coordinate values are assumed to be in units of radians.
   *
   * @par
   * The sweep structure supports O(log N + K) time retrieval of K boxes
@@ -233,15 +233,15 @@ public:
   * box with lowest maximum phi.
   *
   * @par
-  * As previously pointed out, a box B can wrap across the 0/360 degree
+  * As previously pointed out, a box B can wrap across the 0/2*M_PI radian
   * theta discontinuity. This situation is handled by inserting twin nodes
   * for each box: one for the theta interval <tt> [0.0, max] </tt> and
-  * another for <tt> [min, 360.0] </tt>.
+  * another for <tt> [min, 2*M_PI] </tt>.
   *
   * @par
   * Since a box may be represented by more than one node in the underlying
   * tree, and because a theta search interval can itself wrap across
-  * the 0/360 degree discontinuity, care must be taken to avoid reporting
+  * the 0/2*M_PI radian discontinuity, care must be taken to avoid reporting
   * a box more than once during a search. This is accomplished by storing a
   * pointer to a (possibly null) "twin" node in each node, along with an
   * integer identifier for the search call that last reported the associated

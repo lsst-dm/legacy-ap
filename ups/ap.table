@@ -1,18 +1,18 @@
 setupRequired(boost >= 1.37.0)
-setupRequired(daf_base >= 3.2.12)
+setupRequired(daf_base >= 3.2.14)
 setupRequired(mysqlclient >= 5.0.45+2)
 setupRequired(pex_exceptions >= 3.2.2)
 setupRequired(pex_logging >= 3.4.1)
-setupRequired(pex_policy >= 3.5)
+setupRequired(pex_policy >= 3.5.2)
 setupRequired(daf_persistence >= 4.1.0.0)
 setupRequired(utils >= 3.4.6)
-setupRequired(afw >= 4.1.0.0)
+setupRequired(afw) # waiting on trunk tag
 setupRequired(geom >= 4.1.0.0)
 setupRequired(skypix >= 3.0.3)
 
 setupOptional(doxygen >= 1.5.9)
 setupOptional(swig >= 1.3.36+2)
-setupOptional(pex_harness >= 3.6.5)
+setupOptional(pex_harness >= 4.1.0.0)
 
 envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
 envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)

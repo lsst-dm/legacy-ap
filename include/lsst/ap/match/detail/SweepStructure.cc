@@ -33,6 +33,7 @@
 
 #include "SweepStructure.h"
 
+#include <math.h>
 #include <climits>
 #include <algorithm>
 
@@ -424,7 +425,7 @@ void SphericalSweep<Region>::search(OtherRegion *r,
     lsst::ap::util::thetaRangeReduce(min, max);
     if (min > max) {
         _search(r, f, 0.0, max);
-        max = 360.0;
+        max = 2*M_PI;
     }
     _search(r, f, min, max);
     ++_searchId;

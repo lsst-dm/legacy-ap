@@ -311,7 +311,9 @@ int const CsvReader::DEFAULT_CAPACITY = 128*1024;
 
 /** Creates a new CsvReader for a file and reads the first record.
   */
-CsvReader::CsvReader(std::string const &path, CsvDialect const &dialect) :
+CsvReader::CsvReader(std::string const &path,
+                     CsvDialect const &dialect,
+                     bool namesFromFirstRecord) :
     _path(path),
     _dialect(dialect),
     _names(),
@@ -331,6 +333,14 @@ CsvReader::CsvReader(std::string const &path, CsvDialect const &dialect) :
     }
     // exception mask for _stream is clear
     _readRecord();
+    if (namesFromFirstRecord && !isDone()) {
+        vector<string> names;
+        for (int i = 0; i < getNumFields(); ++i) {
+            names.push_back(get(i));
+        }
+        setFieldNames(names);
+        _readRecord();
+    }
 }
 
 /** Creates a new CsvReader from an std::istream and reads the first record.
@@ -340,7 +350,9 @@ CsvReader::CsvReader(std::string const &path, CsvDialect const &dialect) :
   * mask is changed, or external reads are performed from it) then the
   * behaviour of the reader is undefined.
   */
-CsvReader::CsvReader(std::istream &in, CsvDialect const &dialect) :
+CsvReader::CsvReader(std::istream &in,
+                     CsvDialect const &dialect,
+                     bool namesFromFirstRecord) :
     _path(),
     _dialect(dialect),
     _names(),
@@ -361,6 +373,14 @@ CsvReader::CsvReader(std::istream &in, CsvDialect const &dialect) :
     // clear exception mask
     in.exceptions(ios::goodbit);
     _readRecord();
+    if (namesFromFirstRecord && !isDone()) {
+        vector<string> names;
+        for (int i = 0; i < getNumFields(); ++i) {
+            names.push_back(get(i));
+        }
+        setFieldNames(names);
+        _readRecord();
+    }
 }
 
 CsvReader::~CsvReader() {

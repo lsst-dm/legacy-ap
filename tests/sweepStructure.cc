@@ -37,7 +37,7 @@
 #include "lsst/afw/math/Random.h"
 
 #include "lsst/ap/match/detail/SweepStructure.h"
-
+#include "lsst/ap/util/SpatialUtils.h"
 
 using std::min;
 using std::max;
@@ -51,7 +51,6 @@ using lsst::afw::math::Random;
 using lsst::ap::match::BBox;
 using lsst::ap::match::detail::SphericalSweep;
 using lsst::ap::match::detail::CartesianSweep;
-
 
 /** Test region - a simple rectangle.
   */
@@ -158,6 +157,9 @@ namespace lsst { namespace ap { namespace match { namespace detail {
 /// @endcond
 
 
+static double const SCALE = 0.01;
+
+
 template <typename Sweep>
 void sweepTest() {
     static unsigned int const NBOXES = 100;
@@ -168,7 +170,8 @@ void sweepTest() {
 
     // create test boxes
     for (unsigned int i = 0; i < NBOXES; ++i) {
-        boxes.push_back(Box(i, i + 1.1, i, i + 1.0, i));
+        boxes.push_back(Box(i*SCALE, (i + 1.1)*SCALE,
+                            i*SCALE, (i + 1.0)*SCALE, i));
     }
 
     for (unsigned int test = 0; test < 20; ++test) {
@@ -210,7 +213,7 @@ void sweepTest() {
         }
         for (unsigned int i = 0; i < NBOXES; ++i) {
             c.expect(i);
-            sweep.advance(boxes[i].getMaxCoord1() + 0.1, c);
+            sweep.advance(boxes[i].getMaxCoord1() + 0.1*SCALE, c);
             BOOST_CHECK(sweep.isValid());
             BOOST_CHECK(c.empty());
             c.clear();
@@ -308,7 +311,7 @@ void permutation(unsigned int n, unsigned int pi, unsigned int pr, vector<Box> &
         pr /= i;
         unsigned int c1 = removes[which];
         removes.erase(removes.begin() + which);
-        v.push_back(Box(c0, c0 + 1, c1, c1 + 1, i));
+        v.push_back(Box(c0*SCALE, (c0 + 1)*SCALE, c1*SCALE, (c1 + 1)*SCALE, i));
     }
 }
 
@@ -332,7 +335,7 @@ void sweepCornerCasesTest(unsigned int maxNodes) {
     // 4. test search that should not return anything
     sweep.insert(&b1);
     sweep.search(&b2, c);
-    // 5. test all possible tree arrangements with 1-6 nodes
+    // 5. test all possible tree arrangements with 1 to maxNodes nodes
     for (unsigned int n = 1; n <= maxNodes; ++n) {
         for (unsigned int pi = 0; pi < FACTORIAL[n]; ++pi) {
             for (unsigned int pr = 0; pr < FACTORIAL[n]; ++pr) {
@@ -343,7 +346,7 @@ void sweepCornerCasesTest(unsigned int maxNodes) {
                     BOOST_CHECK(sweep.isValid());
                 }
                 for (unsigned int i = 0; i < n; ++i) {
-                    sweep.advance(i + 1.1, nc);
+                    sweep.advance((i + 1.1)*SCALE, nc);
                     BOOST_CHECK(sweep.isValid());
                 }
                 BOOST_CHECK(sweep.empty());
@@ -380,15 +383,15 @@ BOOST_AUTO_TEST_CASE(sphericalSweepCornerCases) {
 // Sweep structures over the sphere have additional subtleties
 
 BOOST_AUTO_TEST_CASE(sphericalWrap) {
-    Box search1(0.0, 20.0, 0.0, 0.0, 0);
-    Box search2(340.0, 359.9999, 0.0, 0.0, 0);
-    Box searchWrap(-20.0, 20.0, 0.0, 0.0, 0);
-    Box b1(350.0, 10.0, 0.0, 1.0, 0);
-    Box b2(350.0, 370.0, 0.0, 1.0, 1);
-    Box b3(-10.0, 10.0, 0.0, 1.0, 2);
-    Box b4(0.0, 5.0, 1.0, 2.0, 3);
-    Box b5(355.0, 359.9999, 2.0, 3.0, 4);
-    Box b6(180.0, 181.0, 2.0, 3.0, 5);
+    Box search1(0.0, 0.5, 0.0, 0.0, 0);
+    Box search2(2.0*M_PI - 0.5, 2.0*M_PI - 1e-9, 0.0, 0.0, 0);
+    Box searchWrap(-0.5, 0.5, 0.0, 0.0, 0);
+    Box b1(2.0*M_PI - 0.1, 0.1, 0.0, 1.0, 0);
+    Box b2(2.0*M_PI - 0.1, 2*M_PI + 0.1, 0.0, 1.0, 1);
+    Box b3(-0.1, 0.1, 0.0, 1.0, 2);
+    Box b4(0.0, 0.05, 1.0, 2.0, 3);
+    Box b5(2.0*M_PI - 0.1, 2*M_PI - 1e-9, 2.0, 3.0, 4);
+    Box b6(M_PI, M_PI + 0.1, 2.0, 3.0, 5);
 
     // Test wrapping regions
     Callbacks c;
@@ -442,7 +445,7 @@ BOOST_AUTO_TEST_CASE(sphericalWrap) {
 
 BOOST_AUTO_TEST_CASE(sphericalSearchIdWrap) {
     // Test that search id wrapping is handled correctly
-    Box b(10.0, 20.0, 0.0, 0.0, 0);
+    Box b(1.0, 2.0, 0.0, 0.0, 0);
     Callbacks c;
     SphericalSweep<Box> sweep;
     sweep.insert(&b);

@@ -27,12 +27,12 @@
   */
 #ifndef LSST_AP_UTIL_EARTHPOSITION_H
 
-#include "lsst/afw/geom/Point.h"
+#include "Eigen/Core"
 #include "../Common.h"
 
 namespace lsst { namespace ap { namespace util {
 
-LSST_AP_API lsst::afw::geom::Point3D const earthPosition(double const epoch);
+LSST_AP_API Eigen::Vector3d const earthPosition(double const epoch);
 
 }}}
 

@@ -386,6 +386,14 @@ inline void CsvWriter::appendField(char v) {
     _write(s);
 }
 
+/** Raw write: the given string is written directly to the output stream
+  * without being run through the quoting/escaping process. This can be useful
+  * when repeatedly outputting the same records/fields.
+  */
+inline void CsvWriter::write(std::string const &s) {
+    _out->write(s.c_str(), s.size());
+}
+
 
 // -- STL-style output for CsvWriter ----
 

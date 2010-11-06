@@ -70,7 +70,7 @@ void SweepStructure<Node>::_insert(Node *i) {
     Node *n = _root;   // iterator
     double const maxCoord0 = i->maxCoord0;
     int dir = 0;
-    int lastDir;
+    int lastDir = 0;
     head.link[1] = n;
 
     while (true) {
@@ -316,7 +316,7 @@ double SweepStructure<Node>::_checkReach(Node const *n) {
 template <>
 void SweepStructure<CartesianNode>::_insert(BBox *b) {
     if (b != 0) {
-        _heap.reserve(1);
+        _heap.reserve(_heap.size() + 1);
         CartesianNode *n = new (_arena) CartesianNode(b);
         // after this point, no exception can be thrown
         _insert(n);
@@ -340,14 +340,14 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
     double max = b->getMaxCoord0();
     lsst::ap::util::thetaRangeReduce(min, max);
     if (min > max) {
-        // box wraps across the 0/360 longitude angle
+        // box wraps across the 0/2*M_PI longitude angle
         // discontinuity - insert twin nodes for [0, min] and
-        // [max, 360]
-        _heap.reserve(2);
+        // [max, 2*M_PI]
+        _heap.reserve(_heap.size() + 2);
         SphericalNode *n1 = new (_arena) SphericalNode(b, 0.0, max);
         SphericalNode *n2 = 0;
         try {
-            n2 = new (_arena) SphericalNode(b, min, 360.0);
+            n2 = new (_arena) SphericalNode(b, min, 2.0*M_PI);
         } catch (...) {
             // exception safety: if allocation for n2 fails, delete n1.
             _arena.dealloc(n1);
@@ -365,7 +365,7 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
         std::push_heap(_heap.begin(), _heap.end());
     } else {
         // box does not wrap - insert a single node.
-        _heap.reserve(1);
+        _heap.reserve(_heap.size() + 1);
         SphericalNode *n = new (_arena) SphericalNode(b, min, max);
         // after this point no exception can be thrown
         _insert(n);

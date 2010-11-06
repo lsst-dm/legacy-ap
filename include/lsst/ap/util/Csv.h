@@ -195,9 +195,11 @@ private:
 class CsvReader {
 public:
     CsvReader(std::string const &path,
-              CsvDialect const &dialect);
+              CsvDialect const &dialect,
+              bool namesFromFirstRecord=false);
     CsvReader(std::istream &in,
-              CsvDialect const &dialect);
+              CsvDialect const &dialect,
+              bool namesFromFirstRecord=false);
     ~CsvReader();
 
     inline bool isDone() const;
@@ -345,6 +347,9 @@ public:
     void appendField(long double v);
 
     void appendNull();
+
+    // raw write
+    inline void write(std::string const &v);
 
 private:
     // disable copy construction/assignment

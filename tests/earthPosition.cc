@@ -43,7 +43,6 @@ using std::sqrt;
 using std::vector;
 
 using lsst::afw::math::Random;
-using lsst::afw::geom::Point3D;
 using lsst::ap::Stopwatch;
 using lsst::ap::util::earthPosition;
 
@@ -54,11 +53,11 @@ BOOST_AUTO_TEST_CASE(compareToReference) {
     Random rng;
     vector<double> distKm;
     for (double days= -100.0*DJY; days <= 100.0*DJY; days += 10.0*rng.uniform()) {
-        Point3D p = earthPosition(DJM00 + days);
+        Eigen::Vector3d p = earthPosition(DJM00 + days);
         iauEpv00(DJ00, days, pvh, pvb);
-        BOOST_CHECK_CLOSE(pvb[0][0], p[0], 1.0e-7);
-        BOOST_CHECK_CLOSE(pvb[0][1], p[1], 1.0e-7);
-        BOOST_CHECK_CLOSE(pvb[0][2], p[2], 1.0e-7);
+        BOOST_CHECK_CLOSE(pvb[0][0], p.x(), 1.0e-7);
+        BOOST_CHECK_CLOSE(pvb[0][1], p.y(), 1.0e-7);
+        BOOST_CHECK_CLOSE(pvb[0][2], p.z(), 1.0e-7);
         double d0 = p[0] - pvb[0][0];
         double d1 = p[1] - pvb[0][1];
         double d2 = p[2] - pvb[0][2];
@@ -97,7 +96,7 @@ BOOST_AUTO_TEST_CASE(speed) {
         volatile double z = 0.0;
         int n = 0;
         for (double days= -100.0*DJY; days <= 100.0*DJY; days += 10.0, ++n) {
-            Point3D p = earthPosition(DJM00 + days);
+            Eigen::Vector3d p = earthPosition(DJM00 + days);
             x += p[0]; y += p[1]; z += p[2];
         }
         BOOST_TEST_MESSAGE("Computed " << n << " earth positions in " << watch);

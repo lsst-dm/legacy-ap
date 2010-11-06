@@ -28,7 +28,10 @@
 #ifndef LSST_AP_UTIL_SPATIALUTILS_H
 #define LSST_AP_UTIL_SPATIALUTILS_H
 
-#include "lsst/afw/geom/Point.h"
+#include <math.h>
+
+#include "Eigen/Core"
+#include "Eigen/Geometry"
 
 #include "../Common.h"
 
@@ -47,26 +50,46 @@ inline double radians(double const deg) {
     return deg*RADIANS_PER_DEGREE;
 }
 
-/** Clamps the given latitude/declination to [-90, 90].
+/** Clamps the given latitude/declination angle to <tt>[-M_PI/2, M_PI/2]</tt>.
   */
-inline double clampPhi(double const phi) {
-    return phi <= -90.0 ? -90.0 : (phi >= 90.0 ? 90.0 : phi);
+inline double clampPhi(double const a) {
+    return a <= -M_PI*0.5 ? -M_PI*0.5 : (a >= M_PI*0.5 ? M_PI*0.5 : a);
 }
 
 void thetaRangeReduce(double &min, double &max);
 
 double maxAlpha(double radius, double centerPhi);
 
-lsst::afw::geom::Point3D const starProperMotion(double ra,
-                                                double decl,
-                                                double muRa,
-                                                double muDecl,
-                                                double vRadial,
-                                                double parallax,
-                                                double fromEpoch,
-                                                double toEpoch);
+void positionAndVelocity(Eigen::Vector3d &p,
+                         Eigen::Vector3d &v,
+                         double ra,
+                         double decl,
+                         double muRa,
+                         double muDecl,
+                         double vRadial,
+                         double parallax);
 
-lsst::afw::geom::Point2D const cartesianToSpherical(lsst::afw::geom::Point3D const &v);
+Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
+
+/** Converts spherical coordinate <tt>(theta, phi)</tt> (rad) to a unit 3-vector.
+  */
+inline Eigen::Vector3d const sphericalToCartesian(double ra, double dec) {
+    double cosDec = std::cos(dec);
+    return Eigen::Vector3d(std::cos(ra)*cosDec,
+                           std::sin(ra)*cosDec,
+                           std::sin(dec));
+}
+
+/** Returns the angular separation (rad) between two 3-vectors of arbitrary
+  * magnitude.
+  */
+inline double angularSeparation(Eigen::Vector3d const &v1,
+                                Eigen::Vector3d const &v2) {
+    double ss = v1.cross(v2).norm();
+    double cs = v1.dot(v2);
+    return (ss != 0.0 || cs != 0.0) ? std::atan2(ss, cs) : 0.0;
+}
+
 
 }}} // namespace lsst::ap::util
 
