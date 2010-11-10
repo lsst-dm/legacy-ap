@@ -1,0 +1,19 @@
+# -*- python -*-
+import re
+Import("env")
+
+pkg = env["eups_product"]
+# CheckSwig() overwrites SWIGFLAGS completely, so save it's value before proceding
+swigflags = ""
+try:
+    swigflags = env['SWIGFLAGS']
+except:
+    pass
+
+env.CheckSwig("python", ilang="c++", includedProducts="base utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data afw")
+# Append app specific SWIG flags to the environment
+env.Append(SWIGFLAGS = swigflags)
+env.LoadableModuleIncomplete("_utilsLib", Split("utilsLib.i"),
+                             CCFLAGS=re.sub("-Wall", "", " ".join(env['CCFLAGS'])),
+                             LIBS=env.getlibs(pkg))
+
