@@ -38,7 +38,7 @@ import lsst.geom as geom
 import lsst.skypix.quadsphere as qs
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
-import lsst.ap.cluster as apCluster
+import lsst.ap.utils as apUtils
 
 def getAllSipWcs(cursor, qsp, kind):
     """Constructs a Wcs object from each entry in the Science_Ccd_Exposure
@@ -169,7 +169,7 @@ def processSkyTile(wcsMap, outputDir, kind, skyTile, qsp, res, step):
         return
     covMaps = []
     for i in xrange(6):
-        covMap, tileWcs = apCluster.utils.createImageCoveringSkyTile(
+        covMap, tileWcs = apUtils.createImageCoveringSkyTile(
             qsp, skyTile, res, afwImage.DecoratedImageF)
         covMaps.append(covMap)
     if kind == 'imsim':
@@ -178,8 +178,8 @@ def processSkyTile(wcsMap, outputDir, kind, skyTile, qsp, res, step):
         width, height = 2048, 4610
     for wcs, filter in wcsMap[skyTile]:
         assert filter >= 0 and filter < 6
-        apCluster.updateCoverageMap(covMaps[filter].getImage(), tileWcs,
-                                    wcs, width, height, step)
+        apUtils.updateCoverageMap(covMaps[filter].getImage(), tileWcs,
+                                  wcs, width, height, step)
     persistCovMaps(covMaps, os.path.join(outputDir, "st%d" % skyTile))
 
 def processRun(wcsList, outputDir, kind, bc, res):
@@ -203,8 +203,8 @@ def processRun(wcsList, outputDir, kind, bc, res):
         width, height = 2048, 4610
     for wcs, filter in wcsList:
         assert filter >= 0 and filter < 6
-        apCluster.updateCoverageMap(covMaps[filter].getImage(), runWcs,
-                                    wcs, width, height, 0)
+        apUtils.updateCoverageMap(covMaps[filter].getImage(), runWcs,
+                                  wcs, width, height, 0)
     persistCovMaps(covMaps, outputDir)
 
 def hostPort(sv):
