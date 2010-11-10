@@ -28,7 +28,7 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#include "lsst/ap/cluster/PT1SkyTile.h"
+#include "lsst/ap/utils/PT1SkyTile.h"
 
 #include <cmath>
 
@@ -37,7 +37,7 @@
 
 namespace except = lsst::pex::exceptions;
 
-namespace lsst { namespace ap { namespace cluster {
+namespace lsst { namespace ap { namespace utils {
 
 /** Creates a new sky-tile.
   *
@@ -135,4 +135,4 @@ void PT1SkyTile::prune(lsst::afw::detection::SourceSet & sources) const {
     }
 }
 
-}}} // namespace lsst:ap::cluster
+}}} // namespace lsst:ap::utils

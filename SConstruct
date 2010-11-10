@@ -175,6 +175,7 @@ if not env.CleanFlagIsSet():
 # Build/install things
 directories = ["bin",
                "lib",
+               "python/lsst/" + pkg + "/utils",
                "python/lsst/" + pkg + "/cluster",
                "python/lsst/" + pkg + "/match",
                "tests",

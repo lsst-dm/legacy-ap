@@ -23,5 +23,4 @@
 from clusterLib import *
 from sourceClusteringStage import SourceClusteringParallel, SourceClusteringStage
 from sourceClusterAttributesStage import SourceClusterAttributesParallel, SourceClusterAttributesStage
-from utils import findWcsCoveringSkyTile, createImageCoveringSkyTile
 

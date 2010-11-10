@@ -28,7 +28,7 @@ import lsst.utils.tests as utilsTests
 import lsst.afw.detection as detection
 import lsst.geom as geom
 import lsst.skypix as skypix
-import lsst.ap.cluster as cluster
+import lsst.ap.utils as utils
 
 class SkyTileTestCase(unittest.TestCase):
     """Tests the PT1 sky-tile class.
@@ -47,7 +47,7 @@ class SkyTileTestCase(unittest.TestCase):
         qs = skypix.QuadSpherePixelization(res, 0.0)
         root, x, y = 1, 1, 1
         skyTileId = qs.id(root, x, y)
-        skyTile = cluster.PT1SkyTile(res, root, x, y, skyTileId)
+        skyTile = utils.PT1SkyTile(res, root, x, y, skyTileId)
         total = len(ss)
         skyTile.prune(ss)
         numRemaining = len(ss)
@@ -62,7 +62,7 @@ class SkyTileTestCase(unittest.TestCase):
         ss = detection.SourceSet()
         for skyTileId in coarseQs:
             root, cx, cy = coarseQs.coords(skyTileId)
-            skyTile = cluster.PT1SkyTile(coarseRes, root, cx, cy, skyTileId)
+            skyTile = utils.PT1SkyTile(coarseRes, root, cx, cy, skyTileId)
             expectedRemaining = 0
             for cid in coarseQs:
                 root2, cx2, cy2 = coarseQs.coords(cid)

@@ -23,12 +23,12 @@
  */
  
 /** @file
-  * @brief Utility method implementations.
+  * @brief Image utility method implementations.
   *
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#include "lsst/ap/cluster/Utils.h"
+#include "lsst/ap/utils/ImageUtils.h"
 
 #include <algorithm>
 #include <limits>
@@ -44,7 +44,7 @@ namespace geom = lsst::afw::geom;
 namespace image = lsst::afw::image;
 
 
-namespace lsst { namespace ap { namespace cluster {
+namespace lsst { namespace ap { namespace utils {
 
 namespace {
 
@@ -557,5 +557,5 @@ LSST_AP_API void updateCoverageMap(
     rasterizePolygon(v, covMap);
 }
 
-}}} // namespace lsst::ap::cluster
+}}} // namespace lsst::ap::utils
 

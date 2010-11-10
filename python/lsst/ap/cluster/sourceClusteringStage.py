@@ -29,7 +29,9 @@ import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.skypix as skypix
-import clusterLib, utils 
+import lsst.ap.utils as apUtils
+
+import clusterLib
 
 from lsst.pex.logging import Log
 
@@ -74,7 +76,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
             if not isinstance(skyTileId, (int, long)):
                 raise TypeError("Sky-tile id must be an integer")
         root, x, y = qs.coords(skyTileId);
-        skyTile = clusterLib.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
+        skyTile = apUtils.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
         clipboard.put(self.policy.getString("inputKeys.sources"), None)
         histogramRes = self.policy.getInt("debug.sourceHistogramResolution")
@@ -134,9 +136,9 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                           outputBadSources)
             if self.policy.getBool("debug.createBadSourceHistogram"):
                 self.log.log(Log.INFO, "Creating bad source histogram")
-                hist, wcs = utils.createImageCoveringSkyTile(
+                hist, wcs = apUtils.createImageCoveringSkyTile(
                     qs, skyTileId, histogramRes)
-                clusterLib.makeSourceHistogram(
+                apUtils.makeSourceHistogram(
                     hist.getImage(), badSources, wcs, False)
                 clipboard.put(
                     self.policy.getString("outputKeys.badSourceHistogram"),
@@ -159,9 +161,9 @@ class SourceClusteringParallel(stage.ParallelProcessing):
 
             if self.policy.getBool("debug.createGoodSourceHistogram"):
                 self.log.log(Log.INFO, "Creating good source histogram")
-                hist, wcs = utils.createImageCoveringSkyTile(
+                hist, wcs = apUtils.createImageCoveringSkyTile(
                     qs, skyTileId, histogramRes) 
-                clusterLib.makeSourceHistogram(
+                apUtils.makeSourceHistogram(
                     hist.getImage(), prunedSources, wcs, False)
                 clipboard.put(
                     self.policy.getString("outputKeys.goodSourceHistogram"),

@@ -40,8 +40,12 @@ Access to association pipeline utilities.
 #include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
+#include "lsst/afw/detection.h"
+#include "lsst/afw/detection/Psf.h"
+#include "lsst/afw/detection/SourceMatch.h"
 #include "lsst/afw/image.h"
 #include "lsst/ap/utils/ImageUtils.h"
+#include "lsst/ap/utils/PT1SkyTile.h"
 %}
 
 namespace boost {
@@ -56,10 +60,14 @@ namespace boost {
 
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
+%import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/image/imageLib.i"
 
 %lsst_exceptions()
 
+SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::utils::PT1SkyTile);
+
 %import "lsst/ap/Common.h"
+%include "lsst/ap/utils/PT1SkyTile.h"
 %include "lsst/ap/utils/ImageUtils.h"
 

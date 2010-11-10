@@ -23,13 +23,13 @@
  */
  
 /** @file
-  * @brief Utility methods.
+  * @brief Image utility methods.
   *
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_UTILS_H
-#define LSST_AP_CLUSTER_UTILS_H
+#ifndef LSST_AP_UTILS_IMAGEUTILS_H
+#define LSST_AP_UTILS_IMAGEUTILS_H
 
 #include <vector>
 
@@ -41,7 +41,7 @@
 #include "../Common.h"
 
 
-namespace lsst { namespace ap { namespace cluster {
+namespace lsst { namespace ap { namespace utils {
 
 LSST_AP_API void makeSourceHistogram(
     lsst::afw::image::Image<unsigned short>::Ptr histogram,
@@ -61,6 +61,6 @@ LSST_AP_API void updateCoverageMap(
     int height,
     int step);
 
-}}} // namespace lsst:ap::cluster
+}}} // namespace lsst:ap::utils
 
-#endif // LSST_AP_CLUSTER_UTILS_H
+#endif // LSST_AP_UTILS_IMAGEUTILS_H

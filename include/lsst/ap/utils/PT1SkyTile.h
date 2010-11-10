@@ -28,15 +28,15 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_PT1SKYTILE_H
-#define LSST_AP_CLUSTER_PT1SKYTILE_H
+#ifndef LSST_AP_UTILS_PT1SKYTILE_H
+#define LSST_AP_UTILS_PT1SKYTILE_H
 
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
 
 
-namespace lsst { namespace ap { namespace cluster {
+namespace lsst { namespace ap { namespace utils {
 
 /** A PT1 sky-tile is a single pixel obtained from the quadrilateralized
   * spherical cube. Post-PT1, this code will be generalized and moved
@@ -64,4 +64,4 @@ private:
 
 }}} // namespace lsst:ap::cluster
 
-#endif // LSST_AP_CLUSTER_PT1SKYTILE_H
+#endif // LSST_AP_UTILS_PT1SKYTILE_H

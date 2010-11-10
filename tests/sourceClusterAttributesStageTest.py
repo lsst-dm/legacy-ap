@@ -38,7 +38,6 @@ class SourceClusterAttributesStageTestCase(unittest.TestCase):
     """
     def setUp(self):
         self.sourceClusters = []
-        #TODO
 
     def tearDown(self):
         del self.sourceClusters
