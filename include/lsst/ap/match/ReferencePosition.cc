@@ -25,8 +25,8 @@
 /** @file
   * @brief  ReferencePosition inline function implementations.
   */
-#ifndef LSST_AP_UTIL_REFERENCEPOSITION_CC
-#define LSST_AP_UTIL_REFERENCEPOSITION_CC
+#ifndef LSST_AP_MATCH_REFERENCEPOSITION_CC
+#define LSST_AP_MATCH_REFERENCEPOSITION_CC
 
 #include "ReferencePosition.h"
 
@@ -120,4 +120,4 @@ inline Eigen::Vector3d const ReferencePosition::getPosition(double epoch) const 
 
 }}} // namespace lsst::ap::match
 
-#endif // LSST_AP_UTIL_REFERENCEPOSITION_CC
+#endif // LSST_AP_MATCH_REFERENCEPOSITION_CC

@@ -196,10 +196,10 @@ class CsvReader {
 public:
     CsvReader(std::string const &path,
               CsvDialect const &dialect,
-              bool namesFromFirstRecord=false);
+              bool namesInFirstRecord=false);
     CsvReader(std::istream &in,
               CsvDialect const &dialect,
-              bool namesFromFirstRecord=false);
+              bool namesInFirstRecord=false);
     ~CsvReader();
 
     inline bool isDone() const;

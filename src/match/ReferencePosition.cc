@@ -55,10 +55,10 @@ void ReferencePosition::clearMotion() {
   */
 void ReferencePosition::setMotion(
     double muRa,      ///< Rate of change of RA (true or coordinate angle),
-                      ///  milliarcsec/yr
-    double muDecl,    ///< Declination rate of change, milliarcsec/yr
-    double parallax,  ///< Parallax, arcsec
-    double vRadial,   ///< Radial velocity, km/s
+                      ///  rad/day
+    double muDecl,    ///< Declination rate of change, rad/day 
+    double parallax,  ///< Parallax, rad
+    double vRadial,   ///< Radial velocity, AU/day
     bool trueAngle,   ///< Is muRa dRA/dt*cos(decl) (@c true)
                       ///  or dRA/dt (@c false)?
     bool ssbToGeo     ///< Apply SSB to geocentric corrections in
@@ -72,9 +72,6 @@ void ReferencePosition::setMotion(
     if (trueAngle) {
         muRa = (cd == 0.0) ? 0.0 : muRa/cd;
     }
-    // milli-arcsec/yr to rad/day
-    muRa *= RADIANS_PER_DEGREE/(DAYS_PER_JY*3600.0*1000.0);
-    muDecl *= RADIANS_PER_DEGREE/(DAYS_PER_JY*3600.0*1000.0);
     // if parallax is tiny, treat this as a position on the celestial sphere
     if (parallax < MIN_PARALLAX) {
         _p.x() = cd*cr;
@@ -87,10 +84,6 @@ void ReferencePosition::setMotion(
         _flags = MOVING;
         return;
     }
-    // arcsec to rad
-    parallax *= RADIANS_PER_ARCSEC;
-    // km/s to AU/day
-    vRadial *= (SEC_PER_JD*1000.0)/METERS_PER_AU;
     double r = 1.0/parallax;
     double s = r*cd;
     double t = r*sd*muDecl;
@@ -131,11 +124,11 @@ void ReferencePosition::setTimeRange(double epoch1, double epoch2) {
 
 
 double ReferencePosition::getMinCoord0() const {
-    return _minDecl;
+    return _minRa;
 }
 
 double ReferencePosition::getMaxCoord0() const {
-    return _maxDecl;
+    return _maxRa;
 }
 
 double ReferencePosition::getMinCoord1() const {

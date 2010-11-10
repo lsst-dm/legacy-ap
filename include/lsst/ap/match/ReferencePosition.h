@@ -25,8 +25,8 @@
 /** @file
   * @brief  Class for simulated reference catalog positions.
   */
-#ifndef LSST_AP_UTIL_REFERENCEPOSITION_H
-#define LSST_AP_UTIL_REFERENCEPOSITION_H
+#ifndef LSST_AP_MATCH_REFERENCEPOSITION_H
+#define LSST_AP_MATCH_REFERENCEPOSITION_H
 
 #include "Eigen/Core"
 
@@ -86,22 +86,23 @@ public:
     virtual double getMaxCoord1() const; 
 
 private:
-    Eigen::Vector2d _sc;     ///< (ra, decl) at _epoch, ICRS rad
+    Eigen::Vector2d _sc; ///< (ra, decl) at _epoch, ICRS rad
     int64_t _id;
-    double _epoch;           ///< epoch of reference position, MJD
-    Eigen::Vector3d _p;      ///< (x, y, z) at _epoch
-    Eigen::Vector3d _v;      ///< (dx/dt, dy/dt, dz/dt)
-    double _parallax;        ///< parallax, rad
+    double _epoch;       ///< epoch of reference position, MJD
+    Eigen::Vector3d _p;  ///< (x, y, z) at _epoch
+    Eigen::Vector3d _v;  ///< (dx/dt, dy/dt, dz/dt)
+    double _parallax;    ///< parallax, rad
+    // BBox coordinates
     double _minDecl;
     double _maxDecl;
     double _minRa;
     double _maxRa; 
-    int _flags;
+    int _flags;          ///< Bit-wise OR of Flags
 };
 
 }}} // namespace lsst::ap::match
 
 #include "ReferencePosition.cc"
 
-#endif // LSST_AP_UTIL_REFERENCEPOSITION_H
+#endif // LSST_AP_MATCH_REFERENCEPOSITION_H
 

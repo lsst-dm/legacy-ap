@@ -72,7 +72,13 @@ inline CartesianNode::CartesianNode(BBox *b) :
     link[1] = 0;
 }
 
-inline CartesianNode::~CartesianNode() { }
+inline CartesianNode::~CartesianNode() {
+#ifndef NDEBUG
+    link[0] = 0;
+    link[1] = 0;
+    bbox = 0;
+#endif
+}
 
 /** Orders tree nodes by minimum coordinate-0 (x) value, using
   * the addresses of embedded BBox instances to break ties.
@@ -129,6 +135,12 @@ inline SphericalNode::~SphericalNode() {
     if (twin != 0) {
         twin->twin = 0;
     }
+#ifndef NDEBUG
+    link[0] = 0;
+    link[1] = 0;
+    bbox = 0;
+    twin = 0;
+#endif
 }
 
 inline bool SphericalNode::markFound(unsigned int searchId) {
@@ -246,8 +258,7 @@ void CartesianSweep<Region>::advance(double to,
         _heap.pop_back();
         _remove(n);
         f(dynamic_cast<Region *>(n->bbox));
-        // CertesianNode destructor does nothing of interest
-        _arena.dealloc(n);
+        _arena.destroy(n);
     }
 }
 
@@ -266,7 +277,7 @@ void CartesianSweep<Region>::clear(RegionProcessor &f) {
     for (Iter i = _heap.begin(), e = _heap.end(); i != e; ++i) {
         CartesianNode *n = i->second;
         f(dynamic_cast<Region *>(n->bbox));
-        _arena.dealloc(n);
+        _arena.destroy(n);
     }
     _heap.clear();
     _root = 0;
@@ -366,8 +377,7 @@ void SphericalSweep<Region>::advance(double to,
             // this avoids double invoking on the same region.
             f(dynamic_cast<Region *>(n->bbox));
         }
-        n->~SphericalNode();
-        _arena.dealloc(n);
+        _arena.destroy(n);
     }
 }
 
@@ -392,8 +402,7 @@ void SphericalSweep<Region>::clear(RegionProcessor &f) {
             // this avoids double invoking on the same region.
             f(dynamic_cast<Region *>(n->bbox));
         }
-        n->~SphericalNode();
-        _arena.dealloc(n);
+        _arena.destroy(n);
     }
     _heap.clear();
     _root = 0;

@@ -1,0 +1,97 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.match
+
+definitions: {
+
+    # Table statistics
+    minEpoch: {
+        type: double
+        description: "Minimum epoch of positions, MJD."
+        default: 51544.5 # J2000.0 MJD
+        maxOccurs: 1
+    }
+    maxEpoch: {
+        type: double
+        description: "Maximum epoch of positions, MJD."
+        default: 51544.5 # J2000.0 MJD
+        maxOccurs: 1
+    }
+
+    # Field name and output options
+    fieldNames: {
+        type: string
+        description: "An array of field names for the position table. If
+                      unspecified, field names for the position table are
+                      obtained from the first table record."
+        minOccurs: 0
+    }
+    outputFields: {
+        type: string
+        description: "An array of names identifying the position
+                      table fields to output when matching. A single
+                      value equal to '*' will cause all position table
+                      columns to be output."
+        minOccurs: 0
+    }
+
+    # Position related column names and configuration parameters
+    idColumn: {
+        description: "Name of the unique id column for position
+                      table entries."
+        default: "objectId"
+        maxOccurs: 1
+    }
+    epochColumn: {
+        description: "Name of the epoch column for positions. If
+                      omitted, empty, or set to a negative integer, the epoch
+                      column is assumed not to exist, and position table
+                      entries will have their epochs set to the 'epoch' policy
+                      parameter value when read in. NULL epoch values will
+                      also be replaced by the value of the 'epoch'."
+        maxOccurs: 1
+    }
+    epoch: {
+        type: double
+        description: "Epoch to assign to positions if the position table
+                      has no epoch column or contains NULL epoch values.
+                      Units are MJD. The default is J2000.0."
+        default: 51544.5 # J2000.0 MJD
+        maxOccurs: 1
+    }
+    raColumn: {
+        description: "Name of the ICRS right ascension column."
+        default: "ra"
+        maxOccurs: 1
+    }
+    raScale: {
+        type: double
+        description: "Scaling factor to apply to ra column on reading -
+                      must convert from catalog units to radians. By default,
+                      catalog units are assumed to be degrees."
+        default: 0.0174532925199432957692369076849 # rad/deg
+        maxOccurs: 1
+    }
+    declColumn: {
+        description: "Name of the ICRS declination column."
+        default: "decl"
+        maxOccurs: 1
+    }
+    declScale: {
+        type: double
+        description: "Scaling factor to apply to decl column on reading -
+                      must convert from catalog units to radians. By default,
+                      catalog units are assumed to be degrees."
+        default: 0.0174532925199432957692369076849 # rad/deg
+        maxOccurs: 1
+    }
+
+    # Format related options
+    csvDialect: {
+        type: policy
+        dictionary: @CsvDialectDictionary.paf
+        description: "CSV dialect of the position table."
+        maxOccurs: 1
+    }
+}
+

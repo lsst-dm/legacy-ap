@@ -173,7 +173,14 @@ if not env.CleanFlagIsSet():
 
 
 # Build/install things
-for d in Split("bin lib python/lsst/" + pkg + "/cluster tests doc"):
+directories = ["bin",
+               "lib",
+               "python/lsst/" + pkg + "/cluster",
+               "python/lsst/" + pkg + "/match",
+               "tests",
+               "doc"]
+
+for d in directories:
     try:
         SConscript(os.path.join(d, "SConscript"))
     except Exception, e:

@@ -1,0 +1,29 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.match
+
+definitions: {
+    radius: {
+        type: double
+        description: "Match radius, arcsec."
+        default: 2.0
+        maxOccurs: 1
+    }
+    parallaxThresh: {
+        type: double
+        description: "Parallax threshold (milliarcsec). A reduction for
+                      parallax from barycentric to geocentric place is applied
+                      when matching reference catalog entries with parallax
+                      above this threshold. Set this to a value greater than
+                      the 'maxParallax' for the reference catalog to disable
+                      the reduction."
+        default: 10.0
+    }
+    csvDialect: {
+        type: policy
+        dictionary: @CsvDialectDictionary.paf
+        description: "CSV dialect for match table output."
+        maxOccurs: 1
+    }
+}
+

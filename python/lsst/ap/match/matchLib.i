@@ -21,21 +21,42 @@
  * the GNU General Public License along with this program.  If not, 
  * see <http://www.lsstcorp.org/LegalNotices/>.
  */
+ 
+%define ap_match_DOCSTRING
+"
+Access to association pipeline matching functionality.
+"
+%enddef
 
-/** @file
-  * @brief  Utility function for computing barycentric earth coordinates.
-  * @author Serge Monkewitz
-  */
-#ifndef LSST_AP_UTILS_EARTHPOSITION_H
-#define LSST_AP_UTILS_EARTHPOSITION_H
+%feature("autodoc", "1");
+%module(package="lsst.ap.match", docstring=ap_match_DOCSTRING) matchLib
 
-#include "Eigen/Core"
-#include "../Common.h"
+// Suppress swig complaints
+#pragma SWIG nowarn=314                 // print is a python keyword (--> _print)
+#pragma SWIG nowarn=362                 // operator=  ignored
 
-namespace lsst { namespace ap { namespace utils {
+%{
+// #include "lsst/tr1/unordered_map.h"
+#include "lsst/daf/base.h"
+#include "lsst/pex/policy.h"
+#include "lsst/ap/match/ReferenceMatch.h"
+%}
 
-LSST_AP_API Eigen::Vector3d const earthPosition(double const epoch);
+namespace boost {
+#if defined(SWIGWORDSIZE64)
+    typedef long int64_t;
+#else
+    typedef long long int64_t;
+#endif
+}
 
-}}} // namespace lsst::ap::utils
+%include "lsst/p_lsstSwig.i"
 
-#endif // LSST_AP_UTILS_EARTHPOSITION_H
+%import "lsst/daf/base/baseLib.i"
+%import "lsst/pex/policy/policyLib.i"
+
+%lsst_exceptions()
+
+%import "lsst/ap/Common.h"
+%include "lsst/ap/match/ReferenceMatch.h"
+

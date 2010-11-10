@@ -43,6 +43,7 @@ Access to association pipeline clustering functions.
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection.h"
 #include "lsst/afw/detection/Psf.h"
+#include "lsst/afw/detection/SourceMatch.h"
 #include "lsst/ap/cluster/PT1SkyTile.h"
 #include "lsst/ap/cluster/SourceCluster.h"
 #include "lsst/ap/cluster/Utils.h"

@@ -24,6 +24,7 @@
 
 /** @file
   * @brief  Spatial utility functions.
+  * @author Serge Monkewitz
   */
 #ifndef LSST_AP_UTILS_SPATIALUTILS_H
 #define LSST_AP_UTILS_SPATIALUTILS_H
@@ -50,7 +51,7 @@ inline double radians(double const deg) {
     return deg*RADIANS_PER_DEGREE;
 }
 
-/** Clamps the given latitude/declination angle to <tt>[-M_PI/2, M_PI/2]</tt>.
+/** Clamps the given latitude/declination to <tt>[-M_PI/2, M_PI/2]</tt>.
   */
 inline double clampPhi(double const a) {
     return a <= -M_PI*0.5 ? -M_PI*0.5 : (a >= M_PI*0.5 ? M_PI*0.5 : a);
@@ -94,3 +95,4 @@ inline double angularSeparation(Eigen::Vector3d const &v1,
 }}} // namespace lsst::ap::utils
 
 #endif // LSST_AP_UTILS_SPATIALUTILS_H
+

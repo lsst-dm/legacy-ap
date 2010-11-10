@@ -1,0 +1,178 @@
+#<?cfg paf dictionary ?>
+
+target: lsst.ap.match
+
+definitions: {
+
+    # Catalog statistics
+    maxParallax: {
+        type: double
+        description: "Maximum parallax of any reference catalog entry.
+                      Should be set to 0.0 if parallax isn't available
+                      in the reference catalog. The parameter value must
+                      be in milliarcsec."
+        # SELECT MAX(parallax) FROM SimRefStar_11032010;
+        default: 41.1
+        maxOccurs: 1
+    }
+    maxAngularVelocity: {
+        type: double
+        description: "Maximum angular velocity of any reference catalog entry.
+                      Should be set to 0.0 if proper motions are not available
+                      in the reference catalog. Units must be milliarcsec per
+                      year."
+        # SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar_11032010;
+        default: 642.4
+        maxOccurs: 1
+    }
+
+    # Field name and output options
+    fieldNames: {
+        type: string
+        description: "An array of field names for the reference catalog. If
+                      unspecified, field names for the reference catalog are
+                      obtained from the first catalog record."
+        minOccurs: 0
+    }
+    outputFields: {
+        type: string
+        description: "An array of names identifying the reference
+                      catalog fields to output when matching/filtering. A
+                      single value equal to '*' will cause all reference
+                      catalog columns to be output."
+        minOccurs: 0
+    }
+
+    # Position related column names and configuration parameters
+    idColumn: {
+        type: string
+        description: "Name of the unique id column for reference objects."
+        default: "refObjectId"
+        maxOccurs: 1
+    }
+    epochColumn: {
+        type: string
+        description: "Name of the epoch column for reference objects.
+                      If omitted, empty, or set to a negative integer, the epoch
+                      column is assumed not to exist, and reference objects will
+                      have their epochs set to the 'epoch' policy parameter value
+                      when read in. NULL epoch values will also be replaced by
+                      the value of the 'epoch'."
+        maxOccurs: 1
+    }
+    epoch: {
+        type: double
+        description: "Epoch to assign to reference objects if the reference
+                      catalog has no epoch column or contains a NULL epoch
+                      value. Units are MJD. The default is J2000.0."
+        default: 51544.5 # J2000.0 MJD
+        maxOccurs: 1
+    }
+    raColumn: {
+        type: string
+        description: "Name of the ICRS right ascension column."
+        default: "ra"
+        maxOccurs: 1
+    }
+    raScale: {
+        type: double
+        description: "Scaling factor to apply to ra column on reading -
+                      must convert from catalog units to radians. By default,
+                      catalog units are assumed to be degrees."
+        default: 0.0174532925199432957692369076849 # rad/deg
+        maxOccurs: 1
+    }
+    declColumn: {
+        type: string
+        description: "Name of the ICRS declination column."
+        default: "decl"
+        maxOccurs: 1
+    }
+    declScale: {
+        type: double
+        description: "Scaling factor to apply to decl column on reading -
+                      must convert from catalog units to radians. By default,
+                      catalog units are assumed to be degrees."
+        default: 0.0174532925199432957692369076849 # rad/deg
+        maxOccurs: 1
+    }
+
+    muRaColumn: {
+        type: string
+        description: "Name of the right ascension proper motion column."
+        default: "muRa"
+        maxOccurs: 1
+    }
+    muRaScale: {
+        type: double
+        description: "Scaling factor to apply to muRa column on reading -
+                      must convert from catalog units to radians per Julian day.
+                      By default, catalog units are assumed to be milliarcsec
+                      per Julian year."
+        default: 1.32734751843815467101961424328e-11 # (rad/day)/(milliarcsec/yr)
+        maxOccurs: 1
+    }
+    muRaTrueAngle: {
+        type: bool
+        description: "True if the muRa column gives a true angular rate of
+                      change (muRa = dRA/dt*cos(decl)). False if it gives the 
+                      rate of change of the coordinate angle (muRa = dRA/dt)."
+        default: true
+        maxOccurs: 1
+    }
+
+    muDeclColumn: {
+        type: string
+        description: "Name of the declination proper motion column."
+        default: "muDecl"
+        maxOccurs: 1
+    }
+    muDeclScale: {
+        type: double
+        description: "Scaling factor to apply to muDecl column on reading -
+                      must convert from catalog units to radians per Julian day.
+                      By default, catalog units are assumed to be milliarcsec 
+                      per Julian year."
+        default: 1.32734751843815467101961424328e-11 # (rad/day)/(milliarcsec/yr)
+        maxOccurs: 1
+    }
+
+    parallaxColumn: {
+        type: string
+        default: "parallax"
+        description: "Name of the parallax column."
+        maxOccurs: 1
+    }
+    parallaxScale: {
+        type: double
+        description: "Scaling factor to apply to parallax column on reading -
+                      must convert from catalog units to radians. By default,
+                      catalog units are assumed to be milliarcsec."
+        default: 4.84813681109535993589914102357e-9 # rad/milliarcsec
+        maxOccurs: 1
+    }
+
+    vRadialColumn: {
+        type: string
+        default: "vRad"
+        description: "Name of the radial velocity column."
+        maxOccurs: 1
+    }
+    vRadialScale: {
+        type: double
+        description: "Scaling factor to apply to the vRadial column on reading -
+                      must convert from catalog units to AU per day. By default,
+                      catalog units are assumed to be km/s."
+        default: 0.000577548330066464181609002855455 # (AU/day)/(km/s)
+        maxOccurs: 1
+    }
+
+    # Format related options
+    csvDialect: {
+        type: policy
+        dictionary: @CsvDialectDictionary.paf
+        description: "CSV dialect of the reference catalog."
+        maxOccurs: 1
+    }
+}
+

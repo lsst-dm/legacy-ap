@@ -38,7 +38,15 @@ namespace lsst { namespace ap { namespace match { namespace detail {
 // -- SweepStructure implementation ---
 
 template <typename Node>
-SweepStructure<Node>::~SweepStructure() { }
+SweepStructure<Node>::~SweepStructure() {
+#ifndef NDEBUG
+    typedef typename std::vector<HeapEntry>::iterator Iter;
+    _root = 0;
+    for (Iter i = _heap.begin(), e = _heap.end(); i != e; ++i) {
+        i->second = 0;
+    }
+#endif
+}
 
 /** Checks whether or not the data structure is valid, i.e. if
   * its theoretical invariants hold in practice. To be used for
@@ -350,7 +358,7 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
             n2 = new (_arena) SphericalNode(b, min, 2.0*M_PI);
         } catch (...) {
             // exception safety: if allocation for n2 fails, delete n1.
-            _arena.dealloc(n1);
+            _arena.destroy(n1);
             throw;
         }
         // after this point no exception can be thrown

@@ -225,23 +225,29 @@ CsvDialect::CsvDialect(lsst::pex::policy::Policy::Ptr const &ptr) :
     }
     if (ptr->exists("escapeChar")) {
         string s = ptr->getString("escapeChar");
-        if (s.size() != 1) {
+        if (s.size() == 0) {
+            _escapeChar = '\0';
+        } else if (s.size() == 1) {
+            _escapeChar = s[0];
+        } else {
             throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                               "policy value for escapeChar property must be "
                               "a one character string");
         }
-        _escapeChar = s[0];
     }
     if (ptr->exists("quoteChar")) {
         string s = ptr->getString("quoteChar");
-        if (s.size() != 1) {
+        if (s.size() == 0) {
+            _quoteChar = '\0';
+        } else if (s.size() == 1) {
+            _quoteChar = s[0];
+        } else {
             throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                               "policy value for quoteChar property must be "
-                              "a one character string");
+                              "an empty or one character string");
         }
-        _quoteChar = s[0];
     }
-    if (_escapeChar != '\0' && ptr->exists("skipInitialSpace")) {
+    if (ptr->exists("skipInitialSpace")) {
         _skipInitialSpace = ptr->getBool("skipInitialSpace");
     }
     if (ptr->exists("doubleQuote")) {
@@ -311,9 +317,12 @@ int const CsvReader::DEFAULT_CAPACITY = 128*1024;
 
 /** Creates a new CsvReader for a file and reads the first record.
   */
-CsvReader::CsvReader(std::string const &path,
-                     CsvDialect const &dialect,
-                     bool namesFromFirstRecord) :
+CsvReader::CsvReader(
+    std::string const &path,   ///< Input file name
+    CsvDialect const &dialect, ///< CSV dialect of the input file
+    bool namesInFirstRecord    ///< Set field names to the strings in the
+                               ///  first record of the input file?
+   ) :
     _path(path),
     _dialect(dialect),
     _names(),
@@ -333,7 +342,7 @@ CsvReader::CsvReader(std::string const &path,
     }
     // exception mask for _stream is clear
     _readRecord();
-    if (namesFromFirstRecord && !isDone()) {
+    if (namesInFirstRecord && !isDone()) {
         vector<string> names;
         for (int i = 0; i < getNumFields(); ++i) {
             names.push_back(get(i));
@@ -350,9 +359,12 @@ CsvReader::CsvReader(std::string const &path,
   * mask is changed, or external reads are performed from it) then the
   * behaviour of the reader is undefined.
   */
-CsvReader::CsvReader(std::istream &in,
-                     CsvDialect const &dialect,
-                     bool namesFromFirstRecord) :
+CsvReader::CsvReader(
+    std::istream &in,           ///< Input stream
+    CsvDialect const &dialect,  ///< CSV dialect of the input stream
+    bool namesInFirstRecord     ///< Set field names to the strings in the
+                                ///  first record read from the input stream?
+   ) :
     _path(),
     _dialect(dialect),
     _names(),
@@ -373,7 +385,7 @@ CsvReader::CsvReader(std::istream &in,
     // clear exception mask
     in.exceptions(ios::goodbit);
     _readRecord();
-    if (namesFromFirstRecord && !isDone()) {
+    if (namesInFirstRecord && !isDone()) {
         vector<string> names;
         for (int i = 0; i < getNumFields(); ++i) {
             names.push_back(get(i));

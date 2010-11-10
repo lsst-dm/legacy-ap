@@ -45,8 +45,11 @@ namespace lsst { namespace ap { namespace utils {
 // -- CsvDialect inline members ----
 
 /** Returns the explicit database NULL representation, or an empty string
-  * if there is none (some dialects can still encode NULLs as the "\N"
-  * escape sequence when this is the case).
+  * if there is none. Note that an empty string is a valid NULL representation,
+  * so hasNull() should be called to determine whether or not a NULL
+  * representation has been specified. Note that dialects with escaping and
+  * standard escapes enabled can still represent a NULL (e.g. as "\N") when
+  * hasNull() returns false.
   */
 inline std::string const & CsvDialect::getNull() const {
     return _null;
