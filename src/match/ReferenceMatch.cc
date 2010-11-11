@@ -460,8 +460,7 @@ PosReader::PosReader(std::string const &path,
         vector<string> ofs = policy->getStringArray("outputFields");
         _writer.endRecord();
         _writer.appendNull();
-        _buf.seekg(0);
-        _buf.seekp(0);
+        _buf.str("");
         if (ofs.size() == 1 && ofs[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
             for (int i = 0; i < nFields; ++i) {
@@ -480,7 +479,7 @@ PosReader::PosReader(std::string const &path,
                 _writer.appendNull();
             }
         }
-        _buf >> _nullRecord;
+        _nullRecord = _buf.str();
     }
     // read first record
     _read();
@@ -534,13 +533,12 @@ void PosReader::_read() {
     if (!_columns.empty()) {
         _writer.endRecord();
         _writer.appendNull();
-        _buf.seekg(0);
-        _buf.seekp(0);
+        _buf.str("");
         _record.clear();
         for (Iter i = _columns.begin(), e = _columns.end(); i != e; ++i) {
             _writer.appendField(_reader->get<char const *>(*i));
         }
-        _buf >> _record;
+        _record = _buf.str();
     }
     _reader->nextRecord();
     // Create Pos object.
@@ -702,8 +700,7 @@ RefReader::RefReader(
         vector<string> ofs = policy->getStringArray("outputFields");
         _writer.endRecord();
         _writer.appendNull();
-        _buf.seekg(0);
-        _buf.seekp(0);
+        _buf.str("");
         if (ofs.size() == 1 && ofs[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
             for (int i = 0; i < nFields; ++i) {
@@ -722,7 +719,7 @@ RefReader::RefReader(
                 _writer.appendNull();
             }
         }
-        _buf >> _nullRecord;
+        _nullRecord = _buf.str();
     }
     // read first record
     _read();
@@ -774,13 +771,11 @@ void RefReader::_read() {
     if (!_columns.empty()) {
         _writer.endRecord();
         _writer.appendNull();
-        _buf.seekg(0);
-        _buf.seekp(0);
-        _record.clear();
+        _buf.str("");
         for (Iter i = _columns.begin(), e = _columns.end(); i != e; ++i) {
             _writer.appendField(_reader->get<char const *>(*i));
         }
-        _buf >> _record;
+        _record = _buf.str();
     }
     _heap.reserve(_heap.size() + 1);
     // create reference position
