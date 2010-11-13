@@ -7,14 +7,14 @@ definitions: {
     # Table statistics
     minEpoch: {
         type: double
-        description: "Minimum epoch of positions, MJD."
-        default: 51544.5 # J2000.0 MJD
+        description: "Minimum epoch of positions, MJD. If omitted, this
+                      value is computed by scanning the input table."
         maxOccurs: 1
     }
     maxEpoch: {
         type: double
-        description: "Maximum epoch of positions, MJD."
-        default: 51544.5 # J2000.0 MJD
+        description: "Maximum epoch of positions, MJD. If omitted, this
+                      value is computed by scanning the input table."
         maxOccurs: 1
     }
 
@@ -47,15 +47,14 @@ definitions: {
                       omitted, empty, or set to a negative integer, the epoch
                       column is assumed not to exist, and position table
                       entries will have their epochs set to the 'epoch' policy
-                      parameter value when read in. NULL epoch values will
-                      also be replaced by the value of the 'epoch'."
+                      parameter value when read in. NULL epoch values are
+                      illegal."
         maxOccurs: 1
     }
     epoch: {
         type: double
-        description: "Epoch to assign to positions if the position table
-                      has no epoch column or contains NULL epoch values.
-                      Units are MJD. The default is J2000.0."
+        description: "Epoch to assign to positions if the position table has
+                      no epoch column. Units are MJD. The default is J2000.0."
         default: 51544.5 # J2000.0 MJD
         maxOccurs: 1
     }

@@ -45,7 +45,7 @@ ReferencePosition::ReferencePosition(
     _id(id),
     _epoch(epoch),
     _p(lsst::ap::utils::sphericalToCartesian(ra, decl)),
-    _v(),
+    _v(Eigen::Vector3d::Zero()),
     _parallax(0.0),
     _minDecl(decl),
     _maxDecl(decl),
@@ -71,6 +71,13 @@ inline double ReferencePosition::getEpoch() const {
   */
 inline int ReferencePosition::getFlags() const {
    return _flags;
+}
+
+/** Returns the ICRS spherical coordinates (rad) of the reference position
+  * at epoch getEpoch().
+  */
+inline Eigen::Vector2d const & ReferencePosition::getSphericalCoords() const {
+    return _sc;
 }
 
 /** Returns the reference position at epoch getEpoch(). If the
@@ -106,14 +113,32 @@ inline Eigen::Vector3d const & ReferencePosition::getVelocity() const {
   * is @c true. Otherwise, the reference position is treated as infinitely
   * distant (i.e. the change of origin has no effect),
   */
-
 inline Eigen::Vector3d const ReferencePosition::getPosition(double epoch) const {
     if ((_flags & MOVING) == 0) {
         return _p;
     }
     Eigen::Vector3d p = _p + _v*(epoch - _epoch);
-    if ((_flags & SSB_TO_GEO) != 0) {
+    if ((_flags & PARALLAX_COR) != 0) {
         p -= lsst::ap::utils::earthPosition(epoch);
+    }
+    return p.normalized();
+}
+
+/** Returns the reference position at epoch @a epoch, with a change
+  * of origin.
+  *
+  * @sa getPosition(double) const
+  */
+inline Eigen::Vector3d const ReferencePosition::getPosition(
+    double epoch,
+    Eigen::Vector3d const &origin // barycentric coordinate of origin, AU
+) const {
+    if ((_flags & MOVING) == 0) {
+        return _p;
+    }
+    Eigen::Vector3d p = _p + _v*(epoch - _epoch);
+    if ((_flags & PARALLAX_COR) != 0) {
+        p -= origin;
     }
     return p.normalized();
 }

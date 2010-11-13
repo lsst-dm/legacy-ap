@@ -36,7 +36,8 @@
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
-#include "lsst/afw/utils/EarthPosition.h"
+#include "../utils/EarthPosition.h"
+#include "BBox.h"
 
 
 namespace lsst { namespace ap { namespace match {
@@ -52,8 +53,8 @@ namespace lsst { namespace ap { namespace match {
   */
 class ExposureInfo : public BBox {
 public:
-     typedef boost::shared_ptr<ImageInfo> Ptr;
-     typedef boost::shared_ptr<ImageInfo const> ConstPtr;
+     typedef boost::shared_ptr<ExposureInfo> Ptr;
+     typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
 
      ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
                   std::string const &idKey=std::string("scienceCcdExposureId"));
@@ -75,9 +76,15 @@ public:
        */
      inline double getExposureTime() const { return _expTime; }
 
+     /** Returns the ICRS coordinates of the image center (rad).
+       */
+     inline Eigen::Vector2d const & getCenter() const {
+         return _center;
+     }
+
      /** Returns the SSB coordinates of the earth at t = getEpoch().
        */
-     inline Eigen:::Vector3d const & getEarthPosition() const {
+     inline Eigen::Vector3d const & getEarthPosition() const {
          if (!_epValid) {
              _earthPos = lsst::ap::utils::earthPosition(_epoch);
              _epValid = true;
@@ -108,8 +115,23 @@ public:
      }
      ///@}
 
+     // BBox API
+     virtual double getMinCoord0() const;
+     virtual double getMaxCoord0() const;
+     virtual double getMinCoord1() const;
+     virtual double getMaxCoord1() const;
+
+#ifndef SWIG
+     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+#endif
+
 private:
-     Eigen::Vector3d _earthPos;
+     Eigen::Vector3d const _pixToSky(double x, double y) const;
+
+     Eigen::Vector2d _center;
+     double _radius;
+     double _alpha;
+     mutable Eigen::Vector3d _earthPos;
      int64_t _id;
      double _epoch;
      double _expTime;
@@ -119,9 +141,7 @@ private:
      lsst::afw::image::Wcs::Ptr _wcs;
      int _filterId;
      bool _canCalibrateFlux;
-     bool _epValid;
-
-     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+     mutable bool _epValid;
 };
 
 }}} // namespace lsst::ap::match

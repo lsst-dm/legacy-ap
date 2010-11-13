@@ -26,8 +26,9 @@
   * @brief  ImageInfo implementation
   * @author Serge Monkewitz
   */
-#include "lsst/ap/match/ImageInfo.h"
+#include "lsst/ap/match/ExposureInfo.h"
 
+#include <algorithm>
 #include <string>
 
 #include "boost/make_shared.hpp"
@@ -35,16 +36,24 @@
 #include "lsst/pex/exceptions.h"
 #include "lsst/daf/base/DateTime.h"
 
+#include "lsst/ap/utils/SpatialUtils.h"
+
+using std::max;
+
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::daf::base::DateTime;
+using lsst::ap::utils::cartesianToSpherical;
+using lsst::ap::utils::angularSeparation;
+using lsst::ap::utils::maxAlpha;
 
 
 namespace lsst { namespace ap { namespace match {
 
 ExposureInfo::ExposureInfo(
-    lsst::daf::base::PropertySet::Ptr metadata ///< FITS metadata for image
+    lsst::daf::base::PropertySet::Ptr metadata, ///< FITS metadata for image
     std::string const &idKey ///< Metadata key for unique integer image id
 ) :
+    _center(),
     _earthPos(),
     _id(metadata->getAsInt64(idKey)),
     _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
@@ -83,9 +92,43 @@ ExposureInfo::ExposureInfo(
         _fluxMag0Err = metadata->getAsDouble("FLUXMAG0ERR");
         _canCalibrateFlux = true;
     }
+    // compute image center and corners
+    Eigen::Vector3d c = _pixToSky(0.5*_extent.getX(), 0.5*_extent.getY());
+    Eigen::Vector3d llc = _pixToSky(-0.5, -0.5);
+    Eigen::Vector3d ulc = _pixToSky(-0.5, _extent.getY() - 0.5);
+    Eigen::Vector3d lrc = _pixToSky(_extent.getX() - 0.5, -0.5);
+    Eigen::Vector3d urc = _pixToSky(_extent.getX() - 0.5, _extent.getY() - 0.5);
+    // compute bounding box from bounding circle
+    _center = cartesianToSpherical(c);
+    _radius = angularSeparation(c, llc);
+    _radius = max(_radius, angularSeparation(c, ulc));
+    _radius = max(_radius, angularSeparation(c, lrc));
+    _radius = max(_radius, angularSeparation(c, urc));
+    _alpha = maxAlpha(_radius, _center.y());
 }
 
 ExposureInfo::~ExposureInfo() { }
+
+Eigen::Vector3d const ExposureInfo::_pixToSky(double x, double y) const {
+    return _wcs->pixelToSky(x, y)->toIcrs().getVector().asVector();
+}
+
+
+double ExposureInfo::getMinCoord0() const {
+    return _center.x() - _alpha;
+}
+
+double ExposureInfo::getMaxCoord0() const {
+    return _center.x() + _alpha;
+}
+
+double ExposureInfo::getMinCoord1() const {
+    return _center.y() - _radius;
+}
+
+double ExposureInfo::getMaxCoord1() const {
+    return _center.y() + _radius;
+}
 
 }}} // namespace lsst::ap::match
 

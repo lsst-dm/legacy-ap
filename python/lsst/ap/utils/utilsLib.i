@@ -44,7 +44,6 @@ Access to association pipeline utilities.
 #include "lsst/afw/detection/Psf.h"
 #include "lsst/afw/detection/SourceMatch.h"
 #include "lsst/afw/image.h"
-#include "lsst/ap/utils/ImageInfo.h"
 #include "lsst/ap/utils/ImageUtils.h"
 #include "lsst/ap/utils/PT1SkyTile.h"
 %}
@@ -66,11 +65,9 @@ namespace boost {
 
 %lsst_exceptions()
 
-SWIG_SHARED_PTR(ImageInfo, lsst::ap::utils::ImageInfo);
 SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::utils::PT1SkyTile);
 
 %import "lsst/ap/Common.h"
-%include "lsst/ap/utils/ImageInfo.h"
 %include "lsst/ap/utils/ImageUtils.h"
 %include "lsst/ap/utils/PT1SkyTile.h"
 

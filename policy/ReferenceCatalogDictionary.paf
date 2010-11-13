@@ -5,24 +5,46 @@ target: lsst.ap.match
 definitions: {
 
     # Catalog statistics
+    minEpoch: {
+        type: double
+        description: "Minimum epoch of positions, MJD. If omitted, this
+                      value is computed by scanning the reference catalog"
+        maxOccurs: 1
+    }
+    maxEpoch: {
+        type: double
+        description: "Maximum epoch of positions, MJD. If omitted, this
+                      value is computed by scanning the reference catalog"
+        maxOccurs: 1
+    }
     maxParallax: {
         type: double
-        description: "Maximum parallax of any reference catalog entry.
-                      Should be set to 0.0 if parallax isn't available
-                      in the reference catalog. The parameter value must
-                      be in milliarcsec."
-        # SELECT MAX(parallax) FROM SimRefStar_11032010;
-        default: 41.1
+        description: "Maximum parallax (milliarcsec) of any reference catalog
+                      entry. Should be omitted or set to 0.0 if parallax isn't
+                      available in the reference catalog. If omitted, the correct
+                      value is computed by scanning the reference catalog. You
+                      can determine an appropriate value with something like the
+                      following query:
+
+                      SELECT MAX(parallax) FROM SimRefStar_11032010;
+
+                      This assumes that the parallax column is in milliarcsec."
         maxOccurs: 1
     }
     maxAngularVelocity: {
         type: double
-        description: "Maximum angular velocity of any reference catalog entry.
-                      Should be set to 0.0 if proper motions are not available
-                      in the reference catalog. Units must be milliarcsec per
-                      year."
-        # SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar_11032010;
-        default: 642.4
+        description: "Maximum angular velocity (milliarcsec/yr) of any reference
+                      catalog entry. Should be set to 0.0 or omitted if proper
+                      motions are not available in the reference catalog. If
+                      omitted, the correct value is computed by scanning the
+                      reference catalog. You can determine an appropriate value
+                      with something like the following query:
+
+                      SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar_11032010;
+
+                      This assumes that muRa is in terms of true angle and not
+                      coordinate angle, i.e that muRa = dRA/dt*cos(decl), and
+                      that both muRa and muDecl are in milliarcsec/yr."
         maxOccurs: 1
     }
 

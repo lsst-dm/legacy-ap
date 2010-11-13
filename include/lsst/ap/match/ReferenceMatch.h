@@ -28,14 +28,17 @@
 #ifndef LSST_AP_MATCH_REFERENCEMATCH_H
 #define LSST_AP_MATCH_REFERENCEMATCH_H
 
+#include <vector>
+
 #include "lsst/pex/policy/Policy.h"
+#include "ExposureInfo.h"
 
 
 namespace lsst { namespace ap { namespace match {
 
 // -- Functions to perform the match
 
-void referenceMatch(
+LSST_AP_API void referenceMatch(
     std::string const &refInPath,
     std::string const &posInPath,
     std::string const &matchOutPath,
@@ -43,9 +46,10 @@ void referenceMatch(
     lsst::pex::policy::Policy::Ptr posInPolicy=lsst::pex::policy::Policy::Ptr(),
     lsst::pex::policy::Policy::Ptr matchPolicy=lsst::pex::policy::Policy::Ptr());
 
-void referenceFilter(
+LSST_AP_API void referenceFilter(
     std::string const &refInPath,
     std::string const &filtOutPath,
+    std::vector<ExposureInfo::Ptr> &exposures,
     lsst::pex::policy::Policy::Ptr refInPolicy=lsst::pex::policy::Policy::Ptr(),
     lsst::pex::policy::Policy::Ptr outPolicy=lsst::pex::policy::Policy::Ptr());
 

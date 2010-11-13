@@ -1,12 +1,13 @@
-setupRequired(boost >= 1.37.0)
-setupRequired(daf_base >= 3.2.14)
-setupRequired(mysqlclient >= 5.0.45+2)
+setupRequired(boost >= 1.37.0+2)
+setupRequired(numpy >= 1.2.1)
+setupRequired(daf_base >= 4.1.1.1)
+setupRequired(mysqlclient >= 5.1.50)
 setupRequired(pex_exceptions >= 3.2.2)
 setupRequired(pex_logging >= 3.4.1)
 setupRequired(pex_policy >= 3.5.2)
-setupRequired(daf_persistence >= 4.1.0.0)
+setupRequired(daf_persistence >= 4.1.0.2)
 setupRequired(utils >= 3.4.6)
-setupRequired(afw) # waiting on trunk tag
+setupRequired(afw >= 4.1.2.0)
 setupRequired(geom >= 4.1.0.0)
 setupRequired(skypix >= 3.0.3)
 

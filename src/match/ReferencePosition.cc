@@ -61,10 +61,8 @@ void ReferencePosition::setMotion(
     double vRadial,   ///< Radial velocity, AU/day
     bool trueAngle,   ///< Is muRa dRA/dt*cos(decl) (@c true)
                       ///  or dRA/dt (@c false)?
-    bool ssbToGeo     ///< Apply SSB to geocentric corrections in
-                      ///  getPosition(double)?
-   )
-{
+    bool parallaxCor  ///< Apply parallax corrections in getPosition()?
+) {
     double sr = std::sin(_sc.x());
     double cr = std::cos(_sc.x()); 
     double sd = std::sin(_sc.y());
@@ -93,7 +91,7 @@ void ReferencePosition::setMotion(
     _v.x() = _p.x()*vRadial - _p.y()*muRa - cr*t;
     _v.y() = _p.y()*vRadial + _p.x()*muRa - sr*t;
     _v.z() = _p.z()*vRadial + s*muDecl;
-    _flags = MOVING | PARALLAX | (ssbToGeo ? SSB_TO_GEO : 0);
+    _flags = MOVING | PARALLAX | (parallaxCor ? PARALLAX_COR : 0);
 }
 
 /** Sets the bounding box (in spherical coordinates) of the reference position
@@ -110,7 +108,7 @@ void ReferencePosition::setTimeRange(double epoch1, double epoch2) {
         Eigen::Vector3d m = p1 + p2;
         double r = std::max(angularSeparation(m, p1),
                             angularSeparation(m, p2));
-        if ((_flags & SSB_TO_GEO) != 0) {
+        if ((_flags & PARALLAX_COR) != 0) {
             r += 2.0*_parallax;
         }
         Eigen::Vector2d sc = cartesianToSpherical(m);

@@ -39,6 +39,7 @@
 
 #include "lsst/utils/ieee.h"
 
+#include "lsst/pex/logging/Log.h"
 #include "lsst/pex/policy/DefaultPolicyFile.h"
 #include "lsst/pex/policy/Policy.h"
 
@@ -48,6 +49,7 @@
 #include "lsst/ap/utils/SmallPtrVector.h"
 #include "lsst/ap/utils/SpatialUtils.h"
 #include "lsst/ap/match/BBox.h"
+#include "lsst/ap/match/ExposureInfo.h"
 #include "lsst/ap/match/ReferencePosition.h"
 #include "lsst/ap/match/detail/SweepStructure.h"
 
@@ -59,6 +61,7 @@ using std::numeric_limits;
 using std::vector;
 using std::string;
 
+using lsst::pex::logging::Log;
 using lsst::pex::policy::Policy;
 using lsst::pex::policy::DefaultPolicyFile;
 
@@ -292,6 +295,9 @@ MatchablePos::MatchablePos(
   */
 class MatchableRef : public Matchable {
 public:
+    MatchableRef(ReferencePosition const &rp,
+                 std::string const &data);
+
     MatchableRef(int64_t id,
                  double ra,
                  double decl,
@@ -326,6 +332,14 @@ private:
 };
 
 MatchableRef::MatchableRef(
+    ReferencePosition const &rp,
+    std::string const &data
+) :
+    Matchable(data),
+    _rp(rp)
+{ }
+
+MatchableRef::MatchableRef(
     int64_t id,    ///< Unique id.
     double epoch,  ///< Epoch of reference position, MJD
     double ra,     ///< ICRS right ascension, rad.
@@ -342,6 +356,78 @@ inline bool operator<(std::pair<double, MatchableRef *> const &r1,
 }
 
 
+/** @internal  A reference position with coverage information.
+  */
+class RefWithCov : public BBox {
+public:
+    RefWithCov(ReferencePosition const &rp,
+               std::string const &data);
+
+    virtual ~RefWithCov() { }
+
+    ReferencePosition & getReferencePosition() {
+        return _rp;
+    }
+    ReferencePosition const & getReferencePosition() const {
+        return _rp;
+    }
+
+    void write(lsst::ap::utils::CsvWriter &writer) const {
+        writer.write(_data);
+        for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
+            writer.appendField(_filterCov[i]);
+        }
+    }
+
+    int isCovered() const {
+        return _covered;
+    }
+
+    void appendMatch(ExposureInfo *e) {
+        _covered = true;
+        ++_filterCov[e->getFilterId()];
+    }
+
+    // BBox API
+    virtual double getMinCoord0() const {
+        return _rp.getMinCoord0();
+    }
+    virtual double getMaxCoord0() const {
+        return _rp.getMaxCoord0();
+    }
+    virtual double getMinCoord1() const {
+        return _rp.getMinCoord1();
+    }
+    virtual double getMaxCoord1() const {
+        return _rp.getMaxCoord1();
+    }
+
+private:
+    ReferencePosition _rp;
+    std::string _data;
+    bool _covered;
+    int _filterCov[6];
+};
+
+RefWithCov::RefWithCov(
+    ReferencePosition const &rp,
+    std::string const &data
+) :
+    _rp(rp),
+    _data(data),
+    _covered(false)
+{
+    for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
+        _filterCov[i] = 0;
+    }
+}
+
+inline bool operator<(std::pair<double, RefWithCov *> const &r1,
+                      std::pair<double, RefWithCov *> const &r2) {
+    return r1.first > r2.first;
+}
+
+
 // --  Classes for reading in reference objects and positions ----
 
 /** Reads positions from a declination sorted CSV file.
@@ -349,14 +435,18 @@ inline bool operator<(std::pair<double, MatchableRef *> const &r1,
   * For now, matching works with a fixed radius, so this is equivalent
   * to producing positions sorted by minimum bounding box declination.
   */
-class PosReader {
+class MatchablePosReader {
 public:
-    PosReader(std::string const &path,
-              lsst::pex::policy::Policy::Ptr policy,
-              CsvDialect const &outDialect,
-              double radius);
+    MatchablePosReader(std::string const &path,
+                       lsst::pex::policy::Policy::Ptr policy,
+                       CsvDialect const &outDialect,
+                       double radius);
 
-    ~PosReader();
+    ~MatchablePosReader();
+
+    double getMinEpoch() const { return _minEpoch; }
+    double getMaxEpoch() const { return _maxEpoch; }
+    double getDefaultEpoch() const { return _defaultEpoch; }
 
     /** Returns a string consisting of pre-formatted all NULL
       * output for requested position table columns.
@@ -394,10 +484,13 @@ public:
 
 private:
     void _read();
+    void _scan(lsst::ap::utils::CsvReader &reader);
 
     Arena<MatchablePos> _arena;
     double _decl;
     double _defaultEpoch;
+    double _minEpoch;
+    double _maxEpoch;
     double _radius;
     MatchablePos *_next;
     boost::scoped_ptr<CsvReader> _reader;
@@ -414,14 +507,17 @@ private:
     CsvWriter _writer;
 };
 
-PosReader::PosReader(std::string const &path,
-                     lsst::pex::policy::Policy::Ptr policy,
-                     CsvDialect const &outDialect,
-                     double radius
-                    ) :
+MatchablePosReader::MatchablePosReader(
+    std::string const &path,
+    lsst::pex::policy::Policy::Ptr policy,
+    CsvDialect const &outDialect,
+    double radius
+) :
     _arena(),
     _decl(-M_PI*0.5),
     _defaultEpoch(policy->getDouble("epoch")),
+    _minEpoch(_defaultEpoch),
+    _maxEpoch(_defaultEpoch),
     _radius(radius),
     _next(0),
     _reader(),
@@ -432,6 +528,9 @@ PosReader::PosReader(std::string const &path,
     _writer(_buf, outDialect)
 {
     typedef std::vector<std::string>::const_iterator Iter;
+
+    Log log(Log::getDefaultLog(), "lsst.ap.match");
+    log.log(Log::INFO, "Opening position table " + path);
 
     // create CSV reader
     CsvDialect inDialect(policy->getPolicy("csvDialect"));
@@ -452,7 +551,7 @@ PosReader::PosReader(std::string const &path,
     _declScale = policy->getDouble("declScale");
     if (_idCol < 0 || _raCol < 0 || _declCol < 0) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Reference catalog doesn't contain unique id, "
+                          "Position table does not contain unique id, "
                           "right ascension, or declination column(s)");
     }
     // compute vector of output field indexes and NULL record
@@ -472,8 +571,8 @@ PosReader::PosReader(std::string const &path,
                 int idx = _reader->getIndexOf(*i);
                 if (idx < 0) {
                     throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                                      "Reference catalog has no column "
-                                      "named " + *i);
+                                      "Position table has no column named " +
+                                      *i);
                 }
                 _columns.push_back(idx);
                 _writer.appendNull();
@@ -481,13 +580,29 @@ PosReader::PosReader(std::string const &path,
         }
         _nullRecord = _buf.str();
     }
+    if (_epochCol >= 0) {
+        if (policy->exists("minEpoch") && policy->exists("maxEpoch")) {
+            _minEpoch = policy->getDouble("minEpoch");
+            _maxEpoch = policy->getDouble("maxEpoch");
+        } else  {
+            log.log(Log::INFO, "Scanning position table to determine min/max "
+                    "epoch of input positions");
+            CsvReader reader(path, _reader->getDialect(),
+                             !policy->exists("fieldNames"));
+            _scan(reader);
+            log.format(Log::INFO, "Scanned %llu records",
+                       static_cast<unsigned long long>(reader.getNumRecords()));
+        }
+    }
+    log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
+               _minEpoch, _maxEpoch);
     // read first record
     _read();
 }
 
-PosReader::~PosReader() { }
+MatchablePosReader::~MatchablePosReader() { }
 
-void PosReader::_read() {
+void MatchablePosReader::_read() {
     typedef std::vector<int>::const_iterator Iter;
 
     if (_reader->isDone()) {
@@ -497,7 +612,7 @@ void PosReader::_read() {
     // retrieve column values
     int64_t id = _reader->get<int64_t>(_idCol);
     double epoch = _defaultEpoch;
-    if (_epochCol >= 0 && !_reader->isNull(_epochCol)) {
+    if (_epochCol >= 0) {
         epoch = _reader->get<double>(_epochCol);
     }
     double ra = _reader->get<double>(_raCol)*_raScale;
@@ -505,29 +620,29 @@ void PosReader::_read() {
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "NULL id found in record");
+                          "NULL unique id found in position table");
     }
     if (lsst::utils::isnan(ra) ||
         lsst::utils::isnan(decl) ||
         lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Record contains NULL/NaN right ascension, "
-                          "declination, or epoch");
+                          "Position table contains NULL or NaN right "
+                          "ascension, declination, or epoch");
     }
     if (decl < -M_PI*0.5 || decl > M_PI*0.5) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Invalid declination found in input");
+                          "Invalid declination found in position table");
     }
     if (epoch < J2000_MJD - 200.0*DAYS_PER_JY ||
         epoch > J2000_MJD + 200.0*DAYS_PER_JY) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Epoch is not within 200 years of J2000. Check "
-                          "your units - MJD required.");
+                          "Position table epoch is not within 200 years of "
+                          "J2000. Check your units - MJD required.");
     }
     // check that input file is declination sorted
     if (decl < _decl) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Input is not sorted by declination");
+                          "Position table is not sorted by declination");
     }
     // Construct ancillary column output string
     if (!_columns.empty()) {
@@ -546,23 +661,59 @@ void PosReader::_read() {
     _decl = decl;
 }
 
+void MatchablePosReader::_scan(lsst::ap::utils::CsvReader &reader) {
+    if (reader.isDone()) {
+        return;
+    }
+    _minEpoch = reader.get<double>(_epochCol);
+    _maxEpoch = _minEpoch;
+    if (lsst::utils::isnan(_minEpoch)) {
+        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                          "Position table contains NULL or NaN epoch");
+    }
+    reader.nextRecord();
+    while (!reader.isDone()) {
+        double epoch = reader.get<double>(_epochCol);
+        if (lsst::utils::isnan(epoch)) {
+            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                              "Position table contains NULL or NaN epoch");
+        }
+        if (epoch < _minEpoch) {
+            _minEpoch = epoch;
+        } else if (epoch > _maxEpoch) {
+            _maxEpoch = epoch;
+        }
+        reader.nextRecord();
+    }
+}
 
-/** @internal  Reads reference positions from a declination sorted CSV file.
+
+/** @internal  Base class for declination sorted reference catalog readers.
   *
-  * Since bounding boxes for reference positions have varying sizes, this class
+  * Since bounding boxes for reference positions have varying sizes, one
   * must read ahead in declination and reorder to produce reference positions
-  * sorted by minimum bounding box declination.
+  * sorted by minimum bounding box declination. This class computes the 
+  * read-ahead amount as part of its duties.
   */
-class RefReader {
+class RefReaderBase {
 public:
-    RefReader(std::string const &path,
-              lsst::pex::policy::Policy::Ptr inPolicy,
-              CsvDialect const &outDialect,
-              double minEpoch,
-              double maxEpoch,
-              double parallaxThresh);
+    RefReaderBase(std::string const &path,
+                  lsst::pex::policy::Policy::Ptr inPolicy,
+                  CsvDialect const &outDialect,
+                  double minMatchEpoch,
+                  double maxMatchEpoch,
+                  double parallaxThresh);
 
-    ~RefReader();
+    virtual ~RefReaderBase();
+
+    double getMinEpoch() const { return _minEpoch; }
+    double getMaxEpoch() const { return _maxEpoch; }
+    double getMinMatchEpoch() const { return _minMatchEpoch; }
+    double getMaxMatchEpoch() const { return _maxMatchEpoch; }
+    double getMaxParallax() const { return _maxParallax; }
+    double getMaxAngularVelocity() const { return _maxAngularVelocity; }
+    double getParallaxThresh() const { return _parallaxThresh; }
+    double getReadAhead() const { return _readAhead; }
 
     /** Returns a string consisting of pre-formatted all NULL
       * output for requested position table columns.
@@ -571,49 +722,31 @@ public:
         return _nullRecord;
     }
 
-    /** Returns @c true if all positions have been read and returned.
-      */
-    bool isDone() const {
-        return _heap.empty();
+protected:
+    ReferencePosition const * _readReferencePosition();
+
+    std::string const & getRecord() const {
+        return _record;
     }
 
-    /** Returns the minimum declination of the next reference positions
-      * bounding box.  Assumes that <tt>isDone() == false</tt>.
-      */
-    double peek() const {
-        return _heap.front().first;
-    }
-
-    /** Returns the next MatchablePos. Assumes that <tt>isDone() == false</tt>.
-      */
-    MatchableRef *next() {
-        while (_decl - peek() < _readAhead && !_reader->isDone()) {
-            _read();
-        }
-        std::pop_heap(_heap.begin(), _heap.end());
-        MatchableRef *r = _heap.back().second;
-        _heap.pop_back();
-        return r;
-    }
-
-    /** Frees a MatchableRef object created by this RefReader.
-      */
-    void destroy(MatchableRef *r) {
-        _arena.destroy(r);
-    }
-
-private:
-    void _read();
-
-    Arena<MatchableRef> _arena;
-    std::vector<std::pair<double, MatchableRef *> > _heap;
     double _decl;
     double _readAhead;
+    boost::scoped_ptr<CsvReader> _reader;
+
+private:
+    void _scan(lsst::ap::utils::CsvReader &reader,
+               bool needEpochStats,
+               bool needMotionStats);
+
+    ReferencePosition _pos;
     double _defaultEpoch;
     double _minEpoch;
     double _maxEpoch;
+    double _minMatchEpoch;
+    double _maxMatchEpoch;
+    double _maxParallax;
+    double _maxAngularVelocity;
     double _parallaxThresh;
-    boost::scoped_ptr<CsvReader> _reader;
     int _idCol;
     int _epochCol;
     int _raCol;
@@ -636,22 +769,26 @@ private:
     CsvWriter _writer;
 };
 
-RefReader::RefReader(
+RefReaderBase::RefReaderBase(
     std::string const &path,
     lsst::pex::policy::Policy::Ptr policy,
     lsst::ap::utils::CsvDialect const &outDialect,
-    double minEpoch,
-    double maxEpoch,
+    double minMatchEpoch,
+    double maxMatchEpoch,
     double parallaxThresh
 ) :
-    _arena(),
-    _heap(),
     _decl(-M_PI*0.5),
-    _defaultEpoch(policy->getDouble("epoch")),
-    _minEpoch(minEpoch),
-    _maxEpoch(maxEpoch),
-    _parallaxThresh(parallaxThresh),
+    _readAhead(0.0),
     _reader(),
+    _pos(0, 0.0, 0.0),
+    _defaultEpoch(policy->getDouble("epoch")),
+    _minEpoch(_defaultEpoch),
+    _maxEpoch(_defaultEpoch),
+    _minMatchEpoch(min(minMatchEpoch, maxMatchEpoch)),
+    _maxMatchEpoch(max(minMatchEpoch, maxMatchEpoch)),
+    _maxParallax(0.0),
+    _maxAngularVelocity(0.0),
+    _parallaxThresh(parallaxThresh),
     _columns(),
     _nullRecord(),
     _record(),
@@ -660,10 +797,9 @@ RefReader::RefReader(
 {
     typedef std::vector<std::string>::const_iterator Iter;
 
-    // compute declination read-ahead amount
-    double maxParallax = policy->getDouble("maxParallax")*RAD_PER_MAS;
-    double maxAngVel = policy->getDouble("maxAngularVelocity")*RADY_PER_MASD;
-    _readAhead = 2.0*maxParallax + maxAngVel*fabs(maxEpoch - minEpoch);
+    Log log(Log::getDefaultLog(), "lsst.ap.match");
+    log.log(Log::INFO, "Opening reference catalog " + path);
+
     // create CSV reader
     CsvDialect inDialect(policy->getPolicy("csvDialect"));
     _reader.reset(new CsvReader(path, inDialect, !policy->exists("fieldNames")));
@@ -721,22 +857,65 @@ RefReader::RefReader(
         }
         _nullRecord = _buf.str();
     }
-    // read first record
-    _read();
+    if (_epochCol >= 0 ||
+        (_muRaCol >= 0 && _muDeclCol >= 0 && _parallaxCol >= 0)) {
+
+        bool needEpochStats = false;
+        bool needMotionStats = false;
+        if (_epochCol >= 0) {
+            if (policy->exists("minEpoch") && policy->exists("maxEpoch")) {
+                _minEpoch = policy->getDouble("minEpoch");
+                _maxEpoch = policy->getDouble("maxEpoch");
+            } else {
+                needEpochStats = true;
+            }
+        }
+        if (_muRaCol >= 0 && _muDeclCol >= 0 && _parallaxCol >= 0) {
+            if (policy->exists("maxParallax") &&
+                policy->exists("maxAngularVelocity")) {
+                _maxParallax = policy->getDouble("maxParallax")*RAD_PER_MAS;
+                _maxAngularVelocity =
+                    policy->getDouble("maxAngularVelocity")*RADY_PER_MASD;
+            } else {
+                needMotionStats = true;
+            } 
+        }
+
+        if (needEpochStats || needMotionStats) {
+            log.log(Log::INFO, "Scanning reference catalog to determine "
+                    "time-range and/or maximum velocity/parallax");
+            CsvReader reader(path, _reader->getDialect(),
+                             !policy->exists("fieldNames"));
+            _scan(reader, needEpochStats, needMotionStats);
+            log.format(Log::INFO, "Scanned %llu records",
+                       static_cast<unsigned long long>(reader.getNumRecords()));
+ 
+        }
+    }
+    log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
+               _minEpoch, _maxEpoch);
+    log.format(Log::INFO, "  - max parallax is %.3f milliarcsec",
+               _maxParallax/RAD_PER_MAS);
+    log.format(Log::INFO, "  - max angular velocity is %.3f milliarcsec/yr",
+               _maxAngularVelocity/RADY_PER_MASD);
+    // determine read-ahead amount
+    double dtMax = max(fabs(_maxEpoch - _minMatchEpoch),
+                       fabs(_maxMatchEpoch - _minEpoch));
+    _readAhead = 2.0*_maxParallax + _maxAngularVelocity*dtMax;
 }
 
-RefReader::~RefReader() { }
+RefReaderBase::~RefReaderBase() { }
 
-void RefReader::_read() {
+ReferencePosition const * RefReaderBase::_readReferencePosition() {
     typedef std::vector<int>::const_iterator Iter;
 
     if (_reader->isDone()) {
-        return;
+        return 0;
     }
     // retrieve column values
     int64_t id = _reader->get<int64_t>(_idCol);
     double epoch = _defaultEpoch;
-    if (_epochCol >= 0 && !_reader->isNull(_epochCol)) {
+    if (_epochCol >= 0) {
         epoch = _reader->get<double>(_epochCol);
     }
     double ra = _reader->get<double>(_raCol)*_raScale;
@@ -744,28 +923,29 @@ void RefReader::_read() {
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "NULL id found in record");
+                          "NULL unique id found in reference catalog");
     }
     if (lsst::utils::isnan(ra) ||
-        lsst::utils::isnan(decl)) {
+        lsst::utils::isnan(decl) ||
+        lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Record contains NULL/NaN right ascension "
-                          "or declination");
+                          "Reference catalog record contains NULL/NaN right "
+                          "ascension, declination, or epoch");
     }
     if (decl < -M_PI*0.5 || decl > M_PI*0.5) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Invalid declination found in input");
+                          "Invalid declination found in reference catalog");
     }
     if (epoch < J2000_MJD - 200.0*DAYS_PER_JY ||
         epoch > J2000_MJD + 200.0*DAYS_PER_JY) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Epoch is not within 200 years of J2000. Check "
-                          "your units - MJD required.");
+                          "Reference catalog epoch is not within 200 years "
+                          "of J2000. Check your units - MJD required.");
     }
     // check that input file actually is declination sorted
     if (decl < _decl) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                          "Input is not sorted by declination");
+                          "Reference catalog is not sorted by declination");
     }
     // Construct ancillary column output string
     if (!_columns.empty()) {
@@ -777,45 +957,174 @@ void RefReader::_read() {
         }
         _record = _buf.str();
     }
-    _heap.reserve(_heap.size() + 1);
     // create reference position
-    MatchableRef *r = new (_arena) MatchableRef(id, ra, decl, epoch, _record);
+    _pos = ReferencePosition(id, ra, decl, epoch);
     if (_muRaCol >= 0 && _muDeclCol >= 0 && _parallaxCol >= 0) {
-        try {
-            // have motion parameters
-            double muRa = _reader->get<double>(_muRaCol)*_muRaScale;
-            double muDecl = _reader->get<double>(_muDeclCol)*_muDeclScale;
-            double parallax = _reader->get<double>(_parallaxCol)*_parallaxScale;
-            double vRadial = (_vRadialCol < 0) ? 0.0 :
-                              _reader->get<double>(_vRadialCol)*_vRadialScale;
-            if (parallax < 0.0) {
-                throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                                  "Record contains negative parallax");
-            }
-            if (!lsst::utils::isnan(muRa) &&
-                !lsst::utils::isnan(muDecl) &&
-                !lsst::utils::isnan(vRadial) &&
-                !lsst::utils::isnan(parallax)) {
-                // motion parameters are non-null
-                r->getReferencePosition().setMotion(
-                    muRa, muDecl, parallax, vRadial,
-                    _muRaTrueAngle, parallax > _parallaxThresh);
-            }
-        } catch(...) {
-            destroy(r);
-            throw;
+        // have motion parameters
+        double muRa = _reader->get<double>(_muRaCol)*_muRaScale;
+        double muDecl = _reader->get<double>(_muDeclCol)*_muDeclScale;
+        double parallax = _reader->get<double>(_parallaxCol)*_parallaxScale;
+        double vRadial = (_vRadialCol < 0) ? 0.0 :
+                          _reader->get<double>(_vRadialCol)*_vRadialScale;
+        if (parallax < 0.0) {
+            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                              "Reference catalog contains negative parallax");
+        }
+        if (!lsst::utils::isnan(muRa) &&
+            !lsst::utils::isnan(muDecl) &&
+            !lsst::utils::isnan(vRadial) &&
+            !lsst::utils::isnan(parallax)) {
+            // motion parameters are non-null
+            _pos.setMotion(muRa, muDecl, parallax, vRadial,
+                           _muRaTrueAngle, parallax > _parallaxThresh);
         }
     }
-    r->getReferencePosition().setTimeRange(_minEpoch, _maxEpoch);
-    // Insert reference position into min-heap
-    _heap.push_back(std::pair<double, MatchableRef *>(r->getMinCoord1(), r));
-    std::push_heap(_heap.begin(), _heap.end());
+    _pos.setTimeRange(_minMatchEpoch, _maxMatchEpoch);
     _decl = decl;
     _reader->nextRecord();
+    return &_pos;
+}
+
+void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
+                          bool needEpochStats,
+                          bool needMotionStats)
+{
+    if (reader.isDone()) {
+        return;
+    }
+    if (needEpochStats) {
+        _minEpoch = reader.get<double>(_epochCol);
+        _maxEpoch = _minEpoch;
+    }
+    while (!reader.isDone()) {
+        if (needEpochStats) {
+            double epoch = reader.get<double>(_epochCol);
+            if (lsst::utils::isnan(epoch)) {
+                throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                                  "Record contains NULL or NaN epoch");
+            }
+            if (epoch < _minEpoch) {
+                _minEpoch = epoch;
+            } else if (epoch > _maxEpoch) {
+                _maxEpoch = epoch;
+            }
+        }
+        if (needMotionStats) {
+            double parallax = reader.get<double>(_parallaxCol)*_parallaxScale;
+            double muRa = reader.get<double>(_muRaCol)*_muRaScale;
+            double muDecl = reader.get<double>(_muDeclCol)*_muDeclScale;
+            if (!lsst::utils::isnan(parallax) &&
+                !lsst::utils::isnan(muRa) &&
+                !lsst::utils::isnan(muDecl)) {
+                if (!_muRaTrueAngle) {
+                    double decl = reader.get<double>(_declCol)*_declScale;
+                    if (decl < -M_PI*0.5 || decl > M_PI*0.5 ||
+                        lsst::utils::isnan(decl)) {
+                        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                                          "Invalid declination found in "
+                                          "reference catalog");
+                    }
+                    muRa *= std::cos(decl);
+                }
+                if (parallax > _maxParallax) {
+                    _maxParallax = parallax;
+                }
+                double v = sqrt(muRa*muRa + muDecl*muDecl);
+                if (v > _maxAngularVelocity) {
+                    _maxAngularVelocity = v;
+                }
+            }
+        }
+        reader.nextRecord();
+    }
 }
 
 
-// -- Matching implementation ---
+/** @internal  Reads matchable reference positions from a declination sorted
+  *            CSV file.
+  */
+template <typename Ref>
+class RefReader : public RefReaderBase {
+public:
+    RefReader(std::string const &path,
+              lsst::pex::policy::Policy::Ptr inPolicy,
+              CsvDialect const &outDialect,
+              double minMatchEpoch,
+              double maxMatchEpoch,
+              double parallaxThresh);
+
+    ~RefReader();
+
+    /** Returns @c true if all positions have been read and returned.
+      */
+    bool isDone() const {
+        return _heap.empty();
+    }
+
+    /** Returns the minimum declination of the next reference positions
+      * bounding box.  Assumes that <tt>isDone() == false</tt>.
+      */
+    double peek() const {
+        return _heap.front().first;
+    }
+
+    /** Returns the next MatchablePos. Assumes that <tt>isDone() == false</tt>.
+      */
+    Ref *next() {
+        while (_decl - peek() <= _readAhead && !_reader->isDone()) {
+            _read();
+        }
+        std::pop_heap(_heap.begin(), _heap.end());
+        Ref *r = _heap.back().second;
+        _heap.pop_back();
+        return r;
+    }
+
+    /** Frees a MatchableRef object created by this RefReader.
+      */
+    void destroy(Ref *r) {
+        _arena.destroy(r);
+    }
+
+private:
+    void _read() {
+        ReferencePosition const *p = _readReferencePosition();
+        if (p != 0) {
+            _heap.reserve(_heap.size() + 1);
+            Ref *r = new (_arena) Ref(*p, getRecord());
+            _heap.push_back(std::pair<double, Ref *>(r->getMinCoord1(), r));
+            std::push_heap(_heap.begin(), _heap.end());
+        }
+    }
+
+    Arena<Ref> _arena;
+    std::vector<std::pair<double, Ref *> > _heap;
+};
+
+template <typename Ref>
+RefReader<Ref>::RefReader(
+    std::string const &path,
+    lsst::pex::policy::Policy::Ptr policy,
+    lsst::ap::utils::CsvDialect const &outDialect,
+    double minMatchEpoch,
+    double maxMatchEpoch,
+    double parallaxThresh
+) :
+    RefReaderBase(path,
+                  policy,
+                  outDialect,
+                  minMatchEpoch,
+                  maxMatchEpoch,
+                  parallaxThresh)
+{
+    _read();
+}
+
+template <typename Ref>
+RefReader<Ref>::~RefReader() { }
+
+
+// -- Matchers ----
 
 /** @internal Reference position to position matcher.
   */
@@ -839,8 +1148,8 @@ public:
     }
 
     void match(CsvWriter &writer,
-               RefReader &refReader,
-               PosReader &posReader);
+               RefReader<MatchableRef> &refReader,
+               MatchablePosReader &posReader);
 
 private:
     void _writeMatch(RefPosMatch const *m);
@@ -856,8 +1165,8 @@ private:
     SphericalSweep<MatchableRef> _refSweep;
 
     CsvWriter *_writer;
-    RefReader *_refReader;
-    PosReader *_posReader;
+    RefReader<MatchableRef> *_refReader;
+    MatchablePosReader *_posReader;
 };
 
 RefPosMatcher::RefPosMatcher() :
@@ -878,8 +1187,8 @@ RefPosMatcher::~RefPosMatcher() {
 /** Matches a reference catalog to a position table.
   */
 void RefPosMatcher::match(CsvWriter &writer,
-                          RefReader &refReader,
-                          PosReader &posReader)
+                          RefReader<MatchableRef> &refReader,
+                          MatchablePosReader &posReader)
 {
     _writer = &writer;
     _refReader = &refReader;
@@ -1062,6 +1371,168 @@ void RefPosMatcher::_candidateMatch(MatchableRef *r, MatchablePos *p) {
     }
 }
 
+
+/** @internal Matches reference positions to a list of exposures.
+  */
+class RefExpMatcher {
+public:
+    RefExpMatcher();
+    ~RefExpMatcher();
+
+    // Sweep event call-backs
+    void operator()(ExposureInfo *e) { }
+
+    void operator()(RefWithCov *r) {
+        _finish(r);
+    }
+    void operator()(RefWithCov *r, ExposureInfo *e) {
+         _candidateMatch(r, e);
+    }
+    void operator()(ExposureInfo *e, RefWithCov *r) {
+         _candidateMatch(r, e);
+    }
+
+    void match(CsvWriter &writer,
+               RefReader<RefWithCov> &refReader,
+               std::vector<ExposureInfo::Ptr> &exposures);
+
+private:
+    struct ExposureInfoComparator {
+        bool operator()(ExposureInfo::Ptr const &e1,
+                        ExposureInfo::Ptr const &e2) const
+        {
+            return e1->getMinCoord1() < e2->getMinCoord1();
+        }
+    };
+
+    void _finish(RefWithCov *r);
+    void _candidateMatch(RefWithCov *r, ExposureInfo *e);
+
+    // heap that reorders to produce declination sorted output
+    std::vector<std::pair<double, RefWithCov *> > _heap;
+
+    // data structures for matching
+    SphericalSweep<ExposureInfo> _expSweep;
+    SphericalSweep<RefWithCov> _refSweep;
+
+    CsvWriter *_writer;
+    RefReader<RefWithCov> *_refReader;
+    double _maxDecl;
+};
+
+RefExpMatcher::RefExpMatcher() :
+    _expSweep(),
+    _refSweep(),
+    _writer(0),
+    _refReader(0),
+    _maxDecl(-M_PI*0.5)
+{ }
+
+RefExpMatcher::~RefExpMatcher() {
+    _writer = 0;
+    _refReader = 0;
+}
+
+/** Matches a reference catalog to a list of exposures.
+  */
+void RefExpMatcher::match(CsvWriter &writer,
+                          RefReader<RefWithCov> &refReader,
+                          std::vector<ExposureInfo::Ptr> &exposures)
+{
+    typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
+
+    _writer = &writer;
+    _refReader = &refReader;
+
+    // sort exposures by minimum bounding box declination
+    std::sort(exposures.begin(), exposures.end(), ExposureInfoComparator());
+    Iter i = exposures.begin();
+    Iter const end = exposures.end();
+    // run the standard sweep line algorithm - slightly simplified by
+    // the fact that unmatched exposures or reference catalog entries are
+    // of no interest.
+    while (true) {
+        if (i == end) {
+            break;
+        } else if (_refReader->isDone()) {
+            break;
+        }
+        double imgDecl = (*i)->getMinCoord1();
+        double refDecl = _refReader->peek();
+        _refSweep.advance(imgDecl, *this);
+        _expSweep.advance(refDecl, *this);
+        if (refDecl < imgDecl) {
+            RefWithCov *r = _refReader->next();
+            _expSweep.search(r, *this);
+            _refSweep.insert(r);
+        } else {
+            ExposureInfo *info = (*i).get();
+            _refSweep.search(info, *this);
+            _expSweep.insert(info);
+        }
+    }
+    _refSweep.clear(*this);
+    _expSweep.clear(*this); 
+    while (!_heap.empty()) {
+        // write out any reference catalog entries remaining in the
+        // declination min-heap.
+        std::pop_heap(_heap.begin(), _heap.end());
+        RefWithCov *r = _heap.back().second;
+        _heap.pop_back();
+        r->write(*_writer);
+        _writer->endRecord();
+        _refReader->destroy(r);
+    }
+    _writer = 0;
+    _refReader = 0;
+}
+
+/** Called when r is removed from its sweep structure, i.e. when all
+  * matches for r have been found.
+  */
+void RefExpMatcher::_finish(RefWithCov *r) {
+    if (!r->isCovered()) {
+        _refReader->destroy(r);
+    } else {
+        // insert r into declination heap, and update max declination
+        // seen so far.
+        double decl = r->getReferencePosition().getSphericalCoords().y();
+        if (decl >= _maxDecl) {
+            _maxDecl = decl;
+        }
+        _heap.push_back(std::pair<double, RefWithCov*>(decl, r));
+        std::push_heap(_heap.begin(), _heap.end());
+        while (!_heap.empty() &&
+               _maxDecl - _heap.front().first > _refReader->getReadAhead()) {
+            std::pop_heap(_heap.begin(), _heap.end());
+            r = _heap.back().second;
+            _heap.pop_back();
+            r->write(*_writer);
+            _writer->endRecord();
+            _refReader->destroy(r);
+        }
+    }
+}
+
+/** Called on candidate matches (r, i).
+  */
+void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
+    double epoch = e->getEpoch();
+    Eigen::Vector3d v = r->getReferencePosition().getPosition(
+        epoch, e->getEarthPosition());
+    // FIXME: this currently assumes that the image RADESYS is ICRS (as
+    // is assumed for reference catalog entries). Generalizing this
+    // is likely to cost a lot of speed, as the Coord API is generally
+    // unusable without creating a Coord::Ptr.
+    Eigen::Vector2d sc = cartesianToSpherical(v);
+    lsst::afw::geom::PointD p =
+        e->getWcs()->skyToPixel(degrees(sc[0]), degrees(sc[1]));
+    if (p.getX() >= 0.0 && p.getX() < e->getWidth() &&
+        p.getY() >= 0.0 && p.getY() < e->getHeight()) {
+        r->appendMatch(e);
+    }
+}
+
 } // namespace lsst::ap::match::<anonymous>
 
 
@@ -1074,7 +1545,6 @@ LSST_AP_API void referenceMatch(
     std::string const &matchPath,  ///< Match output file path.
     lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
                                                 ///  See policy/ReferenceCatalogDictionary 
-                                                ///  See policy/PositionTableDictionary.paf
                                                 ///  for parameters and default values.
     lsst::pex::policy::Policy::Ptr posInPolicy, ///< Policy describing input position table.
                                                 ///  See policy/PositionTableDictionary.paf
@@ -1083,6 +1553,9 @@ LSST_AP_API void referenceMatch(
                                                 ///  See policy/ReferenceMatchDictionary.paf
                                                 ///  for parameters and default values.
 ) {
+    Log log(Log::getDefaultLog(), "lsst.ap.match");
+    log.log(Log::INFO, "Matching reference catalog to position table...");
+
     // Merge input policies with defaults
     Policy::Ptr refPolicy;
     if (refInPolicy) {
@@ -1111,40 +1584,93 @@ LSST_AP_API void referenceMatch(
 
     // Create readers, writer and matcher
     CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
-    RefReader refReader(refPath,
-                        refPolicy,
-                        outDialect, 
-                        posPolicy->getDouble("minEpoch"),
-                        posPolicy->getDouble("maxEpoch"),
-                        xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
-    PosReader posReader(posPath,
-                        posPolicy,
-                        outDialect,
-                        xPolicy->getDouble("radius")*RADIANS_PER_ARCSEC);
+    MatchablePosReader posReader(posPath, posPolicy, outDialect,
+                                 xPolicy->getDouble("radius")*RADIANS_PER_ARCSEC);
+
+    RefReader<MatchableRef> refReader(refPath, refPolicy, outDialect, 
+                                      posReader.getMinEpoch(), posReader.getMaxEpoch(),
+                                      xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
     CsvWriter writer(matchPath, outDialect);
     RefPosMatcher matcher;
+
+    log.log(Log::INFO, "Starting reference catalog to position table match");
     matcher.match(writer, refReader, posReader);
+    log.format(Log::INFO, "Wrote %llu records to output match table %s",
+               static_cast<unsigned long long>(writer.getNumRecords()),
+               matchPath.c_str());
 }
 
 
 /** Computes the number of times a reference catalog should have been observed in
-  * each filter under ideal conditions, given a set of image extents. The per-filter
+  * each filter under ideal conditions, given a set of exposures. The per-filter
   * observation counts are appended as columns [ugrizy]Cov. Reference catalog
-  * entries not falling on any of the given images are dropped from the output.
+  * entries not falling on any of the given exposures are dropped from the output.
   */
 LSST_AP_API void referenceFilter(
     std::string const &refPath,  ///< Reference catalog path
     std::string const &filtPath, ///< Filtered output catalog path
+    std::vector<ExposureInfo::Ptr> &exposures,  ///< Exposures to filter against - 
+                                                ///  reordered by the call.
     lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
                                                 ///  See policy/ReferenceCatalogDictionary 
-                                                ///  See policy/PositionTableDictionary.paf
                                                 ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr outPolicy    ///< Policy describing the output CSV format.
-                                                ///  See policy/CsvDialectDictionary.paf
+    lsst::pex::policy::Policy::Ptr matchPolicy  ///< Policy describing match parameters.
+                                                ///  See policy/ReferenceMatchDictionary.paf
                                                 ///  for parameters and default values.
 ) {
-    throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                      "Not implemented yet!");
+    typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
+    if (exposures.empty()) {
+        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                          "no input exposure information");
+    }
+
+    Log log(Log::getDefaultLog(), "lsst.ap.match");
+    log.log(Log::INFO, "Filtering reference catalog against exposures...");
+
+    // Merge input policies with defaults
+    Policy::Ptr refPolicy;
+    if (refInPolicy) {
+        refPolicy.reset(new Policy(*refInPolicy, true));
+    } else {
+        refPolicy.reset(new Policy());
+    }
+    DefaultPolicyFile refDef("ap", "ReferenceCatalogDictionary.paf", "policy");
+    refPolicy->mergeDefaults(Policy(refDef));
+    Policy::Ptr xPolicy;
+    if (matchPolicy) {
+        xPolicy.reset(new Policy(*matchPolicy, true));
+    } else {
+        xPolicy.reset(new Policy());
+    }
+    DefaultPolicyFile xDef("ap", "ReferenceMatchDictionary.paf", "policy");
+    xPolicy->mergeDefaults(Policy(xDef));
+
+    // determine min/max epoch of exposures
+    Iter i = exposures.begin();
+    double minEpoch = (*i)->getEpoch();
+    double maxEpoch = minEpoch;
+    ++i;
+    for (Iter e = exposures.end(); i != e; ++i) {
+        double epoch = (*i)->getEpoch();
+        if (epoch < minEpoch) {
+            minEpoch = epoch;
+        } else if (epoch > maxEpoch) {
+            maxEpoch = epoch;
+        }
+    }
+    // Create reader, writer and matcher
+    CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
+    RefReader<RefWithCov> refReader(
+        refPath, refPolicy, outDialect, minEpoch, maxEpoch,
+        xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
+    CsvWriter writer(filtPath, outDialect);
+    RefExpMatcher matcher;
+
+    log.log(Log::INFO, "Starting reference catalog to exposure match");
+    matcher.match(writer, refReader, exposures);
+    log.format(Log::INFO, "Wrote %llu records to output match table %s",
+               static_cast<unsigned long long>(writer.getNumRecords()),
+               filtPath.c_str());
 }
 
 }}} // namespace lsst::ap::match

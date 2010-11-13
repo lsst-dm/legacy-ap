@@ -61,7 +61,7 @@ Arena<T>::~Arena() {
                "No free elements, but free list head is non-null");
         // call destructor for every element of every block
         for (Iter i = _blocks.begin(), e = _blocks.end(); i != e; ++i) {
-            unsigned char *block = *i;
+            unsigned char *block = _align(*i);
             unsigned char *blockEnd = block + _blockCapacity*SIZE;
             for (; block < blockEnd; block += SIZE) {
                 reinterpret_cast<T *>(block)->~T();
@@ -80,16 +80,17 @@ Arena<T>::~Arena() {
            assert(b != _blocks.begin() &&
                   "Free list contains pointer not belonging to arena");
            --b;
-           assert((ptr - *b) % SIZE == 0 &&
+           unsigned char *ab = _align(*b);
+           assert((ptr - ab) % SIZE == 0 &&
                   "Free list contains unaligned pointer");
-           _masks[b - _blocks.begin()][(ptr - *b)/SIZE] = true;
+           _masks[b - _blocks.begin()][(ptr - ab)/SIZE] = true;
            --_nFree;
            ptr = *reinterpret_cast<unsigned char **>(ptr);
        }
        assert(_nFree == 0 && "Free list does not contain all free elements");
        // free any element not flagged as free in its occupancy mask
        for (size_t i = 0; i < _blocks.size(); ++i) {
-           unsigned char *block = _blocks[i];
+           unsigned char *block = _align(_blocks[i]);
            std::vector<bool> const & free = _masks[i];
            for (size_t j = 0; j < _blocks.size(); block += SIZE, ++j) {
                if (!free[j]) {
@@ -170,7 +171,7 @@ void Arena<T>::_grow() {
     std::vector<bool> mask(_blockCapacity, false);
     // allocate another block
     unsigned char *block = static_cast<unsigned char *>(
-        std::calloc(_blockCapacity, SIZE));
+        std::malloc(_blockCapacity*SIZE + ALIGN));
     if (block == 0) {
         throw std::bad_alloc();
     }
@@ -178,14 +179,21 @@ void Arena<T>::_grow() {
     _masks.push_back(std::vector<bool>());
     std::swap(_masks.back(), mask);
     // initialize free-list
-    unsigned char *item = block;
+    unsigned char *item = _align(block);
     for (size_t i = 0; i < _blockCapacity - 1; ++i, item += SIZE) {
         *reinterpret_cast<unsigned char **>(item) = item + SIZE;
     }
+    *reinterpret_cast<unsigned char **>(item) = 0;
     // set _free to head of free-list and store new block pointer
-    _free = block;
+    _free = _align(block);
     _nFree += _blockCapacity;
     _blocks.push_back(block);
+}
+
+template <typename T>
+inline unsigned char * Arena<T>::_align(unsigned char *ptr) {
+    return reinterpret_cast<unsigned char *>(
+        reinterpret_cast<size_t>(ptr + ALIGN) & ~(ALIGN - 1));
 }
 
 }}} // namespace lsst::ap::utils

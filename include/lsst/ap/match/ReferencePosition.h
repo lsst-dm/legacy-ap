@@ -44,14 +44,14 @@ namespace lsst { namespace ap { namespace match {
 class ReferencePosition : public BBox {
 public:
     enum Flags {
-        MOVING     = 0x1, ///< Set if the reference position has proper motion
-        PARALLAX   = 0x2, ///< Set if the reference position has
-                          ///  parallax \> MIN_PARALLAX
-        SSB_TO_GEO = 0x4  ///< Set if SSB to geocentric corrections are applied
-                          ///  by getPosition(double).
+        MOVING       = 0x1, ///< Set if the reference position has proper motion
+        PARALLAX     = 0x2, ///< Set if the reference position has
+                            ///  parallax \> MIN_PARALLAX
+        PARALLAX_COR = 0x4  ///< Set if parallax corrections are applied
+                            ///  by getPosition().
     };
 
-    static double const MIN_PARALLAX = 1e-7;
+    static double const MIN_PARALLAX = 1e-11; // rad
 
     inline ReferencePosition(int64_t id,
                              double ra,
@@ -66,7 +66,7 @@ public:
                    double parallax,
                    double vRadial,
                    bool trueAngle,
-                   bool ssbToGeo);
+                   bool parallaxCor);
 
     void setTimeRange(double epoch1, double epoch2);
 
@@ -78,12 +78,16 @@ public:
     inline Eigen::Vector3d const & getVelocity() const;
 
     inline Eigen::Vector3d const getPosition(double epoch) const;
+    inline Eigen::Vector3d const getPosition(
+        double epoch, Eigen::Vector3d const &origin) const;
 
     // BBox API
     virtual double getMinCoord0() const;
     virtual double getMaxCoord0() const;
     virtual double getMinCoord1() const;
     virtual double getMaxCoord1() const; 
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 private:
     Eigen::Vector2d _sc; ///< (ra, decl) at _epoch, ICRS rad

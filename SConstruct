@@ -132,6 +132,9 @@ if env['PLATFORM'] == 'posix':
     sysLibs += ['rt']
 env.libs[pkg] += sysLibs
 
+import numpy
+env.Append(CCFLAGS = ["-I", numpy.get_include()])
+
 # Run configure tests
 if not env.CleanFlagIsSet():
     conf = Configure(env, custom_tests = {'CustomCompilerFlag' : CustomCompilerFlag,

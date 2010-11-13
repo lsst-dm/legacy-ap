@@ -216,7 +216,7 @@ public:
                        std::string const & regex,
                        bool stripWhitespace=true);
 
-    CsvDialect const & getDialect() const;
+    inline CsvDialect const & getDialect() const;
 
     // Field access
     inline int getIndexOf(std::string const &name) const;
@@ -317,6 +317,8 @@ public:
     CsvWriter(std::ostream &out,
               CsvDialect const &dialect);
     ~CsvWriter();
+
+    inline CsvDialect const & getDialect() const;
 
     void endRecord();
     inline void flush();

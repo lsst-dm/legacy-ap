@@ -36,10 +36,20 @@ Access to association pipeline matching functionality.
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
-// #include "lsst/tr1/unordered_map.h"
 #include "lsst/daf/base.h"
 #include "lsst/pex/policy.h"
+#include "lsst/afw/geom.h"
+#include "lsst/afw/image.h"
+#include "lsst/ap/match/ExposureInfo.h"
 #include "lsst/ap/match/ReferenceMatch.h"
+
+#define PY_ARRAY_UNIQUE_SYMBOL LSST_AP_MATCH_NUMPY_ARRAY_API
+#include "numpy/arrayobject.h"
+#include "lsst/afw/numpyTypemaps.h"
+%}
+
+%init %{
+    import_array();
 %}
 
 namespace boost {
@@ -54,9 +64,23 @@ namespace boost {
 
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
+%import "lsst/afw/geom/geomLib.i"
+%import "lsst/afw/image/imageLib.i"
+
+%include "lsst/afw/eigen.i"
+
+%declareEigenMatrix(Eigen::Vector2d);
+%declareEigenMatrix(Eigen::Vector3d);
 
 %lsst_exceptions()
 
+SWIG_SHARED_PTR(BBox, lsst::ap::match::BBox);
+SWIG_SHARED_PTR_DERIVED(ExposureInfo, lsst::ap::match::BBox, lsst::ap::match::ExposureInfo);
+
 %import "lsst/ap/Common.h"
+%include "lsst/ap/match/BBox.h"
+%include "lsst/ap/match/ExposureInfo.h"
 %include "lsst/ap/match/ReferenceMatch.h"
+
+%template(ExposureInfoVector) std::vector<lsst::ap::match::ExposureInfo::Ptr>;
 

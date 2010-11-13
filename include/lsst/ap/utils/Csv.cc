@@ -216,6 +216,12 @@ inline int CsvReader::getIndexOf(char const *name) const {
 }
 //@}
 
+/** Returns the dialect for this  reader.
+  */
+inline CsvDialect const & CsvReader::getDialect() const {
+    return _dialect;
+}
+
 /** Returns the number of fields in the current record, or 0 if there is
   * no current record.
   */
@@ -341,6 +347,12 @@ inline std::string CsvReader::_get<std::string>(char const *field) const {
 
 
 // -- CsvWriter inlines ----
+
+/** Returns the dialect for this writer.
+  */
+inline CsvDialect const & CsvWriter::getDialect() const {
+    return _dialect;
+}
 
 /** Forces a write of all user-space buffered data to the underlying stream.
   */

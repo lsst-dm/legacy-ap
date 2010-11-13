@@ -34,6 +34,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "boost/static_assert.hpp"
+
 #include "lsst/pex/exceptions.h"
 
 
@@ -44,7 +46,7 @@ namespace lsst { namespace ap { namespace utils {
   * @par
   * The arena grows in blocks of a run-time specified capacity, and never
   * shrinks during the lifetime of the arena. All blocks are allocated with
-  * calloc(), and are freed when the arena is destroyed. Note that destroying
+  * malloc(), and are freed when the arena is destroyed. Note that destroying
   * the arena will also call the destructors of any live objects in the arena.
   *
   * @par
@@ -66,11 +68,15 @@ public:
     inline size_t getBlockCapacity() const;
 
 private:
-    static const size_t REM = sizeof(T) % sizeof(unsigned char *);
-    static const size_t PAD = (REM == 0) ? 0 : sizeof(unsigned char *) - REM;
-    static const size_t SIZE = sizeof(T) + PAD;
+    // T might be or contain a fixed size Eigen type
+    static const size_t ALIGN = 16;
+    static const size_t SIZE = (sizeof(T) + ALIGN - 1) & ~(ALIGN - 1);
+
+    BOOST_STATIC_ASSERT((ALIGN & (ALIGN - 1)) == 0);
 
     void _grow();
+
+    static inline unsigned char * _align(unsigned char *p);
 
     std::vector<unsigned char *> _blocks;   ///< List of memory blocks.
     std::vector<std::vector<bool> > _masks; ///< Per-block free bits - used
