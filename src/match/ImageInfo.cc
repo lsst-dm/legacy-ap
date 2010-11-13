@@ -26,7 +26,7 @@
   * @brief  ImageInfo implementation
   * @author Serge Monkewitz
   */
-#include "lsst/ap/utils/ImageInfo.h"
+#include "lsst/ap/match/ImageInfo.h"
 
 #include "boost/make_shared.hpp"
 
@@ -36,7 +36,7 @@
 using lsst::daf::base::DateTime;
 
 
-namespace lsst { namespace ap { namespace utils {
+namespace lsst { namespace ap { namespace match {
 
 ImageInfo::ImageInfo(
     int64_t id, ///< Image identifier, typically a science CCD ID
@@ -66,5 +66,5 @@ ImageInfo::ImageInfo(
 
 ImageInfo::~ImageInfo() { }
 
-}}} // namespace lsst::ap::utils
+}}} // namespace lsst::ap::match
 

@@ -27,15 +27,15 @@
   *         information from an image (typically a CCD).
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_UTILS_IMAGEINFO_H
-#define LSST_AP_UTILS_IMAGEINFO_H
+#ifndef LSST_AP_MATCH_IMAGEINFO_H
+#define LSST_AP_MATCH_IMAGEINFO_H
 
 #include "lsst/afw/geom/Extent.h"
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
 
-namespace lsst { namespace ap { namespace utils {
+namespace lsst { namespace ap { namespace match {
 
 /** Class that bundles together the WCS, extents, time and flux calibration
   * information from an image (typically a CCD). No pixel access is provided.
@@ -92,7 +92,7 @@ private:
      bool _canCalibrateFlux;
 };
 
-}}} // namespace lsst::ap::utils
+}}} // namespace lsst::ap::match
 
-#endif // LSST_AP_UTILS_IMAGEINFO_H
+#endif // LSST_AP_MATCH_IMAGEINFO_H
 
