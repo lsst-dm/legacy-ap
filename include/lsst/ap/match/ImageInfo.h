@@ -27,18 +27,22 @@
   *         information from an image (typically a CCD).
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_MATCH_IMAGEINFO_H
-#define LSST_AP_MATCH_IMAGEINFO_H
+#ifndef LSST_AP_MATCH_EXPOSUREINFO_H
+#define LSST_AP_MATCH_EXPOSUREINFO_H
+
+#include "Eigen/Core"
 
 #include "lsst/afw/geom/Extent.h"
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
+#include "lsst/afw/utils/EarthPosition.h"
+
 
 namespace lsst { namespace ap { namespace match {
 
 /** Class that bundles together the WCS, extents, time and flux calibration
-  * information from an image (typically a CCD). No pixel access is provided.
+  * information from an exposure (typically a CCD). No pixel access is provided.
   * The lsst::daf::base::PropertySet containing the FITS header cards from
   * which instances are created is not stored.
   *
@@ -46,53 +50,81 @@ namespace lsst { namespace ap { namespace match {
   * metadata AP cares about, which is important since metadata for tens of
   * thousands of CCDs may need to be kept in memory simultaneously.
   */
-class ImageInfo {
+class ExposureInfo : public BBox {
 public:
      typedef boost::shared_ptr<ImageInfo> Ptr;
      typedef boost::shared_ptr<ImageInfo const> ConstPtr;
 
-     ImageInfo(int64_t id, lsst::daf::base::PropertySet::Ptr props);
-     ~ImageInfo();
+     ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
+                  std::string const &idKey=std::string("scienceCcdExposureId"));
+     ~ExposureInfo();
 
-     // image id
+     /** Returns a unique integer identifier for the exposure.
+       */
      inline int64_t getId() const { return _id; }
 
-     // image extent
-     inline int getWidth() const  { return _extent.getX(); }
-     inline int getHeight() const { return _extent.getY(); }
-#ifndef SWIG
-     lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
-#endif
-     // image time and flux calibration metadata
-     inline bool canCalibrateFlux() const { return _canCalibrateFlux; }
-#ifndef SWIG
-     inline lsst::afw::image::Calib::ConstPtr getCalib() const {
-         return _calib;
-     }
-#endif
-     inline lsst::afw::image::Calib::Ptr getCalib() {
-         return _calib;
+     /** Returns the filter-id of the exposure (0-5).
+       */
+     inline int getFilterId() const { return _filterId; }
+
+     /** Returns the exposure mid-point, MJD TAI.
+       */
+     inline double getEpoch() const { return _epoch; }
+
+     /** Returns the exposure time, s.
+       */
+     inline double getExposureTime() const { return _expTime; }
+
+     /** Returns the SSB coordinates of the earth at t = getEpoch().
+       */
+     inline Eigen:::Vector3d const & getEarthPosition() const {
+         if (!_epValid) {
+             _earthPos = lsst::ap::utils::earthPosition(_epoch);
+             _epValid = true;
+         }
+         return _earthPos;
      }
 
-     // image WCS
-#ifndef SWIG
+     /** Gets exposure width and/or height.
+       */
+     ///@{
+     inline int getWidth() const  { return _extent.getX(); }
+     inline int getHeight() const { return _extent.getY(); }
+     lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
+     ///@}
+
+     /** Is there enough information to calibrate fluxes?
+       */
+     inline bool canCalibrateFlux() const { return _canCalibrateFlux; }
+
+     /** Returns the exposure WCS.
+       */
+     ///@{
      inline lsst::afw::image::Wcs::ConstPtr getWcs() const {
          return _wcs;
      }
-#endif
-     inline lsst::afw::image::Wcs::Ptr getWcs() {
+     inline lsst::afw::image::Wcs::Ptr getWcs() { // for SWIG
          return _wcs;
      }
+     ///@}
 
 private:
+     Eigen::Vector3d _earthPos;
      int64_t _id;
+     double _epoch;
+     double _expTime;
+     double _fluxMag0;
+     double _fluxMag0Err;
      lsst::afw::geom::Extent2I _extent;
-     lsst::afw::image::Calib::Ptr _calib;
      lsst::afw::image::Wcs::Ptr _wcs;
+     int _filterId;
      bool _canCalibrateFlux;
+     bool _epValid;
+
+     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 }}} // namespace lsst::ap::match
 
-#endif // LSST_AP_MATCH_IMAGEINFO_H
+#endif // LSST_AP_MATCH_EXPOSUREINFO_H
 
