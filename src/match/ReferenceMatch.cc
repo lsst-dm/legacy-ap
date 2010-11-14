@@ -42,6 +42,7 @@
 #include "lsst/pex/logging/Log.h"
 #include "lsst/pex/policy/DefaultPolicyFile.h"
 #include "lsst/pex/policy/Policy.h"
+#include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/Common.h"
 #include "lsst/ap/utils/Arena.h"
@@ -64,6 +65,7 @@ using std::string;
 using lsst::pex::logging::Log;
 using lsst::pex::policy::Policy;
 using lsst::pex::policy::DefaultPolicyFile;
+using lsst::afw::image::PixelZeroPos;
 
 using lsst::ap::match::detail::SphericalSweep;
 using lsst::ap::utils::angularSeparation;
@@ -230,7 +232,7 @@ public:
                  double decl,
                  double epoch,
                  double radius,
-                 std::string const &data);
+                 std::string const &record);
 
     virtual ~MatchablePos() { }
 
@@ -279,9 +281,9 @@ MatchablePos::MatchablePos(
     double decl,   ///< ICRS declination, rad
     double epoch,  ///< Epoch of position, MJD
     double radius, ///< Match radius, rad.
-    std::string const &data ///< Ancillary match output data
+    std::string const &record ///< Ancillary match output data
 ) :
-    Matchable(data),
+    Matchable(record),
     _id(id),
     _epoch(epoch),
     _sc(ra, decl),
@@ -296,13 +298,7 @@ MatchablePos::MatchablePos(
 class MatchableRef : public Matchable {
 public:
     MatchableRef(ReferencePosition const &rp,
-                 std::string const &data);
-
-    MatchableRef(int64_t id,
-                 double ra,
-                 double decl,
-                 double epoch,
-                 std::string const &data);
+                 std::string const &record);
 
     virtual ~MatchableRef() { }
 
@@ -333,21 +329,10 @@ private:
 
 MatchableRef::MatchableRef(
     ReferencePosition const &rp,
-    std::string const &data
+    std::string const &record
 ) :
-    Matchable(data),
+    Matchable(record),
     _rp(rp)
-{ }
-
-MatchableRef::MatchableRef(
-    int64_t id,    ///< Unique id.
-    double epoch,  ///< Epoch of reference position, MJD
-    double ra,     ///< ICRS right ascension, rad.
-    double decl,   ///< ICRS declination, rad.
-    std::string const &data ///< Ancillary match output data
-) :
-    Matchable(data),
-    _rp(id, epoch, ra, decl)
 { }
 
 inline bool operator<(std::pair<double, MatchableRef *> const &r1,
@@ -361,7 +346,7 @@ inline bool operator<(std::pair<double, MatchableRef *> const &r1,
 class RefWithCov : public BBox {
 public:
     RefWithCov(ReferencePosition const &rp,
-               std::string const &data);
+               std::string const &record);
 
     virtual ~RefWithCov() { }
 
@@ -372,8 +357,11 @@ public:
         return _rp;
     }
 
-    void write(lsst::ap::utils::CsvWriter &writer) const {
-        writer.write(_data);
+    std::string const & getRecord() const {
+        return _record;
+    }
+
+    void writeCoverage(lsst::ap::utils::CsvWriter &writer) const {
         for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
             writer.appendField(_filterCov[i]);
         }
@@ -404,17 +392,17 @@ public:
 
 private:
     ReferencePosition _rp;
-    std::string _data;
+    std::string _record;
     bool _covered;
     int _filterCov[6];
 };
 
 RefWithCov::RefWithCov(
     ReferencePosition const &rp,
-    std::string const &data
+    std::string const &record
 ) :
     _rp(rp),
-    _data(data),
+    _record(record),
     _covered(false)
 {
     for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
@@ -453,6 +441,12 @@ public:
       */
     std::string const & getNullRecord() const {
         return _nullRecord;
+    }
+
+    /** Returns true if the positions read in have an associated output record.
+      */
+    bool haveOutputRecord() const {
+        return !_columns.empty();
     }
 
     /** Returns @c true if all positions have been read and returned.
@@ -558,7 +552,6 @@ MatchablePosReader::MatchablePosReader(
     if (policy->exists("outputFields")) { 
         vector<string> ofs = policy->getStringArray("outputFields");
         _writer.endRecord();
-        _writer.appendNull();
         _buf.str("");
         if (ofs.size() == 1 && ofs[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
@@ -647,7 +640,6 @@ void MatchablePosReader::_read() {
     // Construct ancillary column output string
     if (!_columns.empty()) {
         _writer.endRecord();
-        _writer.appendNull();
         _buf.str("");
         _record.clear();
         for (Iter i = _columns.begin(), e = _columns.end(); i != e; ++i) {
@@ -720,6 +712,13 @@ public:
       */
     std::string const & getNullRecord() const {
         return _nullRecord;
+    }
+
+    /** Returns true if the reference catalog entries read in have an
+      * associated output record.
+      */
+    bool haveOutputRecord() const {
+        return !_columns.empty();
     }
 
 protected:
@@ -835,7 +834,6 @@ RefReaderBase::RefReaderBase(
     if (policy->exists("outputFields")) {
         vector<string> ofs = policy->getStringArray("outputFields");
         _writer.endRecord();
-        _writer.appendNull();
         _buf.str("");
         if (ofs.size() == 1 && ofs[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
@@ -950,7 +948,6 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
     // Construct ancillary column output string
     if (!_columns.empty()) {
         _writer.endRecord();
-        _writer.appendNull();
         _buf.str("");
         for (Iter i = _columns.begin(), e = _columns.end(); i != e; ++i) {
             _writer.appendField(_reader->get<char const *>(*i));
@@ -1249,8 +1246,14 @@ void RefPosMatcher::_writeMatch(RefPosMatch const *m) {
     _writer->appendField(r->getClosestId() == p->getId());
     _writer->appendField(p->getClosestId() == r->getReferencePosition().getId());
     _writer->appendField(r->getReferencePosition().getFlags());
-    _writer->write(r->getRecord());
-    _writer->write(p->getRecord());
+    if (_refReader->haveOutputRecord()) {
+        _writer->write(_writer->getDialect().getDelimiter());
+        _writer->write(r->getRecord());
+    }
+    if (_posReader->haveOutputRecord()) {
+        _writer->write(_writer->getDialect().getDelimiter());
+        _writer->write(p->getRecord());
+    }
     _writer->endRecord();
 }
 
@@ -1272,8 +1275,14 @@ void RefPosMatcher::_finish(MatchablePos *p) {
         _writer->appendNull();
         _writer->appendNull();
         _writer->appendNull();
-        _writer->write(_refReader->getNullRecord());
-        _writer->write(p->getRecord());
+        if (_refReader->haveOutputRecord()) {
+            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_refReader->getNullRecord());
+        }
+        if (_posReader->haveOutputRecord()) {
+            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(p->getRecord());
+        }
         _writer->endRecord();
         _posReader->destroy(p);
         return;
@@ -1324,8 +1333,14 @@ void RefPosMatcher::_finish(MatchableRef *r) {
         _writer->appendNull();
         _writer->appendNull();
         _writer->appendNull();
-        _writer->write(r->getRecord());
-        _writer->write(_posReader->getNullRecord());
+        if (_refReader->haveOutputRecord()) {
+            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(r->getRecord());
+        }
+        if (_posReader->haveOutputRecord()) {
+            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_posReader->getNullRecord());
+        }
         _writer->endRecord();
         _refReader->destroy(r);
         return;
@@ -1448,25 +1463,37 @@ void RefExpMatcher::match(CsvWriter &writer,
     std::sort(exposures.begin(), exposures.end(), ExposureInfoComparator());
     Iter i = exposures.begin();
     Iter const end = exposures.end();
-    // run the standard sweep line algorithm - slightly simplified by
-    // the fact that unmatched exposures or reference catalog entries are
-    // of no interest.
+    // run the standard sweep line algorithm
     while (true) {
         if (i == end) {
+            while (!_refReader->isDone()) {
+                double refDecl = _refReader->peek();
+                _expSweep.advance(refDecl, *this);
+                RefWithCov *r = _refReader->next();
+                _expSweep.search(r, *this);
+                _finish(r);
+            }
             break;
         } else if (_refReader->isDone()) {
+            for (; i != end; ++i) {
+                double expDecl = (*i)->getMinCoord1();
+                _refSweep.advance(expDecl, *this);
+                ExposureInfo *info = i->get();
+                _refSweep.search(info, *this);
+            }
             break;
         }
-        double imgDecl = (*i)->getMinCoord1();
+        double expDecl = (*i)->getMinCoord1();
         double refDecl = _refReader->peek();
-        _refSweep.advance(imgDecl, *this);
+        _refSweep.advance(expDecl, *this);
         _expSweep.advance(refDecl, *this);
-        if (refDecl < imgDecl) {
+        if (refDecl < expDecl) {
             RefWithCov *r = _refReader->next();
             _expSweep.search(r, *this);
             _refSweep.insert(r);
         } else {
-            ExposureInfo *info = (*i).get();
+            ExposureInfo *info = i->get();
+            ++i;
             _refSweep.search(info, *this);
             _expSweep.insert(info);
         }
@@ -1479,7 +1506,11 @@ void RefExpMatcher::match(CsvWriter &writer,
         std::pop_heap(_heap.begin(), _heap.end());
         RefWithCov *r = _heap.back().second;
         _heap.pop_back();
-        r->write(*_writer);
+        if (_refReader->haveOutputRecord()) {
+            _writer->write(r->getRecord());
+            _writer->write(_writer->getDialect().getDelimiter());
+        }
+        r->writeCoverage(*_writer);
         _writer->endRecord();
         _refReader->destroy(r);
     }
@@ -1500,14 +1531,18 @@ void RefExpMatcher::_finish(RefWithCov *r) {
         if (decl >= _maxDecl) {
             _maxDecl = decl;
         }
-        _heap.push_back(std::pair<double, RefWithCov*>(decl, r));
+        _heap.push_back(std::pair<double, RefWithCov *>(decl, r));
         std::push_heap(_heap.begin(), _heap.end());
         while (!_heap.empty() &&
                _maxDecl - _heap.front().first > _refReader->getReadAhead()) {
             std::pop_heap(_heap.begin(), _heap.end());
             r = _heap.back().second;
             _heap.pop_back();
-            r->write(*_writer);
+            if (_refReader->haveOutputRecord()) {
+                _writer->write(r->getRecord());
+                _writer->write(_writer->getDialect().getDelimiter());
+            }
+            r->writeCoverage(*_writer);
             _writer->endRecord();
             _refReader->destroy(r);
         }
@@ -1527,8 +1562,10 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     Eigen::Vector2d sc = cartesianToSpherical(v);
     lsst::afw::geom::PointD p =
         e->getWcs()->skyToPixel(degrees(sc[0]), degrees(sc[1]));
-    if (p.getX() >= 0.0 && p.getX() < e->getWidth() &&
-        p.getY() >= 0.0 && p.getY() < e->getHeight()) {
+    if (p.getX() >= PixelZeroPos - 0.5 &&
+        p.getX() <= e->getWidth() + PixelZeroPos - 0.5 &&
+        p.getY() >= PixelZeroPos - 0.5 &&
+        p.getY() <= e->getHeight() + PixelZeroPos - 0.5) {
         r->appendMatch(e);
     }
 }
@@ -1584,12 +1621,12 @@ LSST_AP_API void referenceMatch(
 
     // Create readers, writer and matcher
     CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
-    MatchablePosReader posReader(posPath, posPolicy, outDialect,
-                                 xPolicy->getDouble("radius")*RADIANS_PER_ARCSEC);
-
-    RefReader<MatchableRef> refReader(refPath, refPolicy, outDialect, 
-                                      posReader.getMinEpoch(), posReader.getMaxEpoch(),
-                                      xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
+    MatchablePosReader posReader(
+        posPath, posPolicy, outDialect,
+        xPolicy->getDouble("radius")*RADIANS_PER_ARCSEC);
+    RefReader<MatchableRef> refReader(
+        refPath, refPolicy, outDialect, posReader.getMinEpoch(),
+        posReader.getMaxEpoch(), xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
     CsvWriter writer(matchPath, outDialect);
     RefPosMatcher matcher;
 

@@ -211,6 +211,7 @@ class ReferenceMatchTestCase(unittest.TestCase):
                     for line in open(matchFile.name, 'rb'):
                         sys.stdout.write(line)
                     print '\n---------\n'
+                    sys.stdout.flush()
 
             # Validate that the output match file is correct
             with open(matchFile.name, 'rb') as checkFile:

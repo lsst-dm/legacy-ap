@@ -35,6 +35,7 @@
 
 #include "lsst/pex/exceptions.h"
 #include "lsst/daf/base/DateTime.h"
+#include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/utils/SpatialUtils.h"
 
@@ -42,6 +43,8 @@ using std::max;
 
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::daf::base::DateTime;
+using lsst::afw::image::PixelZeroPos;
+
 using lsst::ap::utils::cartesianToSpherical;
 using lsst::ap::utils::angularSeparation;
 using lsst::ap::utils::maxAlpha;
@@ -63,6 +66,12 @@ ExposureInfo::ExposureInfo(
     _canCalibrateFlux(false),
     _epValid(false)
 {
+    std::string radesys = metadata->getAsString("RADESYS");
+    if (radesys != "ICRS") {
+        throw LSST_EXCEPT(InvalidParameterException,
+                          "Currently, exposures with RADESYS other than "
+                          "ICRS are unsupported. Got: " + radesys);
+    }
     std::string filter = metadata->getAsString("FILTER");
     if (filter == "u") {
         _filterId = 0;
@@ -93,11 +102,16 @@ ExposureInfo::ExposureInfo(
         _canCalibrateFlux = true;
     }
     // compute image center and corners
-    Eigen::Vector3d c = _pixToSky(0.5*_extent.getX(), 0.5*_extent.getY());
-    Eigen::Vector3d llc = _pixToSky(-0.5, -0.5);
-    Eigen::Vector3d ulc = _pixToSky(-0.5, _extent.getY() - 0.5);
-    Eigen::Vector3d lrc = _pixToSky(_extent.getX() - 0.5, -0.5);
-    Eigen::Vector3d urc = _pixToSky(_extent.getX() - 0.5, _extent.getY() - 0.5);
+    Eigen::Vector3d c = _pixToSky(0.5*_extent.getX() + PixelZeroPos,
+                                  0.5*_extent.getY() + PixelZeroPos);
+    Eigen::Vector3d llc = _pixToSky(PixelZeroPos - 0.5,
+                                    PixelZeroPos - 0.5);
+    Eigen::Vector3d ulc = _pixToSky(PixelZeroPos - 0.5,
+                                    _extent.getY() - 0.5 + PixelZeroPos);
+    Eigen::Vector3d lrc = _pixToSky(_extent.getX() - 0.5 + PixelZeroPos,
+                                    PixelZeroPos - 0.5);
+    Eigen::Vector3d urc = _pixToSky(_extent.getX() - 0.5 + PixelZeroPos,
+                                    _extent.getY() - 0.5 + PixelZeroPos);
     // compute bounding box from bounding circle
     _center = cartesianToSpherical(c);
     _radius = angularSeparation(c, llc);

@@ -1102,16 +1102,18 @@ void CsvWriter::appendField(long double v) {
 void CsvWriter::appendNull() {
     if (_dialect.hasNull()) {
         // output leading delimiter except for the first field in a record
-        if (_numFields++ > 0) {
+        if (_numFields > 0) {
             _out->put(_dialect.getDelimiter());
         }
+        ++_numFields;
         // NULL is never quoted, and guaranteed not to require escaping
         _out->write(_dialect.getNull().c_str(), _dialect.getNull().size());
     } else if (_dialect.standardEscapes()) {
         // output leading delimiter except for the first field in a record
-        if (_numFields++ > 0) {
+        if (_numFields > 0) {
             _out->put(_dialect.getDelimiter());
         }
+        ++_numFields;
         // write \N
         _out->put(_dialect.getEscapeChar());
         _out->put('N');

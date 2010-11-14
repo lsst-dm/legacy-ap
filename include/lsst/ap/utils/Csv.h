@@ -350,8 +350,9 @@ public:
 
     void appendNull();
 
-    // raw write
+    // raw writes
     inline void write(std::string const &v);
+    inline void write(char c);
 
 private:
     // disable copy construction/assignment
