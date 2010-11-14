@@ -68,19 +68,10 @@ def main():
         matching against sources, but not when matching against source
         clusters (the latter combine data from multiple epochs)."""))
     parser.add_option(
-        "-e", "--min-epoch", type="float", dest="minEpoch", help=dedent("""\
-        Minimum epoch of positions being matched against, MJD. For sources,
-        observation epochs are in the taiMidPoint field.  For source clusters,
-        the epoch should be set to the mean taiMidPoint of member sources.
-        This option overrides the value stored in the position table policy
-        file."""))
-    parser.add_option(
-        "-E", "--max-epoch", type="float", dest="maxEpoch", help=dedent("""\
-        Maximum epoch of positions being matched against, MJD. For sources,
-        observation epochs are in the taiMidPoint field.  For source clusters,
-        the epoch should be set to the mean taiMidPoint of member sources.
-        This option overrides the value stored in the position table policy
-        file."""))
+        "-f", "--fields", dest="fields", help=dedent("""\
+        A comma separated list of the fields names in the position table.
+        If omitted, the first line in the position table is expected to
+        contain field names."""))
 
     opts, args = parser.parse_args()
     if len(args) != 3:
@@ -105,16 +96,9 @@ def main():
         matchPolicy.set("parallaxThresh", opts.parallaxThresh)
     if opts.noSsbToGeo:
         matchPolicy.set("parallaxThresh", float("INF"))
-    if opts.minEpoch != None:
-        if (opts.minEpoch < J2000_MJD - 200.0*DAYS_PER_JY or
-            opts.minEpoch > J2000_MJD + 200.0*DAYS_PER_JY):
-            parser.error("Minimum epoch is not within 200 years of J2000")
-        posPolicy.set("minEpoch", opts.minEpoch)
-    if opts.maxEpoch != None:
-        if (opts.maxEpoch < J2000_MJD - 200.0*DAYS_PER_JY or
-            opts.maxEpoch > J2000_MJD + 200.0*DAYS_PER_JY):
-            parser.error("Maximum epoch is not within 200 years of J2000")
-        posPolicy.set("maxEpoch", opts.maxEpoch)
+    if opts.fields:
+        for n in opts.fields.split(','):
+            posPolicy.add('fieldNames', n.strip())
     apMatch.referenceMatch(args[0], args[1], args[2],
                            refPolicy, posPolicy, matchPolicy)
 
