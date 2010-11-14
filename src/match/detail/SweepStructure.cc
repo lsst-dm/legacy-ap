@@ -30,6 +30,8 @@
   */
 #include "lsst/ap/match/detail/SweepStructure.h"
 
+#include <stdexcept>
+
 #include "lsst/utils/ieee.h"
 
 
@@ -222,6 +224,27 @@ void SweepStructure<Node>::_remove(Node *r) {
     }
 }
 
+/** Makes sure the sweep structure heap has the capacity to hold at least
+  * @a n more elements.
+  */
+template <typename Node>
+void SweepStructure<Node>::_grow(
+    typename std::vector<std::pair<double, Node *> >::size_type n)
+{
+    if (_heap.max_size() - _heap.size() < n) {
+        throw std::length_error("cannot expand vector: "
+                                "max_size() would be exceeded");
+    }
+    typename std::vector<std::pair<double, Node *> >::size_type c = 2*_heap.size();
+    if (c == 0) {
+        ++c;
+    }
+    if (c < _heap.size() || c > _heap.max_size()) {
+        c = _heap.max_size();
+    }
+    _heap.reserve(c);
+}
+
 /** Checks that a depth first traversal of the tree rooted at n yields
   * an ordered list of boxes.
   */
@@ -324,7 +347,9 @@ double SweepStructure<Node>::_checkReach(Node const *n) {
 template <>
 void SweepStructure<CartesianNode>::_insert(BBox *b) {
     if (b != 0) {
-        _heap.reserve(_heap.size() + 1);
+        if (_heap.size() == _heap.capacity()) {
+            _grow(1);
+        }
         CartesianNode *n = new (_arena) CartesianNode(b);
         // after this point, no exception can be thrown
         _insert(n);
@@ -351,7 +376,9 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
         // box wraps across the 0/2*M_PI longitude angle
         // discontinuity - insert twin nodes for [0, min] and
         // [max, 2*M_PI]
-        _heap.reserve(_heap.size() + 2);
+	if (_heap.capacity() - _heap.size() < 2) {
+            _grow(2);
+        }
         SphericalNode *n1 = new (_arena) SphericalNode(b, 0.0, max);
         SphericalNode *n2 = 0;
         try {
@@ -373,7 +400,9 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
         std::push_heap(_heap.begin(), _heap.end());
     } else {
         // box does not wrap - insert a single node.
-        _heap.reserve(_heap.size() + 1);
+        if (_heap.size() == _heap.capacity()) {
+            _grow(1);
+        }
         SphericalNode *n = new (_arena) SphericalNode(b, min, max);
         // after this point no exception can be thrown
         _insert(n);

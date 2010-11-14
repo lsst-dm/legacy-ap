@@ -166,8 +166,34 @@ inline size_t Arena<T>::getBlockCapacity() const {
 template <typename T>
 void Arena<T>::_grow() {
     // pre-allocate space in block and block mask list
-    _blocks.reserve(_blocks.size() + 1);
-    _masks.reserve(_masks.size() + 1);
+    if (_blocks.size() == _blocks.capacity()) {
+        if (_blocks.size() == _blocks.max_size()) {
+            throw std::length_error("cannot expand vector: "
+                                    "max_size() would be exceeded");
+        }
+        std::vector<unsigned char *>::size_type c = 2*_blocks.capacity();
+        if (c == 0) {
+            ++ c;
+        }
+        if (c < _blocks.capacity() || c > _blocks.max_size()) {
+            c = _blocks.max_size();
+        }
+        _blocks.reserve(c);
+    }
+    if (_masks.size() == _masks.capacity()) {
+        if (_masks.size() == _masks.max_size()) {
+            throw std::length_error("cannot expand vector: "
+                                    "max_size() would be exceeded");
+        }
+        std::vector<std::vector<bool> >::size_type c = 2*_masks.capacity();
+        if (c == 0) {
+            ++c;
+        }
+        if (c < _masks.capacity() || c > _masks.max_size()) {
+            c = _masks.max_size();
+        }
+        _masks.reserve(c);
+    }
     std::vector<bool> mask(_blockCapacity, false);
     // allocate another block
     unsigned char *block = static_cast<unsigned char *>(
@@ -175,7 +201,8 @@ void Arena<T>::_grow() {
     if (block == 0) {
         throw std::bad_alloc();
     }
-    // what follows will never throw
+    // what follows will not throw so long as the std::vector default
+    // constructor does not throw
     _masks.push_back(std::vector<bool>());
     std::swap(_masks.back(), mask);
     // initialize free-list

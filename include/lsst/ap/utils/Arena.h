@@ -32,6 +32,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>
+#include <stdexcept>
 #include <vector>
 
 #include "boost/static_assert.hpp"

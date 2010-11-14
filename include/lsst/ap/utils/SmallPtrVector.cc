@@ -170,7 +170,8 @@ SmallPtrVector<T, N> & SmallPtrVector<T, N>::operator=(
 template <typename T, size_t N>
 void SmallPtrVector<T, N>::reserve(typename SmallPtrVector<T, N>::size_type n) {
     if (n > max_size()) {
-        throw std::bad_alloc();
+        throw std::length_error("cannot expand vector: "
+                                "max_size() would be exceeded");
     } else if (n > capacity()) {
         T **array = new T *[n];
         size_type sz = size();
@@ -227,10 +228,16 @@ void SmallPtrVector<T, N>::swap(SmallPtrVector &v) {
 
 template <typename T, size_t N>
 void SmallPtrVector<T, N>::_grow() {
-    size_type c = std::min(2*capacity(), max_size());
-    if (c <= capacity()) {
-        // overflow
-        throw std::bad_alloc();
+    if (max_size() == size()) {
+        throw std::length_error("cannot expand vector: "
+                                "max_size() would be exceeded");
+    }
+    size_type c = 2*capacity();
+    if (c == 0) {
+        ++c;
+    }
+    if (c < capacity() || c > max_size()) {
+        c = max_size();
     }
     reserve(c);
 }

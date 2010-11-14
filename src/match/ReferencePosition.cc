@@ -32,6 +32,7 @@
 
 using lsst::ap::utils::angularSeparation;
 using lsst::ap::utils::cartesianToSpherical;
+using lsst::ap::utils::clampPhi;
 using lsst::ap::utils::maxAlpha;
 using lsst::ap::utils::sphericalToCartesian;
 
@@ -113,8 +114,8 @@ void ReferencePosition::setTimeRange(double epoch1, double epoch2) {
         }
         Eigen::Vector2d sc = cartesianToSpherical(m);
         double alpha = maxAlpha(r, sc.y());
-        _minDecl = sc.y() - r;
-        _maxDecl = sc.y() + r;
+        _minDecl = clampPhi(sc.y() - r);
+        _maxDecl = clampPhi(sc.y() + r);
         _minRa = sc.x() - alpha;
         _maxRa = sc.x() + alpha;
     }

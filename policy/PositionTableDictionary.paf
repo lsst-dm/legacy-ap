@@ -49,6 +49,7 @@ definitions: {
                       entries will have their epochs set to the 'epoch' policy
                       parameter value when read in. NULL epoch values are
                       illegal."
+        default: "epoch"
         maxOccurs: 1
     }
     epoch: {

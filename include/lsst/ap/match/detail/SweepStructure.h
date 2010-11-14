@@ -116,6 +116,7 @@ protected:
     void _insert(Node *i);
     void _insert(BBox *b);
     void _remove(Node *n);
+    void _grow(typename std::vector<HeapEntry>::size_type n);
 
     lsst::ap::utils::Arena<Node> _arena;
     Node *_root; ///< Root of the interval tree.
