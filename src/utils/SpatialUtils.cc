@@ -57,8 +57,18 @@ void thetaRangeReduce(double &min, double &max) {
         // range reduce
         min = std::fmod(min, 2.0*M_PI);
         max = std::fmod(max, 2.0*M_PI);
-        if (min < 0.0) { min += 2.0*M_PI; }
-        if (max < 0.0) { max += 2.0*M_PI; }
+        if (min < 0.0) {
+            min += 2.0*M_PI;
+            if (min == 2.0*M_PI) {
+                min = 0.0;
+            }
+        }
+        if (max < 0.0) {
+            max += 2.0*M_PI;
+            if (max == 2.0*M_PI) {
+                max = 0.0;
+            }
+        }
     }
 }
 

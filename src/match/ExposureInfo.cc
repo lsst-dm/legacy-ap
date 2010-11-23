@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <string>
 
+#include "boost/algorithm/string/trim.hpp"
 #include "boost/make_shared.hpp"
 
 #include "lsst/pex/exceptions.h"
@@ -40,6 +41,8 @@
 #include "lsst/ap/utils/SpatialUtils.h"
 
 using std::max;
+
+using boost::algorithm::trim_copy;
 
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::daf::base::DateTime;
@@ -66,13 +69,7 @@ ExposureInfo::ExposureInfo(
     _canCalibrateFlux(false),
     _epValid(false)
 {
-    std::string radesys = metadata->getAsString("RADESYS");
-    if (radesys != "ICRS") {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "Currently, exposures with RADESYS other than "
-                          "ICRS are unsupported. Got: " + radesys);
-    }
-    std::string filter = metadata->getAsString("FILTER");
+    std::string filter = trim_copy(metadata->getAsString("FILTER"));
     if (filter == "u") {
         _filterId = 0;
     } else if (filter == "g") {
@@ -93,12 +90,17 @@ ExposureInfo::ExposureInfo(
     _extent.setX(metadata->getAsInt("NAXIS1"));
     _extent.setY(metadata->getAsInt("NAXIS2"));
     // get image exposure time and mid-point
-    _epoch = metadata->getAsDouble("TIME-MID");
+    DateTime mid(metadata->getAsString("TIME-MID"));
+    _epoch = mid.get(DateTime::MJD, DateTime::TAI);
     _expTime = metadata->getAsDouble("EXPTIME");
     // get image flux
-    if (metadata->exists("FLUXMAG0") && metadata->exists("FLUXMAG0ERR")) {
+    if (metadata->exists("FLUXMAG0")) {
+        if (metadata->exists("FLUXMAG0ERR")) {
+            _fluxMag0Err = metadata->getAsDouble("FLUXMAG0ERR");
+        } else {
+            _fluxMag0Err = 0.0;
+        }
         _fluxMag0 = metadata->getAsDouble("FLUXMAG0");
-        _fluxMag0Err = metadata->getAsDouble("FLUXMAG0ERR");
         _canCalibrateFlux = true;
     }
     // compute image center and corners

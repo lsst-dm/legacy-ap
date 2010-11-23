@@ -98,7 +98,7 @@ class ReferenceFilterTestCase(unittest.TestCase):
         ps.setDouble("CD1_2", 0.0)
         ps.setDouble("CD2_1", 0.0)
         ps.setDouble("CD2_2", 0.001)
-        ps.setDouble("TIME-MID", 51544.5)
+        ps.setString("TIME-MID", "2000-01-01T11:59:28.000000000Z")
         ps.setDouble("EXPTIME", 10.0)
         self.exposures = apMatch.ExposureInfoVector()
         self.exposures.append(apMatch.ExposureInfo(ps))

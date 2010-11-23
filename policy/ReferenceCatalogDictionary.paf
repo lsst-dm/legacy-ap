@@ -22,9 +22,9 @@ definitions: {
         description: "Maximum parallax (milliarcsec) of any reference catalog
                       entry. Should be omitted or set to 0.0 if parallax isn't
                       available in the reference catalog. If omitted, the correct
-                      value is computed by scanning the reference catalog. You
-                      can determine an appropriate value with something like the
-                      following query:
+                      value is computed by scanning the reference catalog. One 
+                      can determine this value with something similar to the
+                      following SQL query:
 
                       SELECT MAX(parallax) FROM SimRefStar_11032010;
 
@@ -37,8 +37,8 @@ definitions: {
                       catalog entry. Should be set to 0.0 or omitted if proper
                       motions are not available in the reference catalog. If
                       omitted, the correct value is computed by scanning the
-                      reference catalog. You can determine an appropriate value
-                      with something like the following query:
+                      reference catalog. One can determine this value with
+                      with something similar to the following SQL query:
 
                       SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar_11032010;
 
@@ -68,18 +68,18 @@ definitions: {
     # Position related column names and configuration parameters
     idColumn: {
         type: string
-        description: "Name of the unique id column for reference objects."
+        description: "Name of the unique id column for reference objects.
+                      Must be present in the catalog. NULL values are illegal."
         default: "refObjectId"
         maxOccurs: 1
     }
     epochColumn: {
         type: string
-        description: "Name of the epoch column for reference objects.
-                      If omitted, empty, or set to a negative integer, the epoch
-                      column is assumed not to exist, and reference objects will
-                      have their epochs set to the 'epoch' policy parameter value
-                      when read in. NULL epoch values will also be replaced by
-                      the value of the 'epoch'."
+        description: "Name of the epoch column for reference objects. If this
+                      name is omitted, empty, or not found in the catalog,
+                      reference objects will have their epochs set to the
+                      'epoch' policy parameter value when read in. NULL epoch
+                      values are illegal."
         maxOccurs: 1
     }
     epoch: {
@@ -92,7 +92,8 @@ definitions: {
     }
     raColumn: {
         type: string
-        description: "Name of the ICRS right ascension column."
+        description: "Name of the ICRS right ascension column. Must be present
+                      in the catalog. NULL values are illegal."
         default: "ra"
         maxOccurs: 1
     }
@@ -106,7 +107,8 @@ definitions: {
     }
     declColumn: {
         type: string
-        description: "Name of the ICRS declination column."
+        description: "Name of the ICRS declination column. Must be present
+                      in the catalog. NULL values are illegal."
         default: "decl"
         maxOccurs: 1
     }
@@ -121,7 +123,10 @@ definitions: {
 
     muRaColumn: {
         type: string
-        description: "Name of the right ascension proper motion column."
+        description: "Name of the right ascension proper motion column. Need
+                      not be present in the catalog. NULL values are acceptable,
+                      and cause the reference catalog entry to be treated as
+                      stationary and infinitely distant."
         default: "muRa"
         maxOccurs: 1
     }
@@ -145,7 +150,10 @@ definitions: {
 
     muDeclColumn: {
         type: string
-        description: "Name of the declination proper motion column."
+        description: "Name of the declination proper motion column. Need
+                      not be present in the catalog. NULL values are acceptable,
+                      and cause the reference catalog entry to be treated as
+                      stationary and infinitely distant."
         default: "muDecl"
         maxOccurs: 1
     }
@@ -162,7 +170,11 @@ definitions: {
     parallaxColumn: {
         type: string
         default: "parallax"
-        description: "Name of the parallax column."
+        description: "Name of the parallax column. Need not be present in the
+                      catalog. NULL values are acceptable, and cause the
+                      reference catalog entry to be treated as stationary and
+                      infinitely distant."
+
         maxOccurs: 1
     }
     parallaxScale: {
@@ -177,7 +189,11 @@ definitions: {
     vRadialColumn: {
         type: string
         default: "vRad"
-        description: "Name of the radial velocity column."
+        description: "Name of the radial velocity column. Need not be present in
+                      the catalog (in which case zero radial velocity is assumed).
+                      NULL values are acceptable, and cause the reference catalog
+                      entry to be treated as stationary and infinitely distant."
+
         maxOccurs: 1
     }
     vRadialScale: {

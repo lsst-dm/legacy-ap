@@ -42,6 +42,7 @@
 #include "lsst/pex/logging/Log.h"
 #include "lsst/pex/policy/DefaultPolicyFile.h"
 #include "lsst/pex/policy/Policy.h"
+#include "lsst/afw/coord/Coord.h"
 #include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/Common.h"
@@ -890,16 +891,18 @@ RefReaderBase::RefReaderBase(
  
         }
     }
+    // determine read-ahead amount
+    double dtMax = max(fabs(_maxEpoch - _minMatchEpoch),
+                       fabs(_maxMatchEpoch - _minEpoch));
+    _readAhead = 2.0*_maxParallax + _maxAngularVelocity*dtMax;
     log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
                _minEpoch, _maxEpoch);
     log.format(Log::INFO, "  - max parallax is %.3f milliarcsec",
                _maxParallax/RAD_PER_MAS);
     log.format(Log::INFO, "  - max angular velocity is %.3f milliarcsec/yr",
                _maxAngularVelocity/RADY_PER_MASD);
-    // determine read-ahead amount
-    double dtMax = max(fabs(_maxEpoch - _minMatchEpoch),
-                       fabs(_maxMatchEpoch - _minEpoch));
-    _readAhead = 2.0*_maxParallax + _maxAngularVelocity*dtMax;
+    log.format(Log::INFO, "  - read-ahead is %.3f milliarcsec",
+               _readAhead/RAD_PER_MAS);
 }
 
 RefReaderBase::~RefReaderBase() { }
@@ -1548,19 +1551,21 @@ void RefExpMatcher::_finish(RefWithCov *r) {
     }
 }
 
+namespace {
+    void _nullDeleter(void *) { }
+}
+
 /** Called on candidate matches (r, i).
   */
 void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     double epoch = e->getEpoch();
     Eigen::Vector3d v = r->getReferencePosition().getPosition(
         epoch, e->getEarthPosition());
-    // FIXME: this currently assumes that the image RADESYS is ICRS (as
-    // is assumed for reference catalog entries). Generalizing this
-    // is likely to cost a lot of speed, as the Coord API is generally
-    // unusable without creating a Coord::Ptr.
     Eigen::Vector2d sc = cartesianToSpherical(v);
-    lsst::afw::geom::PointD p =
-        e->getWcs()->skyToPixel(degrees(sc[0]), degrees(sc[1]));
+    lsst::afw::coord::IcrsCoord coord(degrees(sc.x()), degrees(sc.y()));
+    // avoid at least one memory allocation
+    boost::shared_ptr<lsst::afw::coord::Coord> sky(&coord, _nullDeleter);
+    lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(sky);
     if (p.getX() >= PixelZeroPos - 0.5 &&
         p.getX() <= e->getWidth() + PixelZeroPos - 0.5 &&
         p.getY() >= PixelZeroPos - 0.5 &&
@@ -1661,7 +1666,8 @@ LSST_AP_API void referenceFilter(
     }
 
     Log log(Log::getDefaultLog(), "lsst.ap.match");
-    log.log(Log::INFO, "Filtering reference catalog against exposures...");
+    log.log(Log::INFO, "Filtering out reference catalog entries not "
+            "observable in any exposure...");
 
     // Merge input policies with defaults
     Policy::Ptr refPolicy;
@@ -1694,6 +1700,9 @@ LSST_AP_API void referenceFilter(
             maxEpoch = epoch;
         }
     }
+    log.format(Log::INFO, "Time range of exposures is [%.3f, %.3f] MJD",
+               minEpoch, maxEpoch);
+
     // Create reader, writer and matcher
     CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
     RefReader<RefWithCov> refReader(

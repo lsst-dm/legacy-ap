@@ -27,12 +27,15 @@ from textwrap import dedent
 import lsst.pex.policy as pexPolicy
 import lsst.ap.match as apMatch
 
-J2000_MJD = 51544.5
-DAYS_PER_JY = 365.25
 
 def main():
-    parser = optparse.OptionParser(
-        "%prog [options] <ref catalog> <pos table> <output file>")
+    parser = optparse.OptionParser(dedent("""\
+        %prog [options] <ref catalog> <pos table> <output file>
+
+        Matches a reference catalog against a table of positions.
+        Both the reference catalog and position table must be
+        in increasing declination order.
+        """))
     parser.add_option(
         "-R", "--ref-policy", type="string", dest="refPolicy",
         help=dedent("""\
@@ -96,12 +99,13 @@ def main():
         matchPolicy.set("parallaxThresh", opts.parallaxThresh)
     if opts.noSsbToGeo:
         matchPolicy.set("parallaxThresh", float("INF"))
-    if opts.fields:
-        for n in opts.fields.split(','):
-            posPolicy.add('fieldNames', n.strip())
+    if opts.fields != None:
+        posPolicy.remove("fieldNames")
+        for n in opts.fields.split(","):
+            posPolicy.add("fieldNames", n.strip())
     apMatch.referenceMatch(args[0], args[1], args[2],
                            refPolicy, posPolicy, matchPolicy)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 

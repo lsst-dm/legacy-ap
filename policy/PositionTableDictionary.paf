@@ -37,18 +37,17 @@ definitions: {
 
     # Position related column names and configuration parameters
     idColumn: {
-        description: "Name of the unique id column for position
-                      table entries."
+        description: "Name of the unique id column for position table entries.
+                      Must be present in the table. NULL values are illegal."
         default: "objectId"
         maxOccurs: 1
     }
     epochColumn: {
-        description: "Name of the epoch column for positions. If
-                      omitted, empty, or set to a negative integer, the epoch
-                      column is assumed not to exist, and position table
-                      entries will have their epochs set to the 'epoch' policy
-                      parameter value when read in. NULL epoch values are
-                      illegal."
+        description: "Name of the epoch column for positions. If this name is
+                      omitted, empty, or not found in the table, then position
+                      table entries will have their epochs set to the 'epoch'
+                      policy parameter value when read in. NULL epoch values
+                      are illegal."
         default: "epoch"
         maxOccurs: 1
     }
@@ -60,7 +59,8 @@ definitions: {
         maxOccurs: 1
     }
     raColumn: {
-        description: "Name of the ICRS right ascension column."
+        description: "Name of the ICRS right ascension column. Must be present
+                      in the table. NULL values are illegal."
         default: "ra"
         maxOccurs: 1
     }
@@ -73,7 +73,8 @@ definitions: {
         maxOccurs: 1
     }
     declColumn: {
-        description: "Name of the ICRS declination column."
+        description: "Name of the ICRS declination column. Must be present
+                      in the table. NULL values are illegal."
         default: "decl"
         maxOccurs: 1
     }
