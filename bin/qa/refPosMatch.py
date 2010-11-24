@@ -71,7 +71,14 @@ def main():
         matching against sources, but not when matching against source
         clusters (the latter combine data from multiple epochs)."""))
     parser.add_option(
-        "-f", "--fields", dest="fields", help=dedent("""\
+        "-F", "--ref-fields", type="string", dest="refFields",
+        help=dedent("""\
+        A comma separated list of the field names in the reference catalog.
+        If omitted, the first line in the reference catalog is expected to
+        contain field names."""))
+    parser.add_option(
+        "-f", "--pos-fields", type="string", dest="posFields",
+        help=dedent("""\
         A comma separated list of the fields names in the position table.
         If omitted, the first line in the position table is expected to
         contain field names."""))
@@ -99,9 +106,13 @@ def main():
         matchPolicy.set("parallaxThresh", opts.parallaxThresh)
     if opts.noSsbToGeo:
         matchPolicy.set("parallaxThresh", float("INF"))
-    if opts.fields != None:
+    if opts.refFields != None:
+        refPolicy.remove("fieldNames")
+        for n in opts.refFields.split(","):
+            refPolicy.add("fieldNames", n.strip())
+    if opts.posFields != None:
         posPolicy.remove("fieldNames")
-        for n in opts.fields.split(","):
+        for n in opts.posFields.split(","):
             posPolicy.add("fieldNames", n.strip())
     apMatch.referenceMatch(args[0], args[1], args[2],
                            refPolicy, posPolicy, matchPolicy)

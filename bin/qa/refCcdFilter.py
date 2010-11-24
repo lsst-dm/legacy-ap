@@ -74,6 +74,12 @@ def main():
         Disables reduction for parallax from barycentric to geocentric
         place."""))
     parser.add_option(
+        "-F", "--ref-fields", type="string", dest="refFields",
+        help=dedent("""\
+        A comma separated list of the field names in the reference catalog.
+        If omitted, the first line in the reference catalog is expected to
+        contain field names."""))
+    parser.add_option(
         "-o", "--output-fields", type="string", dest="outputFields",
         help=dedent("""\
         A comma separated list of reference catalog fields to output.
@@ -90,6 +96,10 @@ def main():
         refPolicy = pexPolicy.Policy(opts.refPolicy)
     else:
         refPolicy = pexPolicy.Policy()
+    if opts.refFields != None:
+        refPolicy.remove("fieldNames")
+        for n in opts.refFields.split(","):
+            refPolicy.add("fieldNames", n.strip())
     if opts.outputFields != None:
         refPolicy.remove("outputFields")
         for n in opts.outputFields.split(","):
