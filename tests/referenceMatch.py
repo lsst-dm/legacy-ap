@@ -199,7 +199,7 @@ class ReferenceMatchTestCase(unittest.TestCase):
                 buildPoints(refFile, posFile, self.radius)
                 apMatch.referenceMatch(
                     refFile.name, posFile.name, matchFile.name,
-                    self.refPolicy, self.posPolicy, self.matchPolicy)
+                    self.refPolicy, self.posPolicy, self.matchPolicy, True)
                 if False:
                     # print out the generated test data
                     for line in open(refFile.name, 'rb'):

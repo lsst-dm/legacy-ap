@@ -80,7 +80,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             operator.__or__, self.policy.getArray("fluxIgnoreMask"), 0)
         ellipticityIgnoreMask = reduce(
             operator.__or__, self.policy.getArray("ellipticityIgnoreMask"), 0)
-        createBadClusters = self.policy.getBool("createBadClusters")
+        discardNoiseClusters = self.policy.getBool("discardNoiseClusters")
+        fluxScale = self.policy.getFloat("fluxScale")
         scpKey = self.policy.getString("inputKeys.sourceClusteringPolicy")
         if clipboard.contains(scpKey):
             scp = clipboard.get(scpKey)
@@ -94,11 +95,17 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         scv = clusterLib.SourceClusterVector()
         sequenceNum = 0
         numNoise = 0
+        numDiscarded = 0
         for sources in sourceClusters:
+            if len(sources) == 1 and minNeighbors > 0 and discardNoiseClusters:
+                clusterLib.updateUnclusteredSources(sources)
+                numDiscarded += 1
+                continue
             clusterId = sequenceNum + (skyTileId << 32)
             sequenceNum += 1
-            sca = clusterLib.SourceClusterAttributes(
-                sources, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
+            sca = clusterLib.SourceClusterAttributes(clusterId)
+            sca.computeAttributes(sources, exposures,
+                                  fluxScale, fluxIgnoreMask, ellipticityIgnoreMask)
             if len(sources) == 1 and minNeighbors > 0:
                 numNoise += 1
                 sca.setFlags(sca.getFlags() |
@@ -109,30 +116,13 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
                           clusterLib.PersistableSourceClusterVector(scv))
         self.log.log(Log.INFO,
-            "Computed source cluster attributes for %d (%d noise) clusters" %
-            (len(sourceClusters), numNoise))
+            "Computed source cluster attributes for %d (%d noise) clusters, " +
+            "discarded %d noise clusters" %
+            (len(sourceClusters), numNoise, numDiscarded))
 
         # create clusters from bad sources
         if badSources != None and len(badSources) > 0:
-            if createBadClusters:
-                self.log.log(Log.INFO,
-                             "Creating source clusters for bad sources")
-                badScv = clusterLib.SourceClusterVector()
-                for source in badSources.getSources():
-                    clusterId = sequenceNum + (skyTileId << 32)
-                    sequenceNum += 1
-                    badSca = clusterLib.SourceClusterAttributes(
-                        source, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
-                    badSca.setFlags(badSca.getFlags() |
-                                    clusterLib.SourceClusterAttributes.BAD)
-                    badScv.append(badSca)
-                clipboard.put(
-                    self.policy.get("outputKeys.badSourceClusterAttributes"),
-                    clusterLib.PersistableSourceClusterVector(badScv))
-                self.log.log(Log.INFO, "Created %d bad source clusters" %
-                             len(badSources))
-            else:
-                clusterLib.updateBadSources(badSources)
+            clusterLib.updateUnclusteredSources(badSources)
 
 
 class SourceClusterAttributesStage(stage.Stage):

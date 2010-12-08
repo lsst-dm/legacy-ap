@@ -172,6 +172,14 @@ definitions: {
         # from lsst::meas::algorithms::Flags
         default: 1 32 64 512 2048 4096
     }
+    computeSourceSkyCoords: {
+        type: bool
+        description: "A boolean flag that causes sky coordinates to be
+                      computed for sources passed to the source clustering
+                      stage.
+                     "
+        default: false
+    }    
     debug: {
         type: policy
         dictionary: {

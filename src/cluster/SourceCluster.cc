@@ -512,8 +512,7 @@ LSST_AP_API void locateAndFilterSources(
 
 /** Removes invalid sources without positions from @a sources and appends them
   * to @a invalidSources. A source is invalid if it has NaN or out-of-bounds
-  * right ascension and/or declination, negative flux error, or negative errors
-  * on the adaptive second moments.
+  * right ascension and/or declination, or negative errors.
   */
 LSST_AP_API void segregateInvalidSources(
     lsst::afw::detection::SourceSet & sources,
@@ -542,7 +541,33 @@ LSST_AP_API void segregateInvalidSources(
                        static_cast<long long>((*i)->getAmpExposureId()));
             invalid = true;
         }
-        // Check that PSF and aperture flux errors are positive
+        // Check that X/Y astrom errors are non-negative
+        double xerr = (*i)->getXAstromErr();
+        double yerr = (*i)->getYAstromErr();
+        if ((!lsst::utils::isnan(xerr) &&
+             !(*i)->isNull(detection::X_ASTROM_ERR) && xerr < 0.0) ||
+            (!lsst::utils::isnan(yerr) &&
+             !(*i)->isNull(detection::Y_ASTROM_ERR) && yerr < 0.0)) {
+            log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
+                       "negative X and/or Y astrom error",
+                       static_cast<long long>((*i)->getSourceId()),
+                       static_cast<long long>((*i)->getAmpExposureId()));
+            invalid = true;
+        }
+        // Check that X/Y flux errors are non-negative
+        xerr = (*i)->getXFluxErr();
+        yerr = (*i)->getYFluxErr();
+        if ((!lsst::utils::isnan(xerr) &&
+             !(*i)->isNull(detection::X_FLUX_ERR) && xerr < 0.0) ||
+            (!lsst::utils::isnan(yerr) &&
+             !(*i)->isNull(detection::Y_FLUX_ERR) && yerr < 0.0)) {
+            log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
+                       "negative X and/or Y flux error",
+                       static_cast<long long>((*i)->getSourceId()),
+                       static_cast<long long>((*i)->getAmpExposureId()));
+            invalid = true;
+        }
+        // Check that PSF and aperture flux errors are non-negative
         double pfe = (*i)->getPsfFluxErr();
         double afe = (*i)->getApFluxErr();
         if ((!lsst::utils::isnan(pfe) && pfe < 0.0) ||
@@ -553,7 +578,7 @@ LSST_AP_API void segregateInvalidSources(
                        static_cast<long long>((*i)->getAmpExposureId()));
             invalid = true;
         }
-        // Check that errors on adaptive second moments are positive
+        // Check that errors on adaptive second moments are non-negative
         double ixxe = (*i)->getIxxErr();
         double iyye = (*i)->getIyyErr();
         double ixye = (*i)->getIxyErr();
@@ -607,14 +632,15 @@ LSST_AP_API void segregateBadSources(
     sources.erase(j, end);
 }
 
-/** Sets the object id of each of the bad sources to NULL. Also sets
+/** Sets the object id of each of the sources to NULL. Also sets
   * the object position of each of bad source to the source position.
   * This allows bad sources to be stored in the same table as good
   * sources (which are partitioned by the position of their associated
   * objects/clusters).
   */
-LSST_AP_API void updateBadSources(lsst::afw::detection::SourceSet & badSources)
-{
+LSST_AP_API void updateUnclusteredSources(
+    lsst::afw::detection::SourceSet & badSources
+) {
     typedef detection::SourceSet::iterator Iter;
     for (Iter i = badSources.begin(), e = badSources.end(); i != e; ++i) {
         (*i)->setNull(detection::OBJECT_ID, true);

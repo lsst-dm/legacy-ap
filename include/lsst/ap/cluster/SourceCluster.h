@@ -74,7 +74,7 @@ LSST_AP_API void segregateBadSources(
     lsst::afw::detection::SourceSet & badSources,
     int badSourceMask);
 
-LSST_AP_API void updateBadSources(
+LSST_AP_API void updateUnclusteredSources(
      lsst::afw::detection::SourceSet & badSources);
 
 

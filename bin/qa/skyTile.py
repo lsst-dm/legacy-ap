@@ -52,10 +52,10 @@ def getAllSipWcs(cursor, qsp, kind):
     qsp = qs.createQuadSpherePixelization()
     offset = 0
     blocksize = 1000
-    # Getting this from actual calexp output files would be preferrable and likely
-    # faster. However, runs often occur on clusters far far away and accessing
-    # output images isn't practical. Therefore, pull WCS related cards from run
-    # output database.
+    # Getting this from actual calexp output files would be preferrable. 
+    # However, runs often occur on clusters far far away and accessing
+    # output images isn't always practical. Therefore, pull WCS related
+    # cards from run output database.
     while True:
         cursor.execute(
             """SELECT scienceCcdExposureId, visit, raft, ccd, filterId,

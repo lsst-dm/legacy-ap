@@ -136,24 +136,22 @@ definitions: {
         # from lsst::meas::algorithms::Flags
         default: 1 32 64 512 2048 4096
     }
-    createBadClusters: {
+    discardNoiseClusters: {
         type: bool
-        description: "A boolean flag indicating whether or not to create
-                      source clusters (objects) for 'bad' sources. When set
-                      to true, a single-source cluster is created for each
-                      bad source. Otherwise, the object id of each bad
-                      source is set to NULL and the position of the object
-                      associated with the bad source is set to the position of
-                      the source itself. This last step allows bad sources
-                      to be stored in the same table as good sources. Good
-                      sources are partitioned by the position of their containing
-                      object (cluster), so in the absence of such an object,
-                      bad sources must either be stored in a different table
-                      (partitioned by source position) or must have their object
-                      positions set to their source positions.
+        description: "A boolean flag indicating whether single source 
+                      source clusters should be discarded.
                      "
         maxOccurs: 1
-        default: false
+        default: true
+    }
+    fluxScale: {
+        type: float
+        description: "Scaling factor applied to F/F_0 prior to averaging, where
+                      F is the source flux and F_0 is the flux of a 0-magnitude
+                      object for the corresponding exposure.
+                     "
+        maxOccurs: 1
+        default: 1.0
     }
 
     # source clustering algorithm parameters

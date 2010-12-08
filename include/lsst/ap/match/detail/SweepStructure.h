@@ -43,13 +43,13 @@ namespace lsst { namespace ap { namespace match { namespace detail {
 
 /** Nodes in an interval tree are either red or black.
   */
-enum LSST_AP_LOCAL Color {
+enum Color {
     BLACK = 0, RED
 };
 
 /** A node in an x-interval tree for a 2 dimensional cartesian space.
   */
-struct LSST_AP_LOCAL CartesianNode {
+struct LSST_AP_API CartesianNode {
     CartesianNode *link[2];
     Color color;
     double reach;
@@ -71,7 +71,7 @@ inline bool operator<(std::pair<double, CartesianNode *> const &left,
 /** A node in a theta (longitude/right ascension) interval tree for a
   * 2 dimensional spherical space.
   */
-struct LSST_AP_LOCAL SphericalNode {
+struct LSST_AP_API SphericalNode {
     SphericalNode *link[2];
     Color color;
     unsigned int foundBy;

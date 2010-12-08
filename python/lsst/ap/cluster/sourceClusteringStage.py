@@ -81,7 +81,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         histogramRes = self.policy.getInt("debug.sourceHistogramResolution")
         badSourceMask = reduce(
             operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
-
+        computeSourceSkyCoords = self.policy.getBool('computeSourceSkyCoords')
         inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
         inputExposures = clipboard.get(
             self.policy.getString("inputKeys.exposures"))
@@ -105,7 +105,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         for entry in inputSources:
             if isinstance(entry, detection.SourceSet):
                 sourceSets.append(entry)
-            elif isinstance(entry.detection.PersistableSourceVector):
+            elif isinstance(entry, detection.PersistableSourceVector):
                 sourceSets.append(entry.getSources())
             else:
                 raise TypeError("Expecting lsst.afw.detection.SourceSet or " +
@@ -119,7 +119,10 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         total = 0
         for ss in sourceSets:
             total += len(ss)
-            clusterLib.locateAndFilterSources(ss, invalidSources, exposures)
+            if computeSourceSkyCoords:
+                clusterLib.locateAndFilterSources(ss, invalidSources, exposures)
+            else:
+                clusterLib.segregateInvalidSources(ss, invalidSources)
         n = len(invalidSources)
         self.log.log(Log.INFO,
             "%d of %d sources are invalid; %d sources remain" %
