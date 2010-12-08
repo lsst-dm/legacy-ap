@@ -886,16 +886,17 @@ template <> char CsvReader::_get<char>(char const *field) const {
 
 // -- CsvWriter implementation ----
 
-/** Creates a new CsvWriter that output to the given file.
+/** Creates a new CsvWriter that outputs to the given file.
   */
 CsvWriter::CsvWriter(
     std::string const &path,   ///< Name of file to write to
     CsvDialect const &dialect,
-    bool truncate              ///< If true, truncate or create file.
-                               ///  Otherwise, append or create.
+    bool truncate              ///< If true, an existing file is truncated
+                               ///  Otherwise, an attempt to create a writer
+                               ///  for an existing file raises an exception.
 ) :
-    _stream(new ofstream(path.c_str(), ios::out | ios::binary |
-                         (truncate ? ios::trunc : ios::app))),
+    _stream(new ofstream(path.c_str(), ios::out | ios::binary | (truncate ?
+                         ios::trunc : static_cast<ios::openmode>(0)))),
     _out(_stream.get()),
     _dialect(dialect),
     _numRecords(0),

@@ -43,13 +43,13 @@ namespace lsst { namespace ap { namespace match { namespace detail {
 
 /** Nodes in an interval tree are either red or black.
   */
-enum Color {
+enum LSST_AP_LOCAL Color {
     BLACK = 0, RED
 };
 
 /** A node in an x-interval tree for a 2 dimensional cartesian space.
   */
-struct CartesianNode {
+struct LSST_AP_LOCAL CartesianNode {
     CartesianNode *link[2];
     Color color;
     double reach;
@@ -71,7 +71,7 @@ inline bool operator<(std::pair<double, CartesianNode *> const &left,
 /** A node in a theta (longitude/right ascension) interval tree for a
   * 2 dimensional spherical space.
   */
-struct SphericalNode {
+struct LSST_AP_LOCAL SphericalNode {
     SphericalNode *link[2];
     Color color;
     unsigned int foundBy;
@@ -99,7 +99,7 @@ inline bool operator<(std::pair<double, SphericalNode *> const &left,
 /** A base class for sweep-structures, templated on tree node type.
   */
 template <typename Node>
-class SweepStructure {
+class LSST_AP_API SweepStructure {
 public:
     SweepStructure() : _arena(), _root(0), _heap() { }
     virtual ~SweepStructure();
@@ -177,7 +177,7 @@ private:
   * destroyed while they are in the sweep structure.
   */
 template <typename Region>
-class CartesianSweep : public SweepStructure<CartesianNode> {
+class LSST_AP_API CartesianSweep : public SweepStructure<CartesianNode> {
 public:
     CartesianSweep() : SweepStructure<CartesianNode>() { }
     virtual ~CartesianSweep() { }
@@ -236,7 +236,7 @@ public:
   * @par
   * As previously pointed out, a box B can wrap across the 0/2*M_PI radian
   * theta discontinuity. This situation is handled by inserting twin nodes
-  * for each box: one for the theta interval <tt> [0.0, max] </tt> and
+  * for such boxes: one for the theta interval <tt> [0.0, max] </tt> and
   * another for <tt> [min, 2*M_PI] </tt>.
   *
   * @par
@@ -262,7 +262,7 @@ public:
   * destroyed while they are in the sweep structure.
   */
 template <typename Region>
-class SphericalSweep : public SweepStructure<SphericalNode> {
+class LSST_AP_API SphericalSweep : public SweepStructure<SphericalNode> {
 public:
     SphericalSweep() : SweepStructure<SphericalNode>(), _searchId(1u) { }
     virtual ~SphericalSweep() { }

@@ -54,23 +54,23 @@ inline double radians(double const deg) {
 /** Clamps the given latitude/declination to <tt>[-M_PI/2, M_PI/2]</tt>.
   */
 inline double clampPhi(double const a) {
-    return a <= -M_PI*0.5 ? -M_PI*0.5 : (a >= M_PI*0.5 ? M_PI*0.5 : a);
+    return a <= -M_PI_2 ? -M_PI_2 : (a >= M_PI_2 ? M_PI_2 : a);
 }
 
-void thetaRangeReduce(double &min, double &max);
+LSST_AP_API void thetaRangeReduce(double &min, double &max);
 
-double maxAlpha(double radius, double centerPhi);
+LSST_AP_API double maxAlpha(double radius, double centerPhi);
 
-void positionAndVelocity(Eigen::Vector3d &p,
-                         Eigen::Vector3d &v,
-                         double ra,
-                         double decl,
-                         double muRa,
-                         double muDecl,
-                         double vRadial,
-                         double parallax);
+LSST_AP_API void positionAndVelocity(Eigen::Vector3d &p,
+                                     Eigen::Vector3d &v,
+                                     double ra,
+                                     double decl,
+                                     double muRa,
+                                     double muDecl,
+                                     double vRadial,
+                                     double parallax);
 
-Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
+LSST_AP_API Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
 
 /** Converts spherical coordinate <tt>(theta, phi)</tt> (rad) to a unit 3-vector.
   */
@@ -90,7 +90,6 @@ inline double angularSeparation(Eigen::Vector3d const &v1,
     double cs = v1.dot(v2);
     return (ss != 0.0 || cs != 0.0) ? std::atan2(ss, cs) : 0.0;
 }
-
 
 }}} // namespace lsst::ap::utils
 

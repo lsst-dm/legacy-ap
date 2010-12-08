@@ -46,6 +46,8 @@ def rangeReduce(val, nullstr):
     v = math.fmod(math.degrees(val), 360.0)
     if v < 0.0:
         v += 360.0
+        if v == 360.0:
+            v = 0.0
     return v
 
 def deg(val, nullstr):
@@ -86,12 +88,17 @@ def objects2CSV(objects, csvWriter, nullstr):
         row = []
         row.append(o.getClusterId())
         row.append(nullstr)
-        row.append(rangeReduce(o.getRa(), nullstr))
-        row.append(deg(o.getRaSigma(), nullstr))
-        row.append(deg(o.getDec(), nullstr))
-        row.append(deg(o.getDecSigma(), nullstr))
-        row.append(deg2(o.getRaDecCov(), nullstr))
-        row.extend([nullstr]*17)
+        row.append(rangeReduce(o.getRaPs(), nullstr))
+        row.append(deg(o.getRaPsSigma(), nullstr))
+        row.append(deg(o.getPsDec(), nullstr))
+        row.append(deg(o.getPsDecSigma(), nullstr))
+        row.append(deg2(o.getRaDecPsCov(), nullstr))
+        row.append(rangeReduce(o.getRaSg(), nullstr))
+        row.append(deg(o.getRaSgSigma(), nullstr))
+        row.append(deg(o.getSgDec(), nullstr))
+        row.append(deg(o.getSgDecSigma(), nullstr))
+        row.append(deg2(o.getRaDecSgCov(), nullstr))
+        row.extend([nullstr]*12)
         row.append(o.getEarliestObsTime())
         row.append(o.getLatestObsTime())
         row.append(o.getFlags())

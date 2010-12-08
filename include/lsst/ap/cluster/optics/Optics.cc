@@ -52,7 +52,7 @@ namespace except = ::lsst::pex::exceptions;
 template <int K, typename DataT>
 Optics<K, DataT>::Optics(Point<K, DataT> * points,
                          int numPoints,
-                         int minPoints,
+                         int minNeighbors,
                          double epsilon,
                          double leafExtentThreshold,
                          int pointsPerLeaf) :
@@ -62,7 +62,7 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
     _distances(),
     _epsilon(epsilon),
     _numPoints(numPoints),
-    _minPoints(minPoints),
+    _minNeighbors(minNeighbors),
     _ran(false),
     _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.optics")
 {
@@ -74,9 +74,9 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "Number of input points must be at least 1");
     }
-    if (_minPoints < 0) {
+    if (_minNeighbors < 0) {
         throw LSST_EXCEPT(except::InvalidParameterException, "OPTICS "
-                          "minPoints parameter value is negative");
+                          "minNeighbors parameter value is negative");
     }
     if (_epsilon < 0.0) {
         throw LSST_EXCEPT(except::InvalidParameterException, "OPTICS "
@@ -96,7 +96,7 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
 
     boost::scoped_ptr<SeedList<K, DataT> > seeds(new SeedList<K, DataT>(
         points, numPoints));
-    boost::scoped_array<double> distances(new double[_minPoints]);
+    boost::scoped_array<double> distances(new double[_minNeighbors]);
     using std::swap;
     swap(_tree, tree);
     swap(_seeds, seeds);
@@ -172,7 +172,7 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
         Point<K, DataT> * p = _points + j;
         if (j != i) {
             double d = p->dist;
-            if (n < _minPoints) {
+            if (n < _minNeighbors) {
                 _distances[n++] = d;
                 std::push_heap(_distances.get(), _distances.get() + n);
             } else if (_distances[0] > d) {
@@ -183,7 +183,7 @@ void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
         }
         j = p->next;
     }
-    if (n == _minPoints) {
+    if (n == _minNeighbors) {
         // point i is a core-object. Update reachability-distance of all
         // points in the epsilon-neighborhood of point i.
         double coreDist = _distances[0];

@@ -69,6 +69,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                 raise TypeError("Sky-tile id must be an integer")
         sourceClusters = clipboard.get(
             self.policy.getString("inputKeys.sourceClusters"))
+        exposures = clipboard.get(
+            self.policy.getString("inputKeys.exposures"))
         badSourcesKey = self.policy.getString("inputKeys.badSources")
         if clipboard.contains(badSourcesKey):
             badSources = clipboard.get(badSourcesKey).getSources()
@@ -85,7 +87,7 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         else:
             scp = policy.Policy()
         scp.mergeDefaults(self.policy.getPolicy("sourceClusteringPolicy"))
-        minPoints = scp.getInt("minPoints")
+        minNeighbors = scp.getInt("minNeighbors")
 
         # compute SourceClusterAttributes for each cluster
         self.log.log(Log.INFO, "Computing source cluster attributes")
@@ -97,7 +99,7 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             sequenceNum += 1
             sca = clusterLib.SourceClusterAttributes(
                 sources, clusterId, fluxIgnoreMask, ellipticityIgnoreMask)
-            if len(sources) == 1 and minPoints > 0:
+            if len(sources) == 1 and minNeighbors > 0:
                 numNoise += 1
                 sca.setFlags(sca.getFlags() |
                              clusterLib.SourceClusterAttributes.NOISE)

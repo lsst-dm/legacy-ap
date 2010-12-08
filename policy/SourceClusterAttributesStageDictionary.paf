@@ -38,6 +38,15 @@ definitions: {
                     maxOccurs: 1
                     default: "sourceClusters"
                 }
+                exposures: {
+                    type: string
+                    description: "Key for an lsst.ap.match.ExposureInfoMap
+                                  which maps exposure ids to
+                                  lsst.ap.match.ExposureInfo objects.
+                                 "
+                    maxOccurs: 1
+                    default: "exposures"
+                }
                 badSources: {
                     type: string
                     description: "Key for an
@@ -137,10 +146,10 @@ definitions: {
                       associated with the bad source is set to the position of
                       the source itself. This last step allows bad sources
                       to be stored in the same table as good sources. Good
-                      sources are partitioned by position of their containing
+                      sources are partitioned by the position of their containing
                       object (cluster), so in the absence of such an object,
                       bad sources must either be stored in a different table
-                      (partitioned by position) or must have their object
+                      (partitioned by source position) or must have their object
                       positions set to their source positions.
                      "
         maxOccurs: 1

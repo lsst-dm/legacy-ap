@@ -113,7 +113,7 @@ Arena<T>::~Arena() {
   * hold a single object of type T.
   */
 template <typename T>
-inline void *Arena<T>::alloc() {
+inline void *Arena<T>::_alloc() {
     if (_free == 0) {
         _grow();
     }
@@ -126,7 +126,7 @@ inline void *Arena<T>::alloc() {
 /** Frees the memory at the given address.
   */
 template <typename T>
-inline void Arena<T>::dealloc(void *ptr) {
+inline void Arena<T>::_dealloc(void *ptr) {
     unsigned char *next = static_cast<unsigned char *>(ptr);
     *reinterpret_cast<unsigned char **>(next) = _free;
     _free = next;
@@ -138,7 +138,7 @@ inline void Arena<T>::dealloc(void *ptr) {
 template <typename T>
 inline void Arena<T>::destroy(T *ptr) {
     ptr->~T();
-    dealloc(ptr);
+    _dealloc(ptr);
 }
 
 /** Returns the total number of objects that can fit in the arena.

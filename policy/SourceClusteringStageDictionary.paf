@@ -39,6 +39,18 @@ definitions: {
                     maxOccurs: 1
                     default: "inputSources"
                 }
+                exposures: {
+                    type: string
+                    description: "Key for the metadata property sets/lists of
+                                  the exposures input sources were measured on.
+                                  The value must be a lsst.daf.base.PropertySet,
+                                  a lsst.daf.base.PropertyList or a tuple/list
+                                  thereof. It is an error to provide an input
+                                  source without associated exposure metadata.
+                                 "
+                    maxOccurs: 1
+                    default: "inputExposures"
+                }
             }
         }
         maxOccurs: 1
@@ -53,10 +65,19 @@ definitions: {
                     type: string
                     description: "Key for a python list of
                                   lsst.afw.detection.SourceSet instances
-                                  corresponding to geerated source clusters.
+                                  corresponding to generated source clusters.
                                  "
                     maxOccurs: 1
                     default: "sourceClusters"
+                }
+                exposures: {
+                    type: string
+                    description: "Key for an lsst.ap.match.ExposureInfoMap
+                                  which maps exposure ids to
+                                  lsst.ap.match.ExposureInfo objects.
+                                 "
+                    maxOccurs: 1
+                    default: "exposures"
                 }
                 sources: {
                     type: string

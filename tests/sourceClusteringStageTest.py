@@ -63,6 +63,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         del self.sources
 
     def testStage(self):
+        pdb.set_trace()
         policyFile = pexPolicy.DefaultPolicyFile(
             "ap", "SourceClusteringStageDictionary.paf", "policy")
         policy = pexPolicy.Policy.createPolicy(
@@ -70,7 +71,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
 
         # override various policy defaults
         policy.set("sourceClusteringPolicy.epsilonArcsec", 2000.0)
-        policy.set("sourceClusteringPolicy.minPoints", 2)
+        policy.set("sourceClusteringPolicy.minNeighbors", 2)
         policy.set("sourceClusteringPolicy.leafExtentThresholdArcsec", -1.0)
         policy.set("quadSpherePolicy.resolutionPix", 3)
         policy.set("quadSpherePolicy.paddingArcsec", 0.0)

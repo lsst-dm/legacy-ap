@@ -31,13 +31,16 @@
 #ifndef LSST_AP_MATCH_BBOX_H
 #define LSST_AP_MATCH_BBOX_H
 
+#include "../Common.h"
+
+
 namespace lsst { namespace ap { namespace match {
 
 /** Interface for entities that are spatially matchable in 2 dimensions.
   * The interface simply consists of methods for retrieving a bounding
   * box for an entity.
   */
-class BBox {
+class LSST_AP_API BBox {
 public:
     virtual ~BBox();
 

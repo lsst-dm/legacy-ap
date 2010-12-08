@@ -53,6 +53,8 @@ def translateDegRangeReduce(source, method, nullstr, flag=-1):
         val = math.fmod(math.degrees(val), 360.0)
         if val < 0.0:
             val += 360.0
+            if val == 360.0:
+                val = 0.0
     return val
 
 def sources2CSV(sources, csvWriter, nullstr):

@@ -709,7 +709,7 @@ public:
     double getReadAhead() const { return _readAhead; }
 
     /** Returns a string consisting of pre-formatted all NULL
-      * output for requested position table columns.
+      * output for requested reference catalog columns.
       */
     std::string const & getNullRecord() const {
         return _nullRecord;
@@ -1643,7 +1643,7 @@ LSST_AP_API void referenceMatch(
 
 
 /** Computes the number of times a reference catalog should have been observed in
-  * each filter under ideal conditions, given a set of exposures. The per-filter
+  * each filter with an ideal observatory, given a set of exposures. The per-filter
   * observation counts are appended as columns [ugrizy]Cov. Reference catalog
   * entries not falling on any of the given exposures are dropped from the output.
   */

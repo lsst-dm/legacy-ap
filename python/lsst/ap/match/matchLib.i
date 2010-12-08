@@ -76,6 +76,7 @@ namespace boost {
 
 SWIG_SHARED_PTR(BBox, lsst::ap::match::BBox);
 SWIG_SHARED_PTR_DERIVED(ExposureInfo, lsst::ap::match::BBox, lsst::ap::match::ExposureInfo);
+SWIG_SHARED_PTR(ExposureInfoMap, lsst::ap::match::ExposureInfoMap);
 
 %import "lsst/ap/Common.h"
 %include "lsst/ap/match/BBox.h"

@@ -29,6 +29,7 @@ import lsst.pex.harness.stage as stage
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.skypix as skypix
+import lsst.ap.match as apMatch
 import lsst.ap.utils as apUtils
 
 import clusterLib
@@ -77,26 +78,48 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                 raise TypeError("Sky-tile id must be an integer")
         root, x, y = qs.coords(skyTileId);
         skyTile = apUtils.PT1SkyTile(qs.resolution, root, x, y, skyTileId)
-        inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
-        clipboard.put(self.policy.getString("inputKeys.sources"), None)
         histogramRes = self.policy.getInt("debug.sourceHistogramResolution")
         badSourceMask = reduce(
             operator.__or__, self.policy.getIntArray('badSourceMask'), 0)
 
-        # turn input into a list of source sets
+        inputSources = clipboard.get(self.policy.getString("inputKeys.sources"))
+        inputExposures = clipboard.get(
+            self.policy.getString("inputKeys.exposures"))
+        # Remove input sources and exposure metadata from clipboard
+        clipboard.put(self.policy.getString("inputKeys.sources"), None)
+        clipboard.put(self.policy.getString("inputKeys.exposures"), None)
+
+        # turn input exposure metadata into a mapping from exposure ids to
+        # ExposureInfo objects
+        exposures = apMatch.ExposureInfoMap()
+        if not isinstance(inputExposures, (list, tuple)):
+            inputExposures = [inputExposures]
+        for entry in inputExposures:
+            exposures.insert(apMatch.ExposureInfo(entry))
+        del inputExposures
+
+        # turn input sources into a list of source sets
         sourceSets = []
         if not isinstance(inputSources, (list, tuple)):
-            inputSources = [ inputSources ]
+            inputSources = [inputSources]
         for entry in inputSources:
-            sourceSets.append(entry.getSources())
+            if isinstance(entry, detection.SourceSet):
+                sourceSets.append(entry)
+            elif isinstance(entry.detection.PersistableSourceVector):
+                sourceSets.append(entry.getSources())
+            else:
+                raise TypeError("Expecting lsst.afw.detection.SourceSet or " +
+                                "lsst.afw.detection.PersistableSourceVector")
+        del inputSources
 
         # remove sources with invalid positions
-        self.log.log(Log.INFO, "Segregating sources with invalid positions")
+        self.log.log(Log.INFO, "Computing source positions and removing " +
+                     "invalid sources")
         invalidSources = detection.SourceSet()
         total = 0
         for ss in sourceSets:
             total += len(ss)
-            clusterLib.segregateInvalidSources(ss, invalidSources)
+            clusterLib.locateAndFilterSources(ss, invalidSources, exposures)
         n = len(invalidSources)
         self.log.log(Log.INFO,
             "%d of %d sources are invalid; %d sources remain" %
@@ -117,7 +140,6 @@ class SourceClusteringParallel(stage.ParallelProcessing):
             n += len(ss)
             prunedSources[len(prunedSources):] = ss
         del sourceSets
-        del inputSources
         self.log.log(Log.INFO, dedent("""\
             %d of %d valid sources are outside the current sky-tile;
             %d sources remain""") % (total - n, total, n))
@@ -149,7 +171,8 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         sourceClusters = clusterLib.cluster(
             prunedSources, self.policy.getPolicy("sourceClusteringPolicy"))
         self.log.log(Log.INFO, "Finished clustering sources")
-        # output clusters and good sources
+        # output exposures, clusters and good sources
+        clipboard.put(self.policy.get("outputKeys.exposures"), exposures)
         clipboard.put(self.policy.get("outputKeys.sourceClusters"),
                       sourceClusters)
         if len(prunedSources) > 0:
@@ -169,7 +192,7 @@ class SourceClusteringParallel(stage.ParallelProcessing):
                     self.policy.getString("outputKeys.goodSourceHistogram"),
                     hist)
 
-        # output products
+        # output invalid/bad sources 
         if len(invalidSources) > 0:
             outputInvalidSources = detection.PersistableSourceVector()
             outputInvalidSources.setSources(invalidSources)
