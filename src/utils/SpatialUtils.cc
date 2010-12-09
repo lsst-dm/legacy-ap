@@ -146,10 +146,11 @@ void positionAndVelocity(Eigen::Vector3d &p, ///< [out] position, AU
     double cosDecl = cos(decl);
     double s = r*cosDecl;
     double t = r*muDecl*sinDecl;
+    double u = cosDecl*vRadial;
     p = Eigen::Vector3d(s*cosRa, s*sinRa, r*sinDecl);
-    v = Eigen::Vector3d(p.x()*vRadial - p.y()*muRa - cosRa*t,
-                        p.y()*vRadial + p.x()*muRa - sinRa*t,
-                        p.z()*vRadial              + s*muDecl);
+    v = Eigen::Vector3d(cosRa*u - p.y()*muRa - cosRa*t,
+                        sinRa*u + p.x()*muRa - sinRa*t,
+                        sinDecl*vRadial + s*muDecl);
 }
 
 /** Converts the input position vector, which need not have unit magnitude,
