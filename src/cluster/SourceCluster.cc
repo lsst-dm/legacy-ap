@@ -187,7 +187,7 @@ std::pair<double, double> const inverseVarianceWeightedMean(
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "No samples supplied");
     } else if (samples.size() == 1) {
-        return samples.front();
+        return std::make_pair(samples[0].first, sqrt(samples[0].second));
     }
     double V1 = 0.0;
     double V2 = 0.0;
@@ -679,7 +679,8 @@ void PerFilterSourceClusterAttributes::computeFlux(
         (s.getFlagForDetection() & fluxIgnoreMask) == 0) {
         std::pair<double, double> f =
             e.calibrateFlux(s.getPsfFlux(), s.getPsfFluxErr(), fluxScale);
-        setFlux(static_cast<float>(f.first), static_cast<float>(f.second));
+        setFlux(static_cast<float>(f.first),
+                static_cast<float>(sqrt(f.second)));
         setNumFluxSamples(1);
     }
 }

@@ -614,6 +614,9 @@ void ObjectRow::to(DbStorage * db,
     attributes.setPsPosition(radians(ra_PS), radians(decl_PS),
                              radians(ra_PS_Sigma), radians(decl_PS_Sigma),
                              radians(radians(radecl_PS_Cov)));
+    attributes.setSgPosition(radians(ra_SG), radians(decl_SG),
+                             radians(ra_SG_Sigma), radians(decl_SG_Sigma),
+                             radians(radians(radecl_SG_Cov)));
 
     // per-filter columns
 #define LSST_AP_HANDLE_PF_NULLS(i, filter) \
