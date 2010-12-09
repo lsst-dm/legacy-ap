@@ -151,6 +151,11 @@ LSST_AP_API void positionAndVelocity(
     v = Eigen::Vector3d(cosRa*u - p.y()*muRa - cosRa*t,
                         sinRa*u + p.x()*muRa - sinRa*t,
                         sinDecl*vRadial + s*muDecl);
+    if (v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
+        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                          "star velocity vector magnitude exceeds half "
+                          "the speed of light");
+    }
 }
 
 /** Converts the input position vector, which need not have unit magnitude,
