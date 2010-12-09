@@ -20,8 +20,8 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from itertools import izip
 import operator
+from textwrap import dedent
 
 import lsst.daf.base as base
 import lsst.pex.harness.stage as stage
@@ -81,7 +81,7 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         ellipticityIgnoreMask = reduce(
             operator.__or__, self.policy.getArray("ellipticityIgnoreMask"), 0)
         discardNoiseClusters = self.policy.getBool("discardNoiseClusters")
-        fluxScale = self.policy.getFloat("fluxScale")
+        fluxScale = self.policy.getDouble("fluxScale")
         scpKey = self.policy.getString("inputKeys.sourceClusteringPolicy")
         if clipboard.contains(scpKey):
             scp = clipboard.get(scpKey)
@@ -115,9 +115,9 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
         if len(sourceClusters) > 0:
             clipboard.put(self.policy.get("outputKeys.sourceClusterAttributes"),
                           clusterLib.PersistableSourceClusterVector(scv))
-        self.log.log(Log.INFO,
-            "Computed source cluster attributes for %d (%d noise) clusters, " +
-            "discarded %d noise clusters" %
+        self.log.log(Log.INFO, dedent("""\
+            Computed source cluster attributes for %d (%d noise) clusters;
+            discarded %d noise clusters""") %
             (len(sourceClusters), numNoise, numDiscarded))
 
         # create clusters from bad sources

@@ -145,7 +145,7 @@ definitions: {
         default: true
     }
     fluxScale: {
-        type: float
+        type: double
         description: "Scaling factor applied to F/F_0 prior to averaging, where
                       F is the source flux and F_0 is the flux of a 0-magnitude
                       object for the corresponding exposure.
