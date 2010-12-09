@@ -86,12 +86,13 @@ void ReferencePosition::setMotion(
     double r = 1.0/parallax;
     double s = r*cd;
     double t = r*sd*muDecl;
+    double u = cd*vRadial;
     _p.x() = s*cr;
     _p.y() = s*sr;
     _p.z() = r*sd;
-    _v.x() = _p.x()*vRadial - _p.y()*muRa - cr*t;
-    _v.y() = _p.y()*vRadial + _p.x()*muRa - sr*t;
-    _v.z() = _p.z()*vRadial + s*muDecl;
+    _v.x() = cr*u - _p.y()*muRa - cr*t;
+    _v.y() = sr*u + _p.x()*muRa - sr*t;
+    _v.z() = sd*vRadial + s*muDecl;
     _flags = MOVING | PARALLAX | (parallaxCor ? PARALLAX_COR : 0);
 }
 
