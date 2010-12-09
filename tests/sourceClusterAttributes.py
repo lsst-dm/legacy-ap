@@ -36,6 +36,7 @@ import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.afw.image as image
 import lsst.ap.cluster as cluster
+import lsst.ap.match as match
 
 
 def _eparams(source):
@@ -56,12 +57,18 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             sca.setFlags(i)
             sca.setNumObs(0)
             sca.setObsTimeRange(float(i), float(i + 1))
-            if i % 3 == 0:
-                sca.setPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, 0.03*i)
-            elif i % 3 == 1:
-                sca.setPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, None)
+            if i % 4 == 0:
+                sca.setPsPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, 0.03*i)
+                sca.setSgPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, 0.03*i)
+            elif i % 4 == 1:
+                sca.setPsPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, None)
+                sca.setSgPosition(0.2*i, 0.1*(i - 10), 0.01*i, 0.05*i, None)
+            elif i % 4 == 2:
+                sca.setPsPosition(0.2*i, 0.1*(i - 10), None, None, None)
+                sca.setSgPosition(0.2*i, 0.1*(i - 10), None, None, None)
             else:
-                sca.setPosition(0.2*i, 0.1*(i - 10), None, None, None)
+                sca.setPsPosition(0.2*i, 0.1*(i - 10), None, None, None)
+                sca.setSgPosition(None, None, None, None, None)
             # add in per-filter attributes
             for j in xrange(i % 7):
                 pfa = cluster.PerFilterSourceClusterAttributes()
@@ -82,9 +89,34 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                     pfa.setEllipticity(None, None, None, None, None, None)
                 sca.setPerFilterAttributes(pfa)
             self.clusters.append(sca)
+        self.exposures = match.ExposureInfoMap()
+        for filterId, filter in enumerate("ugrizy"):
+            ps = base.PropertySet()
+            ps.setLong("scienceCcdExposureId", filterId)
+            ps.setString("FILTER", filter)
+            ps.setString("TIME-MID", "2000-01-01T11:59:28.000000000Z")
+            ps.setDouble("EXPTIME", 10.0)
+            ps.setString("RADESYS", "FK5")
+            ps.setDouble("EQUINOX", 2000.0)
+            ps.setString("CTYPE1", "RA---TAN")
+            ps.setString("CTYPE2", "DEC--TAN")
+            ps.setString("CUNIT1", "deg")
+            ps.setString("CUNIT2", "deg")
+            ps.setInt("NAXIS1", 3600)
+            ps.setInt("NAXIS2", 3600)
+            ps.setDouble("CRPIX1", 1800.5)
+            ps.setDouble("CRPIX2", 1800.5)
+            ps.setDouble("CRVAL1", 0.0)
+            ps.setDouble("CRVAL2", 0.0)
+            ps.setDouble("CD1_1", 1.0/3600.0)
+            ps.setDouble("CD1_2", 0.0)
+            ps.setDouble("CD2_1", 0.0)
+            ps.setDouble("CD2_2", 1.0/3600.0)
+            self.exposures.insert(match.ExposureInfo(ps))
 
     def tearDown(self):
         del self.clusters
+        del self.exposures
 
     def testPosition(self):
         """Tests cluster position computation.
@@ -92,6 +124,8 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         sources = detection.SourceSet()
         for i in xrange(5):
             s = detection.Source()
+            s.setAmpExposureId(0)
+            s.setFilterId(0)
             s.setRa(0.1*i)
             s.setDec(0.0)
             sources.append(s)
@@ -100,12 +134,13 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 s.setRa(0.2)
                 s.setDec(0.1*(i - 2))
                 sources.append(s)
-        sca = cluster.SourceClusterAttributes(sources, 0, 0, 0)
-        self.assertAlmostEqual(sca.getRa(), 0.2)
-        self.assertAlmostEqual(sca.getDec(), 0.0)
-        self.assertAlmostEqual(sca.getRaSigma(), math.sqrt(0.1/72))
-        self.assertAlmostEqual(sca.getDecSigma(), math.sqrt(0.1/72))
-        self.assertAlmostEqual(sca.getRaDecCov(), 0.0)
+        sca = cluster.SourceClusterAttributes(0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
+        self.assertAlmostEqual(sca.getRaPs(), 0.2)
+        self.assertAlmostEqual(sca.getDecPs(), 0.0)
+        self.assertAlmostEqual(sca.getRaPsSigma(), math.sqrt(0.1/72))
+        self.assertAlmostEqual(sca.getDecPsSigma(), math.sqrt(0.1/72))
+        self.assertAlmostEqual(sca.getRaDecPsCov(), 0.0)
 
     def testTimes(self):
         """Tests observation time range computation.
@@ -114,9 +149,11 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         for i in xrange(6):
             s = detection.Source()
             s.setTaiMidPoint(i)
-            s.setFilterId(i / 3)
+            s.setFilterId(i // 3)
+            s.setAmpExposureId(i // 3)
             sources.append(s)
-        sca = cluster.SourceClusterAttributes(sources, 0, 0, 0)
+        sca = cluster.SourceClusterAttributes(0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
         self.assertEqual(sca.getNumObs(), 6)
         self.assertEqual(sca.getEarliestObsTime(), 0)
         self.assertEqual(sca.getLatestObsTime(), 5)
@@ -149,15 +186,23 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         esources = []
         for i in xrange(1, 5):
             s = detection.Source()
+            s.setFilterId(0)
+            s.setAmpExposureId(0)
             s.setIxx(i)
-            s.setIyy(i**2)
-            s.setIxy(i)
+            s.setIxxErr(0.1)
+            s.setIyy(2.0*i)
+            s.setIyyErr(0.1)
+            s.setIxy(i*0.5)
+            s.setIxyErr(1.0)
             if i == 4:
                 s.setFlagForDetection(1)
             else:
                 esources.append(_eparams(s))
             sources.append(s)
-        pfa = cluster.PerFilterSourceClusterAttributes(sources, 0, 1)
+        pdb.set_trace()
+        sca = cluster.SourceClusterAttributes(0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 1)
+        pfa = sca.getPerFilterAttributes(0)
         self.assertEqual(pfa.getNumObs(), 4)
         self.assertEqual(pfa.getNumEllipticitySamples(), 3)
         eparams = []
@@ -292,7 +337,8 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setIxy(0.5*i)
             eparams.append(_eparams(s))
             sources.append(s)
-        sca = cluster.SourceClusterAttributes(sources, 1, 0, 0)
+        sca = cluster.SourceClusterAttributes(0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
         filters = sorted(sca.getFilterIds())
         self.assertEqual(filters, range(6))
         filterMap = sca.getPerFilterAttributes()
@@ -360,12 +406,8 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
 
         # register filters expected by the formatter
         image.Filter.reset()
-        image.Filter.define(image.FilterProperty("u"), 0)
-        image.Filter.define(image.FilterProperty("g"), 1)  
-        image.Filter.define(image.FilterProperty("r"), 2)  
-        image.Filter.define(image.FilterProperty("i"), 3)  
-        image.Filter.define(image.FilterProperty("z"), 4)  
-        image.Filter.define(image.FilterProperty("y"), 5)  
+        for f, fid in zip("ugrizy", range(6)):
+            image.Filter.define(image.FilterProperty(f), fid)
 
         # setup persistence machinery
         inp = cluster.PersistableSourceClusterVector(self.clusters)
@@ -393,20 +435,40 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                     # does unit conversion
                     self.assertEqual(sc1.getClusterId(), sc2.getClusterId())
                     self.assertEqual(sc1.getNumObs(), sc2.getNumObs())
-                    self.assertAlmostEqual(sc1.getRa(), sc2.getRa(), 14)
-                    self.assertAlmostEqual(sc1.getDec(), sc2.getDec(), 14)
-                    if sc1.getRaSigma() is None:
-                        self.assertEqual(sc2.getRaSigma(), None)
+                    self.assertAlmostEqual(sc1.getRaPs(), sc2.getRaPs(), 14)
+                    self.assertAlmostEqual(sc1.getDecPs(), sc2.getDecPs(), 14)
+                    if sc1.getRaPsSigma() == None:
+                        self.assertEqual(sc2.getRaPsSigma(), None)
                     else:
-                        self.assertAlmostEqual(sc1.getRaSigma(), sc2.getRaSigma(), 6)
-                    if sc1.getDecSigma() is None:
-                        self.assertEqual(sc2.getDecSigma(), None)
+                        self.assertAlmostEqual(sc1.getRaPsSigma(), sc2.getRaPsSigma(), 6)
+                    if sc1.getDecPsSigma() == None:
+                        self.assertEqual(sc2.getDecPsSigma(), None)
                     else:
-                        self.assertAlmostEqual(sc1.getDecSigma(), sc2.getDecSigma(), 6)
-                    if sc1.getRaDecCov() is None:
-                        self.assertEqual(sc2.getRaDecCov(), None)
+                        self.assertAlmostEqual(sc1.getDecPsSigma(), sc2.getDecPsSigma(), 6)
+                    if sc1.getRaDecPsCov() == None:
+                        self.assertEqual(sc2.getRaDecPsCov(), None)
                     else:
-                        self.assertAlmostEqual(sc1.getRaDecCov(), sc2.getRaDecCov())
+                        self.assertAlmostEqual(sc1.getRaDecPsCov(), sc2.getRaDecPsCov())
+                    if sc1.getRaSg() == None:
+                        self.assertEqual(sc2.getRaSg(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getRaSg(), sc2.getRaSg())
+                    if sc1.getDecSg() == None:
+                        self.assertEqual(sc2.getDevSg(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getDecSg(), sc2.getDecSg())
+                    if sc1.getRaSgSigma() == None:
+                        self.assertEqual(sc2.getRaSgSigma(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getRaSgSigma(), sc2.getRaSgSigma(), 6)
+                    if sc1.getDecSgSigma() == None:
+                        self.assertEqual(sc2.getDecSgSigma(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getDecSgSigma(), sc2.getDecSgSigma(), 6)
+                    if sc1.getRaDecSgCov() == None:
+                        self.assertEqual(sc2.getRaDecSgCov(), None)
+                    else:
+                        self.assertAlmostEqual(sc1.getRaDecSgCov(), sc2.getRaDecSgCov())
                     self.assertEqual(sc1.getPerFilterAttributes(),
                                      sc2.getPerFilterAttributes())
             finally:

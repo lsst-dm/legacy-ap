@@ -61,6 +61,7 @@ namespace boost {
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/pex/policy/policyLib.i"
 %import "lsst/afw/detection/detectionLib.i"
+%import "lsst/ap/match/matchLib.i"
 
 %lsst_exceptions()
 
@@ -69,6 +70,7 @@ SWIG_SHARED_PTR(SourceClusterAttributes, lsst::ap::cluster::SourceClusterAttribu
 SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSourceClusterVector);
 
 %ignore lsst::ap::cluster::NullOr<float>;
+%ignore lsst::ap::cluster::NullOr<double>;
 %ignore lsst::ap::cluster::SourceClusterAttributes::PerFilterAttributeMap;
 
 %typemap(out) lsst::ap::cluster::NullOr<float> const & {
@@ -87,6 +89,26 @@ SWIG_SHARED_PTR(PersistableSourceClusterVector, lsst::ap::cluster::PersistableSo
         temp.setNull();
     } else {
         SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::NullOr<float>");
+    }
+    $1 = &temp;
+}
+
+%typemap(out) lsst::ap::cluster::NullOr<double> const & {
+    if (($1)->isNull()) {
+        Py_INCREF(Py_None);
+        $result = Py_None;
+    } else {
+        $result = PyFloat_FromDouble(static_cast<double>(*($1)));
+    }
+}
+
+%typemap(in) lsst::ap::cluster::NullOr<double> const & (lsst::ap::cluster::NullOr<double> temp) {
+    if (PyFloat_CheckExact($input)) {
+        temp = PyFloat_AsDouble($input);
+    } else if ($input == Py_None) {
+        temp.setNull();
+    } else {
+        SWIG_exception_fail(SWIG_TypeError, "failed to convert Python input to a lsst::ap::cluster::NullOr<double>");
     }
     $1 = &temp;
 }

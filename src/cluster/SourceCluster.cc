@@ -748,7 +748,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
         s.getIxxErr() > 0.0 &&
         s.getIyyErr() > 0.0 &&
         s.getIxyErr() > 0.0 &&
-        (s.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
+        (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
         double ixx = s.getIxx();
         double iyy = s.getIyy();
@@ -833,7 +833,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
             s.getIxxErr() > 0.0 &&
             s.getIyyErr() > 0.0 &&
             s.getIxyErr() > 0.0 &&
-            (s.getFlagForDetection() & ellipticityIgnoreMask) != 0) {
+            (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
             double ixx = s.getIxx();
             double iyy = s.getIyy();
@@ -879,6 +879,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
     if (ns > 0) {
         Eigen::Matrix3d cov = invCovSum.inverse();
         wmean = cov*wmean;
+        setNumEllipticitySamples(ns);
         setEllipticity(static_cast<float>(wmean.x()),
                        static_cast<float>(wmean.y()),
                        static_cast<float>(wmean.z()),
