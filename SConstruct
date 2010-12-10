@@ -157,8 +157,9 @@ if not env.CleanFlagIsSet():
     # Indicate that shared libraries are being built
     conf.env.Append(CPPFLAGS = ' -DLSST_AP_SHARED_LIBRARY_BUILD=1')
     # compiler flags and features
-    if not conf.IsGccBelow4():
-        conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
+    # Breaks linking with opt=3
+    #if not conf.IsGccBelow4():
+    #    conf.CustomCompilerFlag('-fvisibility-inlines-hidden')
     if conf.CustomCompileCheck('Checking for __attribute__((visibility)) support... ', visCheckSrc):
         conf.env.Append(CPPFLAGS = ' -DLSST_AP_HAVE_VISIBILITY=1')
     if conf.CustomCompileCheck('Checking for __attribute__((aligned)) support... ', alignedCheckSrc):

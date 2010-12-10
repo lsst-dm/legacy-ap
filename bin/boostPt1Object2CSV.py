@@ -55,6 +55,11 @@ def deg(val, nullstr):
         return nullstr
     return math.degrees(val)
 
+def arcsec(val, nullstr):
+    if val == None or val == nullstr:
+        return nullstr
+    return math.degrees(val)*3600.0
+
 def deg2(val, nullstr):
     if val == None or val == nullstr:
         return nullstr
@@ -77,8 +82,8 @@ def convertFilter(object, row, filter, nullstr):
         row.append(pfa.getE1Sigma() or nullstr)
         row.append(pfa.getE2() or nullstr)
         row.append(pfa.getE2Sigma() or nullstr)
-        row.append(pfa.getRadius() or nullstr)
-        row.append(pfa.getRadiusSigma() or nullstr)
+        row.append(arcsec(pfa.getRadius(), nullstr))
+        row.append(arcsec(pfa.getRadiusSigma(), nullstr))
         row.append(pfa.getFlags())
     else:
         row.extend([nullstr]*33)
@@ -90,13 +95,13 @@ def objects2CSV(objects, csvWriter, nullstr):
         row.append(nullstr)
         row.append(rangeReduce(o.getRaPs(), nullstr))
         row.append(deg(o.getRaPsSigma(), nullstr))
-        row.append(deg(o.getPsDec(), nullstr))
-        row.append(deg(o.getPsDecSigma(), nullstr))
+        row.append(deg(o.getDecPs(), nullstr))
+        row.append(deg(o.getDecPsSigma(), nullstr))
         row.append(deg2(o.getRaDecPsCov(), nullstr))
         row.append(rangeReduce(o.getRaSg(), nullstr))
         row.append(deg(o.getRaSgSigma(), nullstr))
-        row.append(deg(o.getSgDec(), nullstr))
-        row.append(deg(o.getSgDecSigma(), nullstr))
+        row.append(deg(o.getDecSg(), nullstr))
+        row.append(deg(o.getDecSgSigma(), nullstr))
         row.append(deg2(o.getRaDecSgCov(), nullstr))
         row.extend([nullstr]*12)
         row.append(o.getEarliestObsTime())
