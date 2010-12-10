@@ -490,9 +490,9 @@ LSST_AP_API void locateAndFilterSources(
             (!lsst::utils::isnan((*i)->getIyyErr()) &&
              !(*i)->isNull(detection::IYY_ERR) && (*i)->getIyyErr() < 0.0) ||
             (!lsst::utils::isnan((*i)->getIxyErr()) &&
-             !(*i)->isNull(detection::IXY_ERR) && (*i)->getIxyErr() < 0.0)) {
+             !(*i)->isNull(detection::IXY_ERR) && (*i)->getIxyErr() == 0.0)) {
             log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
-                       "negative IXX, IYY, and/or IXY error",
+                       "negative IXX and/or IYY error or 0 IXY error",
                        static_cast<long long>((*i)->getSourceId()),
                        static_cast<long long>(id));
             invalid = true;
@@ -587,9 +587,9 @@ LSST_AP_API void segregateInvalidSources(
             (!lsst::utils::isnan(iyye) &&
              !(*i)->isNull(detection::IYY_ERR) && iyye < 0.0) ||
             (!lsst::utils::isnan(ixye) &&
-             !(*i)->isNull(detection::IXY_ERR) && ixye < 0.0)) {
+             !(*i)->isNull(detection::IXY_ERR) && ixye == 0.0)) {
             log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
-                       "negative IXX, IYY, and/or IXY error",
+                       "negative IXX and/or IYY error, or 0 IXY error",
                        static_cast<long long>((*i)->getSourceId()),
                        static_cast<long long>((*i)->getAmpExposureId()));
             invalid = true;
@@ -748,7 +748,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
         !s.isNull(detection::IXY_ERR) &&
         s.getIxxErr() > 0.0 &&
         s.getIyyErr() > 0.0 &&
-        s.getIxyErr() > 0.0 &&
+        s.getIxyErr() != 0.0 &&
         (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
         double ixx = s.getIxx();
@@ -833,7 +833,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
             !s.isNull(detection::IXY_ERR) &&
             s.getIxxErr() > 0.0 &&
             s.getIyyErr() > 0.0 &&
-            s.getIxyErr() > 0.0 &&
+            s.getIxyErr() != 0.0 &&
             (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
             double ixx = s.getIxx();
