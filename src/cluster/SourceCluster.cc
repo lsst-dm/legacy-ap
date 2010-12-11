@@ -118,6 +118,7 @@ public:
     }
 
     lsst::afw::geom::AffineTransform const pixelToNeTransform(
+        Eigen::Vector2d const &point,
         lsst::afw::image::Wcs const &wcs) const;
 
 private:
@@ -157,22 +158,31 @@ NeTanProj::NeTanProj(lsst::afw::coord::Coord::Ptr center) :
 /** Computes an affine transform from the given pixel space to this tangent plane.
   */
 lsst::afw::geom::AffineTransform const NeTanProj::pixelToNeTransform(
+    Eigen::Vector2d const &point,    ///< Pixel coordinates to linearize around
     lsst::afw::image::Wcs const &wcs ///< WCS describing pixel/sky transformation
 ) const {
-    double const side = 8.0;
-    double const sideInv = 1.0/side; // exact
+    double const pix = 8.0;
+    double const invPix = 1.0/pix; // exact
 
-    Eigen::Vector2d p = wcs.skyToPixel(_center).asVector();
-    Eigen::Vector3d px = wcs.pixelToSky(p.x() + side, p.y())->getVector().asVector();
-    Eigen::Vector3d py = wcs.pixelToSky(p.x(), p.y() + side)->getVector().asVector();
-    double pxo = px.dot(_origin)*sideInv;
-    double pyo = py.dot(_origin)*sideInv;
+    Eigen::Vector3d p = wcs.pixelToSky(
+        point.x(), point.y())->getVector().asVector();
+    Eigen::Vector3d px = wcs.pixelToSky(
+        point.x() + pix, point.y())->getVector().asVector();
+    Eigen::Vector3d py = wcs.pixelToSky(
+        point.x(), point.y() + pix)->getVector().asVector();
+
+    Eigen::Vector2d pne(p.dot(_east), p.dot(_north));
+    Eigen::Vector2d pxne(px.dot(_east), px.dot(_north));
+    Eigen::Vector2d pyne(py.dot(_east), py.dot(_north));
+    pne /= p.dot(_origin);
+    pxne /= px.dot(_origin);
+    pyne /= py.dot(_origin);
+
     Eigen::Matrix2d m;
-    m.coeffRef(0, 0) = pxo*px.dot(_east);
-    m.coeffRef(0, 1) = pyo*py.dot(_east);
-    m.coeffRef(1, 0) = pxo*px.dot(_north);
-    m.coeffRef(1, 1) = pyo*py.dot(_north);
-    return geom::AffineTransform(m, -m*p);
+    m.col(0) = (pxne - pne)*invPix;
+    m.col(1) = (pyne - pne)*invPix;
+
+    return geom::AffineTransform(m, pne - m*point);
 }
 
 /** @internal
@@ -743,6 +753,31 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
         !lsst::utils::isnan(s.getIxx()) &&
         !lsst::utils::isnan(s.getIyy()) &&
         !lsst::utils::isnan(s.getIxy()) &&
+        (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
+
+        double ixx = s.getIxx();
+        double iyy = s.getIyy();
+        double ixy = s.getIxy();
+        double t = ixx + iyy;
+        if (t == 0.0) {
+            return;
+        }
+        Distortion distortion((ixx - iyy)/t, 2.0*ixy/t, sqrt(t));
+        distortion.transform(source.getTransform()).inPlace();
+        // store results
+        setNumEllipticitySamples(1);
+        setEllipticity(static_cast<float>(distortion[Distortion::E1]),
+                       static_cast<float>(distortion[Distortion::E2]),
+                       static_cast<float>(distortion[Distortion::R]),
+                       NullOr<float>(), NullOr<float>(), NullOr<float>());
+    }
+#if 0
+    if (!s.isNull(detection::IXX) &&
+        !s.isNull(detection::IYY) &&
+        !s.isNull(detection::IXY) &&
+        !lsst::utils::isnan(s.getIxx()) &&
+        !lsst::utils::isnan(s.getIyy()) &&
+        !lsst::utils::isnan(s.getIxy()) &&
         !s.isNull(detection::IXX_ERR) &&
         !s.isNull(detection::IYY_ERR) &&
         !s.isNull(detection::IXY_ERR) &&
@@ -795,6 +830,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                        static_cast<float>(sqrt(v.y())),
                        static_cast<float>(sqrt(v.z())));
     }
+#endif
 }
 
 /** Sets the ellipticities of a source cluster in a particular filter to
@@ -812,15 +848,70 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                               ///  ellipticities.
 ) {
     using geom::ellipses::Distortion;
-    typedef std::vector<SourceAndExposure>::const_iterator Iter;
+    typedef std::vector<SourceAndExposure>::const_iterator SeIter;
+    typedef std::vector<Distortion>::const_iterator DistortionIter;
 
     if (sources.empty()) {
         return;
     }
+    std::vector<Distortion> samples;
+    samples.reserve(sources.size());
+    Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+    for (SeIter i = sources.begin(), e = sources.end(); i != e; ++i) {
+        detection::Source const & s = *(i->getSource());
+        if (!s.isNull(detection::IXX) &&
+            !s.isNull(detection::IYY) &&
+            !s.isNull(detection::IXY) &&
+            !lsst::utils::isnan(s.getIxx()) &&
+            !lsst::utils::isnan(s.getIyy()) &&
+            !lsst::utils::isnan(s.getIxy()) &&
+            (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
+
+            double ixx = s.getIxx();
+            double iyy = s.getIyy();
+            double ixy = s.getIxy();
+            double t = ixx + iyy;
+            if (t == 0.0) {
+                continue;
+            }
+            Distortion distortion((ixx - iyy)/t, 2.0*ixy/t, sqrt(t));
+            distortion.transform(i->getTransform()).inPlace();
+            mean += distortion.getVector();
+            samples.push_back(distortion);
+        }
+    }
+    if (!samples.empty()) {
+        setNumEllipticitySamples(static_cast<int>(samples.size()));
+        if (samples.size() == 1) {
+            setEllipticity(static_cast<float>(mean[Distortion::E1]),
+                           static_cast<float>(mean[Distortion::E2]),
+                           static_cast<float>(mean[Distortion::R]),
+                           NullOr<float>(),
+                           NullOr<float>(),
+                           NullOr<float>());
+        } else {
+            double n = samples.size();
+            mean /= n;
+            Eigen::Vector3d var = Eigen::Vector3d::Zero();
+            for (DistortionIter i = samples.begin(), e = samples.end();
+                 i != e; ++i) {
+                var += (i->getVector() - mean).cwise().square();
+            }
+            setEllipticity(
+                static_cast<float>(mean[Distortion::E1]),
+                static_cast<float>(mean[Distortion::E2]),
+                static_cast<float>(mean[Distortion::R]),
+                static_cast<float>(sqrt(var[Distortion::E1]/(n*(n - 1.0)))),
+                static_cast<float>(sqrt(var[Distortion::E2]/(n*(n - 1.0)))),
+                static_cast<float>(sqrt(var[Distortion::R]/(n*(n - 1.0)))));
+        }
+    }
+
+#if 0
     int ns = 0;
     Eigen::Matrix3d invCovSum = Eigen::Matrix3d::Zero();
     Eigen::Vector3d wmean = Eigen::Vector3d::Zero();
-    for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+    for (SeIter i = sources.begin(), e = sources.end(); i != e; ++i) {
         detection::Source const & s = *(i->getSource());
         if (!s.isNull(detection::IXX) &&
             !s.isNull(detection::IYY) &&
@@ -888,6 +979,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                        static_cast<float>(sqrt(cov(1,1))),
                        static_cast<float>(sqrt(cov(2,2))));
     }
+#endif
 }
 
 PerFilterSourceClusterAttributes::~PerFilterSourceClusterAttributes() { }
@@ -1288,7 +1380,8 @@ void SourceClusterAttributes::computeAttributes(
                       source->getRaAstromErr(), source->getDecAstromErr(),
                       NullOr<float>());
     }
-    SourceAndExposure se(source, exposure, proj.pixelToNeTransform(*wcs));
+    SourceAndExposure se(source, exposure, proj.pixelToNeTransform(
+        Eigen::Vector2d(source->getXAstrom(), source->getYAstrom()), *wcs));
     PerFilterSourceClusterAttributes pfa;
     pfa.setFilterId(source->getFilterId());
     pfa.setNumObs(1);
@@ -1358,13 +1451,14 @@ void SourceClusterAttributes::computeAttributes(
     se.reserve(sources.size());
     for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
         match::ExposureInfo::ConstPtr exposure = exposures.get(
-            sources.front()->getAmpExposureId());
+            (*i)->getAmpExposureId());
         if (!exposure) {
             throw LSST_EXCEPT(except::NotFoundException,
                               "No ExposureInfo found for source");
         }
-        se.push_back(SourceAndExposure(
-            *i, exposure, proj.pixelToNeTransform(*exposure->getWcs())));
+        se.push_back(SourceAndExposure(*i, exposure, proj.pixelToNeTransform(
+            Eigen::Vector2d((*i)->getXAstrom(), (*i)->getYAstrom()),
+            *exposure->getWcs())));
     }
     // compute small galaxy model position
     Eigen::Vector2d sgPos;

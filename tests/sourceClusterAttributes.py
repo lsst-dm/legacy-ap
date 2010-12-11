@@ -209,9 +209,9 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         eparams = []
         for i in xrange(3):
             eparams.append(sum(e[i] for e in esources) / len(esources))
-        self.assertAlmostEqual(pfa.getE1(), eparams[0], 1)
-        self.assertAlmostEqual(pfa.getE2(), eparams[1], 1)
-        self.assertAlmostEqual(pfa.getRadius(), math.radians(eparams[2])/3600.0, 1)
+        self.assertAlmostEqual(pfa.getE1(), eparams[0], 6)
+        self.assertAlmostEqual(pfa.getE2(), eparams[1], 6)
+        self.assertAlmostEqual(pfa.getRadius(), math.radians(eparams[2])/3600.0, 6)
         # Test with a single source
         sources.clear()
         s = detection.Source()
