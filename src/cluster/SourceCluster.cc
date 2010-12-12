@@ -199,40 +199,32 @@ std::pair<double, double> const inverseVarianceWeightedMean(
     } else if (samples.size() == 1) {
         return std::make_pair(samples[0].first, sqrt(samples[0].second));
     }
-    double V1 = 0.0;
-    double V2 = 0.0;
+    double wsum = 0.0;
     double wmean = 0.0;
     for (Iter i = samples.begin(), e = samples.end(); i != e; ++i) {
         double w = 1.0/i->second;
         wmean += w*i->first;
-        V1 += w;
-        V2 += w*w;
+        wsum += w;
     }
-    wmean /= V1;
-    // compute weighted sample variancei:
-    // sum(w*(sample_i - wmean)^2) * V1/(V1*V1 - V2)
-    double wsv = 0.0;
+    wmean /= wsum;
+    double vwm = 0.0;
     for (Iter i = samples.begin(), e = samples.end(); i != e; ++i) {
         double d = i->first - wmean;
-        wsv += (d*d)/i->second;
+        vwm += (d*d)/i->second;
     }
-    // compute error of weighted mean as the square root of the weighted sample
-    // variance divided by the square root of the sum of the weights
-    return std::make_pair(wmean, sqrt(wsv/(V1*V1 - V2)));
+    return std::make_pair(wmean, sqrt(vwm/(wsum*(samples.size() - 1))));
 }
 
 /** @internal
   * Computes the position of a set of sources by combining the positions
   * using inverse variance weighting. The method is similar to the one
   * described by John E. Davis here:
-  * http://cxc.harvard.edu/csc/memos/files/Davis_ellipse.pdf
+  * ftp://space.mit.edu/pub/davis/misc/ellipse.pdf
   *
   * The difference is that the input is a set of pixel space position
   * covariance matrices, rather than position error ellipses in sky coordinates.
   * The covariance matrices are transformed directly to a common N,E tangent
-  * plane projection, considerably simplifying the computation. Since LSST
-  * exposures have TAN WCSes, this transformation is linear (apart from SIP
-  * distortions).
+  * plane projection, considerably simplifying the computation.
   */
 bool combinePositions(std::vector<SourceAndExposure> const & sources,
                       NeTanProj const & proj,
