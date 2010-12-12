@@ -40,6 +40,8 @@
 
 #include "lsst/pex/policy/Policy.h"
 
+#include "../Common.h"
+
 
 namespace lsst { namespace ap { namespace utils {
 
@@ -52,7 +54,7 @@ namespace lsst { namespace ap { namespace utils {
   * of various RDBMSes to be read and written. Accordingly, there are
   * parameters that allow database NULLs to be recognized.
   */
-class CsvDialect {
+class LSST_AP_API CsvDialect {
 public:
     static CsvDialect const MYSQL;
     static CsvDialect const POSTGRES;
@@ -192,7 +194,7 @@ private:
   * @li CSV files containing embedded null characters are not read in properly.
   * @li The line terminator cannot be specified, and is always '\\n'.
   */
-class CsvReader {
+class LSST_AP_API CsvReader {
 public:
     CsvReader(std::string const &path,
               CsvDialect const &dialect,
@@ -202,8 +204,7 @@ public:
               bool namesInFirstRecord=false);
     ~CsvReader();
 
-    inline bool isDone() const;
-    inline void nextRecord();
+    inline CsvDialect const & getDialect() const;
 
     // Return the number of lines/records read
     inline size_t getNumLines() const;
@@ -216,12 +217,18 @@ public:
                        std::string const & regex,
                        bool stripWhitespace=true);
 
-    inline CsvDialect const & getDialect() const;
-
-    // Field access
+    // Map field names to field indexes
     inline int getIndexOf(std::string const &name) const;
     inline int getIndexOf(char const *name) const;
 
+    // Have all records been read?
+    inline bool isDone() const;
+
+    // Advance to the next record
+    inline void nextRecord();
+
+    ///@name Access fields in the current record
+    //@{ 
     inline int getNumFields() const;
 
     inline bool isNull(int i) const;
@@ -232,9 +239,14 @@ public:
     inline std::string const get(std::string const &name) const;
     inline std::string const get(char const *name) const;
 
+    // Get and convert a field value. Allowed types are std::string, bool,
+    // built-in integral and floating point types, and char const *. The
+    // pointers returned by get<char const *>() are invalidated by a call
+    // to nextRecord().
     template <typename T> inline T const get(int i) const;
     template <typename T> inline T const get(std::string const &name) const;
     template <typename T> inline T const get(char const *name) const;
+    //@}
 
 private:
     typedef std::tr1::unordered_map<std::string, int> FieldIndexes;
@@ -309,7 +321,7 @@ private:
   *     be written.
   * @li The line terminator cannot be specified, and is always '\\n'.
   */
-class CsvWriter {
+class LSST_AP_API CsvWriter {
 public:
     CsvWriter(std::string const &path,
               CsvDialect const &dialect,
@@ -320,7 +332,10 @@ public:
 
     inline CsvDialect const & getDialect() const;
 
+    // End the current record
     void endRecord();
+
+    // Flush the underlying output stream without ending the current record
     inline void flush();
 
     // Return the number of lines/records/fields written
@@ -328,7 +343,8 @@ public:
     inline size_t getNumRecords() const;
     inline size_t getNumFields() const;
 
-    // Append field(s) to the end of a record
+    /// @name Append field(s) to the end of a record
+    //@{ 
     void appendFields(std::vector<std::string> const &fields);
     inline void appendField(std::string const &v);
     inline void appendField(char const *v);
@@ -349,8 +365,9 @@ public:
     void appendField(long double v);
 
     void appendNull();
+    //@}
 
-    // raw writes
+    // Raw writes. Beware: these bypass all output formatting!
     inline void write(std::string const &v);
     inline void write(char c);
 
@@ -374,6 +391,7 @@ private:
 // STL-style output for CsvWriter
 inline CsvWriter & endr(CsvWriter &);
 inline CsvWriter & flush(CsvWriter &);
+inline CsvWriter & nullf(CsvWriter &);
 template <typename T> inline CsvWriter & operator<<(CsvWriter &, T const &);
 template <typename T> inline CsvWriter& operator<<(CsvWriter&, CsvWriter& (*)(CsvWriter&));
 

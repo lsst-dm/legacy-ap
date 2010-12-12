@@ -31,6 +31,7 @@ import lsst.afw.detection as afwDetection
 import lsst.afw.image as afwImage
 import lsst.skypix as skypix
 import lsst.ap.cluster as cluster
+import lsst.ap.match as match
 
 from lsst.pex.harness.Clipboard import Clipboard
 from lsst.pex.harness.simpleStageTester import SimpleStageTester
@@ -48,11 +49,35 @@ class SourceClusteringStageTestCase(unittest.TestCase):
     def setUp(self):
         # construct 5 parallel streaks of sources 
         self.sources = afwDetection.SourceSet()
+        self.exposures = []
+        ps = dafBase.PropertySet()
+        ps.setLong("scienceCcdExposureId", 0L)
+        ps.setString("FILTER", "u")
+        ps.setString("TIME-MID", "2000-01-01T11:59:28.000000000Z")
+        ps.setDouble("EXPTIME", 10.0)
+        ps.setString("RADESYS", "FK5")
+        ps.setDouble("EQUINOX", 2000.0)
+        ps.setString("CTYPE1", "RA---TAN")
+        ps.setString("CTYPE2", "DEC--TAN")
+        ps.setString("CUNIT1", "deg")
+        ps.setString("CUNIT2", "deg")
+        ps.setInt("NAXIS1", 1000)
+        ps.setInt("NAXIS2", 1000)
+        ps.setDouble("CRPIX1", 500.5)
+        ps.setDouble("CRPIX2", 500.5)
+        ps.setDouble("CRVAL1", 0.0)
+        ps.setDouble("CRVAL2", 0.0)
+        ps.setDouble("CD1_1", 1.0/3600.0)
+        ps.setDouble("CD1_2", 0.0)
+        ps.setDouble("CD2_1", 0.0)
+        ps.setDouble("CD2_2", 1.0/3600.0)
+        self.exposures.append(ps)
         for i in xrange(-2, 3):
             ra = 0.0
             for j in xrange(20):
                 s = afwDetection.Source()
                 s.setObjectId(i)
+                s.setAmpExposureId(0)
                 s.setRa(math.radians(ra))
                 s.setDec(math.radians(i))
                 self.sources.append(s)
@@ -61,6 +86,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
 
     def tearDown(self):
         del self.sources
+        del self.exposures
 
     def testStage(self):
         policyFile = pexPolicy.DefaultPolicyFile(
@@ -70,7 +96,7 @@ class SourceClusteringStageTestCase(unittest.TestCase):
 
         # override various policy defaults
         policy.set("sourceClusteringPolicy.epsilonArcsec", 2000.0)
-        policy.set("sourceClusteringPolicy.minPoints", 2)
+        policy.set("sourceClusteringPolicy.minNeighbors", 2)
         policy.set("sourceClusteringPolicy.leafExtentThresholdArcsec", -1.0)
         policy.set("quadSpherePolicy.resolutionPix", 3)
         policy.set("quadSpherePolicy.paddingArcsec", 0.0)
@@ -87,6 +113,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
         clipboard.put(policy.get("inputKeys.jobIdentity"), jobIdentity)
         clipboard.put(policy.get("inputKeys.sources"),
                       afwDetection.PersistableSourceVector(self.sources))
+        clipboard.put(policy.get("inputKeys.exposures"),
+                      self.exposures)
 
         # run the stage
         stage = cluster.SourceClusteringStage(policy)

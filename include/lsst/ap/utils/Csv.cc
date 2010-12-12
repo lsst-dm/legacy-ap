@@ -153,32 +153,10 @@ inline bool CsvDialect::trailingDelimiter() const {
 
 // -- CsvReader inline/template members ----
 
-/** Returns true if all records have been read and there is no current record.
+/** Returns the dialect for this reader.
   */
-inline bool CsvReader::isDone() const {
-    return _done;
-}
-
-/** Advances to the next record in the file. If all records have been read,
-  * the function has no effect.
-  *
-  * @throw lsst::pex::exception::RuntimeErrorException
-  *        If this exception is thrown, it is because the input file did not
-  *        conform to the readers dialect. The current record will contain
-  *        the fields succesfully read-in, but the last field may be
-  *        incomplete or otherwise incorrectly decoded. The next call to
-  *        nextRecord() will resume reading at the beginning of the next line
-  *        in the file. If fields contain new-lines, this will not necessarily
-  *        be at the start of a record!
-  * @throw lsst::pex::exception::IoErrorException
-  *        A system I/O call failed - one cannot recover in any general way.
-  * @throw lsst::pex::exception::LogicErrorException
-  *        There is a serious bug in the internal CSV parser. File a ticket!
-  */
-inline void CsvReader::nextRecord() {
-    if (!_done) {
-        _readRecord();
-    }
+inline CsvDialect const & CsvReader::getDialect() const {
+    return _dialect;
 }
 
 /** Returns the number of lines read in. This is the 1-based index of the
@@ -216,10 +194,32 @@ inline int CsvReader::getIndexOf(char const *name) const {
 }
 //@}
 
-/** Returns the dialect for this  reader.
+/** Returns true if all records have been read (and there is no current record).
   */
-inline CsvDialect const & CsvReader::getDialect() const {
-    return _dialect;
+inline bool CsvReader::isDone() const {
+    return _done;
+}
+
+/** Advances to the next record in the file. If all records have been read,
+  * the function has no effect.
+  *
+  * @throw lsst::pex::exception::RuntimeErrorException
+  *        If this exception is thrown, it is because the input file did not
+  *        conform to the readers dialect. The current record will contain
+  *        the fields succesfully read-in, but the last field may be
+  *        incomplete or otherwise incorrectly decoded. The next call to
+  *        nextRecord() will resume reading at the beginning of the next line
+  *        in the file. If fields contain new-lines, this will not necessarily
+  *        be at the start of a record!
+  * @throw lsst::pex::exception::IoErrorException
+  *        A system I/O call failed - one cannot recover in any general way.
+  * @throw lsst::pex::exception::LogicErrorException
+  *        There is a serious bug in the internal CSV parser. File a ticket!
+  */
+inline void CsvReader::nextRecord() {
+    if (!_done) {
+        _readRecord();
+    }
 }
 
 /** Returns the number of fields in the current record, or 0 if there is
@@ -229,7 +229,6 @@ inline int CsvReader::getNumFields() const {
     return static_cast<int>(_fields.size());
 }
 
-//@{
 /** Returns true if the value of the given field is a database NULL.
   */
 inline bool CsvReader::isNull(int i) const {
@@ -241,15 +240,17 @@ inline bool CsvReader::isNull(int i) const {
     }
     return _fields[i] < 0;
 }
+/** @copydoc CsvReader::isNull(int) const
+  */
 inline bool CsvReader::isNull(std::string const &name) const {
     return isNull(getIndexOf(name));
 }
+/** @copydoc CsvReader::isNull(int) const
+  */
 inline bool CsvReader::isNull(char const *name) const {
     return isNull(getIndexOf(name));
 }
-//@}
 
-//@{
 /** Returns the value of a field as an instance of type T.
   */
 template <typename T> inline T const CsvReader::get(int i) const {
@@ -267,9 +268,13 @@ template <typename T> inline T const CsvReader::get(int i) const {
     // _get specializations live in the implementation file
     return _get<T>(_record.get() + _fields[i]);
 }
+/** Returns the value of a field as an instance of type T.
+  */
 template <typename T> inline T const CsvReader::get(std::string const &name) const {
     return get<T>(getIndexOf(name));
 }
+/** Returns the value of a field as an instance of type T.
+  */
 template <typename T> inline T const CsvReader::get(char const *name) const {
     return get<T>(getIndexOf(name));
 }
@@ -279,13 +284,16 @@ template <typename T> inline T const CsvReader::get(char const *name) const {
 inline std::string const CsvReader::get(int i) const {
     return get<std::string>(i);
 }
+/** @copydoc CsvReader::get(int) const
+  */
 inline std::string const CsvReader::get(std::string const &name) const {
     return get<std::string>(getIndexOf(name));
 }
+/** @copydoc CsvReader::get(int) const
+  */
 inline std::string const CsvReader::get(char const *name) const {
     return get<std::string>(getIndexOf(name));
 }
-//@}
 
 // NULL values for various types
 template <typename T> inline T CsvReader::_null() {
@@ -355,6 +363,7 @@ inline CsvDialect const & CsvWriter::getDialect() const {
 }
 
 /** Forces a write of all user-space buffered data to the underlying stream.
+  * Does @b not terminate the current record.
   */
 inline void CsvWriter::flush() {
     _out->flush();
@@ -405,14 +414,14 @@ inline void CsvWriter::appendField(char v) {
   * stream without being run through the quoting/escaping process. This can be
   * useful when repeatedly outputting the same records/fields.
   */
-///@{
+//@{
 inline void CsvWriter::write(std::string const &s) {
     _out->write(s.c_str(), s.size());
 }
 inline void CsvWriter::write(char c) {
     _out->put(c);
 }
-///@}
+//@}
 
 
 // -- STL-style output for CsvWriter ----
@@ -436,6 +445,13 @@ inline CsvWriter & endr(CsvWriter &w) {
   */
 inline CsvWriter & flush(CsvWriter &w) {
     w.flush();
+    return w;
+}
+
+/** Manipulator to append a NULL field to a CSV writer.
+  */
+inline CsvWriter & nullf(CsvWriter &w) {
+    w.appendNull();
     return w;
 }
 

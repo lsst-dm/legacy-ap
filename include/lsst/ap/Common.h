@@ -86,8 +86,9 @@ double const ONE_OVER_PI        = 0.318309886183790671537767526745;
 
 double const J2000_MJD     = 51544.5;
 double const DAYS_PER_JY   = 365.25;        ///< Days per Julian year
-double const METERS_PER_AU = 149597870.0e3; ///< Meters per AU
+double const METERS_PER_AU = 149597870.7e3; ///< Meters per AU
 double const SEC_PER_JD    = 86400.0;       ///< Seconds per Julian day
+double const C_AU_PER_DAY  = 173.1446326847; ///< Speed of light in AU/day
 
 }}} // end of namespace lsst::ap::<anonymous>
 

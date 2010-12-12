@@ -39,6 +39,14 @@
 
 #include "lsst/pex/exceptions.h"
 
+// Forward declarations
+namespace lsst { namespace ap { namespace utils {
+    template <typename T> class Arena;
+}}}
+
+template <typename T> void * operator new(size_t, lsst::ap::utils::Arena<T> &);
+template <typename T> void operator delete(void *, lsst::ap::utils::Arena<T> &);
+
 
 namespace lsst { namespace ap { namespace utils {
 
@@ -55,13 +63,11 @@ namespace lsst { namespace ap { namespace utils {
   * critical code only. 
   */
 template <typename T>
-class Arena {
+class LSST_AP_LOCAL Arena {
 public:
     Arena(size_t blockCapacity=262144/sizeof(T));
     ~Arena();
 
-    inline void *alloc();
-    inline void dealloc(void *ptr);
     inline void destroy(T *ptr);
 
     inline size_t capacity() const;
@@ -69,12 +75,19 @@ public:
     inline size_t getBlockCapacity() const;
 
 private:
-    // T might be or contain a fixed size Eigen type
+    // T might be or contain a vector type (e.g. an SSEx type).
+    // These must be 16 byte aligned on some platforms.
     static const size_t ALIGN = 16;
     static const size_t SIZE = (sizeof(T) + ALIGN - 1) & ~(ALIGN - 1);
 
     BOOST_STATIC_ASSERT((ALIGN & (ALIGN - 1)) == 0);
 
+    // disable copy construction/assignment
+    Arena(Arena const &);
+    Arena & operator=(Arena const &);
+
+    inline void *_alloc();
+    inline void _dealloc(void *ptr);
     void _grow();
 
     static inline unsigned char * _align(unsigned char *p);
@@ -82,11 +95,14 @@ private:
     std::vector<unsigned char *> _blocks;   ///< List of memory blocks.
     std::vector<std::vector<bool> > _masks; ///< Per-block free bits - used
                                             ///  only in the arena destructor,
-                                            ///  but is preallocated to avoid
-                                            ///  std::bad_alloc therin.
+                                            ///  but is pre-allocated to avoid
+                                            ///  std::bad_alloc therein.
     size_t const _blockCapacity;            ///< Capacity of a memory block.
     size_t _nFree;         ///< Number of free elements.
     unsigned char *_free;  ///< Head of linked free-list, 0 if arena is full.
+
+    friend void * (::operator new<>)(size_t, lsst::ap::utils::Arena<T> &);
+    friend void (::operator delete<>)(void *, lsst::ap::utils::Arena<T> &);
 };
 
 }}} // namespace lsst::ap::utils
@@ -96,12 +112,12 @@ private:
 
 template <typename T>
 inline void * operator new(size_t, lsst::ap::utils::Arena<T> &arena) {
-   return arena.alloc();
+   return arena._alloc();
 }
 
 template <typename T>
 inline void operator delete(void *ptr, lsst::ap::utils::Arena<T> &arena) {
-   arena.dealloc(ptr);
+   arena._dealloc(ptr);
 }
 
 #endif // LSST_AP_UTILS_ARENA_H

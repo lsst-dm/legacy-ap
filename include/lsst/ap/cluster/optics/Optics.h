@@ -60,7 +60,7 @@ class LSST_AP_LOCAL Optics {
 public:
     Optics(Point<K, DataT> * points,
            int numPoints,
-           int minPoints,
+           int minNeighbors,
            double epsilon,
            double leafExtentThreshold,
            int pointsPerLeaf);
@@ -77,7 +77,7 @@ private:
     boost::scoped_array<double> _distances;
     double _epsilon;
     int _numPoints;
-    int _minPoints;
+    int _minNeighbors;
     bool _ran;
     lsst::pex::logging::Log _log;
 

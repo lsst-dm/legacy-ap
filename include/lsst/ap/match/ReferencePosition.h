@@ -41,7 +41,7 @@ namespace lsst { namespace ap { namespace match {
 /** Position related parameters of a simulated reference catalog source.
   * There are no errors - these are inputs to the image simulator.
   */
-class ReferencePosition : public BBox {
+class LSST_AP_API ReferencePosition : public BBox {
 public:
     enum Flags {
         MOVING       = 0x1, ///< Set if the reference position has proper motion

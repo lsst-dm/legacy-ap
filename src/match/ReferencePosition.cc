@@ -30,6 +30,10 @@
 #include <algorithm>
 #include <cmath>
 
+#include "lsst/pex/exceptions.h"
+
+namespace pexExcept = lsst::pex::exceptions;
+
 using lsst::ap::utils::angularSeparation;
 using lsst::ap::utils::cartesianToSpherical;
 using lsst::ap::utils::clampPhi;
@@ -93,6 +97,11 @@ void ReferencePosition::setMotion(
     _v.x() = cr*u - _p.y()*muRa - cr*t;
     _v.y() = sr*u + _p.x()*muRa - sr*t;
     _v.z() = sd*vRadial + s*muDecl;
+    if (_v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
+        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                          "star velocity vector magnitude exceeds half "
+                          "the speed of light");
+    }
     _flags = MOVING | PARALLAX | (parallaxCor ? PARALLAX_COR : 0);
 }
 

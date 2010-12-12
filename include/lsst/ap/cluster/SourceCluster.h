@@ -40,9 +40,11 @@
 #include "lsst/utils/ieee.h"
 #include "lsst/daf/base/Persistable.h"
 #include "lsst/pex/policy.h"
+#include "lsst/afw/geom/AffineTransform.h"
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
+#include "../match/ExposureInfo.h"
 #include "Formatters.h"
 
 
@@ -58,21 +60,26 @@ LSST_AP_API void updateSources(
     SourceClusterAttributes const & cluster,
     lsst::afw::detection::SourceSet & sources);
 
+LSST_AP_API void locateAndFilterSources(
+    lsst::afw::detection::SourceSet & sources,
+    lsst::afw::detection::SourceSet & invalidSources,
+    lsst::ap::match::ExposureInfoMap const & exposures);
+
 LSST_AP_API void segregateInvalidSources(
     lsst::afw::detection::SourceSet & sources,
-    lsst::afw::detection::SourceSet & badSources);
+    lsst::afw::detection::SourceSet & invalidSources);
 
 LSST_AP_API void segregateBadSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & badSources,
     int badSourceMask);
 
-LSST_AP_API void updateBadSources(
+LSST_AP_API void updateUnclusteredSources(
      lsst::afw::detection::SourceSet & badSources);
 
 
 /** Helper template for possibly unset/invalid floating
-    point types. Nulls are represented as NaNs.
+  * point types. Nulls are represented as NaNs.
   */
 template <typename FloatT>
 class NullOr {
@@ -131,6 +138,38 @@ inline bool operator!=(FloatT const & value, NullOr<FloatT> const & n) {
 }
 
 
+/** Helper class that bundles a source, it's originating exposure, and an
+  * affine transform from the pixel space of that exposure to the pixel space
+  * of a tangent plane projection centered at the fiducial cluster position
+  * and with the standard north, east basis.
+  */
+class LSST_AP_API SourceAndExposure {
+public:
+    SourceAndExposure(
+        boost::shared_ptr<lsst::afw::detection::Source const> source,
+        lsst::ap::match::ExposureInfo::ConstPtr exposure,
+        lsst::afw::geom::AffineTransform const & transform) :
+        _source(source), _exposure(exposure), _transform(transform) { }
+
+    ~SourceAndExposure() { }
+
+    boost::shared_ptr<lsst::afw::detection::Source const> getSource() const {
+        return _source;
+    }
+    lsst::ap::match::ExposureInfo::ConstPtr getExposureInfo() const {
+        return _exposure;
+    }
+    lsst::afw::geom::AffineTransform const & getTransform() const {
+        return _transform;
+    }
+
+private:
+    boost::shared_ptr<lsst::afw::detection::Source const> _source;
+    lsst::ap::match::ExposureInfo::ConstPtr _exposure;
+    lsst::afw::geom::AffineTransform _transform;
+};
+
+
 /** Per filter source cluster attributes.
   */
 class LSST_AP_API PerFilterSourceClusterAttributes {
@@ -154,14 +193,6 @@ public:
     static int const ELLIPTICITY_NSAMPLE_OFF = FLUX_NSAMPLE_OFF + NSAMPLE_BITS;
 
     PerFilterSourceClusterAttributes();
-    PerFilterSourceClusterAttributes(
-        lsst::afw::detection::Source const & source,
-        int fluxIgnoreMask,
-        int ellipticityIgnoreMask);
-    PerFilterSourceClusterAttributes(
-        lsst::afw::detection::SourceSet const & sources,
-        int fluxIgnoreMask,
-        int ellipticityIgnoreMask);
     ~PerFilterSourceClusterAttributes();
 
     // attribute access
@@ -180,6 +211,7 @@ public:
     double getLatestObsTime() const {
         return _latestObsTime;
     }
+
     int getNumFluxSamples() const;
     NullOr<float> const & getFlux() const {
         return _flux;
@@ -187,6 +219,7 @@ public:
     NullOr<float> const & getFluxSigma() const {
         return _fluxSigma;
     }
+
     int getNumEllipticitySamples() const;
     NullOr<float> const & getE1() const {
         return _e1;
@@ -206,6 +239,7 @@ public:
     NullOr<float> const & getRadiusSigma() const {
         return _radiusSigma;
     }
+
     bool operator==(PerFilterSourceClusterAttributes const & attributes) const;
 
     // attribute modification
@@ -218,6 +252,7 @@ public:
     void setFlags(int flags) {
         _flags = flags;
     }
+
     void setObsTimeRange(double earliest, double latest);
     void setNumFluxSamples(int samples);
     void setFlux(NullOr<float> const & flux,
@@ -230,6 +265,20 @@ public:
                         NullOr<float> const & e1Sigma,
                         NullOr<float> const & e2Sigma,
                         NullOr<float> const & radiusSigma);
+
+    void computeFlux(SourceAndExposure const & source,
+                     double fluxScale,
+                     int fluxIgnoreMask);
+
+    void computeFlux(std::vector<SourceAndExposure> const & sources,
+                     double fluxScale,
+                     int fluxIgnoreMask);
+
+    void computeEllipticity(SourceAndExposure const & source,
+                            int ellipticityIgnoreMask);
+
+    void computeEllipticity(std::vector<SourceAndExposure> const & sources,
+                            int ellipticityIgnoreMask);
 
 private:
     int _filterId;
@@ -247,11 +296,6 @@ private:
     NullOr<float> _e1Sigma;
     NullOr<float> _e2Sigma;
     NullOr<float> _radiusSigma;
-
-    void computeFlux(lsst::afw::detection::SourceSet const & sources,
-                     int fluxIgnoreMask);
-    void computeEllipticity(lsst::afw::detection::SourceSet const & sources,
-                            int ellipticityIgnoreMask);
 
     template <typename Archive> void serialize(Archive &, unsigned int const); 
     friend class boost::serialization::access;
@@ -293,14 +337,7 @@ public:
     };
 
     SourceClusterAttributes();
-    SourceClusterAttributes(lsst::afw::detection::Source const & source,
-                            int64_t id,
-                            int fluxIgnoreMask,
-                            int ellipticityIgnoreMask);
-    SourceClusterAttributes(lsst::afw::detection::SourceSet const & sources,
-                            int64_t id,
-                            int fluxIgnoreMask,
-                            int ellipticityIgnoreMask);
+    SourceClusterAttributes(int64_t id);
     ~SourceClusterAttributes();
 
     // attribute access
@@ -319,20 +356,37 @@ public:
     double getLatestObsTime() const {
         return _latestObsTime;
     }
-    double getRa() const {
-        return _ra;
+
+    double getRaPs() const {
+        return _raPs;
     }
-    double getDec() const {
-        return _dec;
+    double getDecPs() const {
+        return _decPs;
     }
-    NullOr<float> const & getRaSigma() const {
-        return _raSigma;
+    NullOr<float> const & getRaPsSigma() const {
+        return _raPsSigma;
     }
-    NullOr<float> const & getDecSigma() const {
-        return _decSigma;
+    NullOr<float> const & getDecPsSigma() const {
+        return _decPsSigma;
     }
-    NullOr<float> const & getRaDecCov() const {
-        return _raDecCov;
+    NullOr<float> const & getRaDecPsCov() const {
+        return _raDecPsCov;
+    }
+
+    NullOr<double> const & getRaSg() const {
+        return _raSg;
+    }
+    NullOr<double> const & getDecSg() const {
+        return _decSg;
+    }
+    NullOr<float> const & getRaSgSigma() const {
+        return _raSgSigma;
+    }
+    NullOr<float> const & getDecSgSigma() const {
+        return _decSgSigma;
+    }
+    NullOr<float> const & getRaDecSgCov() const {
+        return _raDecSgCov;
     }
 
     bool hasFilter(int filterId) const;
@@ -358,15 +412,34 @@ public:
         _flags = flags;
     }
     void setObsTimeRange(double earliest, double latest);
-    void setPosition(double ra,
-                     double dec,
-                     NullOr<float> const & raSigma,
-                     NullOr<float> const & decSigma,
-                     NullOr<float> const & raDecCov);
+    void setPsPosition(double ra,
+                       double dec,
+                       NullOr<float> const & raSigma,
+                       NullOr<float> const & decSigma,
+                       NullOr<float> const & raDecCov);
+    void setSgPosition(NullOr<double> const & ra,
+                       NullOr<double> const & dec,
+                       NullOr<float> const & raSigma,
+                       NullOr<float> const & decSigma,
+                       NullOr<float> const & raDecCov);
     void clearPerFilterAttributes();
     bool setPerFilterAttributes(
         PerFilterSourceClusterAttributes const & attributes);
     bool removePerFilterAttributes(int filterId);
+
+    void computeAttributes(
+        boost::shared_ptr<lsst::afw::detection::Source const> source,
+        lsst::ap::match::ExposureInfoMap const & exposures,
+        double fluxScale,
+        int fluxIgnoreMask,
+        int ellipticityIgnoreMask);
+
+    void computeAttributes(
+        lsst::afw::detection::SourceSet const & sources,
+        lsst::ap::match::ExposureInfoMap const & exposures,
+        double fluxScale,
+        int fluxIgnoreMask,
+        int ellipticityIgnoreMask);
 
 private:
     int64_t _clusterId;
@@ -374,16 +447,23 @@ private:
     int _flags;
     double _earliestObsTime;
     double _latestObsTime;
-    // position
-    double _ra;
-    double _dec;
-    NullOr<float> _raSigma;
-    NullOr<float> _decSigma;
-    NullOr<float> _raDecCov;
+    // position, point source model (unweighted mean)
+    double _raPs;
+    double _decPs;
+    NullOr<float> _raPsSigma;
+    NullOr<float> _decPsSigma;
+    NullOr<float> _raDecPsCov;
+    // position, small galaxy model (inverse variance weighted mean)
+    NullOr<double> _raSg;
+    NullOr<double> _decSg;
+    NullOr<float> _raSgSigma;
+    NullOr<float> _decSgSigma;
+    NullOr<float> _raDecSgCov;
+
     // per filter propertiesa
     PerFilterAttributesMap _perFilterAttributes;
  
-    void computePosition(lsst::afw::detection::SourceSet const & sources);
+    void _computePsPosition(lsst::afw::detection::SourceSet const & sources);
 
     template <typename Archive> void serialize(Archive &, unsigned int const);
     friend class boost::serialization::access;

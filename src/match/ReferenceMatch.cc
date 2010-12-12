@@ -709,7 +709,7 @@ public:
     double getReadAhead() const { return _readAhead; }
 
     /** Returns a string consisting of pre-formatted all NULL
-      * output for requested position table columns.
+      * output for requested reference catalog columns.
       */
     std::string const & getNullRecord() const {
         return _nullRecord;
@@ -1590,9 +1590,10 @@ LSST_AP_API void referenceMatch(
     lsst::pex::policy::Policy::Ptr posInPolicy, ///< Policy describing input position table.
                                                 ///  See policy/PositionTableDictionary.paf
                                                 ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr matchPolicy  ///< Policy describing match parameters.
+    lsst::pex::policy::Policy::Ptr matchPolicy, ///< Policy describing match parameters.
                                                 ///  See policy/ReferenceMatchDictionary.paf
                                                 ///  for parameters and default values.
+    bool truncate ///< Overwrite existing output file?
 ) {
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Matching reference catalog to position table...");
@@ -1631,7 +1632,7 @@ LSST_AP_API void referenceMatch(
     RefReader<MatchableRef> refReader(
         refPath, refPolicy, outDialect, posReader.getMinEpoch(),
         posReader.getMaxEpoch(), xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
-    CsvWriter writer(matchPath, outDialect);
+    CsvWriter writer(matchPath, outDialect, truncate);
     RefPosMatcher matcher;
 
     log.log(Log::INFO, "Starting reference catalog to position table match");
@@ -1643,7 +1644,7 @@ LSST_AP_API void referenceMatch(
 
 
 /** Computes the number of times a reference catalog should have been observed in
-  * each filter under ideal conditions, given a set of exposures. The per-filter
+  * each filter with an ideal observatory, given a set of exposures. The per-filter
   * observation counts are appended as columns [ugrizy]Cov. Reference catalog
   * entries not falling on any of the given exposures are dropped from the output.
   */
@@ -1655,9 +1656,10 @@ LSST_AP_API void referenceFilter(
     lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
                                                 ///  See policy/ReferenceCatalogDictionary 
                                                 ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr matchPolicy  ///< Policy describing match parameters.
+    lsst::pex::policy::Policy::Ptr matchPolicy, ///< Policy describing match parameters.
                                                 ///  See policy/ReferenceMatchDictionary.paf
                                                 ///  for parameters and default values.
+    bool truncate ///< Overwrite existing output file?
 ) {
     typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
     if (exposures.empty()) {
@@ -1708,7 +1710,7 @@ LSST_AP_API void referenceFilter(
     RefReader<RefWithCov> refReader(
         refPath, refPolicy, outDialect, minEpoch, maxEpoch,
         xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
-    CsvWriter writer(filtPath, outDialect);
+    CsvWriter writer(filtPath, outDialect, truncate);
     RefExpMatcher matcher;
 
     log.log(Log::INFO, "Starting reference catalog to exposure match");

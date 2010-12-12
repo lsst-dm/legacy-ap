@@ -38,7 +38,7 @@ namespace lsst { namespace ap { namespace utils {
   * std::vector can be substituted with minimal code changes.
   */
 template <typename T, size_t N>
-class SmallPtrVector {
+class LSST_AP_LOCAL SmallPtrVector {
 public:
     typedef T ** iterator;
     typedef T const * const * const_iterator;

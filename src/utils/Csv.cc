@@ -34,6 +34,7 @@
 #include <sstream>
 #include <utility>
 
+#include "boost/filesystem.hpp"
 #include "boost/regex.hpp"
 
 #include "lsst/pex/exceptions.h"
@@ -886,26 +887,37 @@ template <> char CsvReader::_get<char>(char const *field) const {
 
 // -- CsvWriter implementation ----
 
-/** Creates a new CsvWriter that output to the given file.
+/** Creates a new CsvWriter that outputs to the given file.
   */
 CsvWriter::CsvWriter(
     std::string const &path,   ///< Name of file to write to
     CsvDialect const &dialect,
-    bool truncate              ///< If true, truncate or create file.
-                               ///  Otherwise, append or create.
+    bool truncate              ///< If true, an existing file is truncated
+                               ///  Otherwise, an attempt to create a writer
+                               ///  for an existing file raises an exception.
 ) :
-    _stream(new ofstream(path.c_str(), ios::out | ios::binary |
-                         (truncate ? ios::trunc : ios::app))),
-    _out(_stream.get()),
+    _stream(),
+    _out(0),
     _dialect(dialect),
     _numRecords(0),
     _numLines(0),
     _numFields(0)
 {
+    if (!truncate && boost::filesystem::exists(path)) {
+        throw LSST_EXCEPT(pexExcept::IoErrorException,
+                          "file " + path + " already exists");
+
+    }
+    ios::openmode mode = ios::out | ios::binary;
+    if (truncate) {
+        mode |= ios::trunc;
+    }
+    _stream.reset(new ofstream(path.c_str(), mode));
     if (!_stream->good()) {
         throw LSST_EXCEPT(pexExcept::IoErrorException,
                           "failed to open file " + path + " for writing");
     }
+    _out = _stream.get();
     // throw on any kind of output error
     _stream->exceptions(ios::eofbit | ios::failbit | ios::badbit);
 }

@@ -226,9 +226,6 @@ def main():
     """)
     parser = optparse.OptionParser(usage)
     parser.add_option(
-        "-d", "--database", dest="db", default="serge",
-        help="Run database to extract image metadata from")
-    parser.add_option(
         "-u", "--user", dest="user", default="serge",
         help="Database user name to use when connecting to MySQL.")
     parser.add_option(

@@ -118,10 +118,9 @@ class ReferenceFilterTestCase(unittest.TestCase):
         with NamedTemporaryFile() as filtFile:
             with NamedTemporaryFile() as refFile:
                 matches = buildPoints(refFile, self.exposures[0])
-                #import pdb
-                #pdb.set_trace()
                 apMatch.referenceFilter(refFile.name, filtFile.name,
-                                        self.exposures, self.refPolicy)
+                                        self.exposures, self.refPolicy,
+                                        None, True)
                 if False:
                     # print out the generated test data
                     for line in open(refFile.name, 'rb'):

@@ -7,7 +7,7 @@ definitions: {
         type: double
         description: "Clustering distance (arcsec) to use when generating
                       clusters with the OPTICS algorithm. Sources S that
-                      have at least minPoints neighbors T such that the
+                      have at least minNeighbors neighbors T such that the
                       angular separation between S and T is at most
                       epsilonArcsec arcsec are always assigned to a cluster."
         maxOccurs: 1
@@ -17,15 +17,15 @@ definitions: {
             max: 36000.0
         }
     }
-    minPoints: {
+    minNeighbors: {
         type: int
         description: "The minimum cardinality of the epsilonArcsec-neighborhood
                       of a source S for S to be considered a core-source by the
                       OPTICS algorithm. Core sources are always assigned to a
                       cluster, whereas sources with epsilonArcsec-neighborhoods
-                      containing less than minPoints sources may or may not be.
-                      If such a source is assigned to a cluster, it is called a
-                      border source.  Otherwise, it is called a noise source.
+                      containing less than minNeighbors sources may or may not
+                      be. If such a source is assigned to a cluster, it is called
+                      a border source.  Otherwise, it is called a noise source.
                       This parameter is essentially a lower bound on the number
                       of times an astrophysical object must be detected before
                       its detections are clustered and turned into a catalog

@@ -44,7 +44,7 @@ namespace lsst { namespace ap { namespace utils {
   * @li  <tt> min \> max </tt> so long as
   *      <tt> min \<= 2*M_PI && max \>= 0.0 </tt>
   */
-void thetaRangeReduce(double &min, double &max) {
+LSST_AP_API void thetaRangeReduce(double &min, double &max) {
     if (min > max) {
         if (max < 0.0 || min >= 2.0*M_PI) {
             throw LSST_EXCEPT(pexExcept::InvalidParameterException,
@@ -79,10 +79,10 @@ void thetaRangeReduce(double &min, double &max) {
   *
   * Note that @a centerPhi is clamped to lie in [-M_PI/2, M_PI/2].
   */
-double maxAlpha(double radius,   ///< circle radius (rad)
-                double centerPhi ///< latitude angle of circle center (rad)
-               )
-{
+LSST_AP_API double maxAlpha(
+    double radius,   ///< circle radius (rad)
+    double centerPhi ///< latitude angle of circle center (rad)
+) {
     static const double POLE_EPSILON = 1e-7;
 
     if (radius < 0.0 || radius > M_PI*0.5) {
@@ -126,16 +126,16 @@ double maxAlpha(double radius,   ///< circle radius (rad)
   *
   * @sa earthPosition(double)
   */
-void positionAndVelocity(Eigen::Vector3d &p, ///< [out] position, AU
-                         Eigen::Vector3d &v, ///< [out] velocity, AU/day
-                         double ra,          ///< right ascension, rad
-                         double decl,        ///< declination, rad
-                         double muRa,        ///< proper motion in RA, rad/day
-                         double muDecl,      ///< proper motion in Dec, rad/day
-                         double vRadial,     ///< radial velocity, AU/day
-                         double parallax     ///< parallax, rad
-                        )
-{
+LSST_AP_API void positionAndVelocity(
+    Eigen::Vector3d &p, ///< [out] position, AU
+    Eigen::Vector3d &v, ///< [out] velocity, AU/day
+    double ra,          ///< right ascension, rad
+    double decl,        ///< declination, rad
+    double muRa,        ///< proper motion in RA, rad/day
+    double muDecl,      ///< proper motion in Dec, rad/day
+    double vRadial,     ///< radial velocity, AU/day
+    double parallax     ///< parallax, rad
+) {
     // distance (AU)
     double r = 1.0 / parallax;
 
@@ -151,15 +151,26 @@ void positionAndVelocity(Eigen::Vector3d &p, ///< [out] position, AU
     v = Eigen::Vector3d(cosRa*u - p.y()*muRa - cosRa*t,
                         sinRa*u + p.x()*muRa - sinRa*t,
                         sinDecl*vRadial + s*muDecl);
+    if (v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
+        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                          "star velocity vector magnitude exceeds half "
+                          "the speed of light");
+    }
 }
 
 /** Converts the input position vector, which need not have unit magnitude,
   * to spherical coordinates (rad).
   */
-Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
+LSST_AP_API Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
     double d2 = v.x()*v.x() + v.y()*v.y();
     double theta = (d2 == 0.0) ? 0.0 : std::atan2(v.y(), v.x());
     double phi = (v.z() == 0.0) ? 0.0 : std::atan2(v.z(), std::sqrt(d2));
+    if (theta < 0.0) {
+        theta += 2*M_PI;
+        if (theta == 2*M_PI) {
+            theta = 0.0;
+        }
+    }
     return Eigen::Vector2d(theta, phi);
 }
 

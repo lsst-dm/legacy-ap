@@ -111,16 +111,22 @@ inline void insertFloat(StorageT & db, char const * const col, NullOr<T> const &
 }
 
 template <typename FloatT> inline FloatT radians(FloatT deg) {
-    return static_cast<FloatT>(deg * (M_PI/180.0));
+    return static_cast<FloatT>(deg * RADIANS_PER_DEGREE);
 }
 
 template <typename FloatT> inline FloatT degrees(FloatT rad) {
-    return static_cast<FloatT>(rad * (180.0/M_PI));
+    return static_cast<FloatT>(rad * DEGREES_PER_RADIAN);
 }
 
 template <typename FloatT> inline FloatT rangeReducedDegrees(FloatT rad) {
     FloatT deg = std::fmod(degrees(rad), static_cast<FloatT>(360));
-    return deg < static_cast<FloatT>(0) ? deg + static_cast<FloatT>(360) : deg;
+    if (deg < static_cast<FloatT>(0)) {
+        deg = deg + static_cast<FloatT>(360);
+        if (deg == static_cast<FloatT>(360)) {
+            deg = static_cast<FloatT>(0);
+        }
+    }
+    return deg; 
 }
 
 /** @internal
@@ -243,11 +249,16 @@ void SourceClusterAttributes::serialize(Archive & ar, unsigned int const) {
     ar & _flags;
     serializeFloat(ar, _earliestObsTime);
     serializeFloat(ar, _latestObsTime);
-    serializeFloat(ar, _ra);
-    serializeFloat(ar, _dec);
-    ar & _raSigma;
-    ar & _decSigma;
-    ar & _raDecCov;
+    serializeFloat(ar, _raPs);
+    serializeFloat(ar, _decPs);
+    ar & _raPsSigma;
+    ar & _decPsSigma;
+    ar & _raDecPsCov;
+    ar & _raSg;
+    ar & _decSg;
+    ar & _raSgSigma;
+    ar & _decSgSigma;
+    ar & _raDecSgCov;
     ar & _perFilterAttributes;
 }
 
@@ -268,11 +279,6 @@ void insertObjectRow(DbStorageT & db,
     db.setColumnToNull("muDecl_PS");
     db.setColumnToNull("muDecl_PS_Sigma");
     db.setColumnToNull("muRaDecl_PS_Cov");
-    db.setColumnToNull("ra_SG");
-    db.setColumnToNull("ra_SG_Sigma");
-    db.setColumnToNull("decl_SG");
-    db.setColumnToNull("decl_SG_Sigma");
-    db.setColumnToNull("radecl_SG_Cov");
     db.setColumnToNull("raRange");
     db.setColumnToNull("declRange");
     db.setColumnToNull("parallax_PS");
@@ -317,11 +323,16 @@ void insertObjectRow(DbStorageT & db,
 
     // set filter-agnostic columns
     db.template setColumn<int64_t>("objectId", attributes.getClusterId());
-    insertFloat(db, "ra_PS", rangeReducedDegrees(attributes.getRa()));
-    insertFloat(db, "ra_PS_Sigma", degrees(attributes.getRaSigma()));
-    insertFloat(db, "decl_PS", degrees(attributes.getDec()));
-    insertFloat(db, "decl_PS_Sigma", degrees(attributes.getDecSigma()));
-    insertFloat(db, "radecl_PS_Cov", degrees(degrees(attributes.getRaDecCov())));
+    insertFloat(db, "ra_PS", rangeReducedDegrees(attributes.getRaPs()));
+    insertFloat(db, "ra_PS_Sigma", degrees(attributes.getRaPsSigma()));
+    insertFloat(db, "decl_PS", degrees(attributes.getDecPs()));
+    insertFloat(db, "decl_PS_Sigma", degrees(attributes.getDecPsSigma()));
+    insertFloat(db, "radecl_PS_Cov", degrees(degrees(attributes.getRaDecPsCov())));
+    insertFloat(db, "ra_SG", rangeReducedDegrees(attributes.getRaSg()));
+    insertFloat(db, "ra_SG_Sigma", degrees(attributes.getRaSgSigma()));
+    insertFloat(db, "decl_SG", degrees(attributes.getDecSg()));
+    insertFloat(db, "decl_SG_Sigma", degrees(attributes.getDecSgSigma()));
+    insertFloat(db, "radecl_SG_Cov", degrees(degrees(attributes.getRaDecSgCov())));
     insertFloat(db, "earliestObsTime", attributes.getEarliestObsTime());
     insertFloat(db, "latestObsTime", attributes.getLatestObsTime());
     db.template setColumn<int>("flags", attributes.getFlags());
@@ -389,6 +400,11 @@ struct LSST_AP_LOCAL ObjectRow
     float   ra_PS_Sigma;
     float   decl_PS_Sigma;
     float   radecl_PS_Cov;
+    double  ra_SG;
+    double  decl_SG;
+    float   ra_SG_Sigma;
+    float   decl_SG_Sigma;
+    float   radecl_SG_Cov;
     int     flags;
     double  uEarliestObsTime;
     double  uLatestObsTime;
@@ -483,6 +499,11 @@ void ObjectRow::setupFetch(DbStorageT * db)
     db->outParam("ra_PS_Sigma", &ra_PS_Sigma);
     db->outParam("decl_PS_Sigma", &decl_PS_Sigma);
     db->outParam("radecl_PS_Cov", &radecl_PS_Cov);
+    db->outParam("ra_SG", &ra_SG);
+    db->outParam("decl_SG", &decl_SG);
+    db->outParam("ra_SG_Sigma", &ra_SG_Sigma);
+    db->outParam("decl_SG_Sigma", &decl_SG_Sigma);
+    db->outParam("radecl_SG_Cov", &radecl_SG_Cov);
     db->outParam("flags", &flags);
     db->outParam("uEarliestObsTime", &uEarliestObsTime);
     db->outParam("uLatestObsTime", &uLatestObsTime);
@@ -578,15 +599,24 @@ void ObjectRow::to(DbStorage * db,
     nullToNaN(db, 5, ra_PS_Sigma);
     nullToNaN(db, 6, decl_PS_Sigma);
     nullToNaN(db, 7, radecl_PS_Cov);
-    if (db->columnIsNull(8)) {
+    nullToNaN(db, 8, ra_SG);
+    nullToNaN(db, 9, decl_SG);
+    nullToNaN(db, 10, ra_SG_Sigma);
+    nullToNaN(db, 11, decl_SG_Sigma);
+    nullToNaN(db, 12, radecl_SG_Cov);
+
+    if (db->columnIsNull(13)) {
         flags = 0;
     }
     attributes.setClusterId(objectId);
     attributes.setFlags(flags);
     attributes.setObsTimeRange(earliestObsTime, latestObsTime);
-    attributes.setPosition(radians(ra_PS), radians(decl_PS),
-                           radians(ra_PS_Sigma), radians(decl_PS_Sigma),
-                           radians(radians(radecl_PS_Cov)));
+    attributes.setPsPosition(radians(ra_PS), radians(decl_PS),
+                             radians(ra_PS_Sigma), radians(decl_PS_Sigma),
+                             radians(radians(radecl_PS_Cov)));
+    attributes.setSgPosition(radians(ra_SG), radians(decl_SG),
+                             radians(ra_SG_Sigma), radians(decl_SG_Sigma),
+                             radians(radians(radecl_SG_Cov)));
 
     // per-filter columns
 #define LSST_AP_HANDLE_PF_NULLS(i, filter) \
@@ -609,12 +639,12 @@ void ObjectRow::to(DbStorage * db,
         nullToNaN(db, i + 11, filter ## Radius_SG_Sigma); \
     } while(false)
 
-    LSST_AP_HANDLE_PF_NULLS(9 + 0*12, u);
-    LSST_AP_HANDLE_PF_NULLS(9 + 1*12, g);
-    LSST_AP_HANDLE_PF_NULLS(9 + 2*12, r);
-    LSST_AP_HANDLE_PF_NULLS(9 + 3*12, i);
-    LSST_AP_HANDLE_PF_NULLS(9 + 4*12, z);
-    LSST_AP_HANDLE_PF_NULLS(9 + 5*12, y);
+    LSST_AP_HANDLE_PF_NULLS(14 + 0*12, u);
+    LSST_AP_HANDLE_PF_NULLS(14 + 1*12, g);
+    LSST_AP_HANDLE_PF_NULLS(14 + 2*12, r);
+    LSST_AP_HANDLE_PF_NULLS(14 + 3*12, i);
+    LSST_AP_HANDLE_PF_NULLS(14 + 4*12, z);
+    LSST_AP_HANDLE_PF_NULLS(14 + 5*12, y);
 
 #undef LSST_AP_HANDLE_PF_NULLS
 

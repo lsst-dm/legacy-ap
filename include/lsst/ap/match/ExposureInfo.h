@@ -30,12 +30,15 @@
 #ifndef LSST_AP_MATCH_EXPOSUREINFO_H
 #define LSST_AP_MATCH_EXPOSUREINFO_H
 
+#include <utility>
+
 #include "Eigen/Core"
 
 #include "lsst/afw/geom/Extent.h"
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
+#include "../Common.h"
 #include "../utils/EarthPosition.h"
 #include "BBox.h"
 
@@ -51,7 +54,7 @@ namespace lsst { namespace ap { namespace match {
   * metadata AP cares about, which is important since metadata for tens of
   * thousands of CCDs may need to be kept in memory simultaneously.
   */
-class ExposureInfo : public BBox {
+class LSST_AP_API ExposureInfo : public BBox {
 public:
      typedef boost::shared_ptr<ExposureInfo> Ptr;
      typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
@@ -104,13 +107,19 @@ public:
        */
      inline bool canCalibrateFlux() const { return _canCalibrateFlux; }
 
+     double calibrateFlux(double flux, double fluxScale) const;
+
+     std::pair<double, double> const calibrateFlux(double flux,
+                                                   double fluxSigma,
+                                                   double fluxScale) const;
+
      /** Returns the exposure WCS.
        */
      ///@{
      inline lsst::afw::image::Wcs::ConstPtr getWcs() const {
          return _wcs;
      }
-     inline lsst::afw::image::Wcs::Ptr getWcs() { // for SWIG
+     inline lsst::afw::image::Wcs::Ptr getWcs() {
          return _wcs;
      }
      ///@}
@@ -136,13 +145,47 @@ private:
      double _epoch;
      double _expTime;
      double _fluxMag0;
-     double _fluxMag0Err;
+     double _fluxMag0Sigma;
      lsst::afw::geom::Extent2I _extent;
      lsst::afw::image::Wcs::Ptr _wcs;
      int _filterId;
      bool _canCalibrateFlux;
      mutable bool _epValid;
 };
+
+
+/** A map from exposure ids to ExposureInfo objects.
+  */
+class LSST_AP_API ExposureInfoMap {
+public:
+     typedef boost::shared_ptr<ExposureInfoMap> Ptr;
+     typedef boost::shared_ptr<ExposureInfoMap const> ConstPtr;
+
+     ExposureInfoMap();
+     ~ExposureInfoMap();
+
+     size_t size() const { return _map.size(); }
+     bool empty() const { return _map.empty(); }
+     bool contains(int64_t id) const { return _map.find(id) != _map.end(); }
+
+     ExposureInfo::Ptr get(int64_t id) {
+         Map::const_iterator i = _map.find(id);
+         return (i == _map.end()) ? ExposureInfo::Ptr() : i->second;
+     }
+     ExposureInfo::ConstPtr get(int64_t id) const {
+         Map::const_iterator i = _map.find(id);
+         return (i == _map.end()) ? ExposureInfo::ConstPtr() : i->second;
+     }
+
+     void insert(ExposureInfo::Ptr info);
+     void clear();
+     bool erase(int64_t id);
+
+private:
+     typedef std::tr1::unordered_map<int64_t, ExposureInfo::Ptr> Map;
+     Map _map;
+};
+
 
 }}} // namespace lsst::ap::match
 

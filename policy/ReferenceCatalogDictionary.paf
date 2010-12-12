@@ -201,7 +201,7 @@ definitions: {
         description: "Scaling factor to apply to the vRadial column on reading -
                       must convert from catalog units to AU per day. By default,
                       catalog units are assumed to be km/s."
-        default: 0.000577548330066464181609002855455 # (AU/day)/(km/s)
+        default: 0.000577548327363993690854050371186 # (AU/day)/(km/s)
         maxOccurs: 1
     }
 
