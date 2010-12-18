@@ -745,31 +745,6 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
         !lsst::utils::isnan(s.getIxx()) &&
         !lsst::utils::isnan(s.getIyy()) &&
         !lsst::utils::isnan(s.getIxy()) &&
-        (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
-
-        double ixx = s.getIxx();
-        double iyy = s.getIyy();
-        double ixy = s.getIxy();
-        double t = ixx + iyy;
-        if (t == 0.0) {
-            return;
-        }
-        Distortion distortion((ixx - iyy)/t, 2.0*ixy/t, sqrt(t));
-        distortion.transform(source.getTransform()).inPlace();
-        // store results
-        setNumEllipticitySamples(1);
-        setEllipticity(static_cast<float>(distortion[Distortion::E1]),
-                       static_cast<float>(distortion[Distortion::E2]),
-                       static_cast<float>(distortion[Distortion::R]),
-                       NullOr<float>(), NullOr<float>(), NullOr<float>());
-    }
-#if 0
-    if (!s.isNull(detection::IXX) &&
-        !s.isNull(detection::IYY) &&
-        !s.isNull(detection::IXY) &&
-        !lsst::utils::isnan(s.getIxx()) &&
-        !lsst::utils::isnan(s.getIyy()) &&
-        !lsst::utils::isnan(s.getIxy()) &&
         !s.isNull(detection::IXX_ERR) &&
         !s.isNull(detection::IYY_ERR) &&
         !s.isNull(detection::IXY_ERR) &&
@@ -822,7 +797,6 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                        static_cast<float>(sqrt(v.y())),
                        static_cast<float>(sqrt(v.z())));
     }
-#endif
 }
 
 /** Sets the ellipticities of a source cluster in a particular filter to
@@ -841,65 +815,11 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
 ) {
     using geom::ellipses::Distortion;
     typedef std::vector<SourceAndExposure>::const_iterator SeIter;
-    typedef std::vector<Distortion>::const_iterator DistortionIter;
 
     if (sources.empty()) {
         return;
     }
-    std::vector<Distortion> samples;
-    samples.reserve(sources.size());
-    Eigen::Vector3d mean = Eigen::Vector3d::Zero();
-    for (SeIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        detection::Source const & s = *(i->getSource());
-        if (!s.isNull(detection::IXX) &&
-            !s.isNull(detection::IYY) &&
-            !s.isNull(detection::IXY) &&
-            !lsst::utils::isnan(s.getIxx()) &&
-            !lsst::utils::isnan(s.getIyy()) &&
-            !lsst::utils::isnan(s.getIxy()) &&
-            (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
-            double ixx = s.getIxx();
-            double iyy = s.getIyy();
-            double ixy = s.getIxy();
-            double t = ixx + iyy;
-            if (t == 0.0) {
-                continue;
-            }
-            Distortion distortion((ixx - iyy)/t, 2.0*ixy/t, sqrt(t));
-            distortion.transform(i->getTransform()).inPlace();
-            mean += distortion.getVector();
-            samples.push_back(distortion);
-        }
-    }
-    if (!samples.empty()) {
-        setNumEllipticitySamples(static_cast<int>(samples.size()));
-        if (samples.size() == 1) {
-            setEllipticity(static_cast<float>(mean[Distortion::E1]),
-                           static_cast<float>(mean[Distortion::E2]),
-                           static_cast<float>(mean[Distortion::R]),
-                           NullOr<float>(),
-                           NullOr<float>(),
-                           NullOr<float>());
-        } else {
-            double n = samples.size();
-            mean /= n;
-            Eigen::Vector3d var = Eigen::Vector3d::Zero();
-            for (DistortionIter i = samples.begin(), e = samples.end();
-                 i != e; ++i) {
-                var += (i->getVector() - mean).cwise().square();
-            }
-            setEllipticity(
-                static_cast<float>(mean[Distortion::E1]),
-                static_cast<float>(mean[Distortion::E2]),
-                static_cast<float>(mean[Distortion::R]),
-                static_cast<float>(sqrt(var[Distortion::E1]/(n*(n - 1.0)))),
-                static_cast<float>(sqrt(var[Distortion::E2]/(n*(n - 1.0)))),
-                static_cast<float>(sqrt(var[Distortion::R]/(n*(n - 1.0)))));
-        }
-    }
-
-#if 0
     int ns = 0;
     Eigen::Matrix3d invCovSum = Eigen::Matrix3d::Zero();
     Eigen::Vector3d wmean = Eigen::Vector3d::Zero();
@@ -971,7 +891,6 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                        static_cast<float>(sqrt(cov(1,1))),
                        static_cast<float>(sqrt(cov(2,2))));
     }
-#endif
 }
 
 PerFilterSourceClusterAttributes::~PerFilterSourceClusterAttributes() { }
