@@ -34,6 +34,7 @@
 
 #include "Eigen/Core"
 
+#include "lsst/pex/policy/Policy.h"
 #include "lsst/afw/geom/Extent.h"
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
@@ -59,8 +60,10 @@ public:
      typedef boost::shared_ptr<ExposureInfo> Ptr;
      typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
 
+     static std::string const DEF_ID_KEY;
+
      ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
-                  std::string const &idKey=std::string("scienceCcdExposureId"));
+                  std::string const &idKey=DEF_ID_KEY);
      ~ExposureInfo();
 
      /** Returns a unique integer identifier for the exposure.
@@ -186,6 +189,11 @@ private:
      Map _map;
 };
 
+
+LSST_AP_API void readExposureInfos(
+    std::vector<ExposureInfo::Ptr> & exposures,
+    std::string const & csvFile,
+    lsst::pex::policy::Policy::Ptr expPolicy=lsst::pex::policy::Policy::Ptr());
 
 }}} // namespace lsst::ap::match
 
