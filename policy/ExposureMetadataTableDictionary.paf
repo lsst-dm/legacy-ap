@@ -17,7 +17,7 @@ definitions: {
         description: "0-based index of the metadata key column in the exposure
                       metadata table."
         maxOccurs: 1
-        default: 2
+        default: 1
     }
     intValueColumn: {
         type: int
