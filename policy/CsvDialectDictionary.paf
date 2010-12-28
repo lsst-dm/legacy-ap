@@ -1,6 +1,6 @@
 #<?cfg paf dictionary ?>
 
-target: lsst.ap.util.CsvDialect
+target: lsst.ap.utils.CsvDialect
 
 definitions: {
 
@@ -66,7 +66,7 @@ definitions: {
                       to the delimiter or quote character is illegal, with one
                       exception: both the escape and quote characters can be
                       '\0'.  The '\n' and '\r' characters are also illegal."
-        default: "'"
+        default: '"' 
         maxOccurs: 1
     }
 

@@ -41,10 +41,12 @@ def getScienceCcdExposureId(visit, raft, sensor):
 
 def main():
     parser = optparse.OptionParser(dedent("""\
-        %prog [options] <ref catalog> <output file> <root> [<registry>]
+        %prog [options] <ref catalog> <output file> [<root> [<registry>]]
 
         Filters a reference catalog against the science CCD exposures in a run.
-        The reference catalog must be in increasing declination order.
+        The reference catalog must be in increasing declination order. Note that
+        <root> (and <registry>) need not be specified if exposure metadata is
+        being read from CSV files (specified with the -e option).
 
         Only reference catalog entries observable in at least one exposure are
         written out. For each entry written out, 6 fields are appended to the
@@ -88,10 +90,24 @@ def main():
         the reference catalog policy file does not specify "outputFields",
         then all reference catalog fields are output. This can also be
         explictly requested with -f "*"."""))
+    parser.add_option(
+        "-e", "--exposure-metadata", action="append", type="string",
+        dest="exposureMetadata", help=dedent("""\
+        The name of an exposure metadata key-value CSV table. This option
+        may be specified more than once. If present, exposure metadata is
+        obtained from the given CSV file(s) rather than the butler. This
+        is a significant performance win - using the butler to retrieve
+        metadata for tens of thousands of CCDs can take hours as it involves
+        reading the FITS header of every desired CCD."""))
+    parser.add_option(
+        "-E", "--exposure-policy", type="string", dest="exposurePolicy",
+        help=dedent("""\
+        Optional exposure table policy file - defaults are taken from
+        policy/ExposureMetadataTableDictionary.paf in the ap package."""))
          
     opts, args = parser.parse_args()
-    if not len(args) in (3, 4):
-        parser.error("Three or four arguments expected")
+    if len(args) < 2 or len(args) > 4:
+        parser.error("2-4 arguments expected")
     if opts.refPolicy != None:
         refPolicy = pexPolicy.Policy(opts.refPolicy)
     else:
@@ -110,27 +126,40 @@ def main():
         matchPolicy = pexPolicy.Policy(opts.matchPolicy)
     else:
         matchPolicy = pexPolicy.Policy()
+    if opts.exposurePolicy != None:
+        exposurePolicy = pexPolicy.Policy(opts.exposurePolicy)
+    else:
+        exposurePolicy = pexPolicy.Policy()
     if opts.parallaxThresh != None:
         matchPolicy.set("parallaxThresh", opts.parallaxThresh)
     if opts.noSsbToGeo:
         matchPolicy.set("parallaxThresh", float("INF"))
-    # Create butler for run
-    root = args[2]
-    registry = None
-    if len(args) == 4:
-        registry = args[3]
-    mapper = LsstSimMapper(root=root, registry=registry)
-    butler = dafPersistence.ButlerFactory(mapper=mapper).create()
-    # Retrieve CCD metadata for all CCDs in run
+    # Retrieve CCD metadata
     log = pexLogging.Log(pexLogging.getDefaultLog(), "lsst.ap.match")
-    log.log(log.INFO, "Retrieving science CCD exposure metadata for all CCDs in " + root)
     exposures = apMatch.ExposureInfoVector()
-    metadata = butler.queryMetadata("raw", "sensor", ("visit", "raft", "sensor"))
-    for visit, raft, sensor in metadata:
-        if butler.datasetExists("calexp_md", visit=visit, raft=raft, sensor=sensor):
-            ps = butler.get("calexp_md", visit=visit, raft=raft, sensor=sensor)
-            ps.set("scienceCcdExposureId", getScienceCcdExposureId(visit, raft, sensor))
-            exposures.append(apMatch.ExposureInfo(ps))
+    if opts.exposureMetadata == None:
+        # Create butler
+        if len(args) == 2:
+            parser.error("A butler root directory or CCD exposure metadata " +
+                         "CSV file(s) must be specified")
+        root = args[2]
+        registry = None
+        if len(args) == 4:
+            registry = args[3]
+        mapper = LsstSimMapper(root=root, registry=registry)
+        butler = dafPersistence.ButlerFactory(mapper=mapper).create()
+        log.log(log.INFO, "Retrieving science CCD exposure metadata for all CCDs in " + root)
+        metadata = butler.queryMetadata("raw", "sensor", ("visit", "raft", "sensor"))
+        for visit, raft, sensor in metadata:
+            if butler.datasetExists("calexp_md", visit=visit, raft=raft, sensor=sensor):
+                ps = butler.get("calexp_md", visit=visit, raft=raft, sensor=sensor)
+                ps.set("scienceCcdExposureId", getScienceCcdExposureId(visit, raft, sensor))
+                exposures.append(apMatch.ExposureInfo(ps))
+    else:
+        if not hasattr(opts.exposureMetadata, "__iter__"):
+            opts.exposureMetadata = [opts.exposureMetadata]
+        for table in opts.exposureMetadata:
+            apMatch.readExposureInfos(exposures, table, exposurePolicy)
     log.log(log.INFO, "Retrieved metadata for %d science CCDs" % len(exposures))
     apMatch.referenceFilter(args[0], args[1], exposures, refPolicy, matchPolicy)
 
