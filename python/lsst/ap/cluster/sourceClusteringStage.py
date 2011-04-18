@@ -1,7 +1,7 @@
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -9,14 +9,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -103,17 +103,17 @@ class SourceClusteringParallel(stage.ParallelProcessing):
         if not isinstance(inputSources, (list, tuple)):
             inputSources = [inputSources]
         for entry in inputSources:
-            if isinstance(entry, detection.SourceSet):
-                sourceSets.append(entry)
-            elif isinstance(entry, detection.PersistableSourceVector):
-                sourceSets.append(entry.getSources())
-            else:
-                raise TypeError("Expecting lsst.afw.detection.SourceSet or " +
-                                "lsst.afw.detection.PersistableSourceVector")
+             if isinstance(entry, detection.SourceSet):
+                 sourceSets.append(entry)
+             elif isinstance(entry, detection.PersistableSourceVector):
+                 sourceSets.append(entry.getSources())
+             else:
+                 raise TypeError("Expecting lsst.afw.detection.SourceSet or " +
+                                 "lsst.afw.detection.PersistableSourceVector")
         del inputSources
 
         # remove sources with invalid positions
-        self.log.log(Log.INFO, "Computing source positions and removing " +
+        self.log.log(Log.INFO, "Computing source positions and/or removing " +
                      "invalid sources")
         invalidSources = detection.SourceSet()
         total = 0
@@ -188,14 +188,14 @@ class SourceClusteringParallel(stage.ParallelProcessing):
             if self.policy.getBool("debug.createGoodSourceHistogram"):
                 self.log.log(Log.INFO, "Creating good source histogram")
                 hist, wcs = apUtils.createImageCoveringSkyTile(
-                    qs, skyTileId, histogramRes) 
+                    qs, skyTileId, histogramRes)
                 apUtils.makeSourceHistogram(
                     hist.getImage(), prunedSources, wcs, False)
                 clipboard.put(
                     self.policy.getString("outputKeys.goodSourceHistogram"),
                     hist)
 
-        # output invalid/bad sources 
+        # output invalid/bad sources
         if len(invalidSources) > 0:
             outputInvalidSources = detection.PersistableSourceVector()
             outputInvalidSources.setSources(invalidSources)

@@ -117,8 +117,8 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
                           clusterLib.PersistableSourceClusterVector(scv))
         self.log.log(Log.INFO, dedent("""\
             Computed source cluster attributes for %d (%d noise) clusters;
-            discarded %d noise clusters""") %
-            (len(sourceClusters), numNoise, numDiscarded))
+            discarded %d noise sources""") %
+            (len(scv), numNoise, numDiscarded))
 
         # create clusters from bad sources
         if badSources != None and len(badSources) > 0:

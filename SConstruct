@@ -42,7 +42,7 @@ boostInt64IsLongCheckSrc = """
 
 def CustomCompilerFlag(context, flag):
     context.Message('Checking if compiler supports ' + flag + ' flag ')
-    ccflagsOld = context.env['CCFLAGS']; 
+    ccflagsOld = context.env['CCFLAGS'];
     context.env.Append(CCFLAGS = flag)
     result = context.TryCompile("""
         int main(int argc, char **argv) { return 0; }
@@ -85,6 +85,7 @@ dependencies = ["boost",
                 "pex_policy",
                 "daf_persistence",
                 "daf_data",
+                "ndarray",
                 "afw",
                 "mops"]
 
@@ -97,7 +98,7 @@ env = scons.makeEnv("ap",
                      ["boost", "boost/filesystem.hpp", "boost_filesystem:C++"],
                      ["boost", "boost/regex.hpp", "boost_regex:C++"],
                      ["boost", "boost/serialization/base_object.hpp", "boost_serialization:C++"],
-                     ["boost", "boost/program_options.hpp", "boost_program_options:C++"],                    
+                     ["boost", "boost/program_options.hpp", "boost_program_options:C++"],
                      ["boost", "boost/test/unit_test.hpp", "boost_unit_test_framework:C++"],
                      ["python", "Python.h"],
                      ["mysqlclient", "mysql/mysql.h", "mysqlclient:C++"],
@@ -114,7 +115,8 @@ env = scons.makeEnv("ap",
                      ["pex_policy", "lsst/pex/policy/Policy.h", "pex_policy:C++"],
                      ["daf_persistence", "lsst/daf/persistence.h", "daf_persistence:C++"],
                      ["daf_data", "lsst/daf/data.h", "daf_data:C++"],
-                     ["afw", "lsst/afw/detection/DiaSource.h", "afw:C++"],
+                     ["ndarray", "lsst/ndarray.h"],
+                     ["afw", "lsst/afw/detection/Source.h", "afw:C++"],
                      ["xpa", "xpa.h", "xpa", "XPAPuts"],
                      ["mops", "lsst/mops/MovingObjectPrediction.h"]
                     ])

@@ -1,9 +1,9 @@
 // -*- lsst-c++ -*-
 
-/* 
+/*
  * LSST Data Management System
  * Copyright 2008, 2009, 2010 LSST Corporation.
- * 
+ *
  * This product includes software developed by the
  * LSST Project (http://www.lsst.org/).
  *
@@ -11,19 +11,19 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received a copy of the LSST License Statement and 
- * the GNU General Public License along with this program.  If not, 
+ *
+ * You should have received a copy of the LSST License Statement and
+ * the GNU General Public License along with this program.  If not,
  * see <http://www.lsstcorp.org/LegalNotices/>.
  */
- 
+
 /** @file
-  * @brief Implementation of high-level source clustering/attributes API. 
+  * @brief Implementation of high-level source clustering/attributes API.
   *
   * @ingroup ap
   * @author Serge Monkewitz
@@ -41,7 +41,7 @@
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/coord/Coord.h"
-#include "lsst/afw/geom/ellipses/Distortion.h"
+#include "lsst/afw/geom/ellipses/Quadrupole.h"
 #include "lsst/afw/image/ImageUtils.h"
 #include "lsst/afw/image/Wcs.h"
 
@@ -147,7 +147,7 @@ NeTanProj::NeTanProj(lsst::afw::coord::Coord::Ptr center) :
         _east = Eigen::Vector3d(-sinLon, cosLon, 0.0);
     }
     // The Jacobian of the N,E to sky transform evaluated at (x,y) = (0,0) is
-    // [ 1/cos(lat), 0 
+    // [ 1/cos(lat), 0
     //   0,          1 ]
     // which is undefined when the tangent plane is centered at a pole.
     // Maybe the LSST schema should specify position errors in the N,E basis,
@@ -165,11 +165,11 @@ lsst::afw::geom::AffineTransform const NeTanProj::pixelToNeTransform(
     double const invPix = 1.0/pix; // exact
 
     Eigen::Vector3d p = wcs.pixelToSky(
-        point.x(), point.y())->getVector().asVector();
+        point.x(), point.y())->getVector().asEigen();
     Eigen::Vector3d px = wcs.pixelToSky(
-        point.x() + pix, point.y())->getVector().asVector();
+        point.x() + pix, point.y())->getVector().asEigen();
     Eigen::Vector3d py = wcs.pixelToSky(
-        point.x(), point.y() + pix)->getVector().asVector();
+        point.x(), point.y() + pix)->getVector().asEigen();
 
     Eigen::Vector2d pne(p.dot(_east), p.dot(_north));
     Eigen::Vector2d pxne(px.dot(_east), px.dot(_north));
@@ -244,7 +244,7 @@ bool combinePositions(std::vector<SourceAndExposure> const & sources,
             s.isNull(detection::Y_ASTROM_ERR)) {
             continue;
         }
-        geom::PointD p = geom::makePointD(s.getXAstrom(), s.getYAstrom());
+        geom::Point2D p(s.getXAstrom(), s.getYAstrom());
         Eigen::Vector2d var(s.getXAstromErr(), s.getYAstromErr());
         var = var.cwise().square();
         geom::AffineTransform const & transform = i->getTransform();
@@ -252,7 +252,7 @@ bool combinePositions(std::vector<SourceAndExposure> const & sources,
         Eigen::Matrix2d invCov = (m*var.asDiagonal()*m.transpose()).inverse();
         invCovSum += invCov;
         p = transform(p);
-        wmean += invCov*p.asVector();
+        wmean += invCov*p.asEigen();
         ++ns;
     }
     if (ns > 0) {
@@ -369,7 +369,7 @@ LSST_AP_API void locateAndFilterSources(
     double xMax = 0.0;
     double yMax = 0.0;
     image::Wcs::ConstPtr wcs;
- 
+
     for (Iter i = j; i != end; ++i) {
         if ((*i)->getAmpExposureId() != id) {
             id = (*i)->getAmpExposureId();
@@ -499,7 +499,7 @@ LSST_AP_API void locateAndFilterSources(
                        static_cast<long long>(id));
             invalid = true;
         }
-        // Store source in appropriate vector 
+        // Store source in appropriate vector
         if (invalid) {
             invalidSources.push_back(*i);
         } else {
@@ -736,7 +736,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                               ///  that should be ignored when determining
                               ///  ellipticities.
 ) {
-    using geom::ellipses::Distortion;
+    using geom::ellipses::Quadrupole;
 
     detection::Source const & s = *source.getSource();
     if (!s.isNull(detection::IXX) &&
@@ -753,46 +753,35 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
         s.getIxyErr() != 0.0 &&
         (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
-        double ixx = s.getIxx();
-        double iyy = s.getIyy();
-        double ixy = s.getIxy();
-        double t = ixx + iyy;
-        if (t == 0.0) {
+        Quadrupole q(s.getIxx(), s.getIyy(), s.getIxy());
+        Eigen::Vector3d v(s.getIxxErr(), s.getIyyErr(), s.getIxyErr());
+        // transform quadrupole moments to N,E basis
+        Eigen::Matrix3d j = q.transform(source.getTransform().getLinear()).d();
+        q.transform(source.getTransform().getLinear()).inPlace();
+        Eigen::Matrix3d cov = j*v.asDiagonal()*j.transpose();
+        // compute Jacobian of mapping from (IXX, IYY, IXY) to (E1, E2, R)
+        double trace = q.getIXX() + q.getIYY();
+        if (trace <= 0.0 || lsst::utils::isnan(trace)) {
             return;
         }
-        double tinv = 1.0/t;
-        double rt = sqrt(t);
-        Distortion distortion((ixx - iyy)*tinv, 2.0*ixy*tinv, rt);
-        // v.asDiagonal() gives the covariance matrix of (IXX, IYY, IXY) -
-        // this is incomplete, but these are the only bits of the actual
-        // covariance matrix that survive persistence.
-        Eigen::Vector3d v(s.getIxxErr(), s.getIyyErr(), s.getIxyErr());
-        v = v.cwise().square();
-        // Compute Jacobian J of mapping from (IXX, IYY, IXY) to (E1, E2, R)
-        Eigen::Matrix3d j;
+        double r = sqrt(trace);
         j(0,2) = 0.0;
-        j(1,2) = 2.0*tinv;
+        j(1,2) = 2.0/trace;
         j(2,2) = 0.0;
-        double d = 2.0*tinv*tinv;
-        j(0,0) = d*iyy;
-        j(0,1) = - d*ixx;
-        j(1,0) = - d*ixy;
-        j(1,1) = - d*ixy;
-        d = 0.5/rt;
+        double d = 2.0/(trace*trace);
+        j(0,0) = d*q.getIYY();
+        j(0,1) = - d*q.getIXX();
+        j(1,0) = - d*q.getIXY();
+        j(1,1) = - d*q.getIXY();
+        d = 0.5/r;
         j(2,0) = d;
         j(2,1) = d;
-        // Get covariance matrix of (E1, E2, R) by linearizing
-        // moment to ellipticity mapping using J
-        Eigen::Matrix3d cov = j*v.asDiagonal()*j.transpose();
-        // transform to N,E coordinate system
-        j = distortion.transform(source.getTransform()).d();
-        distortion.transform(source.getTransform()).inPlace();
         v = (j*cov*j.transpose()).diagonal();
         // store results
         setNumEllipticitySamples(1);
-        setEllipticity(static_cast<float>(distortion[Distortion::E1]),
-                       static_cast<float>(distortion[Distortion::E2]),
-                       static_cast<float>(distortion[Distortion::R]),
+        setEllipticity(static_cast<float>((q.getIXX() - q.getIYY())/trace),
+                       static_cast<float>(2.0*q.getIXY()/trace),
+                       static_cast<float>(r),
                        static_cast<float>(sqrt(v.x())),
                        static_cast<float>(sqrt(v.y())),
                        static_cast<float>(sqrt(v.z())));
@@ -801,7 +790,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
 
 /** Sets the ellipticities of a source cluster in a particular filter to
   * the inverse variance weighted mean of the ellipticities derived from
-  * the adaptive moments of the given sources. These are all expressed 
+  * the adaptive moments of the given sources. These are all expressed
   * in a tangent plane projection centered at the fiducial cluster position
   * with the standard N,E basis. The scaling of the projection is such that
   * that the mean ellipse radius R is expressed in radians.
@@ -813,7 +802,7 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
                               ///  that should be ignored when determining
                               ///  ellipticities.
 ) {
-    using geom::ellipses::Distortion;
+    using geom::ellipses::Quadrupole;
     typedef std::vector<SourceAndExposure>::const_iterator SeIter;
 
     if (sources.empty()) {
@@ -839,44 +828,38 @@ void PerFilterSourceClusterAttributes::computeEllipticity(
             s.getIxyErr() != 0.0 &&
             (s.getFlagForDetection() & ellipticityIgnoreMask) == 0) {
 
-            double ixx = s.getIxx();
-            double iyy = s.getIyy();
-            double ixy = s.getIxy();
-            double t = ixx + iyy;
-            if (t == 0.0) {
+
+            Quadrupole q(s.getIxx(), s.getIyy(), s.getIxy());
+            Eigen::Vector3d v(s.getIxxErr(), s.getIyyErr(), s.getIxyErr());
+            // transform quadrupole moments to N,E basis
+            Eigen::Matrix3d j = q.transform(i->getTransform().getLinear()).d();
+            q.transform(i->getTransform().getLinear()).inPlace();
+            Eigen::Matrix3d m = j*v.asDiagonal()*j.transpose();
+            // compute Jacobian of mapping from (IXX, IYY, IXY) to (E1, E2, R)
+            double trace = q.getIXX() + q.getIYY();
+            if (trace <= 0.0 || lsst::utils::isnan(trace)) {
                 continue;
             }
-            double tinv = 1.0/t;
-            double rt = sqrt(t);
-            Distortion distortion((ixx - iyy)*tinv, 2.0*ixy*tinv, rt);
-            // v.asDiagonal() gives the covariance matrix of (IXX, IYY, IXY) -
-            // this is incomplete, but these are the only bits of the actual
-            // covariance matrix that survive persistence.
-            Eigen::Vector3d v(s.getIxxErr(), s.getIyyErr(), s.getIxyErr());
-            v = v.cwise().square();
-            // Compute Jacobian of mapping from (IXX, IYY, IXY) to (E1, E2, R)
-            Eigen::Matrix3d j;
+            double r = sqrt(trace);
             j(0,2) = 0.0;
-            j(1,2) = 2.0*tinv;
+            j(1,2) = 2.0/trace;
             j(2,2) = 0.0;
-            double d = 2.0*tinv*tinv;
-            j(0,0) = d*iyy;
-            j(0,1) = - d*ixx;
-            j(1,0) = - d*ixy;
-            j(1,1) = - d*ixy;
-            d = 0.5/rt;
+            double d = 2.0/(trace*trace);
+            j(0,0) = d*q.getIYY();
+            j(0,1) = - d*q.getIXX();
+            j(1,0) = - d*q.getIXY();
+            j(1,1) = - d*q.getIXY();
+            d = 0.5/r;
             j(2,0) = d;
             j(2,1) = d;
-            // Get covariance matrix of (E1, E2, R)
-            Eigen::Matrix3d cov = j*v.asDiagonal()*j.transpose();
-            // transform to N,E coordinate system
-            j = distortion.transform(i->getTransform()).d();
-            distortion.transform(i->getTransform()).inPlace();
-            Eigen::Matrix3d invCov = (j*cov*j.transpose()).inverse();
-            // add inverse covariance matrix to running sum, multiply sample
-            // by inverse cov and add to weighted mean.
-            invCovSum += invCov;
-            wmean += invCov*distortion.getVector();
+            // sum up inverse (E1, E2, R) covariance matrices
+            m = (j*m*j.transpose()).inverse();
+            invCovSum += m;
+            // compute (E1, E2, R), weight by inverse covariance matrix
+            // and accumulate
+            wmean += m*Eigen::Vector3d((q.getIXX() - q.getIYY())/trace,
+                                       2.0*q.getIXY()/trace,
+                                       r);
             ++ns;
         }
     }
@@ -922,7 +905,7 @@ int PerFilterSourceClusterAttributes::getNumFluxSamples() const {
     return (_flags >> FLUX_NSAMPLE_OFF) & NSAMPLE_MASK;
 }
 
-/** Sets the number of samples (sources) used to determine the PSF flux 
+/** Sets the number of samples (sources) used to determine the PSF flux
   * sample mean.
   */
 void PerFilterSourceClusterAttributes::setNumFluxSamples(int samples)
@@ -991,7 +974,7 @@ void PerFilterSourceClusterAttributes::setEllipticity()
     _radiusSigma.setNull();
 }
 
-/** Sets the ellipticity parameters and uncertainties. 
+/** Sets the ellipticity parameters and uncertainties.
   */
 void PerFilterSourceClusterAttributes::setEllipticity(
     NullOr<float> const & e1,
@@ -1284,10 +1267,10 @@ void SourceClusterAttributes::computeAttributes(
         setPsPosition(ra, dec, NullOr<float>(), NullOr<float>(), NullOr<float>());
         setSgPosition(ra, dec, NullOr<float>(), NullOr<float>(), NullOr<float>());
     } else {
-        setPsPosition(ra, dec, 
+        setPsPosition(ra, dec,
                       source->getRaAstromErr(), source->getDecAstromErr(),
                       NullOr<float>());
-        setSgPosition(ra, dec, 
+        setSgPosition(ra, dec,
                       source->getRaAstromErr(), source->getDecAstromErr(),
                       NullOr<float>());
     }
@@ -1324,7 +1307,7 @@ void SourceClusterAttributes::computeAttributes(
                           fluxIgnoreMask, ellipticityIgnoreMask);
         return;
     }
- 
+
     setNumObs(static_cast<int>(sources.size()));
     {
         double tbeg = sources.front()->getTaiMidPoint();
@@ -1464,7 +1447,7 @@ void SourceClusterAttributes::_computePsPosition(
        double dd = (*i)->getDec() - sc.y();
        if (dr > M_PI) {
           dr = 2*M_PI - dr;
-       } 
+       }
        covRaRa += dr * dr;
        covDecDec += dd * dd;
        covRaDec += dr * dd;

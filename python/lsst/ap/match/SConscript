@@ -10,7 +10,7 @@ try:
 except:
     pass
 
-env.CheckSwig("python", ilang="c++", includedProducts="base utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data afw")
+env.CheckSwig("python", ilang="c++", includedProducts="base utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data ndarray afw")
 # Append app specific SWIG flags to the environment
 env.Append(SWIGFLAGS = swigflags)
 env.LoadableModuleIncomplete("_matchLib", Split("matchLib.i"),

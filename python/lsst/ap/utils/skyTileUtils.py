@@ -1,7 +1,7 @@
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -9,14 +9,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -41,9 +41,9 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
         raise TypeError("Image resolution must be an integer")
     if imageRes < 1:
         raise RuntimeError("Image resolution must be at least 1")
-    crpix = afwGeom.makePointD(0.5*(imageRes + 1), 0.5*(imageRes + 1))
+    crpix = afwGeom.Point2D(0.5*(imageRes + 1), 0.5*(imageRes + 1))
     crval = geom.sphericalCoords(skyPixelization.getCenter(skyTileId))
-    crval = afwGeom.makePointD(crval[0], crval[1])
+    crval = afwGeom.Point2D(crval[0], crval[1])
     skyTile = skyPixelization.getGeometry(skyTileId)
     # Start with a huge TAN image centered at the sky-tile center,
     # then shrink it using binary search to determine suitable
@@ -77,7 +77,7 @@ def createImageCoveringSkyTile(skyPixelization, skyTileId, imageRes,
     as lsst.afw.image.[Decorated]ImageX metadata.
     """
     wcs = findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes)
-    img = imageType(imageRes, imageRes)
+    img = imageType(afwGeom.Extent2I(imageRes, imageRes))
     if hasattr(img, 'setWcs'):
         img.setWcs(wcs)
     elif hasattr(img, 'setMetadata'):

@@ -1,9 +1,9 @@
 // -*- lsst-c++ -*-
 
-/* 
+/*
  * LSST Data Management System
  * Copyright 2008, 2009, 2010 LSST Corporation.
- * 
+ *
  * This product includes software developed by the
  * LSST Project (http://www.lsst.org/).
  *
@@ -11,17 +11,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received a copy of the LSST License Statement and 
- * the GNU General Public License along with this program.  If not, 
+ *
+ * You should have received a copy of the LSST License Statement and
+ * the GNU General Public License along with this program.  If not,
  * see <http://www.lsstcorp.org/LegalNotices/>.
  */
- 
+
 /** @file
   * @brief Image utility method implementations.
   *
@@ -363,7 +363,7 @@ void SweepLine::advance(double y) {
     }
     int const yIndex = image::positionToIndex(y);
     int const height = _img->getHeight();
-    for (; _yIndex < yIndex && _yIndex < height; ++_yIndex) { 
+    for (; _yIndex < yIndex && _yIndex < height; ++_yIndex) {
         double yMax = image::indexToPosition(_yIndex) + 0.5;
         rasterizeCoverage(_y, yMax);
         updateCoverage(_yIndex);
@@ -512,7 +512,7 @@ LSST_AP_API void rasterizePolygon(
   *                         coverage-map pixel space. Otherwise, the boundary
   *                         of the input image is rasterize by connecting
   *                         step boundary pixels at a time (corners are
-  *                         always included). 
+  *                         always included).
   */
 LSST_AP_API void updateCoverageMap(
     lsst::afw::image::Image<float>::Ptr covMap,
@@ -530,23 +530,23 @@ LSST_AP_API void updateCoverageMap(
     std::vector<geom::Point2D> v;
     if (step <= 0) {
         v.reserve(4);
-        v.push_back(geom::makePointD(-0.5, -0.5));
-        v.push_back(geom::makePointD(width - 0.5, -0.5));
-        v.push_back(geom::makePointD(width - 0.5, height - 0.5));
-        v.push_back(geom::makePointD(-0.5, height - 0.5));
+        v.push_back(geom::Point2D(-0.5, -0.5));
+        v.push_back(geom::Point2D(width - 0.5, -0.5));
+        v.push_back(geom::Point2D(width - 0.5, height - 0.5));
+        v.push_back(geom::Point2D(-0.5, height - 0.5));
     } else {
         v.reserve(2 * width + 2 * height + 2);
         for (int i = 0; i < width; i += step) {
-            v.push_back(geom::makePointD(i - 0.5, -0.5));
+            v.push_back(geom::Point2D(i - 0.5, -0.5));
         }
         for (int i = 0; i < height; i += step) {
-            v.push_back(geom::makePointD(width - 0.5, i - 0.5));
+            v.push_back(geom::Point2D(width - 0.5, i - 0.5));
         }
         for (int i = width; i > 0; i -= step) {
-            v.push_back(geom::makePointD(i - 0.5, height - 0.5));
+            v.push_back(geom::Point2D(i - 0.5, height - 0.5));
         }
         for (int i = height; i > 0; i -= step) {
-            v.push_back(geom::makePointD(-0.5, i - 0.5));
+            v.push_back(geom::Point2D(-0.5, i - 0.5));
         }
     }
     // Convert from image pixel space to coverage map pixel space.
