@@ -396,9 +396,7 @@ LSST_AP_API void locateAndFilterSources(
                            static_cast<long long>(id));
                 invalid = true;
             } else {
-                coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-                (*i)->setRaPeak(sky->getLongitude(coord::RADIANS));
-                (*i)->setDecPeak(sky->getLatitude(coord::RADIANS));
+                (*i)->setRaDecPeak(wcs->pixelToSky(x, y));
             }
         }
         // Map astrom x/y to sky coords
@@ -415,9 +413,7 @@ LSST_AP_API void locateAndFilterSources(
                        static_cast<long long>(id));
             invalid = true;
         } else {
-            coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-            (*i)->setRaAstrom(sky->getLongitude(coord::RADIANS));
-            (*i)->setDecAstrom(sky->getLatitude(coord::RADIANS));
+            (*i)->setRaDecAstrom(wcs->pixelToSky(x, y));
             Eigen::Vector2d v((*i)->getXAstromErr(), (*i)->getYAstromErr());
             if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                 !(*i)->isNull(detection::X_ASTROM_ERR) &&
@@ -451,9 +447,7 @@ LSST_AP_API void locateAndFilterSources(
                            static_cast<long long>(id));
                 invalid = true;
             } else {
-                coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-                (*i)->setRaFlux(sky->getLongitude(coord::RADIANS));
-                (*i)->setDecFlux(sky->getLatitude(coord::RADIANS));
+                (*i)->setRaDecFlux(wcs->pixelToSky(x, y));
                 Eigen::Vector2d v((*i)->getXFluxErr(), (*i)->getYFluxErr());
                 if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                     !(*i)->isNull(detection::X_FLUX_ERR) &&
