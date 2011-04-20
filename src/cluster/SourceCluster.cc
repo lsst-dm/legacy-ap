@@ -413,7 +413,8 @@ LSST_AP_API void locateAndFilterSources(
                        static_cast<long long>(id));
             invalid = true;
         } else {
-            (*i)->setRaDecAstrom(wcs->pixelToSky(x, y));
+            coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
+            (*i)->setRaDecAstrom(sky);
             Eigen::Vector2d v((*i)->getXAstromErr(), (*i)->getYAstromErr());
             if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                 !(*i)->isNull(detection::X_ASTROM_ERR) &&
@@ -447,7 +448,8 @@ LSST_AP_API void locateAndFilterSources(
                            static_cast<long long>(id));
                 invalid = true;
             } else {
-                (*i)->setRaDecFlux(wcs->pixelToSky(x, y));
+                coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
+                (*i)->setRaDecFlux(sky);
                 Eigen::Vector2d v((*i)->getXFluxErr(), (*i)->getYFluxErr());
                 if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                     !(*i)->isNull(detection::X_FLUX_ERR) &&
