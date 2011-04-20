@@ -527,6 +527,7 @@ LSST_AP_API void segregateInvalidSources(
     Iter end = sources.end();
     for (Iter i = j; i != end; ++i) {
         bool invalid = false;
+        // radians
         double ra = (*i)->getRa();
         double dec = (*i)->getDec();
         if (lsst::utils::isnan(ra) ||
@@ -1249,6 +1250,7 @@ void SourceClusterAttributes::computeAttributes(
     image::Wcs::ConstPtr wcs = exposure->getWcs();
     // get a Coord in the same coordinate system as the input WCSes
     coord::Coord::Ptr center = wcs->getSkyOrigin()->clone();
+    // radians
     double ra = source->getRa();
     double dec = source->getDec();
     center->reset(degrees(ra), degrees(dec), center->getEpoch());
