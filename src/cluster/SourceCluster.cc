@@ -396,9 +396,7 @@ LSST_AP_API void locateAndFilterSources(
                            static_cast<long long>(id));
                 invalid = true;
             } else {
-                coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-                (*i)->setRaPeak(sky->getLongitude(coord::RADIANS));
-                (*i)->setDecPeak(sky->getLatitude(coord::RADIANS));
+                (*i)->setRaDecPeak(wcs->pixelToSky(x, y));
             }
         }
         // Map astrom x/y to sky coords
@@ -416,8 +414,7 @@ LSST_AP_API void locateAndFilterSources(
             invalid = true;
         } else {
             coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-            (*i)->setRaAstrom(sky->getLongitude(coord::RADIANS));
-            (*i)->setDecAstrom(sky->getLatitude(coord::RADIANS));
+            (*i)->setRaDecAstrom(sky);
             Eigen::Vector2d v((*i)->getXAstromErr(), (*i)->getYAstromErr());
             if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                 !(*i)->isNull(detection::X_ASTROM_ERR) &&
@@ -452,8 +449,7 @@ LSST_AP_API void locateAndFilterSources(
                 invalid = true;
             } else {
                 coord::Coord::Ptr sky = wcs->pixelToSky(x, y);
-                (*i)->setRaFlux(sky->getLongitude(coord::RADIANS));
-                (*i)->setDecFlux(sky->getLatitude(coord::RADIANS));
+                (*i)->setRaDecFlux(sky);
                 Eigen::Vector2d v((*i)->getXFluxErr(), (*i)->getYFluxErr());
                 if (!lsst::utils::isnan(v.x()) && !lsst::utils::isnan(v.y()) &&
                     !(*i)->isNull(detection::X_FLUX_ERR) &&
@@ -531,6 +527,7 @@ LSST_AP_API void segregateInvalidSources(
     Iter end = sources.end();
     for (Iter i = j; i != end; ++i) {
         bool invalid = false;
+        // radians
         double ra = (*i)->getRa();
         double dec = (*i)->getDec();
         if (lsst::utils::isnan(ra) ||
@@ -1253,6 +1250,7 @@ void SourceClusterAttributes::computeAttributes(
     image::Wcs::ConstPtr wcs = exposure->getWcs();
     // get a Coord in the same coordinate system as the input WCSes
     coord::Coord::Ptr center = wcs->getSkyOrigin()->clone();
+    // radians
     double ra = source->getRa();
     double dec = source->getDec();
     center->reset(degrees(ra), degrees(dec), center->getEpoch());

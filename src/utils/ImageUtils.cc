@@ -416,10 +416,7 @@ LSST_AP_API void makeSourceHistogram(
 {
     typedef detection::SourceSet::const_iterator SourceIter;
     for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-       // Note: this particular Wcs function still expects degrees and not
-       // not radians!
-       geom::Point2D xy = wcs->skyToPixel((*i)->getRa() * DEGREES_PER_RADIAN,
-                                          (*i)->getDec() * DEGREES_PER_RADIAN);
+        geom::Point2D xy = wcs->skyToPixel((*i)->getRaDec());
        int x = histogram->positionToIndex(xy[0], image::X).first;
        int y = histogram->positionToIndex(xy[1], image::Y).first;
        if (x < 0 || x >= histogram->getWidth() ||
