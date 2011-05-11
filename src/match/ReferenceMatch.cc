@@ -43,6 +43,7 @@
 #include "lsst/pex/policy/DefaultPolicyFile.h"
 #include "lsst/pex/policy/Policy.h"
 #include "lsst/afw/coord/Coord.h"
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/Common.h"
@@ -80,6 +81,7 @@ using lsst::ap::utils::degrees;
 using lsst::ap::utils::maxAlpha;
 using lsst::ap::utils::sphericalToCartesian;
 
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match {
 
@@ -1562,7 +1564,7 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     Eigen::Vector3d v = r->getReferencePosition().getPosition(
         epoch, e->getEarthPosition());
     Eigen::Vector2d sc = cartesianToSpherical(v);
-    lsst::afw::coord::IcrsCoord coord(degrees(sc.x()), degrees(sc.y()));
+    lsst::afw::coord::IcrsCoord coord(sc.x() * afwGeom::radians, sc.y() * afwGeom::radians);
     // avoid at least one memory allocation
     boost::shared_ptr<lsst::afw::coord::Coord> sky(&coord, _nullDeleter);
     lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(sky);

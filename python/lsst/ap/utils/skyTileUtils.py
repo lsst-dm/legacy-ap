@@ -25,6 +25,7 @@ import math
 import lsst.geom as geom
 import lsst.skypix as skypix
 import lsst.afw.geom as afwGeom
+import lsst.afw.coord as afwCoord
 import lsst.afw.image as afwImage
 
 
@@ -43,7 +44,7 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
         raise RuntimeError("Image resolution must be at least 1")
     crpix = afwGeom.Point2D(0.5*(imageRes + 1), 0.5*(imageRes + 1))
     crval = geom.sphericalCoords(skyPixelization.getCenter(skyTileId))
-    crval = afwGeom.Point2D(crval[0], crval[1])
+    crval = afwCoord.makeCoord(afwCoord.ICRS, crval[0] * afwGeom.radians, crval[1] * afwGeom.radians)
     skyTile = skyPixelization.getGeometry(skyTileId)
     # Start with a huge TAN image centered at the sky-tile center,
     # then shrink it using binary search to determine suitable
@@ -51,7 +52,7 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
     scale = 1000.0  # deg/pixel, ridiculously large
     delta = 0.5*scale
     frac = 0.01 # desired relative accuracy of CD matrix coeffs
-    wcs = afwImage.createWcs(crval, crpix, scale, 0.0, 0.0, scale)
+    wcs = afwImage.makeWcs(crval, crpix, scale, 0.0, 0.0, scale)
     imagePoly = skypix.imageToPolygon(wcs, imageRes, imageRes)
     # Make sure the initial guess really is too large
     if not imagePoly.contains(skyTile):
@@ -61,12 +62,12 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
     # and not just a pixel scale.
     while delta >= frac * scale:
         tmp = scale - delta
-        wcs = afwImage.createWcs(crval, crpix, tmp, 0.0, 0.0, tmp)
+        wcs = afwImage.makeWcs(crval, crpix, tmp, 0.0, 0.0, tmp)
         imagePoly = skypix.imageToPolygon(wcs, imageRes, imageRes)
         delta *= 0.5
         if imagePoly.contains(skyTile):
             scale = tmp
-    return afwImage.createWcs(crval, crpix, scale, 0.0, 0.0, scale)
+    return afwImage.makeWcs(crval, crpix, scale, 0.0, 0.0, scale)
 
 def createImageCoveringSkyTile(skyPixelization, skyTileId, imageRes,
                                imageType=afwImage.DecoratedImageU):

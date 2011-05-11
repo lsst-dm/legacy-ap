@@ -29,6 +29,7 @@ import lsst.afw.detection as detection
 import lsst.geom as geom
 import lsst.skypix as skypix
 import lsst.ap.utils as utils
+import lsst.afw.geom as afwGeom
 
 class SkyTileTestCase(unittest.TestCase):
     """Tests the PT1 sky-tile class.
@@ -40,8 +41,8 @@ class SkyTileTestCase(unittest.TestCase):
                          (0.0, 90.0),
                          (0.0, -90.0) ]:
             s = detection.Source()
-            s.setRa(math.radians(ra)) 
-            s.setDec(math.radians(dec))
+            s.setRa(ra * afwGeom.degrees) 
+            s.setDec(dec * afwGeom.degrees)
             ss.append(s)
         res = 3
         qs = skypix.QuadSpherePixelization(res, 0.0)
@@ -71,8 +72,8 @@ class SkyTileTestCase(unittest.TestCase):
                         s = detection.Source()
                         pixelCenter = geom.sphericalCoords(
                             fineQs.getCenter(fineQs.id(root2, x, y)))
-                        s.setRa(math.radians(pixelCenter[0]))
-                        s.setDec(math.radians(pixelCenter[1]))
+                        s.setRa(pixelCenter[0] * afwGeom.degrees)
+                        s.setDec(pixelCenter[1] * afwGeom.degrees)
                         if root == root2 and cx == cx2 and cy == cy2:
                            expectedRemaining += 1
                            s.setSourceId(1)

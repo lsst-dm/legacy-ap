@@ -58,8 +58,8 @@ def buildPoints(refFile, exposure):
                 cov = 0
             p = exposure.getWcs().pixelToSky(x, y)
             entry= (id,
-                    p.getLongitude(afwCoord.DEGREES),
-                    p.getLatitude(afwCoord.DEGREES),
+                    p.getLongitude().asDegrees(),
+                    p.getLatitude().asDegrees(),
                     cov,
                     x,
                     y
