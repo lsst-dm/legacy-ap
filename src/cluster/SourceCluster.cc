@@ -65,7 +65,6 @@ namespace afwGeom = lsst::afw::geom;
 using std::sqrt;
 
 using lsst::ap::utils::cartesianToSpherical;
-using lsst::ap::utils::degrees;
 using lsst::ap::utils::sphericalToCartesian;
 
 
@@ -313,11 +312,11 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> const cluster(
         // Convert epsilon and leafExtentThreshold to radians, and account
         // for the fact that our metric is the squared euclidian distance,
         // not angular separation.
-        epsilon = std::sin(0.5 * RADIANS_PER_ARCSEC * epsilon);
+        epsilon = std::sin(0.5 * afwGeom::arcsecToRad(epsilon));
         epsilon = 4.0 * epsilon * epsilon;
         if (leafExtentThreshold > 0.0) {
             leafExtentThreshold = std::sin(
-                0.5 * RADIANS_PER_ARCSEC * leafExtentThreshold);
+                0.5 * afwGeom::arcsecToRad(leafExtentThreshold));
             leafExtentThreshold = 4.0 * leafExtentThreshold * leafExtentThreshold;
         }
         Optics optics(entries.get(),
@@ -529,13 +528,12 @@ LSST_AP_API void segregateInvalidSources(
     Iter end = sources.end();
     for (Iter i = j; i != end; ++i) {
         bool invalid = false;
-        // radians
-        double ra = (*i)->getRa();
-        double dec = (*i)->getDec();
+        double ra = (*i)->getRa().asRadians();
+        double dec = (*i)->getDec().asRadians();
         if (lsst::utils::isnan(ra) ||
             lsst::utils::isnan(dec) ||
-            ra < 0.0 || ra >= 2.0 * M_PI ||
-            dec < -M_PI_2 || dec > M_PI_2) {
+            ra < 0.0 || ra >= afwGeom::TWOPI ||
+            dec < -afwGeom::HALFPI || dec > afwGeom::HALFPI) {
             log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
                        "invalid position (NaN or out-of-bounds coordinate value(s))",
                        static_cast<long long>((*i)->getSourceId()),
@@ -1444,8 +1442,8 @@ void SourceClusterAttributes::_computePsPosition(
        // the 0/2*M_PI discontinuity
        double dr = std::fabs((*i)->getRa().asRadians() - sc.x());
        double dd = (*i)->getDec().asRadians() - sc.y();
-       if (dr > M_PI) {
-          dr = 2*M_PI - dr;
+       if (dr > afwGeom::PI) {
+           dr = afwGeom::TWOPI - dr;
        }
        covRaRa += dr * dr;
        covDecDec += dd * dd;

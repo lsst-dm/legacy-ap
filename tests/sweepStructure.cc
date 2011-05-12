@@ -35,9 +35,12 @@
 
 #include "lsst/pex/exceptions.h"
 #include "lsst/afw/math/Random.h"
+#include "lsst/afw/geom/Angle.h"
 
 #include "lsst/ap/match/detail/SweepStructure.h"
 #include "lsst/ap/utils/SpatialUtils.h"
+
+namespace afwGeom = lsst::afw::geom;
 
 using std::min;
 using std::max;
@@ -384,14 +387,14 @@ BOOST_AUTO_TEST_CASE(sphericalSweepCornerCases) {
 
 BOOST_AUTO_TEST_CASE(sphericalWrap) {
     Box search1(0.0, 0.5, 0.0, 0.0, 0);
-    Box search2(2.0*M_PI - 0.5, 2.0*M_PI - 1e-9, 0.0, 0.0, 0);
+    Box search2(afwGeom::TWOPI - 0.5, afwGeom::TWOPI - 1e-9, 0.0, 0.0, 0);
     Box searchWrap(-0.5, 0.5, 0.0, 0.0, 0);
-    Box b1(2.0*M_PI - 0.1, 0.1, 0.0, 1.0, 0);
-    Box b2(2.0*M_PI - 0.1, 2*M_PI + 0.1, 0.0, 1.0, 1);
+    Box b1(afwGeom::TWOPI - 0.1, 0.1, 0.0, 1.0, 0);
+    Box b2(afwGeom::TWOPI - 0.1, afwGeom::TWOPI + 0.1, 0.0, 1.0, 1);
     Box b3(-0.1, 0.1, 0.0, 1.0, 2);
     Box b4(0.0, 0.05, 1.0, 2.0, 3);
-    Box b5(2.0*M_PI - 0.1, 2*M_PI - 1e-9, 2.0, 3.0, 4);
-    Box b6(M_PI, M_PI + 0.1, 2.0, 3.0, 5);
+    Box b5(afwGeom::TWOPI - 0.1, afwGeom::TWOPI - 1e-9, 2.0, 3.0, 4);
+    Box b6(afwGeom::PI, afwGeom::PI + 0.1, 2.0, 3.0, 5);
 
     // Test wrapping regions
     Callbacks c;

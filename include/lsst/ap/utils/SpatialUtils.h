@@ -39,18 +39,6 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-/** Converts degrees to radians.
-  */
-inline double degrees(double const rad) {
-    return rad*DEGREES_PER_RADIAN;
-}
-
-/** Converts radians to degrees.
-  */
-inline double radians(double const deg) {
-    return deg*RADIANS_PER_DEGREE;
-}
-
 /** Clamps the given latitude/declination to <tt>[-M_PI/2, M_PI/2]</tt>.
   */
 inline double clampPhi(double const a) {

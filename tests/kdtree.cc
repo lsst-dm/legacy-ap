@@ -29,6 +29,7 @@
 #include "boost/test/unit_test.hpp"
 
 #include "lsst/afw/math/Random.h"
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/ap/Common.h"
 #include "lsst/ap/Point.h"
 #include "lsst/ap/SpatialUtil.h"
@@ -39,6 +40,7 @@
 
 namespace ap = lsst::ap;
 namespace optics = lsst::ap::cluster::optics;
+namespace afwGeom = lsst::afw::geom;
 
 using lsst::afw::math::Random;
 
@@ -109,8 +111,8 @@ void makePoints(std::vector<Point> & points,
                                              ra + deltaRa * 0.62,
                                              ap::clampDec(dec + deltaDec * 0.38),
                                              ap::clampDec(dec + deltaDec * 0.62));
-            double theta = ap::RADIANS_PER_DEGREE * qp._ra;
-            double phi = ap::RADIANS_PER_DEGREE * qp._dec;
+            double theta = afwGeom::degToRad(qp._ra);
+            double phi = afwGeom::degToRad(qp._dec);
             m.v[0] = std::cos(theta) * std::cos(phi);
             m.v[1] = std::sin(theta) * std::cos(phi);
             m.v[2] = std::sin(phi);
@@ -123,8 +125,8 @@ void makePoints(std::vector<Point> & points,
                 double const dist = kdp.distance(qp);
                 if (dist < 1.45 * radiusDeg) {
                     Point p;
-                    theta = ap::RADIANS_PER_DEGREE * kdp._ra;
-                    phi = ap::RADIANS_PER_DEGREE * kdp._dec;
+                    theta = afwGeom::degToRad(kdp._ra);
+                    phi = afwGeom::degToRad(kdp._dec);
                     p.coords[0] = std::cos(theta) * std::cos(phi);
                     p.coords[1] = std::sin(theta) * std::cos(phi);
                     p.coords[2] = std::sin(phi);
@@ -154,7 +156,7 @@ BOOST_AUTO_TEST_CASE(RangeQuery) {
     typedef std::vector<MatchOracle>::const_iterator Iter;
 
     double const radiusDeg = 0.5;
-    double const radiusRad = ap::RADIANS_PER_DEGREE * radiusDeg;
+    double const radiusRad = afwGeom::degToRad(radiusDeg);
     double d = 2.0 * std::sin(0.5 * radiusRad);
     d = d * d;
 

@@ -37,8 +37,10 @@
 #include "lsst/pex/exceptions.h"
 
 #include "lsst/ap/SpatialUtil.h"
+#include "lsst/afw/geom/Angle.h"
 
 namespace ex = lsst::pex::exceptions;
+namespace afwGeom = lsst::afw::geom;
 
 
 // -- ZoneStripeChunkDecomposition ----------------
@@ -146,14 +148,14 @@ int lsst::ap::ZoneStripeChunkDecomposition::getNumChunksPerStripe(
     if (maxAbsDec > 89.9) {
         return 1;
     }
-    double cosWidth = std::cos(radians(minWidth));
-    double sinDec   = std::sin(radians(maxAbsDec));
-    double cosDec   = std::cos(radians(maxAbsDec));
+    double cosWidth = std::cos(afwGeom::degToRad(minWidth));
+    double sinDec   = std::sin(afwGeom::degToRad(maxAbsDec));
+    double cosDec   = std::cos(afwGeom::degToRad(maxAbsDec));
     cosWidth = (cosWidth - sinDec*sinDec)/(cosDec*cosDec);
     if (cosWidth < 0) {
         return 1;
     }
-    return static_cast<int>(std::floor(TWO_PI/std::acos(cosWidth)));
+    return static_cast<int>(std::floor(afwGeom::TWOPI/std::acos(cosWidth)));
 }
 
 
@@ -210,7 +212,7 @@ double lsst::ap::ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
         }
     } else {
         // the circle does not contain a pole
-        double decOfMaxAlpha = degrees(std::asin(std::sin(radians(cenDec))/std::cos(radians(rad))));
+        double decOfMaxAlpha = afwGeom::radToDeg(std::asin(std::sin(afwGeom::degToRad(cenDec))/std::cos(afwGeom::degToRad(rad))));
         if (decOfMaxAlpha < stripeDecMin) {
             a = alpha(rad, cenDec, stripeDecMin);
         } else if (decOfMaxAlpha > stripeDecMax) {
@@ -255,10 +257,10 @@ LSST_AP_API double lsst::ap::alpha(
     if (std::fabs(centerDec) + theta > 89.9) {
         return 180.0;
     }
-    double x = std::cos(radians(theta)) - std::sin(radians(centerDec))*std::sin(radians(dec));
-    double u = std::cos(radians(centerDec))*std::cos(radians(dec));
+    double x = std::cos(afwGeom::degToRad(theta)) - std::sin(afwGeom::degToRad(centerDec))*std::sin(afwGeom::degToRad(dec));
+    double u = std::cos(afwGeom::degToRad(centerDec))*std::cos(afwGeom::degToRad(dec));
     double y = std::sqrt(std::fabs(u*u - x*x));
-    return degrees(std::fabs(std::atan2(y,x)));
+    return afwGeom::radToDeg(std::fabs(std::atan2(y,x)));
 }
 
 
@@ -284,9 +286,9 @@ LSST_AP_API double lsst::ap::maxAlpha(
     if (std::fabs(centerDec) + theta > 89.9) {
         return 180.0;
     }
-    double y = std::sin(radians(theta));
-    double x = std::sqrt(std::fabs(cos(radians(centerDec - theta))*cos(radians(centerDec + theta))));
-    return degrees(std::fabs(std::atan(y/x)));
+    double y = std::sin(afwGeom::degToRad(theta));
+    double x = std::sqrt(std::fabs(cos(afwGeom::degToRad(centerDec - theta))*cos(afwGeom::degToRad(centerDec + theta))));
+    return afwGeom::radToDeg(std::fabs(std::atan(y/x)));
 }
 
 

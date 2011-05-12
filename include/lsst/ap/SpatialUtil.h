@@ -272,16 +272,6 @@ inline boost::int32_t deltaDecToScaledInteger(double const delta) {
     return static_cast<int32_t>(std::ceil(delta*RA_DEC_SCALE));
 }
 
-/** Converts degrees to radians */
-inline double degrees(double const rad) {
-    return rad*DEGREES_PER_RADIAN;
-}
-
-/** Converts radians to degrees */
-inline double radians(double const deg) {
-    return deg*RADIANS_PER_DEGREE;
-}
-
 /** Clamps the given declination value to [-90,90]. */
 inline double clampDec(double const dec) {
     if (dec <= -90.0) {

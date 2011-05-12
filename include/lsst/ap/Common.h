@@ -78,12 +78,6 @@ double const FOV_RADIUS = 1.75;
  */
 int const MAX_VISITS_IN_FLIGHT = 16;
 
-double const DEGREES_PER_RADIAN = 57.2957795130823208767981548141;
-double const RADIANS_PER_DEGREE = 0.0174532925199432957692369076849;
-double const RADIANS_PER_ARCSEC = 4.84813681109535993589914102357e-6;
-double const TWO_PI             = 6.28318530717958647692528676656;
-double const ONE_OVER_PI        = 0.318309886183790671537767526745;
-
 double const J2000_MJD     = 51544.5;
 double const DAYS_PER_JY   = 365.25;        ///< Days per Julian year
 double const METERS_PER_AU = 149597870.7e3; ///< Meters per AU
