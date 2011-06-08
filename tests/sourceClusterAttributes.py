@@ -75,17 +75,24 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 pfa.setFilterId(j)
                 pfa.setNumObs(j + 1)
                 sca.setNumObs(sca.getNumObs() + pfa.getNumObs())
-                pfa.setNumFluxSamples(max(0, j - 1))
-                pfa.setNumFluxSamples(max(0, j - 2))
+                pfa.setNumPsFluxSamples(max(0, j - 2))
+                pfa.setNumSgFluxSamples(max(0, j - 2))
+                pfa.setNumSgRhlFluxSamples(max(0, j - 2))
                 if i % 3 == 0:
-                    pfa.setFlux(float(i), 0.1*i)
+                    pfa.setPsFlux(float(i), 0.1*i)
+                    pfa.setSgFlux(float(i), 0.1*i)
+                    pfa.setSgRhlFlux(float(i), 0.1*i)
                     pfa.setEllipticity(0.3*i, 0.4*i, 0.5*i,
                                        0.03*i, 0.04*i, 0.05*i)
                 elif i % 3 == 1:
-                    pfa.setFlux(float(i), None)
+                    pfa.setPsFlux(float(i), None)
+                    pfa.setSgFlux(float(i), None)
+                    pfa.setSgRhlFlux(float(i), None)
                     pfa.setEllipticity(0.3*i, 0.4*i, 0.5*i, None, None, None)
                 else:
-                    pfa.setFlux(None, None)
+                    pfa.setPsFlux(None, None)
+                    pfa.setSgFlux(None, None)
+                    pfa.setSgRhlFlux(None, None)
                     pfa.setEllipticity(None, None, None, None, None, None)
                 sca.setPerFilterAttributes(pfa)
             self.clusters.append(sca)
@@ -137,7 +144,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 s.setDec(0.1*(i - 2))
                 sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 0)
         self.assertAlmostEqual(sca.getRaPs(), 0.2)
         self.assertAlmostEqual(sca.getDecPs(), 0.0)
         self.assertAlmostEqual(sca.getRaPsSigma(), math.sqrt(0.1/72))
@@ -155,7 +162,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setAmpExposureId(i // 3)
             sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 0)
         self.assertEqual(sca.getNumObs(), 6)
         self.assertEqual(sca.getEarliestObsTime(), 0)
         self.assertEqual(sca.getLatestObsTime(), 5)
@@ -202,7 +209,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 esources.append(_eparams(s))
             sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 0, 1)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 1)
         pfa = sca.getPerFilterAttributes(0)
         self.assertEqual(pfa.getNumObs(), 4)
         self.assertEqual(pfa.getNumEllipticitySamples(), 3)
@@ -226,7 +233,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         sources.append(s)
         eparams = _eparams(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 0)
         pfa = sca.getPerFilterAttributes(0)
         self.assertAlmostEqual(pfa.getE1(), eparams[0], 6)
         self.assertAlmostEqual(pfa.getE2(), eparams[1], 6)
@@ -265,15 +272,24 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setAmpExposureId(0)
             s.setPsfFlux(i)
             s.setPsfFluxErr(1.0)
+            s.setModelFlux(i)
+            s.setModelFluxErr(2.0)
+            s.setInstFlux(i)
+            s.setInstFluxErr(4.0)
             s.setFlagForDetection(int(i == 5))
             sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 1, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 1, 1, 1, 0)
         pfa = sca.getPerFilterAttributes(0)
         self.assertEqual(pfa.getNumObs(), 6)
-        self.assertEqual(pfa.getNumFluxSamples(), 5)
-        self.assertEqual(pfa.getFlux(), 2)
-        self.assertAlmostEqual(pfa.getFluxSigma(), 0.5 * math.sqrt(2.0), 6)
+        self.assertEqual(pfa.getNumPsFluxSamples(), 5)
+        self.assertEqual(pfa.getPsFlux(), 2)
+        self.assertAlmostEqual(pfa.getPsFluxSigma(), 0.5 * math.sqrt(2.0), 6)
+        self.assertEqual(pfa.getSgFlux(), 2)
+        self.assertAlmostEqual(pfa.getSgFluxSigma(), 0.5 * math.sqrt(2.0), 6)
+        self.assertEqual(pfa.getSgRhlFlux(), 2)
+        self.assertAlmostEqual(pfa.getSgRhlFluxSigma(), 0.5 * math.sqrt(2.0), 6)
+
         # Test with a single source
         sources.clear()
         s = detection.Source()
@@ -281,13 +297,23 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         s.setAmpExposureId(0)
         s.setPsfFlux(1.0)
         s.setPsfFluxErr(1.0)
+        s.setModelFlux(2.0)
+        s.setModelFluxErr(2.0)
+        s.setInstFlux(4.0)
+        s.setInstFluxErr(4.0)
         sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 1, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 1, 1, 1, 0)
         pfa = sca.getPerFilterAttributes(0)
-        self.assertEqual(pfa.getFlux(), 1.0)
-        self.assertEqual(pfa.getFluxSigma(), 1.0)
-        self.assertEqual(pfa.getNumFluxSamples(), 1)
+        self.assertEqual(pfa.getPsFlux(), 1.0)
+        self.assertEqual(pfa.getPsFluxSigma(), 1.0)
+        self.assertEqual(pfa.getNumPsFluxSamples(), 1)
+        self.assertEqual(pfa.getSgFlux(), 2.0)
+        self.assertEqual(pfa.getSgFluxSigma(), 2.0)
+        self.assertEqual(pfa.getNumSgFluxSamples(), 1)
+        self.assertEqual(pfa.getSgRhlFlux(), 4.0)
+        self.assertEqual(pfa.getSgRhlFluxSigma(), 4.0)
+        self.assertEqual(pfa.getNumSgRhlFluxSamples(), 1)
         # Test with bad fluxes
         sources.clear()
         for i in xrange(6):
@@ -298,26 +324,60 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setFlagForDetection(1)
             sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 1, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 1, 1, 1, 0)
         pfa = sca.getPerFilterAttributes(0)
-        self.assertEqual(pfa.getNumFluxSamples(), 0)
-        self.assertEqual(pfa.getFlux(), None)
-        self.assertEqual(pfa.getFluxSigma(), None)
+        self.assertEqual(pfa.getNumPsFluxSamples(), 0)
+        self.assertEqual(pfa.getNumSgFluxSamples(), 0)
+        self.assertEqual(pfa.getNumSgRhlFluxSamples(), 0)
+        self.assertEqual(pfa.getPsFlux(), None)
+        self.assertEqual(pfa.getPsFluxSigma(), None)
+        self.assertEqual(pfa.getSgFlux(), None)
+        self.assertEqual(pfa.getSgFluxSigma(), None)
+        self.assertEqual(pfa.getSgRhlFlux(), None)
+        self.assertEqual(pfa.getSgRhlFluxSigma(), None)
         self.assertEqual(pfa.getNumObs(), 6)
         # Test error checking
         self.assertRaises(exceptions.LsstException,
-                          cluster.PerFilterSourceClusterAttributes.setFlux,
+                          cluster.PerFilterSourceClusterAttributes.setPsFlux,
                           pfa, None, 1.0)
         self.assertRaises(exceptions.LsstException,
-                          cluster.PerFilterSourceClusterAttributes.setFlux,
+                          cluster.PerFilterSourceClusterAttributes.setPsFlux,
                           pfa, 1.0, -1.0)
         self.assertRaises(
             exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumFluxSamples,
+            cluster.PerFilterSourceClusterAttributes.setNumPsFluxSamples,
             pfa, -1)
         self.assertRaises(
             exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumFluxSamples,
+            cluster.PerFilterSourceClusterAttributes.setNumPsFluxSamples,
+            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
+        self.assertRaises(exceptions.LsstException,
+                          cluster.PerFilterSourceClusterAttributes.setSgFlux,
+                          pfa, None, 1.0)
+        self.assertRaises(exceptions.LsstException,
+                          cluster.PerFilterSourceClusterAttributes.setSgFlux,
+                          pfa, 1.0, -1.0)
+        self.assertRaises(
+            exceptions.LsstException,
+            cluster.PerFilterSourceClusterAttributes.setNumSgFluxSamples,
+            pfa, -1)
+        self.assertRaises(
+            exceptions.LsstException,
+            cluster.PerFilterSourceClusterAttributes.setNumSgFluxSamples,
+            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
+        self.assertRaises(exceptions.LsstException,
+                          cluster.PerFilterSourceClusterAttributes.setSgRhlFlux,
+                          pfa, None, 1.0)
+        self.assertRaises(exceptions.LsstException,
+                          cluster.PerFilterSourceClusterAttributes.setSgRhlFlux,
+                          pfa, 1.0, -1.0)
+        self.assertRaises(
+            exceptions.LsstException,
+            cluster.PerFilterSourceClusterAttributes.setNumSgRhlFluxSamples,
+            pfa, -1)
+        self.assertRaises(
+            exceptions.LsstException,
+            cluster.PerFilterSourceClusterAttributes.setNumSgRhlFluxSamples,
             pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
 
     def testSourceClusterAttributes(self):
@@ -332,6 +392,10 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setFilterId(i)
             s.setPsfFlux(i)
             s.setPsfFluxErr(i + 1)
+            s.setModelFlux(2*i)
+            s.setModelFluxErr(2*i + 1)
+            s.setInstFlux(3*i)
+            s.setInstFluxErr(3*i + 1)
             s.setIxx(i + 1)
             s.setIxxErr(0.1)
             s.setIyy(2.0*i + 2.0)
@@ -341,7 +405,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             eparams.append(_eparams(s))
             sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
-        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0)
+        sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 0)
         filters = sorted(sca.getFilterIds())
         self.assertEqual(filters, range(6))
         filterMap = sca.getPerFilterAttributes()
@@ -350,10 +414,16 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             self.assertTrue(f in filterMap)
             pfa = sca.getPerFilterAttributes(f)
             self.assertEqual(pfa.getNumObs(), 1)
-            self.assertEqual(pfa.getNumFluxSamples(), 1)
+            self.assertEqual(pfa.getNumPsFluxSamples(), 1)
+            self.assertEqual(pfa.getNumSgFluxSamples(), 1)
+            self.assertEqual(pfa.getNumSgRhlFluxSamples(), 1)
             self.assertEqual(pfa.getNumEllipticitySamples(), 1)
-            self.assertEqual(pfa.getFlux(), f)
-            self.assertEqual(pfa.getFluxSigma(), f + 1)
+            self.assertEqual(pfa.getPsFlux(), f)
+            self.assertEqual(pfa.getPsFluxSigma(), f + 1)
+            self.assertEqual(pfa.getSgFlux(), 2*f)
+            self.assertEqual(pfa.getSgFluxSigma(), 2*f + 1)
+            self.assertEqual(pfa.getSgRhlFlux(), 3*f)
+            self.assertEqual(pfa.getSgRhlFluxSigma(), 3*f + 1)
             self.assertAlmostEqual(pfa.getE1(), eparams[f][0], 6)
             self.assertAlmostEqual(pfa.getE2(), eparams[f][1], 6)
             self.assertAlmostEqual(pfa.getRadius(),

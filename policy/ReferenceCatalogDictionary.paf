@@ -26,7 +26,7 @@ definitions: {
                       can determine this value with something similar to the
                       following SQL query:
 
-                      SELECT MAX(parallax) FROM SimRefStar_11032010;
+                      SELECT MAX(parallax) FROM SimRefStar;
 
                       This assumes that the parallax column is in milliarcsec."
         maxOccurs: 1
@@ -40,7 +40,7 @@ definitions: {
                       reference catalog. One can determine this value with
                       with something similar to the following SQL query:
 
-                      SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar_11032010;
+                      SELECT MAX(SQRT(muRa*muRa + muDecl*muDecl)) FROM SimRefStar;
 
                       This assumes that muRa is in terms of true angle and not
                       coordinate angle, i.e that muRa = dRA/dt*cos(decl), and

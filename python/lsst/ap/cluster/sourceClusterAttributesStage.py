@@ -76,8 +76,12 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             badSources = clipboard.get(badSourcesKey).getSources()
         else:
             badSources = None
-        fluxIgnoreMask = reduce(
-            operator.__or__, self.policy.getArray("fluxIgnoreMask"), 0)
+        psFluxIgnoreMask = reduce(
+            operator.__or__, self.policy.getArray("psFluxIgnoreMask"), 0)
+        sgFluxIgnoreMask = reduce(
+            operator.__or__, self.policy.getArray("sgFluxIgnoreMask"), 0)
+        sgRhlFluxIgnoreMask = reduce(
+            operator.__or__, self.policy.getArray("sgRhlFluxIgnoreMask"), 0)
         ellipticityIgnoreMask = reduce(
             operator.__or__, self.policy.getArray("ellipticityIgnoreMask"), 0)
         discardNoiseClusters = self.policy.getBool("discardNoiseClusters")
@@ -104,8 +108,9 @@ class SourceClusterAttributesParallel(stage.ParallelProcessing):
             clusterId = sequenceNum + (skyTileId << 32)
             sequenceNum += 1
             sca = clusterLib.SourceClusterAttributes(clusterId)
-            sca.computeAttributes(sources, exposures,
-                                  fluxScale, fluxIgnoreMask, ellipticityIgnoreMask)
+            sca.computeAttributes(sources, exposures, fluxScale,
+                                  psFluxIgnoreMask, sgFluxIgnoreMask,
+                                  sgRhlFluxIgnoreMask, ellipticityIgnoreMask)
             if len(sources) == 1 and minNeighbors > 0:
                 numNoise += 1
                 sca.setFlags(sca.getFlags() |

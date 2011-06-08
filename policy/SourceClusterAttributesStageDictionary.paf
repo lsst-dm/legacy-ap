@@ -104,16 +104,52 @@ definitions: {
     }
 
     # stage parameters
-    fluxIgnoreMask: {
+    psFluxIgnoreMask: {
         type: int
         description: "A bit-mask identifying sources to ignore when computing
-                      the sample mean of the PSF flux of the sources in a
-                      given cluster and filter. When the detection flag
-                      integer for a source has any of the mask bits set to 1,
-                      the source is ignored. Multiple values may be specified -
-                      in this case, the bitwise-OR of all the masks is used to
-                      identify which sources to ignore. Sources with PSF fluxes
-                      set to NaN are ignored regardless of these masks.
+                      the sample mean of the PSF (point source) flux of the
+                      sources in a given cluster and filter. When the detection
+                      flag integer for a source has any of the mask bits set to
+                      1, the source is ignored. Multiple values may be
+                      specified - in this case, the bitwise-OR of all the masks
+                      is used to identify which sources to ignore. Sources with
+                      PSF fluxes set to NaN are ignored regardless of these
+                      masks.
+                     "
+        # EDGE, PEAKCENTER, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # from lsst::meas::algorithms::Flags
+        default: 1 64 512 2048 4096
+    }
+    sgFluxIgnoreMask: {
+        type: int
+        description: "A bit-mask identifying sources to ignore when computing
+                      the sample mean of the small galaxy flux (multifit
+                      version) of the sources in a given cluster and filter.
+                      When the detection flag integer for a source has any of
+                      the mask bits set to 1, the source is ignored. Multiple
+                      values may be specified - in this case, the bitwise-OR
+                      of all the masks is used to identify which sources to
+                      ignore. Sources with model fluxes (the current storage
+                      location for multifit small galaxy flux measurements in
+                      Source) set to NaN are ignored regardless of these masks.
+                     "
+        # EDGE, PEAKCENTER, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
+        # from lsst::meas::algorithms::Flags
+        default: 1 64 512 2048 4096
+    }
+    sgRhlFluxIgnoreMask: {
+        type: int
+        description: "A bit-mask identifying sources to ignore when computing
+                      the sample mean of the small galaxy flux (Robert Lupton
+                      version) of the sources in a given cluster and filter.
+                      When the detection flag integer for a source has any of
+                      the mask bits set to 1, the source is ignored. Multiple
+                      values may be specified - in this case, the bitwise-OR
+                      of all the masks is used to identify which sources to
+                      ignore. Sources with instrumental fluxes (the current
+                      storage location for RHL small galaxy flux measurements
+                      in Source) set to NaN are ignored regardless of these
+                      masks.
                      "
         # EDGE, PEAKCENTER, INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
         # from lsst::meas::algorithms::Flags
