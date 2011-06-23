@@ -188,20 +188,20 @@ public:
     /** The first of NSAMPLE_BITS flag bits used to store the number of sources
       * used to determine the point source (PSF) flux sample mean.
       */
-    static int const PS_FLUX_NSAMPLE_OFF = 0;
+    static int const FLUX_PS_NSAMPLE_OFF = 0;
     /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the small galaxy flux (multifit version) sample mean.
+      * used to determine the experimental small galaxy model flux sample mean.
       */
-    static int const SG_FLUX_NSAMPLE_OFF = PS_FLUX_NSAMPLE_OFF + NSAMPLE_BITS;
+    static int const FLUX_SG_NSAMPLE_OFF = FLUX_PS_NSAMPLE_OFF + NSAMPLE_BITS;
     /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the small galaxy flux (RHL version) sample mean.
+      * used to determine the elliptical gaussian model flux sample mean.
       */
-    static int const SG_RHL_FLUX_NSAMPLE_OFF = SG_FLUX_NSAMPLE_OFF +
-                                               NSAMPLE_BITS;
+    static int const FLUX_GAUSS_NSAMPLE_OFF = FLUX_SG_NSAMPLE_OFF +
+                                              NSAMPLE_BITS;
     /** The first of NSAMPLE_BITS flag bits used to store the number of sources
       * used to determine the ellipticity parameter sample means.
       */
-    static int const ELLIPTICITY_NSAMPLE_OFF = SG_RHL_FLUX_NSAMPLE_OFF +
+    static int const ELLIPTICITY_NSAMPLE_OFF = FLUX_GAUSS_NSAMPLE_OFF +
                                                NSAMPLE_BITS;
 
     PerFilterSourceClusterAttributes();
@@ -226,7 +226,7 @@ public:
 
     int getNumPsFluxSamples() const;
     int getNumSgFluxSamples() const;
-    int getNumSgRhlFluxSamples() const;
+    int getNumGaussianFluxSamples() const;
 
     NullOr<float> const & getPsFlux() const {
         return _psFlux;
@@ -240,11 +240,11 @@ public:
     NullOr<float> const & getSgFluxSigma() const {
         return _sgFluxSigma;
     }
-    NullOr<float> const & getSgRhlFlux() const {
-        return _sgRhlFlux;
+    NullOr<float> const & getGaussianFlux() const {
+        return _gaussianFlux;
     }
-    NullOr<float> const & getSgRhlFluxSigma() const {
-        return _sgRhlFluxSigma;
+    NullOr<float> const & getGaussianFluxSigma() const {
+        return _gaussianFluxSigma;
     }
 
     int getNumEllipticitySamples() const;
@@ -284,13 +284,13 @@ public:
 
     void setNumPsFluxSamples(int samples);
     void setNumSgFluxSamples(int samples);
-    void setNumSgRhlFluxSamples(int samples);
+    void setNumGaussianFluxSamples(int samples);
     void setPsFlux(NullOr<float> const & flux,
                    NullOr<float> const & fluxSigma);
     void setSgFlux(NullOr<float> const & flux,
                    NullOr<float> const & fluxSigma);
-    void setSgRhlFlux(NullOr<float> const & flux,
-                      NullOr<float> const & fluxSigma);
+    void setGaussianFlux(NullOr<float> const & flux,
+                         NullOr<float> const & fluxSigma);
 
     void setNumEllipticitySamples(int samples);
     void setEllipticity();
@@ -305,13 +305,15 @@ public:
                      double fluxScale,
                      int psFluxIgnoreMask,
                      int sgFluxIgnoreMask,
-                     int sgRhlFluxIgnoreMask);
+                     int sgFluxIgnoreMaskAssoc,
+                     int gaussianFluxIgnoreMask);
 
     void computeFlux(std::vector<SourceAndExposure> const & sources,
                      double fluxScale,
                      int psFluxIgnoreMask,
                      int sgFluxIgnoreMask,
-                     int sgRhlFluxIgnoreMask);
+                     int sgFluxIgnoreMaskAssoc,
+                     int gaussianFluxIgnoreMask);
 
     void computeEllipticity(SourceAndExposure const & source,
                             int ellipticityIgnoreMask);
@@ -330,8 +332,8 @@ private:
     NullOr<float> _psFluxSigma;
     NullOr<float> _sgFlux;
     NullOr<float> _sgFluxSigma;
-    NullOr<float> _sgRhlFlux;
-    NullOr<float> _sgRhlFluxSigma;
+    NullOr<float> _gaussianFlux;
+    NullOr<float> _gaussianFluxSigma;
     // ellipticity parameters
     NullOr<float> _e1;
     NullOr<float> _e2;
@@ -399,6 +401,9 @@ public:
     double getLatestObsTime() const {
         return _latestObsTime;
     }
+    double getMeanObsTime() const {
+        return _meanObsTime;
+    }
 
     double getRaPs() const {
         return _raPs;
@@ -454,7 +459,7 @@ public:
     void setFlags(int flags) {
         _flags = flags;
     }
-    void setObsTimeRange(double earliest, double latest);
+    void setObsTime(double earliest, double latest, double mean);
     void setPsPosition(double ra,
                        double dec,
                        NullOr<float> const & raSigma,
@@ -476,7 +481,8 @@ public:
         double fluxScale,
         int psFluxIgnoreMask,
         int sgFluxIgnoreMask,
-        int sgRhlFluxIgnoreMask,
+        int sgFluxIgnoreMaskAssoc,
+        int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
     void computeAttributes(
@@ -485,7 +491,8 @@ public:
         double fluxScale,
         int psFluxIgnoreMask,
         int sgFluxIgnoreMask,
-        int sgRhlFluxIgnoreMask,
+        int sgFluxIgnoreMaskAssoc,
+        int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
 private:
@@ -494,6 +501,8 @@ private:
     int _flags;
     double _earliestObsTime;
     double _latestObsTime;
+    double _meanObsTime;
+
     // position, point source model (unweighted mean)
     double _raPs;
     double _decPs;

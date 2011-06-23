@@ -666,7 +666,7 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes() :
     _earliestObsTime(0.0), _latestObsTime(0.0),
     _psFlux(), _psFluxSigma(),
     _sgFlux(), _sgFluxSigma(),
-    _sgRhlFlux(), _sgRhlFluxSigma(),
+    _gaussianFlux(), _gaussianFluxSigma(),
     _e1(), _e2(), _radius(),
     _e1Sigma(), _e2Sigma(), _radiusSigma()
 { }
@@ -676,16 +676,19 @@ PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes() :
   */
 void PerFilterSourceClusterAttributes::computeFlux(
     SourceAndExposure const & source, ///< Source to compute flux from.
-    double fluxScale,         ///< Flux scaling factor, must be \> 0.0
-    int psFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean point source (PSF) flux.
-    int sgFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (multifit version)
-    int sgRhlFluxIgnoreMask   ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (RHL version)
+    double fluxScale,          ///< Flux scaling factor, must be \> 0.0
+    int psFluxIgnoreMask,      ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean point source (PSF) flux.
+    int sgFluxIgnoreMask,      ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean small galaxy model flux.
+    int sgFluxIgnoreMaskAssoc, ///< [PT1.2 hack] Association flag bitmask
+                               ///  identifying sources to ignore when determining
+                               ///  mean small galaxy model flux.
+    int gaussianFluxIgnoreMask ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean elliptical gaussian model flux.
 ) {
     detection::Source const & s = *source.getSource();
     match::ExposureInfo const & e = *source.getExposureInfo();
@@ -698,8 +701,10 @@ void PerFilterSourceClusterAttributes::computeFlux(
                   static_cast<float>(sqrt(f.second)));
         setNumPsFluxSamples(1);
     }
+    // PT1.2 2000x hack. meas_multifit stores some flags in flagForAssociation
     if (!lsst::utils::isnan(s.getModelFlux()) && s.getModelFluxErr() > 0.0 &&
-        (detFlags & sgFluxIgnoreMask) == 0) {
+        (detFlags & sgFluxIgnoreMask) == 0 &&
+        (s.getFlagForAssociation() & sgFluxIgnoreMaskAssoc) == 0) {
         std::pair<double, double> f =
             e.calibrateFlux(s.getModelFlux(), s.getModelFluxErr(), fluxScale);
         setSgFlux(static_cast<float>(f.first),
@@ -707,12 +712,12 @@ void PerFilterSourceClusterAttributes::computeFlux(
         setNumSgFluxSamples(1);
     }
     if (!lsst::utils::isnan(s.getInstFlux()) && s.getInstFluxErr() > 0.0 &&
-        (detFlags & sgRhlFluxIgnoreMask) == 0) {
+        (detFlags & gaussianFluxIgnoreMask) == 0) {
         std::pair<double, double> f =
             e.calibrateFlux(s.getInstFlux(), s.getInstFluxErr(), fluxScale);
-        setSgRhlFlux(static_cast<float>(f.first),
+        setGaussianFlux(static_cast<float>(f.first),
                      static_cast<float>(sqrt(f.second)));
-        setNumSgRhlFluxSamples(1);
+        setNumGaussianFluxSamples(1);
     }
 }
 
@@ -723,16 +728,19 @@ void PerFilterSourceClusterAttributes::computeFlux(
 void PerFilterSourceClusterAttributes::computeFlux(
     std::vector<SourceAndExposure> const & sources, ///< Sources to compute
                                                     ///  flux from.
-    double fluxScale,         ///< Flux scaling factor, must be \> 0.0
-    int psFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean point source (PSF) flux.
-    int sgFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (multifit version)
-    int sgRhlFluxIgnoreMask   ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (RHL version)
+    double fluxScale,          ///< Flux scaling factor, must be \> 0.0
+    int psFluxIgnoreMask,      ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean point source (PSF) flux.
+    int sgFluxIgnoreMask,      ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean small galaxy model flux.
+    int sgFluxIgnoreMaskAssoc, ///< [PT1.2 hack] Association flag bitmask
+                               ///  identifying sources to ignore when determining
+                               ///  mean small galaxy model flux.
+    int gaussianFluxIgnoreMask ///< Detection flag bitmask identifying sources
+                               ///  that should be ignored when determining
+                               ///  mean elliptical gaussian model flux.
 ) {
     typedef std::vector<SourceAndExposure>::const_iterator Iter;
     if (sources.empty()) {
@@ -740,10 +748,10 @@ void PerFilterSourceClusterAttributes::computeFlux(
     }
     std::vector<std::pair<double, double> > psSamples;
     std::vector<std::pair<double, double> > sgSamples;
-    std::vector<std::pair<double, double> > sgRhlSamples;
+    std::vector<std::pair<double, double> > gaussianSamples;
     psSamples.reserve(sources.size());
     sgSamples.reserve(sources.size());
-    sgRhlSamples.reserve(sources.size());
+    gaussianSamples.reserve(sources.size());
 
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
         detection::Source const & s = *(i->getSource());
@@ -754,16 +762,18 @@ void PerFilterSourceClusterAttributes::computeFlux(
             psSamples.push_back(exp.calibrateFlux(
                 s.getPsfFlux(), s.getPsfFluxErr(), fluxScale));
         }
+        // PT1.2 2000x hack. meas_multifit stores some flags in flagForAssociation
         if (!lsst::utils::isnan(s.getModelFlux()) &&
             (s.getFlagForDetection() & sgFluxIgnoreMask) == 0 &&
+            (s.getFlagForAssociation() & sgFluxIgnoreMaskAssoc) == 0 &&
             s.getModelFluxErr() > 0.0) {
             sgSamples.push_back(exp.calibrateFlux(
                 s.getModelFlux(), s.getModelFluxErr(), fluxScale));
         }
         if (!lsst::utils::isnan(s.getInstFlux()) &&
-            (s.getFlagForDetection() & sgRhlFluxIgnoreMask) == 0 &&
+            (s.getFlagForDetection() & gaussianFluxIgnoreMask) == 0 &&
             s.getInstFluxErr() > 0.0) {
-            sgRhlSamples.push_back(exp.calibrateFlux(
+            gaussianSamples.push_back(exp.calibrateFlux(
                 s.getInstFlux(), s.getInstFluxErr(), fluxScale));
         }
     }
@@ -777,10 +787,10 @@ void PerFilterSourceClusterAttributes::computeFlux(
         std::pair<double, double> f = inverseVarianceWeightedMean(sgSamples);
         setSgFlux(static_cast<float>(f.first), static_cast<float>(f.second));
     }
-    if (!sgRhlSamples.empty()) {
-        setNumSgRhlFluxSamples(static_cast<int>(sgRhlSamples.size()));
-        std::pair<double, double> f = inverseVarianceWeightedMean(sgRhlSamples);
-        setSgRhlFlux(static_cast<float>(f.first), static_cast<float>(f.second));
+    if (!gaussianSamples.empty()) {
+        setNumGaussianFluxSamples(static_cast<int>(gaussianSamples.size()));
+        std::pair<double, double> f = inverseVarianceWeightedMean(gaussianSamples);
+        setGaussianFlux(static_cast<float>(f.first), static_cast<float>(f.second));
     }
 }
 
@@ -962,25 +972,25 @@ void PerFilterSourceClusterAttributes::setObsTimeRange(double earliest,
   *     to an estimate of the standard deviation of the sample mean.
   */
 int PerFilterSourceClusterAttributes::getNumPsFluxSamples() const {
-    return (_flags >> PS_FLUX_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return (_flags >> FLUX_PS_NSAMPLE_OFF) & NSAMPLE_MASK;
 }
 
 /** Returns the number of smaples (sources) used to determine the small galaxy
-  * flux (multifit version) sample mean.
+  * model flux sample mean.
   *
   * @li If this number is zero, then none of the sources satisified the
   *     criteria for being included in the multfit SG flux sample mean,
   *     and both the flux and its uncertainty are invalid (NULL/NaN).
   * @li If this number is one, then the flux uncertainty is set to the
-  *     uncertainty of the multifit SG flux for that single source, rather
+  *     uncertainty of the SG flux for that single source, rather
   *     than to an estimate of the standard deviation of the sample mean.
   */
 int PerFilterSourceClusterAttributes::getNumSgFluxSamples() const {
-    return (_flags >> SG_FLUX_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return (_flags >> FLUX_SG_NSAMPLE_OFF) & NSAMPLE_MASK;
 }
 
-/** Returns the number of smaples (sources) used to determine the small galaxy
-  * flux (Robert Lupton version) sample mean.
+/** Returns the number of smaples (sources) used to determine the elliptical 
+  * gaussian model flux sample mean.
   *
   * @li If this number is zero, then none of the sources satisified the
   *     criteria for being included in the RHL SG flux sample mean,
@@ -989,8 +999,8 @@ int PerFilterSourceClusterAttributes::getNumSgFluxSamples() const {
   *     uncertainty of the RHL SG flux for that single source, rather
   *     than to an estimate of the standard deviation of the sample mean.
   */
-int PerFilterSourceClusterAttributes::getNumSgRhlFluxSamples() const {
-    return (_flags >> SG_RHL_FLUX_NSAMPLE_OFF) & NSAMPLE_MASK;
+int PerFilterSourceClusterAttributes::getNumGaussianFluxSamples() const {
+    return (_flags >> FLUX_GAUSS_NSAMPLE_OFF) & NSAMPLE_MASK;
 }
 
 /** Sets the number of samples (sources) used to determine the point source
@@ -1001,32 +1011,32 @@ void PerFilterSourceClusterAttributes::setNumPsFluxSamples(int samples) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
                           "flux samples (sources) is negative or too large");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << PS_FLUX_NSAMPLE_OFF)) |
-             (samples << PS_FLUX_NSAMPLE_OFF);
+    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_PS_NSAMPLE_OFF)) |
+             (samples << FLUX_PS_NSAMPLE_OFF);
 }
 
 /** Sets the number of samples (sources) used to determine the small galaxy
-  * flux (multifit version) sample mean.
+  * model flux sample mean.
   */
 void PerFilterSourceClusterAttributes::setNumSgFluxSamples(int samples) {
     if (samples < 0 || samples > NSAMPLE_MASK) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
                           "flux samples (sources) is negative or too large");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << SG_FLUX_NSAMPLE_OFF)) |
-             (samples << SG_FLUX_NSAMPLE_OFF);
+    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_SG_NSAMPLE_OFF)) |
+             (samples << FLUX_SG_NSAMPLE_OFF);
 }
 
-/** Sets the number of samples (sources) used to determine the small galaxy
-  * flux (Robert Lupton version) sample mean.
+/** Sets the number of samples (sources) used to determine the elliptical
+  * gaussian model flux sample mean.
   */
-void PerFilterSourceClusterAttributes::setNumSgRhlFluxSamples(int samples) {
+void PerFilterSourceClusterAttributes::setNumGaussianFluxSamples(int samples) {
     if (samples < 0 || samples > NSAMPLE_MASK) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
                           "flux samples (sources) is negative or too large");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << SG_RHL_FLUX_NSAMPLE_OFF)) |
-             (samples << SG_RHL_FLUX_NSAMPLE_OFF);
+    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_GAUSS_NSAMPLE_OFF)) |
+             (samples << FLUX_GAUSS_NSAMPLE_OFF);
 }
 
 /** Sets the point source (PSF) flux and uncertainty.
@@ -1047,7 +1057,7 @@ void PerFilterSourceClusterAttributes::setPsFlux(
     _psFluxSigma = fluxSigma;
 }
 
-/** Sets the small galaxy flux (multifit version) and uncertainty.
+/** Sets the small galaxy model flux and uncertainty.
   */
 void PerFilterSourceClusterAttributes::setSgFlux(
     NullOr<float> const & flux,
@@ -1065,9 +1075,9 @@ void PerFilterSourceClusterAttributes::setSgFlux(
     _sgFluxSigma = fluxSigma;
 }
 
-/** Sets the small galaxy flux (Robert Lupton version) and uncertainty.
+/** Sets the elliptical gaussian model flux and uncertainty.
   */
-void PerFilterSourceClusterAttributes::setSgRhlFlux(
+void PerFilterSourceClusterAttributes::setGaussianFlux(
     NullOr<float> const & flux,
     NullOr<float> const & fluxSigma)
 {
@@ -1079,8 +1089,8 @@ void PerFilterSourceClusterAttributes::setSgRhlFlux(
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "negative flux uncertainty");
     }
-    _sgRhlFlux = flux;
-    _sgRhlFluxSigma = fluxSigma;
+    _gaussianFlux = flux;
+    _gaussianFluxSigma = fluxSigma;
 }
 
 /** Returns the number of smaples (sources) used to determine the ellipticity
@@ -1172,8 +1182,8 @@ bool PerFilterSourceClusterAttributes::operator==(
             _psFluxSigma == attributes._psFluxSigma &&
             _sgFlux == attributes._sgFlux &&
             _sgFluxSigma == attributes._sgFluxSigma &&
-            _sgRhlFlux == attributes._sgRhlFlux &&
-            _sgRhlFluxSigma == attributes._sgRhlFluxSigma &&
+            _gaussianFlux == attributes._gaussianFlux &&
+            _gaussianFluxSigma == attributes._gaussianFluxSigma &&
             _e1 == attributes._e1 &&
             _e2 == attributes._e2 &&
             _radius == attributes._radius &&
@@ -1219,6 +1229,7 @@ bool SourceClusterAttributes::operator==(
         _flags != attributes._flags ||
         _earliestObsTime != attributes._earliestObsTime ||
         _latestObsTime != attributes._latestObsTime ||
+        _meanObsTime != attributes._meanObsTime ||
         _raPs != attributes._raPs ||
         _decPs != attributes._decPs ||
         _raPsSigma != attributes._raPsSigma ||
@@ -1269,14 +1280,22 @@ SourceClusterAttributes::getPerFilterAttributes(int filterId) const
 
 /** Sets the earliest and latest cluster observation times.
   */
-void SourceClusterAttributes::setObsTimeRange(double earliest, double latest)
+void SourceClusterAttributes::setObsTime(double earliest,
+                                         double latest,
+                                         double mean)
 {
     if (earliest > latest) {
         throw LSST_EXCEPT(except::InvalidParameterException, "earliest "
                           "observation time is after latest observation time");
     }
+    if (mean < earliest || mean > latest) {
+        throw LSST_EXCEPT(except::InvalidParameterException, "mean "
+                          "observation time is not between earliest and "
+                          "latest observation time");
+    }
     _earliestObsTime = earliest;
     _latestObsTime = latest;
+    _meanObsTime = mean;
 }
 
 /** Sets the point source model cluster position and error.
@@ -1387,21 +1406,25 @@ bool SourceClusterAttributes::removePerFilterAttributes(int filterId) {
 void SourceClusterAttributes::computeAttributes(
     boost::shared_ptr<lsst::afw::detection::Source const> source,
     lsst::ap::match::ExposureInfoMap const & exposures,
-    double fluxScale,         ///< Flux scaling factor
-    int psFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean point source (PSF) flux.
-    int sgFluxIgnoreMask,     ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (multifit version)
-    int sgRhlFluxIgnoreMask,  ///< Detection flag bitmask identifying sources
-                              ///  that should be ignored when determining
-                              ///  mean small galaxy flux (RHL version)
-    int ellipticityIgnoreMask ///< Detection flag bitmask identifying sources
-                              ///  to ignore when computing ellipticities
+    double fluxScale,           ///< Flux scaling factor
+    int psFluxIgnoreMask,       ///< Detection flag bitmask identifying sources
+                                ///  that should be ignored when determining
+                                ///  mean point source (PSF) flux.
+    int sgFluxIgnoreMask,       ///< Detection flag bitmask identifying sources
+                                ///  that should be ignored when determining
+                                ///  mean small galaxy model flux.
+    int sgFluxIgnoreMaskAssoc,  ///< [PT1.2 hack] Association flag bitmask
+                                ///  identifying sources to ignore when determining
+                                ///  mean small galaxy model flux.
+    int gaussianFluxIgnoreMask, ///< Detection flag bitmask identifying sources
+                                ///  that should be ignored when determining
+                                ///  mean elliptical gaussian model flux.
+    int ellipticityIgnoreMask   ///< Detection flag bitmask identifying sources
+                                ///  to ignore when computing ellipticities.
 ) {
     setNumObs(1);
-    setObsTimeRange(source->getTaiMidPoint(), source->getTaiMidPoint());
+    setObsTime(source->getTaiMidPoint(), source->getTaiMidPoint(),
+               source->getTaiMidPoint());
     match::ExposureInfo::ConstPtr exposure =
         exposures.get(source->getAmpExposureId());
     if (!exposure) {
@@ -1439,8 +1462,8 @@ void SourceClusterAttributes::computeAttributes(
     pfa.setFilterId(source->getFilterId());
     pfa.setNumObs(1);
     pfa.setObsTimeRange(source->getTaiMidPoint(), source->getTaiMidPoint());
-    pfa.computeFlux(se, fluxScale,
-                    psFluxIgnoreMask, sgFluxIgnoreMask, sgRhlFluxIgnoreMask);
+    pfa.computeFlux(se, fluxScale, psFluxIgnoreMask, sgFluxIgnoreMask,
+                    sgFluxIgnoreMaskAssoc, gaussianFluxIgnoreMask);
     pfa.computeEllipticity(se, ellipticityIgnoreMask);
     _perFilterAttributes.insert(std::make_pair(source->getFilterId(), pfa));
 }
@@ -1453,7 +1476,8 @@ void SourceClusterAttributes::computeAttributes(
     double fluxScale,
     int psFluxIgnoreMask,
     int sgFluxIgnoreMask,
-    int sgRhlFluxIgnoreMask,
+    int sgFluxIgnoreMaskAssoc,
+    int gaussianFluxIgnoreMask,
     int ellipticityIgnoreMask
 ) {
     typedef detection::SourceSet::const_iterator SourceIter;
@@ -1467,7 +1491,8 @@ void SourceClusterAttributes::computeAttributes(
     } else if (sources.size() == 1) {
         computeAttributes(sources.front(), exposures, fluxScale,
                           psFluxIgnoreMask, sgFluxIgnoreMask,
-                          sgRhlFluxIgnoreMask, ellipticityIgnoreMask);
+                          sgFluxIgnoreMaskAssoc, gaussianFluxIgnoreMask,
+                          ellipticityIgnoreMask);
         return;
     }
 
@@ -1475,15 +1500,17 @@ void SourceClusterAttributes::computeAttributes(
     {
         double tbeg = sources.front()->getTaiMidPoint();
         double tend = tbeg;
+        double tmean = tbeg;
         for (SourceIter i = sources.begin() + 1, e = sources.end(); i != e; ++i) {
             double t = (*i)->getTaiMidPoint();
+            tmean += t;
             if (t < tbeg) {
                 tbeg = t;
             } else if (t > tend) {
                 tend = t;
             }
         }
-        setObsTimeRange(tbeg, tend);
+        setObsTime(tbeg, tend, tmean / sources.size());
     }
     // compute fiducial cluster position (unweighted mean,
     // the point source model position).
@@ -1555,8 +1582,9 @@ void SourceClusterAttributes::computeAttributes(
             }
         }
         pfa.setObsTimeRange(tbeg, tend);
-        pfa.computeFlux(i->second, fluxScale,
-                        psFluxIgnoreMask, sgFluxIgnoreMask, sgRhlFluxIgnoreMask);
+        pfa.computeFlux(i->second, fluxScale, psFluxIgnoreMask,
+                        sgFluxIgnoreMask, sgFluxIgnoreMaskAssoc,
+                        gaussianFluxIgnoreMask);
         pfa.computeEllipticity(i->second, ellipticityIgnoreMask);
         _perFilterAttributes.insert(std::make_pair(i->first, pfa));
     }

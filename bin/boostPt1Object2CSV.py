@@ -76,8 +76,8 @@ def convertFilter(object, row, filter, nullstr):
         row.append(pfa.getPsFluxSigma() or nullstr)
         row.append(pfa.getSgFlux() or nullstr)
         row.append(pfa.getSgFluxSigma() or nullstr)
-        row.append(pfa.getSgRhlFlux() or nullstr)
-        row.append(pfa.getSgRhlFluxSigma() or nullstr)
+        row.append(pfa.getGaussianFlux() or nullstr)
+        row.append(pfa.getGaussianFluxSigma() or nullstr)
         row.append(nullstr)
         row.append(pfa.getEarliestObsTime())
         row.append(pfa.getLatestObsTime())
@@ -110,6 +110,7 @@ def objects2CSV(objects, csvWriter, nullstr):
         row.extend([nullstr]*12)
         row.append(o.getEarliestObsTime())
         row.append(o.getLatestObsTime())
+        row.append(o.getMeanObsTime())
         row.append(o.getFlags())
         for filter in ('u', 'g', 'r', 'i', 'z', 'y'):
             convertFilter(o, row, filter, nullstr)

@@ -123,8 +123,8 @@ definitions: {
     sgFluxIgnoreMask: {
         type: int
         description: "A bit-mask identifying sources to ignore when computing
-                      the sample mean of the small galaxy flux (multifit
-                      version) of the sources in a given cluster and filter.
+                      the sample mean of the experimental small galaxy model 
+                      flux of the sources in a given cluster and filter.
                       When the detection flag integer for a source has any of
                       the mask bits set to 1, the source is ignored. Multiple
                       values may be specified - in this case, the bitwise-OR
@@ -137,11 +137,28 @@ definitions: {
         # from lsst::meas::algorithms::Flags
         default: 1 64 512 2048 4096
     }
-    sgRhlFluxIgnoreMask: {
+    sgFluxIgnoreMaskAssoc: {
+        type: int
+        description: "PT1.2 hack: A bit-mask identifying sources to ignore when
+                      computing the sample mean of the experimental small galaxy
+                      model flux of the sources in a given cluster and filter.
+                      When the association flag integer for a source has any of
+                      the mask bits set to 1, the source is ignored. Multiple
+                      values may be specified - in this case, the bitwise-OR
+                      of all the masks is used to identify which sources to
+                      ignore. Sources with model fluxes (the current storage
+                      location for multifit small galaxy flux measurements in
+                      Source) set to NaN are ignored regardless of these masks.
+                     "
+        # Everything but GALAXY_MODEL_FAILED
+        # from lsst::meas::multifit::ShapeletModelPhotometry
+        default: 1 2 4 8 16 32 64 256
+    }
+    gaussianFluxIgnoreMask: {
         type: int
         description: "A bit-mask identifying sources to ignore when computing
-                      the sample mean of the small galaxy flux (Robert Lupton
-                      version) of the sources in a given cluster and filter.
+                      the sample mean of the elliptical gaussian model flux
+                      of the sources in a given cluster and filter.
                       When the detection flag integer for a source has any of
                       the mask bits set to 1, the source is ignored. Multiple
                       values may be specified - in this case, the bitwise-OR
