@@ -80,6 +80,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
                 s.setAmpExposureId(0)
                 s.setRa(math.radians(ra))
                 s.setDec(math.radians(i))
+                s.setXAstrom(ra)
+                s.setYAstrom(i)
                 self.sources.append(s)
                 ra += 0.5
         self.numInputSources = len(self.sources)
