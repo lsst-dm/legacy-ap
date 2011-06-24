@@ -544,6 +544,18 @@ LSST_AP_API void segregateInvalidSources(
                        static_cast<long long>((*i)->getAmpExposureId()));
             invalid = true;
         }
+        // Check that X/Y astrom are non NULL
+        double x = (*i)->getXAstrom();
+        double y = (*i)->getYAstrom();
+        if (lsst::utils::isnan(x) || lsst::utils::isnan(y) ||
+            (*i)->isNull(detection::X_ASTROM) ||
+            (*i)->isNull(detection::Y_ASTROM)) {
+            log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
+                       "NULL X and/or Y astrom",
+                       static_cast<long long>((*i)->getSourceId()),
+                       static_cast<long long>((*i)->getAmpExposureId()));
+            invalid = true;
+        } 
         // Check that X/Y astrom errors are non-negative
         double xerr = (*i)->getXAstromErr();
         double yerr = (*i)->getYAstromErr();
