@@ -1720,5 +1720,37 @@ LSST_AP_API void referenceFilter(
                filtPath.c_str());
 }
 
+
+/** Computes the number of times a reference catalog should have been observed in
+  * each filter with an ideal observatory, given a set of exposures. The per-filter
+  * observation counts are appended as columns [ugrizy]Cov. Reference catalog
+  * entries not falling on any of the given exposures are dropped from the output.
+  */
+LSST_AP_API void referenceFilterAndMatch(
+    std::string const &refPath,  ///< Reference catalog path
+    std::string const &posPath,  ///< Path to declination sorted position CSV file.
+    std::string const &filtPath, ///< Filtered output catalog path
+    std::string const &matchPath,  ///< Match output file path.
+    std::vector<ExposureInfo::Ptr> &exposures,  ///< Exposures to filter against - 
+                                                ///  reordered by the call.
+    lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
+                                                ///  See policy/ReferenceCatalogDictionary 
+                                                ///  for parameters and default values.
+    lsst::pex::policy::Policy::Ptr posInPolicy, ///< Policy describing input position table.
+                                                ///  See policy/PositionTableDictionary.paf
+                                                ///  for parameters and default values.
+    lsst::pex::policy::Policy::Ptr matchPolicy, ///< Policy describing match parameters.
+                                                ///  See policy/ReferenceMatchDictionary.paf
+                                                ///  for parameters and default values.
+    bool truncate ///< Overwrite existing output file?
+) {
+    typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
+    if (exposures.empty()) {
+        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                          "no input exposure information");
+    }
+
+}
+
 }}} // namespace lsst::ap::match
 
