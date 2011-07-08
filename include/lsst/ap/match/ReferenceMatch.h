@@ -52,18 +52,7 @@ LSST_AP_API void referenceFilter(
     std::string const &filtOutPath,
     std::vector<ExposureInfo::Ptr> &exposures,
     lsst::pex::policy::Policy::Ptr refInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr matchPolicy=lsst::pex::policy::Policy::Ptr(),
-    bool truncate=false);
-
-LSST_AP_API void referenceFilterAndMatch(
-    std::string const &refInPath,
-    std::string const &posInPath,
-    std::string const &filtOutPath,
-    std::string const &matchOutPath,
-    std::vector<ExposureInfo::Ptr> &exposures,
-    lsst::pex::policy::Policy::Ptr refInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr posInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr matchPolicy=lsst::pex::policy::Policy::Ptr(),
+    lsst::pex::policy::Policy::Ptr outPolicy=lsst::pex::policy::Policy::Ptr(),
     bool truncate=false);
 
 }}} // namespace lsst::ap::match
