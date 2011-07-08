@@ -167,10 +167,9 @@ definitions: {
                       bitwise-OR of all the masks is used to identify bad
                       sources.
                      "
-        # EDGE, SHAPE_UNWEIGHTED_BAD, PEAKCENTER,
-        # INTERP_CENTER, SATUR_CENTER, DETECT_NEGATIVE
-        # from lsst::meas::algorithms::Flags
-        default: 1 32 64 512 2048 4096
+        # EDGE, SHAPE_UNWEIGHTED_BAD, DETECT_NEGATIVE 
+        # from lsst::meas::algorithms::Flags 
+        default: 1 32 4096 
     }
     computeSourceSkyCoords: {
         type: bool
