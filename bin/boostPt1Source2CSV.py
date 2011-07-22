@@ -148,12 +148,8 @@ def sources2CSV(sources, csvWriter):
         row.append(translate(s, Source.getChi2))
         row.append(translate(s, Source.getSky, afwDetection.SKY))
         row.append(translate(s, Source.getSkyErr, afwDetection.SKY_ERR))
-        # PT1.2 hack - meas_multfit puts ESG flags into flagForAssociation - merge them
-        # into flagForDetection right here, i.e. during ingest.
-        row.append(nullstr) # flagForAssociation
-        detFlags = s.getFlagForDetection()
-        detFlags |= (s.getFlagForAssociation() << 14)
-        row.append(repr(detFlags)) # flagForDetection
+        row.append(translate(s, Source.getFlagForAssociation))
+        row.append(translate(s, Source.getFlagForDetection))
         row.append(translate(s, Source.getFlagForWcs))
         csvWriter.write(','.join(row))
         csvWriter.write('\n')

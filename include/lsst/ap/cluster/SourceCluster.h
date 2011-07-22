@@ -305,14 +305,12 @@ public:
                      double fluxScale,
                      int psFluxIgnoreMask,
                      int sgFluxIgnoreMask,
-                     int sgFluxIgnoreMaskAssoc,
                      int gaussianFluxIgnoreMask);
 
     void computeFlux(std::vector<SourceAndExposure> const & sources,
                      double fluxScale,
                      int psFluxIgnoreMask,
                      int sgFluxIgnoreMask,
-                     int sgFluxIgnoreMaskAssoc,
                      int gaussianFluxIgnoreMask);
 
     void computeEllipticity(SourceAndExposure const & source,
@@ -481,7 +479,6 @@ public:
         double fluxScale,
         int psFluxIgnoreMask,
         int sgFluxIgnoreMask,
-        int sgFluxIgnoreMaskAssoc,
         int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
@@ -491,7 +488,6 @@ public:
         double fluxScale,
         int psFluxIgnoreMask,
         int sgFluxIgnoreMask,
-        int sgFluxIgnoreMaskAssoc,
         int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
