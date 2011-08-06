@@ -232,6 +232,10 @@ void PerFilterSourceClusterAttributes::serialize(Archive & ar,
     serializeFloat(ar, _earliestObsTime);
     serializeFloat(ar, _latestObsTime);
     ar & _flags;
+    ar & _psFluxNum;
+    ar & _sgFluxNum;
+    ar & _gaussianFluxNum;
+    ar & _ellipticityNum;
     ar & _psFlux;
     ar & _psFluxSigma;
     ar & _sgFlux;

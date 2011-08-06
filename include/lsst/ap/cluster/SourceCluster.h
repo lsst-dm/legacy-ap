@@ -323,6 +323,10 @@ private:
     int _filterId;
     int _numObs;
     int _flags;
+    int _psFluxNum;
+    int _sgFluxNum;
+    int _gaussianFluxNum;
+    int _ellipticityNum;
     double _earliestObsTime;
     double _latestObsTime;
     // fluxes
