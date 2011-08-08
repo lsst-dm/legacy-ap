@@ -97,9 +97,13 @@ def convertFilter(object, row, filter):
         row.append(translate(pfa.getE2Sigma()))
         row.append(arcsec(pfa.getRadius()))
         row.append(arcsec(pfa.getRadiusSigma()))
-        row.append(translate(pfa.getFlags()))
+        row.append(translate(pfa.getNumPsFluxSamples()))
+        row.append(translate(pfa.getNumSgFluxSamples()))
+        row.append(translate(pfa.getNumGaussianFluxSamples()))
+        row.append(translate(pfa.getNumEllipticitySamples()))
+        row.append(nullstr)
     else:
-        row.extend([nullstr]*33)
+        row.extend([nullstr]*37)
 
 def objects2CSV(objects, csvWriter):
     for o in objects:

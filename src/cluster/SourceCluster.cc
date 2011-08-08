@@ -674,7 +674,10 @@ LSST_AP_API void updateUnclusteredSources(
 PerFilterSourceClusterAttributes::PerFilterSourceClusterAttributes() :
     _filterId(0),
     _numObs(0),
-    _flags(0),
+    _numPsFluxSamples(0),
+    _numSgFluxSamples(0),
+    _numGaussianFluxSamples(0),
+    _numEllipticitySamples(0),
     _earliestObsTime(0.0), _latestObsTime(0.0),
     _psFlux(), _psFluxSigma(),
     _sgFlux(), _sgFluxSigma(),
@@ -974,7 +977,7 @@ void PerFilterSourceClusterAttributes::setObsTimeRange(double earliest,
   *     to an estimate of the standard deviation of the sample mean.
   */
 int PerFilterSourceClusterAttributes::getNumPsFluxSamples() const {
-    return (_flags >> FLUX_PS_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return _numPsFluxSamples;
 }
 
 /** Returns the number of smaples (sources) used to determine the small galaxy
@@ -988,7 +991,7 @@ int PerFilterSourceClusterAttributes::getNumPsFluxSamples() const {
   *     than to an estimate of the standard deviation of the sample mean.
   */
 int PerFilterSourceClusterAttributes::getNumSgFluxSamples() const {
-    return (_flags >> FLUX_SG_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return _numSgFluxSamples;
 }
 
 /** Returns the number of smaples (sources) used to determine the elliptical 
@@ -1002,43 +1005,40 @@ int PerFilterSourceClusterAttributes::getNumSgFluxSamples() const {
   *     than to an estimate of the standard deviation of the sample mean.
   */
 int PerFilterSourceClusterAttributes::getNumGaussianFluxSamples() const {
-    return (_flags >> FLUX_GAUSS_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return _numGaussianFluxSamples;
 }
 
 /** Sets the number of samples (sources) used to determine the point source
   * (PSF) flux sample mean.
   */
 void PerFilterSourceClusterAttributes::setNumPsFluxSamples(int samples) {
-    if (samples < 0 || samples > NSAMPLE_MASK) {
+    if (samples < 0) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
-                          "flux samples (sources) is negative or too large");
+                          "flux samples (sources) is negative");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_PS_NSAMPLE_OFF)) |
-             (samples << FLUX_PS_NSAMPLE_OFF);
+    _numPsFluxSamples = samples;
 }
 
 /** Sets the number of samples (sources) used to determine the small galaxy
   * model flux sample mean.
   */
 void PerFilterSourceClusterAttributes::setNumSgFluxSamples(int samples) {
-    if (samples < 0 || samples > NSAMPLE_MASK) {
+    if (samples < 0) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
-                          "flux samples (sources) is negative or too large");
+                          "flux samples (sources) is negative");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_SG_NSAMPLE_OFF)) |
-             (samples << FLUX_SG_NSAMPLE_OFF);
+    _numSgFluxSamples = samples;
 }
 
 /** Sets the number of samples (sources) used to determine the elliptical
   * gaussian model flux sample mean.
   */
 void PerFilterSourceClusterAttributes::setNumGaussianFluxSamples(int samples) {
-    if (samples < 0 || samples > NSAMPLE_MASK) {
+    if (samples < 0) {
         throw LSST_EXCEPT(except::InvalidParameterException, "number of "
-                          "flux samples (sources) is negative or too large");
+                          "flux samples (sources) is negative");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << FLUX_GAUSS_NSAMPLE_OFF)) |
-             (samples << FLUX_GAUSS_NSAMPLE_OFF);
+    _numGaussianFluxSamples = samples;
 }
 
 /** Sets the point source (PSF) flux and uncertainty.
@@ -1104,7 +1104,7 @@ void PerFilterSourceClusterAttributes::setGaussianFlux(
   *     (NULL/NaN).
   */
 int PerFilterSourceClusterAttributes::getNumEllipticitySamples() const {
-    return (_flags >> ELLIPTICITY_NSAMPLE_OFF) & NSAMPLE_MASK;
+    return _numEllipticitySamples;
 }
 
 /** Sets the number of samples (sources) used to determine the
@@ -1112,13 +1112,12 @@ int PerFilterSourceClusterAttributes::getNumEllipticitySamples() const {
   */
 void PerFilterSourceClusterAttributes::setNumEllipticitySamples(int samples)
 {
-    if (samples < 0 || samples > NSAMPLE_MASK) {
+    if (samples < 0) {
         throw LSST_EXCEPT(except::InvalidParameterException,
                           "number of ellipticity parameter samples (sources) "
-                          "is negative or too large");
+                          "is negative");
     }
-    _flags = (_flags & ~(NSAMPLE_MASK << ELLIPTICITY_NSAMPLE_OFF)) |
-             (samples << ELLIPTICITY_NSAMPLE_OFF);
+    _numEllipticitySamples = samples;
 }
 
 /** Sets all ellipticity parameters and uncertainties to null.
@@ -1177,7 +1176,10 @@ bool PerFilterSourceClusterAttributes::operator==(
 {
     return (_filterId == attributes._filterId &&
             _numObs == attributes._numObs &&
-            _flags == attributes._flags &&
+            _numPsFluxSamples == attributes._numPsFluxSamples &&
+            _numSgFluxSamples == attributes._numSgFluxSamples &&
+            _numGaussianFluxSamples == attributes._numGaussianFluxSamples &&
+            _numEllipticitySamples == attributes._numEllipticitySamples &&
             _earliestObsTime == attributes._earliestObsTime &&
             _latestObsTime == attributes._latestObsTime &&
             _psFlux == attributes._psFlux &&

@@ -177,33 +177,6 @@ public:
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes> Ptr;
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes const> ConstPtr;
 
-    /** Number of flag bits used to store counts of the number of samples 
-      * (sources) used to determine the flux and ellipticity parameter sample
-      * means.
-      */
-    static int const NSAMPLE_BITS = 8;
-    /** Integer with NSAMPLE_BITS least significant bits set to 1.
-      */
-    static int const NSAMPLE_MASK = (1 << NSAMPLE_BITS) - 1;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the point source (PSF) flux sample mean.
-      */
-    static int const FLUX_PS_NSAMPLE_OFF = 0;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the experimental small galaxy model flux sample mean.
-      */
-    static int const FLUX_SG_NSAMPLE_OFF = FLUX_PS_NSAMPLE_OFF + NSAMPLE_BITS;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the elliptical gaussian model flux sample mean.
-      */
-    static int const FLUX_GAUSS_NSAMPLE_OFF = FLUX_SG_NSAMPLE_OFF +
-                                              NSAMPLE_BITS;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the ellipticity parameter sample means.
-      */
-    static int const ELLIPTICITY_NSAMPLE_OFF = FLUX_GAUSS_NSAMPLE_OFF +
-                                               NSAMPLE_BITS;
-
     PerFilterSourceClusterAttributes();
     ~PerFilterSourceClusterAttributes();
 
@@ -213,9 +186,6 @@ public:
     }
     int getNumObs() const {
         return _numObs;
-    }
-    int getFlags() const {
-        return _flags;
     }
     double getEarliestObsTime() const {
         return _earliestObsTime;
@@ -276,9 +246,6 @@ public:
     void setNumObs(int numObs) {
         _numObs = numObs;
     }
-    void setFlags(int flags) {
-        _flags = flags;
-    }
 
     void setObsTimeRange(double earliest, double latest);
 
@@ -322,7 +289,10 @@ public:
 private:
     int _filterId;
     int _numObs;
-    int _flags;
+    int _numPsFluxSamples;
+    int _numSgFluxSamples;
+    int _numGaussianFluxSamples;
+    int _numEllipticitySamples;
     double _earliestObsTime;
     double _latestObsTime;
     // fluxes

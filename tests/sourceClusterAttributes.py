@@ -263,10 +263,6 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             exceptions.LsstException,
             cluster.PerFilterSourceClusterAttributes.setNumEllipticitySamples,
             pfa, -1)
-        self.assertRaises(
-            exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumEllipticitySamples,
-            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
 
     def testFlux(self):
         """Tests flux and flux uncertainty computation.
@@ -353,10 +349,6 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             exceptions.LsstException,
             cluster.PerFilterSourceClusterAttributes.setNumPsFluxSamples,
             pfa, -1)
-        self.assertRaises(
-            exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumPsFluxSamples,
-            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
         self.assertRaises(exceptions.LsstException,
                           cluster.PerFilterSourceClusterAttributes.setSgFlux,
                           pfa, None, 1.0)
@@ -367,10 +359,6 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             exceptions.LsstException,
             cluster.PerFilterSourceClusterAttributes.setNumSgFluxSamples,
             pfa, -1)
-        self.assertRaises(
-            exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumSgFluxSamples,
-            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
         self.assertRaises(exceptions.LsstException,
                           cluster.PerFilterSourceClusterAttributes.setGaussianFlux,
                           pfa, None, 1.0)
@@ -381,10 +369,6 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             exceptions.LsstException,
             cluster.PerFilterSourceClusterAttributes.setNumGaussianFluxSamples,
             pfa, -1)
-        self.assertRaises(
-            exceptions.LsstException,
-            cluster.PerFilterSourceClusterAttributes.setNumGaussianFluxSamples,
-            pfa, cluster.PerFilterSourceClusterAttributes.NSAMPLE_MASK + 1)
 
     def testSourceClusterAttributes(self):
         """Tests features of the Python wrapper for
