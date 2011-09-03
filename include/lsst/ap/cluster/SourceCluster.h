@@ -177,21 +177,6 @@ public:
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes> Ptr;
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes const> ConstPtr;
 
-    /** Number of flag bits used to store counts of the number of samples 
-      * (sources) used to determine the flux and ellipticity parameter sample
-      * means.
-      */
-    static int const NSAMPLE_BITS = 12;
-    static int const NSAMPLE_MASK = (1 << NSAMPLE_BITS) - 1;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the PSF flux sample mean.
-      */
-    static int const FLUX_NSAMPLE_OFF = 0;
-    /** The first of NSAMPLE_BITS flag bits used to store the number of sources
-      * used to determine the ellipticity parameter sample means.
-      */
-    static int const ELLIPTICITY_NSAMPLE_OFF = FLUX_NSAMPLE_OFF + NSAMPLE_BITS;
-
     PerFilterSourceClusterAttributes();
     ~PerFilterSourceClusterAttributes();
 
@@ -202,9 +187,6 @@ public:
     int getNumObs() const {
         return _numObs;
     }
-    int getFlags() const {
-        return _flags;
-    }
     double getEarliestObsTime() const {
         return _earliestObsTime;
     }
@@ -212,12 +194,27 @@ public:
         return _latestObsTime;
     }
 
-    int getNumFluxSamples() const;
-    NullOr<float> const & getFlux() const {
-        return _flux;
+    int getNumPsFluxSamples() const;
+    int getNumSgFluxSamples() const;
+    int getNumGaussianFluxSamples() const;
+
+    NullOr<float> const & getPsFlux() const {
+        return _psFlux;
     }
-    NullOr<float> const & getFluxSigma() const {
-        return _fluxSigma;
+    NullOr<float> const & getPsFluxSigma() const {
+        return _psFluxSigma;
+    }
+    NullOr<float> const & getSgFlux() const {
+        return _sgFlux;
+    }
+    NullOr<float> const & getSgFluxSigma() const {
+        return _sgFluxSigma;
+    }
+    NullOr<float> const & getGaussianFlux() const {
+        return _gaussianFlux;
+    }
+    NullOr<float> const & getGaussianFluxSigma() const {
+        return _gaussianFluxSigma;
     }
 
     int getNumEllipticitySamples() const;
@@ -249,14 +246,19 @@ public:
     void setNumObs(int numObs) {
         _numObs = numObs;
     }
-    void setFlags(int flags) {
-        _flags = flags;
-    }
 
     void setObsTimeRange(double earliest, double latest);
-    void setNumFluxSamples(int samples);
-    void setFlux(NullOr<float> const & flux,
-                 NullOr<float> const & fluxSigma);
+
+    void setNumPsFluxSamples(int samples);
+    void setNumSgFluxSamples(int samples);
+    void setNumGaussianFluxSamples(int samples);
+    void setPsFlux(NullOr<float> const & flux,
+                   NullOr<float> const & fluxSigma);
+    void setSgFlux(NullOr<float> const & flux,
+                   NullOr<float> const & fluxSigma);
+    void setGaussianFlux(NullOr<float> const & flux,
+                         NullOr<float> const & fluxSigma);
+
     void setNumEllipticitySamples(int samples);
     void setEllipticity();
     void setEllipticity(NullOr<float> const & e1,
@@ -268,11 +270,15 @@ public:
 
     void computeFlux(SourceAndExposure const & source,
                      double fluxScale,
-                     int fluxIgnoreMask);
+                     int psFluxIgnoreMask,
+                     int sgFluxIgnoreMask,
+                     int gaussianFluxIgnoreMask);
 
     void computeFlux(std::vector<SourceAndExposure> const & sources,
                      double fluxScale,
-                     int fluxIgnoreMask);
+                     int psFluxIgnoreMask,
+                     int sgFluxIgnoreMask,
+                     int gaussianFluxIgnoreMask);
 
     void computeEllipticity(SourceAndExposure const & source,
                             int ellipticityIgnoreMask);
@@ -283,12 +289,19 @@ public:
 private:
     int _filterId;
     int _numObs;
-    int _flags;
+    int _numPsFluxSamples;
+    int _numSgFluxSamples;
+    int _numGaussianFluxSamples;
+    int _numEllipticitySamples;
     double _earliestObsTime;
     double _latestObsTime;
-    // flux
-    NullOr<float> _flux;
-    NullOr<float> _fluxSigma;
+    // fluxes
+    NullOr<float> _psFlux;
+    NullOr<float> _psFluxSigma;
+    NullOr<float> _sgFlux;
+    NullOr<float> _sgFluxSigma;
+    NullOr<float> _gaussianFlux;
+    NullOr<float> _gaussianFluxSigma;
     // ellipticity parameters
     NullOr<float> _e1;
     NullOr<float> _e2;
@@ -356,6 +369,9 @@ public:
     double getLatestObsTime() const {
         return _latestObsTime;
     }
+    double getMeanObsTime() const {
+        return _meanObsTime;
+    }
 
     double getRaPs() const {
         return _raPs;
@@ -411,7 +427,7 @@ public:
     void setFlags(int flags) {
         _flags = flags;
     }
-    void setObsTimeRange(double earliest, double latest);
+    void setObsTime(double earliest, double latest, double mean);
     void setPsPosition(double ra,
                        double dec,
                        NullOr<float> const & raSigma,
@@ -431,14 +447,18 @@ public:
         boost::shared_ptr<lsst::afw::detection::Source const> source,
         lsst::ap::match::ExposureInfoMap const & exposures,
         double fluxScale,
-        int fluxIgnoreMask,
+        int psFluxIgnoreMask,
+        int sgFluxIgnoreMask,
+        int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
     void computeAttributes(
         lsst::afw::detection::SourceSet const & sources,
         lsst::ap::match::ExposureInfoMap const & exposures,
         double fluxScale,
-        int fluxIgnoreMask,
+        int psFluxIgnoreMask,
+        int sgFluxIgnoreMask,
+        int gaussianFluxIgnoreMask,
         int ellipticityIgnoreMask);
 
 private:
@@ -447,6 +467,8 @@ private:
     int _flags;
     double _earliestObsTime;
     double _latestObsTime;
+    double _meanObsTime;
+
     // position, point source model (unweighted mean)
     double _raPs;
     double _decPs;

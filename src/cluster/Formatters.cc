@@ -223,11 +223,18 @@ void PerFilterSourceClusterAttributes::serialize(Archive & ar,
                                                  unsigned int const) {
     ar & _filterId;
     ar & _numObs;
+    ar & _numPsFluxSamples;
+    ar & _numSgFluxSamples;
+    ar & _numGaussianFluxSamples;
+    ar & _numEllipticitySamples;
     serializeFloat(ar, _earliestObsTime);
     serializeFloat(ar, _latestObsTime);
-    ar & _flags;
-    ar & _flux;
-    ar & _fluxSigma;
+    ar & _psFlux;
+    ar & _psFluxSigma;
+    ar & _sgFlux;
+    ar & _sgFluxSigma;
+    ar & _gaussianFlux;
+    ar & _gaussianFluxSigma;
     ar & _e1;
     ar & _e2;
     ar & _radius;
@@ -243,6 +250,7 @@ void SourceClusterAttributes::serialize(Archive & ar, unsigned int const) {
     ar & _flags;
     serializeFloat(ar, _earliestObsTime);
     serializeFloat(ar, _latestObsTime);
+    serializeFloat(ar, _meanObsTime);
     serializeFloat(ar, _raPs);
     serializeFloat(ar, _decPs);
     ar & _raPsSigma;
@@ -297,13 +305,10 @@ void insertObjectRow(DbStorageT & db,
         db.setColumnToNull(#filter "RaDeclOffset_SG_Cov"); \
         db.setColumnToNull(#filter "LnL_PS"); \
         db.setColumnToNull(#filter "LnL_SG"); \
-        db.setColumnToNull(#filter "Flux_SG"); \
-        db.setColumnToNull(#filter "Flux_SG_Sigma"); \
-        db.setColumnToNull(#filter "Flux_CSG"); \
-        db.setColumnToNull(#filter "Flux_CSG_Sigma"); \
         db.setColumnToNull(#filter "Timescale"); \
         db.setColumnToNull(#filter "SersicN_SG"); \
         db.setColumnToNull(#filter "SersicN_SG_Sigma"); \
+        db.setColumnToNull(#filter "Flags"); \
     } while (false)
 
     LSST_AP_PF_ALWAYS_NULL(u);
@@ -329,6 +334,7 @@ void insertObjectRow(DbStorageT & db,
     insertFloat(db, "radecl_SG_Cov", afwGeom::radToDeg(afwGeom::radToDeg(attributes.getRaDecSgCov())));
     insertFloat(db, "earliestObsTime", attributes.getEarliestObsTime());
     insertFloat(db, "latestObsTime", attributes.getLatestObsTime());
+    insertFloat(db, "meanObsTime", attributes.getMeanObsTime());
     db.template setColumn<int>("flags", attributes.getFlags());
 
     // set filter-specific columns
@@ -339,11 +345,18 @@ void insertObjectRow(DbStorageT & db,
             PerFilterSourceClusterAttributes const & pfa = \
                 attributes.getPerFilterAttributes(id); \
             db.template setColumn<int>(#filter "NumObs", pfa.getNumObs()); \
-            db.template setColumn<int>(#filter "Flags", pfa.getFlags()); \
+            db.template setColumn<int>(#filter "Flux_PS_Num", pfa.getNumPsFluxSamples()); \
+            db.template setColumn<int>(#filter "Flux_ESG_Num", pfa.getNumSgFluxSamples()); \
+            db.template setColumn<int>(#filter "Flux_Gaussian_Num", pfa.getNumGaussianFluxSamples()); \
+            db.template setColumn<int>(#filter "Ellipticity_Num", pfa.getNumEllipticitySamples()); \
             insertFloat(db, #filter "EarliestObsTime", pfa.getEarliestObsTime()); \
             insertFloat(db, #filter "LatestObsTime", pfa.getLatestObsTime()); \
-            insertFloat(db, #filter "Flux_PS", pfa.getFlux()); \
-            insertFloat(db, #filter "Flux_PS_Sigma", pfa.getFluxSigma()); \
+            insertFloat(db, #filter "Flux_PS", pfa.getPsFlux()); \
+            insertFloat(db, #filter "Flux_PS_Sigma", pfa.getPsFluxSigma()); \
+            insertFloat(db, #filter "Flux_ESG", pfa.getSgFlux()); \
+            insertFloat(db, #filter "Flux_ESG_Sigma", pfa.getSgFluxSigma()); \
+            insertFloat(db, #filter "Flux_Gaussian", pfa.getGaussianFlux()); \
+            insertFloat(db, #filter "Flux_Gaussian_Sigma", pfa.getGaussianFluxSigma()); \
             insertFloat(db, #filter "E1_SG", pfa.getE1()); \
             insertFloat(db, #filter "E1_SG_Sigma", pfa.getE1Sigma()); \
             insertFloat(db, #filter "E2_SG", pfa.getE2()); \
@@ -352,11 +365,18 @@ void insertObjectRow(DbStorageT & db,
             insertFloat(db, #filter "Radius_SG_Sigma", pfa.getRadiusSigma()); \
         } else { \
             db.setColumnToNull(#filter "NumObs"); \
-            db.setColumnToNull(#filter "Flags"); \
+            db.setColumnToNull(#filter "Flux_PS_Num"); \
+            db.setColumnToNull(#filter "Flux_ESG_Num"); \
+            db.setColumnToNull(#filter "Flux_Gaussian_Num"); \
+            db.setColumnToNull(#filter "Ellipticity_Num"); \
             db.setColumnToNull(#filter "EarliestObsTime"); \
             db.setColumnToNull(#filter "LatestObsTime"); \
             db.setColumnToNull(#filter "Flux_PS"); \
             db.setColumnToNull(#filter "Flux_PS_Sigma"); \
+            db.setColumnToNull(#filter "Flux_ESG"); \
+            db.setColumnToNull(#filter "Flux_ESG_Sigma"); \
+            db.setColumnToNull(#filter "Flux_Gaussian"); \
+            db.setColumnToNull(#filter "Flux_Gaussian_Sigma"); \
             db.setColumnToNull(#filter "E1_SG"); \
             db.setColumnToNull(#filter "E1_SG_Sigma"); \
             db.setColumnToNull(#filter "E2_SG"); \
@@ -389,6 +409,7 @@ struct LSST_AP_LOCAL ObjectRow
     int64_t objectId;
     double  earliestObsTime;
     double  latestObsTime;
+    double  meanObsTime;
     double  ra_PS;
     double  decl_PS;
     float   ra_PS_Sigma;
@@ -403,9 +424,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  uEarliestObsTime;
     double  uLatestObsTime;
     int     uNumObs;
-    int     uFlags;
+    int     uFlux_PS_Num;
+    int     uFlux_ESG_Num;
+    int     uFlux_Gaussian_Num;
+    int     uEllipticity_Num;
     float   uFlux_PS;
     float   uFlux_PS_Sigma;
+    float   uFlux_ESG;
+    float   uFlux_ESG_Sigma;
+    float   uFlux_Gaussian;
+    float   uFlux_Gaussian_Sigma;
     float   uE1_SG;
     float   uE1_SG_Sigma;
     float   uE2_SG;
@@ -415,9 +443,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  gEarliestObsTime;
     double  gLatestObsTime;
     int     gNumObs;
-    int     gFlags;
+    int     gFlux_PS_Num;
+    int     gFlux_ESG_Num;
+    int     gFlux_Gaussian_Num;
+    int     gEllipticity_Num;
     float   gFlux_PS;
     float   gFlux_PS_Sigma;
+    float   gFlux_ESG;
+    float   gFlux_ESG_Sigma;
+    float   gFlux_Gaussian;
+    float   gFlux_Gaussian_Sigma;
     float   gE1_SG;
     float   gE1_SG_Sigma;
     float   gE2_SG;
@@ -427,9 +462,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  rEarliestObsTime;
     double  rLatestObsTime;
     int     rNumObs;
-    int     rFlags;
+    int     rFlux_PS_Num;
+    int     rFlux_ESG_Num;
+    int     rFlux_Gaussian_Num;
+    int     rEllipticity_Num;
     float   rFlux_PS;
     float   rFlux_PS_Sigma;
+    float   rFlux_ESG;
+    float   rFlux_ESG_Sigma;
+    float   rFlux_Gaussian;
+    float   rFlux_Gaussian_Sigma;
     float   rE1_SG;
     float   rE1_SG_Sigma;
     float   rE2_SG;
@@ -439,9 +481,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  iEarliestObsTime;
     double  iLatestObsTime;
     int     iNumObs;
-    int     iFlags;
+    int     iFlux_PS_Num;
+    int     iFlux_ESG_Num;
+    int     iFlux_Gaussian_Num;
+    int     iEllipticity_Num;
     float   iFlux_PS;
     float   iFlux_PS_Sigma;
+    float   iFlux_ESG;
+    float   iFlux_ESG_Sigma;
+    float   iFlux_Gaussian;
+    float   iFlux_Gaussian_Sigma;
     float   iE1_SG;
     float   iE1_SG_Sigma;
     float   iE2_SG;
@@ -451,9 +500,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  zEarliestObsTime;
     double  zLatestObsTime;
     int     zNumObs;
-    int     zFlags;
+    int     zFlux_PS_Num;
+    int     zFlux_ESG_Num;
+    int     zFlux_Gaussian_Num;
+    int     zEllipticity_Num;
     float   zFlux_PS;
     float   zFlux_PS_Sigma;
+    float   zFlux_ESG;
+    float   zFlux_ESG_Sigma;
+    float   zFlux_Gaussian;
+    float   zFlux_Gaussian_Sigma;
     float   zE1_SG;
     float   zE1_SG_Sigma;
     float   zE2_SG;
@@ -463,9 +519,16 @@ struct LSST_AP_LOCAL ObjectRow
     double  yEarliestObsTime;
     double  yLatestObsTime;
     int     yNumObs;
-    int     yFlags;
+    int     yFlux_PS_Num;
+    int     yFlux_ESG_Num;
+    int     yFlux_Gaussian_Num;
+    int     yEllipticity_Num;
     float   yFlux_PS;
     float   yFlux_PS_Sigma;
+    float   yFlux_ESG;
+    float   yFlux_ESG_Sigma;
+    float   yFlux_Gaussian;
+    float   yFlux_Gaussian_Sigma;
     float   yE1_SG;
     float   yE1_SG_Sigma;
     float   yE2_SG;
@@ -488,6 +551,7 @@ void ObjectRow::setupFetch(DbStorageT * db)
     db->outParam("objectId", &objectId);
     db->outParam("earliestObsTime", &earliestObsTime);
     db->outParam("latestObsTime", &latestObsTime);
+    db->outParam("meanObsTime", &meanObsTime);
     db->outParam("ra_PS", &ra_PS);
     db->outParam("decl_PS", &decl_PS);
     db->outParam("ra_PS_Sigma", &ra_PS_Sigma);
@@ -499,78 +563,37 @@ void ObjectRow::setupFetch(DbStorageT * db)
     db->outParam("decl_SG_Sigma", &decl_SG_Sigma);
     db->outParam("radecl_SG_Cov", &radecl_SG_Cov);
     db->outParam("flags", &flags);
-    db->outParam("uEarliestObsTime", &uEarliestObsTime);
-    db->outParam("uLatestObsTime", &uLatestObsTime);
-    db->outParam("uNumObs", &uNumObs);
-    db->outParam("uFlags", &uFlags);
-    db->outParam("uFlux_PS", &uFlux_PS);
-    db->outParam("uFlux_PS_Sigma", &uFlux_PS_Sigma);
-    db->outParam("uE1_SG", &uE1_SG);
-    db->outParam("uE1_SG_Sigma", &uE1_SG_Sigma);
-    db->outParam("uE2_SG", &uE2_SG);
-    db->outParam("uE2_SG_Sigma", &uE2_SG_Sigma);
-    db->outParam("uRadius_SG", &uRadius_SG);
-    db->outParam("uRadius_SG_Sigma", &uRadius_SG_Sigma);
-    db->outParam("gEarliestObsTime", &gEarliestObsTime);
-    db->outParam("gLatestObsTime", &gLatestObsTime);
-    db->outParam("gNumObs", &gNumObs);
-    db->outParam("gFlags", &gFlags);
-    db->outParam("gFlux_PS", &gFlux_PS);
-    db->outParam("gFlux_PS_Sigma", &gFlux_PS_Sigma);
-    db->outParam("gE1_SG", &gE1_SG);
-    db->outParam("gE1_SG_Sigma", &gE1_SG_Sigma);
-    db->outParam("gE2_SG", &gE2_SG);
-    db->outParam("gE2_SG_Sigma", &gE2_SG_Sigma);
-    db->outParam("gRadius_SG", &gRadius_SG);
-    db->outParam("gRadius_SG_Sigma", &gRadius_SG_Sigma);
-    db->outParam("rEarliestObsTime", &rEarliestObsTime);
-    db->outParam("rLatestObsTime", &rLatestObsTime);
-    db->outParam("rNumObs", &rNumObs);
-    db->outParam("rFlags", &rFlags);
-    db->outParam("rFlux_PS", &rFlux_PS);
-    db->outParam("rFlux_PS_Sigma", &rFlux_PS_Sigma);
-    db->outParam("rE1_SG", &rE1_SG);
-    db->outParam("rE1_SG_Sigma", &rE1_SG_Sigma);
-    db->outParam("rE2_SG", &rE2_SG);
-    db->outParam("rE2_SG_Sigma", &rE2_SG_Sigma);
-    db->outParam("rRadius_SG", &rRadius_SG);
-    db->outParam("rRadius_SG_Sigma", &rRadius_SG_Sigma);
-    db->outParam("iEarliestObsTime", &iEarliestObsTime);
-    db->outParam("iLatestObsTime", &iLatestObsTime);
-    db->outParam("iNumObs", &iNumObs);
-    db->outParam("iFlags", &iFlags);
-    db->outParam("iFlux_PS", &iFlux_PS);
-    db->outParam("iFlux_PS_Sigma", &iFlux_PS_Sigma);
-    db->outParam("iE1_SG", &iE1_SG);
-    db->outParam("iE1_SG_Sigma", &iE1_SG_Sigma);
-    db->outParam("iE2_SG", &iE2_SG);
-    db->outParam("iE2_SG_Sigma", &iE2_SG_Sigma);
-    db->outParam("iRadius_SG", &iRadius_SG);
-    db->outParam("iRadius_SG_Sigma", &iRadius_SG_Sigma);
-    db->outParam("zEarliestObsTime", &zEarliestObsTime);
-    db->outParam("zLatestObsTime", &zLatestObsTime);
-    db->outParam("zNumObs", &zNumObs);
-    db->outParam("zFlags", &zFlags);
-    db->outParam("zFlux_PS", &zFlux_PS);
-    db->outParam("zFlux_PS_Sigma", &zFlux_PS_Sigma);
-    db->outParam("zE1_SG", &zE1_SG);
-    db->outParam("zE1_SG_Sigma", &zE1_SG_Sigma);
-    db->outParam("zE2_SG", &zE2_SG);
-    db->outParam("zE2_SG_Sigma", &zE2_SG_Sigma);
-    db->outParam("zRadius_SG", &zRadius_SG);
-    db->outParam("zRadius_SG_Sigma", &zRadius_SG_Sigma);
-    db->outParam("yEarliestObsTime", &yEarliestObsTime);
-    db->outParam("yLatestObsTime", &yLatestObsTime);
-    db->outParam("yNumObs", &yNumObs);
-    db->outParam("yFlags", &yFlags);
-    db->outParam("yFlux_PS", &yFlux_PS);
-    db->outParam("yFlux_PS_Sigma", &yFlux_PS_Sigma);
-    db->outParam("yE1_SG", &yE1_SG);
-    db->outParam("yE1_SG_Sigma", &yE1_SG_Sigma);
-    db->outParam("yE2_SG", &yE2_SG);
-    db->outParam("yE2_SG_Sigma", &yE2_SG_Sigma);
-    db->outParam("yRadius_SG", &yRadius_SG);
-    db->outParam("yRadius_SG_Sigma", &yRadius_SG_Sigma);
+
+#define LSST_AP_SETUP_FILTER(filter) \
+    do { \
+        db->outParam(#filter "EarliestObsTime", & filter ## EarliestObsTime); \
+        db->outParam(#filter "LatestObsTime", & filter ## LatestObsTime); \
+        db->outParam(#filter "NumObs", &filter ## NumObs); \
+        db->outParam(#filter "Flux_PS_Num", & filter ## Flux_PS_Num); \
+        db->outParam(#filter "Flux_ESG_Num", & filter ## Flux_ESG_Num); \
+        db->outParam(#filter "Flux_Gaussian_Num", & filter ## Flux_Gaussian_Num); \
+        db->outParam(#filter "Ellipticity_Num", & filter ## Ellipticity_Num); \
+        db->outParam(#filter "Flux_PS", & filter ## Flux_PS); \
+        db->outParam(#filter "Flux_PS_Sigma", & filter ## Flux_PS_Sigma); \
+        db->outParam(#filter "Flux_ESG", & filter ## Flux_ESG); \
+        db->outParam(#filter "Flux_ESG_Sigma", & filter ## Flux_ESG_Sigma); \
+        db->outParam(#filter "Flux_Gaussian", & filter ## Flux_Gaussian); \
+        db->outParam(#filter "Flux_Gaussian_Sigma", & filter ## Flux_Gaussian_Sigma); \
+        db->outParam(#filter "E1_SG", & filter ## E1_SG); \
+        db->outParam(#filter "E1_SG_Sigma", & filter ## E1_SG_Sigma); \
+        db->outParam(#filter "E2_SG", & filter ## E2_SG); \
+        db->outParam(#filter "E2_SG_Sigma", & filter ## E2_SG_Sigma); \
+        db->outParam(#filter "Radius_SG", & filter ## Radius_SG); \
+        db->outParam(#filter "Radius_SG_Sigma", & filter ## Radius_SG_Sigma); \
+    } while (false)
+
+    LSST_AP_SETUP_FILTER(u);
+    LSST_AP_SETUP_FILTER(g);
+    LSST_AP_SETUP_FILTER(r);
+    LSST_AP_SETUP_FILTER(i);
+    LSST_AP_SETUP_FILTER(z);
+    LSST_AP_SETUP_FILTER(y);
+#undef LSST_AP_SETUP_FILTER
 }
 
 template <typename FloatT> void nullToNaN(DbStorage * db, int col, FloatT & field) {
@@ -588,23 +611,24 @@ void ObjectRow::to(DbStorage * db,
     }
     nullToNaN(db, 1, earliestObsTime);
     nullToNaN(db, 2, latestObsTime);
-    nullToNaN(db, 3, ra_PS);
-    nullToNaN(db, 4, decl_PS);
-    nullToNaN(db, 5, ra_PS_Sigma);
-    nullToNaN(db, 6, decl_PS_Sigma);
-    nullToNaN(db, 7, radecl_PS_Cov);
-    nullToNaN(db, 8, ra_SG);
-    nullToNaN(db, 9, decl_SG);
-    nullToNaN(db, 10, ra_SG_Sigma);
-    nullToNaN(db, 11, decl_SG_Sigma);
-    nullToNaN(db, 12, radecl_SG_Cov);
+    nullToNaN(db, 3, meanObsTime);
+    nullToNaN(db, 4, ra_PS);
+    nullToNaN(db, 5, decl_PS);
+    nullToNaN(db, 6, ra_PS_Sigma);
+    nullToNaN(db, 7, decl_PS_Sigma);
+    nullToNaN(db, 8, radecl_PS_Cov);
+    nullToNaN(db, 9, ra_SG);
+    nullToNaN(db, 10, decl_SG);
+    nullToNaN(db, 11, ra_SG_Sigma);
+    nullToNaN(db, 12, decl_SG_Sigma);
+    nullToNaN(db, 13, radecl_SG_Cov);
 
-    if (db->columnIsNull(13)) {
+    if (db->columnIsNull(14)) {
         flags = 0;
     }
     attributes.setClusterId(objectId);
     attributes.setFlags(flags);
-    attributes.setObsTimeRange(earliestObsTime, latestObsTime);
+    attributes.setObsTime(earliestObsTime, latestObsTime, meanObsTime);
     attributes.setPsPosition(afwGeom::degToRad(ra_PS), afwGeom::degToRad(decl_PS),
                              afwGeom::degToRad(ra_PS_Sigma), afwGeom::degToRad(decl_PS_Sigma),
                              afwGeom::degToRad(afwGeom::degToRad(radecl_PS_Cov)));
@@ -621,24 +645,37 @@ void ObjectRow::to(DbStorage * db,
             filter ## NumObs = 0; \
         } \
         if (db->columnIsNull(i + 3)) { \
-            filter ## Flags = 0; \
+            filter ## Flux_PS_Num = 0; \
         } \
-        nullToNaN(db, i + 4, filter ## Flux_PS); \
-        nullToNaN(db, i + 5, filter ## Flux_PS_Sigma); \
-        nullToNaN(db, i + 6, filter ## E1_SG); \
-        nullToNaN(db, i + 7, filter ## E1_SG_Sigma); \
-        nullToNaN(db, i + 8, filter ## E2_SG); \
-        nullToNaN(db, i + 9, filter ## E2_SG_Sigma); \
-        nullToNaN(db, i + 10, filter ## Radius_SG); \
-        nullToNaN(db, i + 11, filter ## Radius_SG_Sigma); \
+        if (db->columnIsNull(i + 4)) { \
+            filter ## Flux_ESG_Num = 0; \
+        } \
+        if (db->columnIsNull(i + 5)) { \
+            filter ## Flux_Gaussian_Num = 0; \
+        } \
+        if (db->columnIsNull(i + 6)) { \
+            filter ## Ellipticity_Num = 0; \
+        } \
+        nullToNaN(db, i + 7, filter ## Flux_PS); \
+        nullToNaN(db, i + 8, filter ## Flux_PS_Sigma); \
+        nullToNaN(db, i + 9, filter ## Flux_ESG); \
+        nullToNaN(db, i + 10, filter ## Flux_ESG_Sigma); \
+        nullToNaN(db, i + 11, filter ## Flux_Gaussian); \
+        nullToNaN(db, i + 12, filter ## Flux_Gaussian_Sigma); \
+        nullToNaN(db, i + 13, filter ## E1_SG); \
+        nullToNaN(db, i + 14, filter ## E1_SG_Sigma); \
+        nullToNaN(db, i + 15, filter ## E2_SG); \
+        nullToNaN(db, i + 16, filter ## E2_SG_Sigma); \
+        nullToNaN(db, i + 17, filter ## Radius_SG); \
+        nullToNaN(db, i + 18, filter ## Radius_SG_Sigma); \
     } while(false)
 
-    LSST_AP_HANDLE_PF_NULLS(14 + 0*12, u);
-    LSST_AP_HANDLE_PF_NULLS(14 + 1*12, g);
-    LSST_AP_HANDLE_PF_NULLS(14 + 2*12, r);
-    LSST_AP_HANDLE_PF_NULLS(14 + 3*12, i);
-    LSST_AP_HANDLE_PF_NULLS(14 + 4*12, z);
-    LSST_AP_HANDLE_PF_NULLS(14 + 5*12, y);
+    LSST_AP_HANDLE_PF_NULLS(15 + 0*19, u);
+    LSST_AP_HANDLE_PF_NULLS(15 + 1*19, g);
+    LSST_AP_HANDLE_PF_NULLS(15 + 2*19, r);
+    LSST_AP_HANDLE_PF_NULLS(15 + 3*19, i);
+    LSST_AP_HANDLE_PF_NULLS(15 + 4*19, z);
+    LSST_AP_HANDLE_PF_NULLS(15 + 5*19, y);
 
 #undef LSST_AP_HANDLE_PF_NULLS
 
@@ -650,10 +687,15 @@ void ObjectRow::to(DbStorage * db,
             PerFilterSourceClusterAttributes pfa; \
             pfa.setFilterId(filterIds[i]); \
             pfa.setNumObs(filter ## NumObs); \
-            pfa.setFlags(filter ## Flags); \
+            pfa.setNumPsFluxSamples(filter ## Flux_PS_Num); \
+            pfa.setNumSgFluxSamples(filter ## Flux_ESG_Num); \
+            pfa.setNumGaussianFluxSamples(filter ## Flux_Gaussian_Num); \
+            pfa.setNumEllipticitySamples(filter ## Ellipticity_Num); \
             pfa.setObsTimeRange(filter ## EarliestObsTime, \
                                 filter ## LatestObsTime); \
-            pfa.setFlux(filter ## Flux_PS, filter ## Flux_PS_Sigma); \
+            pfa.setPsFlux(filter ## Flux_PS, filter ## Flux_PS_Sigma); \
+            pfa.setSgFlux(filter ## Flux_ESG, filter ## Flux_ESG_Sigma); \
+            pfa.setGaussianFlux(filter ## Flux_Gaussian, filter ## Flux_Gaussian_Sigma); \
             pfa.setEllipticity(filter ## E1_SG, \
                                filter ## E2_SG, \
                                filter ## Radius_SG, \

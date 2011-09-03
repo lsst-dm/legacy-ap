@@ -81,6 +81,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
                 s.setAmpExposureId(0)
                 s.setRa(ra * afwGeom.degrees)
                 s.setDec(i * afwGeom.degrees)
+                s.setXAstrom(ra)
+                s.setYAstrom(i)
                 self.sources.append(s)
                 ra += 0.5
         self.numInputSources = len(self.sources)
