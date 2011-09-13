@@ -102,6 +102,7 @@ void ReferencePosition::setMotion(
                           "star velocity vector magnitude exceeds half "
                           "the speed of light");
     }
+    _parallax = parallax;
     _flags = MOVING | PARALLAX | (parallaxCor ? PARALLAX_COR : 0);
 }
 
