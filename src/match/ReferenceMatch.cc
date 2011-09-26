@@ -1194,6 +1194,7 @@ void RefPosMatcher::match(CsvWriter &writer,
     _posReader = &posReader;
     while (true) {
         if (_posReader->isDone()) {
+            _refSweep.clear(*this);
             while (!_refReader->isDone()) {
                 double refDecl = _refReader->peek();
                 _posSweep.advance(refDecl, *this);
@@ -1203,6 +1204,7 @@ void RefPosMatcher::match(CsvWriter &writer,
             }
             break;
         } else if (_refReader->isDone()) {
+            _posSweep.clear(*this);
             while (!_posReader->isDone()) {
                 double posDecl = _posReader->peek();
                 _refSweep.advance(posDecl, *this);
@@ -1348,7 +1350,7 @@ void RefPosMatcher::_finish(MatchableRef *r) {
         return;
     }
     // All matches for r have been found - write out all match
-    // pairs (r, p) where all matches for r have also been found
+    // pairs (r, p) where all matches for p have also been found
     //
     // Note that writing (r, p) is delayed until this late stage
     // because the match table output includes flags that indicate
@@ -1468,6 +1470,7 @@ void RefExpMatcher::match(CsvWriter &writer,
     // run the standard sweep line algorithm
     while (true) {
         if (i == end) {
+            _refSweep.clear(*this);
             while (!_refReader->isDone()) {
                 double refDecl = _refReader->peek();
                 _expSweep.advance(refDecl, *this);
@@ -1477,6 +1480,7 @@ void RefExpMatcher::match(CsvWriter &writer,
             }
             break;
         } else if (_refReader->isDone()) {
+            _expSweep.clear(*this);
             for (; i != end; ++i) {
                 double expDecl = (*i)->getMinCoord1();
                 _refSweep.advance(expDecl, *this);

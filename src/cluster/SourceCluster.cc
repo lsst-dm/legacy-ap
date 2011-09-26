@@ -1508,7 +1508,17 @@ void SourceClusterAttributes::computeAttributes(
                 tend = t;
             }
         }
-        setObsTime(tbeg, tend, tmean / sources.size());
+        tmean /= sources.size();
+        // Clamp tmean to [tbeg, tend]. Necessary because for some test inputs,
+        // visit observation times are all identical. In this case, round-off
+        // error can result in tmean outside of [tbeg, tend], causing setObsTime
+        // to throw an exception.
+        if (tmean < tbeg) {
+            tmean = tbeg;
+        } else if (tmean > tend) {
+            tmean = tend;
+        }
+        setObsTime(tbeg, tend, tmean);
     }
     // compute fiducial cluster position (unweighted mean,
     // the point source model position).
