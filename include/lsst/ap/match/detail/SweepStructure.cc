@@ -37,9 +37,11 @@
 #include <climits>
 #include <algorithm>
 
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/pex/exceptions.h"
 #include "../../utils/SpatialUtils.h"
 
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match { namespace detail {
 
@@ -434,7 +436,7 @@ void SphericalSweep<Region>::search(OtherRegion *r,
     lsst::ap::utils::thetaRangeReduce(min, max);
     if (min > max) {
         _search(r, f, 0.0, max);
-        max = 2*M_PI;
+        max = afwGeom::TWOPI;
     }
     _search(r, f, min, max);
     ++_searchId;

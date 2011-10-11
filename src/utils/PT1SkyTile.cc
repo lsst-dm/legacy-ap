@@ -33,9 +33,11 @@
 #include <cmath>
 
 #include "lsst/pex/exceptions.h"
+#include "lsst/afw/geom/Angle.h"
 
 
 namespace except = lsst::pex::exceptions;
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace utils {
 
@@ -80,8 +82,8 @@ PT1SkyTile::~PT1SkyTile() { }
   * @return     @c true iff @c (theta,phi) is inside this sky-tile.
   */
 bool PT1SkyTile::contains(double theta, double phi) const {
-    int root = static_cast<int>(std::fmod(0.5 + 2.0 * ONE_OVER_PI * theta, 4.0));
-    double theta1 = theta - 0.5 * M_PI * root;
+    int root = static_cast<int>(std::fmod(0.5 + 2.0 * afwGeom::ONE_OVER_PI * theta, 4.0));
+    double theta1 = theta - 0.5 * afwGeom::PI * root;
     double tanPhi = std::tan(phi);
     double x, y = tanPhi / std::cos(theta1);
     if (y > 1.0) {

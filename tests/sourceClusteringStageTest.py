@@ -29,6 +29,7 @@ import lsst.daf.base as dafBase
 import lsst.pex.policy as pexPolicy
 import lsst.afw.detection as afwDetection
 import lsst.afw.image as afwImage
+import lsst.afw.geom as afwGeom
 import lsst.skypix as skypix
 import lsst.ap.cluster as cluster
 import lsst.ap.match as match
@@ -78,8 +79,8 @@ class SourceClusteringStageTestCase(unittest.TestCase):
                 s = afwDetection.Source()
                 s.setObjectId(i)
                 s.setAmpExposureId(0)
-                s.setRa(math.radians(ra))
-                s.setDec(math.radians(i))
+                s.setRa(ra * afwGeom.degrees)
+                s.setDec(i * afwGeom.degrees)
                 s.setXAstrom(ra)
                 s.setYAstrom(i)
                 self.sources.append(s)

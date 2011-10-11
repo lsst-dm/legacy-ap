@@ -43,6 +43,7 @@
 #include "lsst/pex/policy/DefaultPolicyFile.h"
 #include "lsst/pex/policy/Policy.h"
 #include "lsst/afw/coord/Coord.h"
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/Common.h"
@@ -76,10 +77,10 @@ using lsst::ap::utils::clampPhi;
 using lsst::ap::utils::CsvDialect;
 using lsst::ap::utils::CsvReader;
 using lsst::ap::utils::CsvWriter;
-using lsst::ap::utils::degrees;
 using lsst::ap::utils::maxAlpha;
 using lsst::ap::utils::sphericalToCartesian;
 
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match {
 
@@ -87,7 +88,6 @@ namespace {
 
 // converts from milliarcsec/yr to rad/day
 double const RADY_PER_MASD = 1.32734751843815467101961424328e-11;
-double const RAD_PER_MAS = 4.84813681109535993589914102357e-9;
 
 // -- Classes for match participants ----
 
@@ -509,7 +509,7 @@ MatchablePosReader::MatchablePosReader(
     double radius
 ) :
     _arena(),
-    _decl(-M_PI*0.5),
+    _decl(-afwGeom::HALFPI),
     _defaultEpoch(policy->getDouble("epoch")),
     _minEpoch(_defaultEpoch),
     _maxEpoch(_defaultEpoch),
@@ -623,7 +623,7 @@ void MatchablePosReader::_read() {
                           "Position table contains NULL or NaN right "
                           "ascension, declination, or epoch");
     }
-    if (decl < -M_PI*0.5 || decl > M_PI*0.5) {
+    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Invalid declination found in position table");
     }
@@ -777,7 +777,7 @@ RefReaderBase::RefReaderBase(
     double maxMatchEpoch,
     double parallaxThresh
 ) :
-    _decl(-M_PI*0.5),
+    _decl(-afwGeom::HALFPI),
     _readAhead(0.0),
     _reader(),
     _pos(0, 0.0, 0.0),
@@ -872,7 +872,7 @@ RefReaderBase::RefReaderBase(
         if (_muRaCol >= 0 && _muDeclCol >= 0 && _parallaxCol >= 0) {
             if (policy->exists("maxParallax") &&
                 policy->exists("maxAngularVelocity")) {
-                _maxParallax = policy->getDouble("maxParallax")*RAD_PER_MAS;
+                _maxParallax = afwGeom::masToRad(policy->getDouble("maxParallax"));
                 _maxAngularVelocity =
                     policy->getDouble("maxAngularVelocity")*RADY_PER_MASD;
             } else {
@@ -898,11 +898,11 @@ RefReaderBase::RefReaderBase(
     log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
                _minEpoch, _maxEpoch);
     log.format(Log::INFO, "  - max parallax is %.3f milliarcsec",
-               _maxParallax/RAD_PER_MAS);
+               afwGeom::radToMas(_maxParallax));
     log.format(Log::INFO, "  - max angular velocity is %.3f milliarcsec/yr",
                _maxAngularVelocity/RADY_PER_MASD);
     log.format(Log::INFO, "  - read-ahead is %.3f milliarcsec",
-               _readAhead/RAD_PER_MAS);
+               afwGeom::radToMas(_readAhead));
 }
 
 RefReaderBase::~RefReaderBase() { }
@@ -933,7 +933,7 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
                           "Reference catalog record contains NULL/NaN right "
                           "ascension, declination, or epoch");
     }
-    if (decl < -M_PI*0.5 || decl > M_PI*0.5) {
+    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Invalid declination found in reference catalog");
     }
@@ -1018,7 +1018,7 @@ void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
                 !lsst::utils::isnan(muDecl)) {
                 if (!_muRaTrueAngle) {
                     double decl = reader.get<double>(_declCol)*_declScale;
-                    if (decl < -M_PI*0.5 || decl > M_PI*0.5 ||
+                    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI ||
                         lsst::utils::isnan(decl)) {
                         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                                           "Invalid declination found in "
@@ -1242,9 +1242,9 @@ void RefPosMatcher::_writeMatch(RefPosMatch const *m) {
     MatchablePos const *p = m->getPos();
     _writer->appendField(r->getReferencePosition().getId());
     _writer->appendField(p->getId());
-    _writer->appendField(degrees(m->getRa()));
-    _writer->appendField(degrees(m->getDecl()));
-    _writer->appendField(degrees(m->getAngularSeparation())*3600.0);
+    _writer->appendField(afwGeom::radToDeg(m->getRa()));
+    _writer->appendField(afwGeom::radToDeg(m->getDecl()));
+    _writer->appendField(afwGeom::radToArcsec(m->getAngularSeparation()));
     _writer->appendField(r->getNumMatches());
     _writer->appendField(p->getNumMatches());
     _writer->appendField(r->getClosestId() == p->getId());
@@ -1444,7 +1444,7 @@ RefExpMatcher::RefExpMatcher() :
     _refSweep(),
     _writer(0),
     _refReader(0),
-    _maxDecl(-M_PI*0.5)
+    _maxDecl(-afwGeom::HALFPI)
 { }
 
 RefExpMatcher::~RefExpMatcher() {
@@ -1566,7 +1566,7 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     Eigen::Vector3d v = r->getReferencePosition().getPosition(
         epoch, e->getEarthPosition());
     Eigen::Vector2d sc = cartesianToSpherical(v);
-    lsst::afw::coord::IcrsCoord coord(degrees(sc.x()), degrees(sc.y()));
+    lsst::afw::coord::IcrsCoord coord(sc.x() * afwGeom::radians, sc.y() * afwGeom::radians);
     // avoid at least one memory allocation
     boost::shared_ptr<lsst::afw::coord::Coord> sky(&coord, _nullDeleter);
     lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(sky);
@@ -1632,10 +1632,10 @@ LSST_AP_API void referenceMatch(
     CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
     MatchablePosReader posReader(
         posPath, posPolicy, outDialect,
-        xPolicy->getDouble("radius")*RADIANS_PER_ARCSEC);
+        afwGeom::arcsecToRad(xPolicy->getDouble("radius")));
     RefReader<MatchableRef> refReader(
         refPath, refPolicy, outDialect, posReader.getMinEpoch(),
-        posReader.getMaxEpoch(), xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
+        posReader.getMaxEpoch(), afwGeom::masToRad(xPolicy->getDouble("parallaxThresh")));
     CsvWriter writer(matchPath, outDialect, truncate);
     RefPosMatcher matcher;
 
@@ -1713,7 +1713,7 @@ LSST_AP_API void referenceFilter(
     CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
     RefReader<RefWithCov> refReader(
         refPath, refPolicy, outDialect, minEpoch, maxEpoch,
-        xPolicy->getDouble("parallaxThresh")*RAD_PER_MAS);
+        afwGeom::masToRad(xPolicy->getDouble("parallaxThresh")));
     CsvWriter writer(filtPath, outDialect, truncate);
     RefExpMatcher matcher;
 
@@ -1726,3 +1726,5 @@ LSST_AP_API void referenceFilter(
 
 }}} // namespace lsst::ap::match
 
+
+//  LocalWords:  declScale

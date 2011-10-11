@@ -30,8 +30,10 @@
 #include <cfloat>
 
 #include "lsst/pex/exceptions.h"
+#include "lsst/afw/geom/Angle.h"
 
 namespace pexExcept = lsst::pex::exceptions;
+namespace afwGeom = lsst::afw::geom;
 
 
 namespace lsst { namespace ap { namespace utils {
@@ -46,26 +48,26 @@ namespace lsst { namespace ap { namespace utils {
   */
 LSST_AP_API void thetaRangeReduce(double &min, double &max) {
     if (min > max) {
-        if (max < 0.0 || min >= 2.0*M_PI) {
+        if (max < 0.0 || min >= afwGeom::TWOPI) {
             throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                               "Invalid longitude angle interval");
         }
-    } else if (max - min >= 2.0*M_PI) {
+    } else if (max - min >= afwGeom::TWOPI) {
         min = 0.0;
-        max = 2.0*M_PI;
-    } else if (min < 0.0 || max >= 2.0*M_PI) {
+        max = afwGeom::TWOPI;
+    } else if (min < 0.0 || max >= afwGeom::TWOPI) {
         // range reduce
-        min = std::fmod(min, 2.0*M_PI);
-        max = std::fmod(max, 2.0*M_PI);
+        min = std::fmod(min, afwGeom::TWOPI);
+        max = std::fmod(max, afwGeom::TWOPI);
         if (min < 0.0) {
-            min += 2.0*M_PI;
-            if (min == 2.0*M_PI) {
+            min += afwGeom::TWOPI;
+            if (min == afwGeom::TWOPI) {
                 min = 0.0;
             }
         }
         if (max < 0.0) {
-            max += 2.0*M_PI;
-            if (max == 2.0*M_PI) {
+            max += afwGeom::TWOPI;
+            if (max == afwGeom::TWOPI) {
                 max = 0.0;
             }
         }
@@ -85,7 +87,7 @@ LSST_AP_API double maxAlpha(
 ) {
     static const double POLE_EPSILON = 1e-7;
 
-    if (radius < 0.0 || radius > M_PI*0.5) {
+    if (radius < 0.0 || radius > afwGeom::HALFPI) {
         throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                           "radius must be in range [0, M_PI/2] deg");
     }
@@ -93,8 +95,8 @@ LSST_AP_API double maxAlpha(
         return 0.0;
     }
     centerPhi = clampPhi(centerPhi);
-    if (std::fabs(centerPhi) + radius > M_PI*0.5 - POLE_EPSILON) {
-        return M_PI*(1 + 2.0*DBL_EPSILON);
+    if (std::fabs(centerPhi) + radius > afwGeom::HALFPI - POLE_EPSILON) {
+        return afwGeom::PI*(1 + 2.0*DBL_EPSILON);
     }
     double y = std::sin(radius);
     double x = std::sqrt(std::fabs(std::cos(centerPhi - radius) *
@@ -166,8 +168,8 @@ LSST_AP_API Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v)
     double theta = (d2 == 0.0) ? 0.0 : std::atan2(v.y(), v.x());
     double phi = (v.z() == 0.0) ? 0.0 : std::atan2(v.z(), std::sqrt(d2));
     if (theta < 0.0) {
-        theta += 2*M_PI;
-        if (theta == 2*M_PI) {
+        theta += afwGeom::TWOPI;
+        if (theta == afwGeom::TWOPI) {
             theta = 0.0;
         }
     }

@@ -35,6 +35,7 @@ import lsst.daf.persistence as persistence
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.afw.image as image
+import lsst.afw.geom as afwGeom
 import lsst.ap.cluster as cluster
 import lsst.ap.match as match
 
@@ -135,13 +136,13 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s = detection.Source()
             s.setAmpExposureId(0)
             s.setFilterId(0)
-            s.setRa(0.1*i)
-            s.setDec(0.0)
+            s.setRa((0.1*i) *afwGeom.radians)
+            s.setDec(0. * afwGeom.radians)
             sources.append(s)
             if i != 2:
                 s = detection.Source()
-                s.setRa(0.2)
-                s.setDec(0.1*(i - 2))
+                s.setRa(0.2 * afwGeom.radians)
+                s.setDec(0.1*(i - 2) * afwGeom.radians)
                 sources.append(s)
         sca = cluster.SourceClusterAttributes(0)
         sca.computeAttributes(sources, self.exposures, 1.0, 0, 0, 0, 0)

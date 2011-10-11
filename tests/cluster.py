@@ -29,7 +29,7 @@ import lsst.pex.exceptions as exceptions
 import lsst.pex.policy as policy
 import lsst.afw.detection as detection
 import lsst.ap.cluster as cluster
-
+import lsst.afw.geom as afwGeom
 
 def countClusters(clusters):
     """Counts the number of source cluster containing more than one source.
@@ -44,8 +44,8 @@ class ClusterTestCase(unittest.TestCase):
         p = policy.Policy()
         ss = detection.SourceSet()
         s = detection.Source()
-        s.setRa(0.0)
-        s.setDec(0.0)
+        s.setRa(0. * afwGeom.radians)
+        s.setDec(0. * afwGeom.radians)
         ss.append(s)
         self.assertRaises(exceptions.LsstException, cluster.cluster, ss, p)
         p.set('epsilonArcsec', -1.0)
@@ -67,12 +67,12 @@ class ClusterTestCase(unittest.TestCase):
         self.assertEqual(countClusters(c), 0)
         p.set('epsilonArcsec', 3600.0) # 1-degree clustering distance
         s = detection.Source()
-        s.setRa(math.radians(0.5))
-        s.setDec(0.0)
+        s.setRa(0.5 * afwGeom.degrees)
+        s.setDec(0. * afwGeom.degrees)
         ss.append(s)
         s = detection.Source()
-        s.setRa(0.0)
-        s.setDec(math.radians(0.5))
+        s.setRa(0. * afwGeom.degrees)
+        s.setDec(0.5 * afwGeom.degrees)
         ss.append(s)
         c = cluster.cluster(ss, p)
         self.assertEqual(countClusters(c), 1)
@@ -97,8 +97,8 @@ class ClusterTestCase(unittest.TestCase):
             for j in xrange(20):
                 s = detection.Source()
                 s.setObjectId(i)
-                s.setRa(math.radians(ra))
-                s.setDec(math.radians(i))
+                s.setRa(ra * afwGeom.degrees)
+                s.setDec(i * afwGeom.degrees)
                 ss.append(s)
                 ra += 0.5
         # check that each streak results in a cluster

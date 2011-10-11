@@ -44,6 +44,7 @@
 #include "lsst/afw/geom/ellipses/Quadrupole.h"
 #include "lsst/afw/image/ImageUtils.h"
 #include "lsst/afw/image/Wcs.h"
+#include "lsst/afw/geom/Angle.h"
 
 #include "lsst/ap/Common.h"
 #include "lsst/ap/cluster/optics/Metrics.h"
@@ -59,11 +60,11 @@ namespace image = lsst::afw::image;
 namespace logging = lsst::pex::logging;
 namespace policy = lsst::pex::policy;
 namespace match = lsst::ap::match;
+namespace afwGeom = lsst::afw::geom;
 
 using std::sqrt;
 
 using lsst::ap::utils::cartesianToSpherical;
-using lsst::ap::utils::degrees;
 using lsst::ap::utils::sphericalToCartesian;
 
 
@@ -134,12 +135,12 @@ private:
 NeTanProj::NeTanProj(lsst::afw::coord::Coord::Ptr center) :
     _center(center)
 {
-    double sinLon = std::sin(center->getLongitude(coord::RADIANS));
-    double cosLon = std::cos(center->getLongitude(coord::RADIANS));
-    double sinLat = std::sin(center->getLatitude(coord::RADIANS));
-    double cosLat = std::cos(center->getLatitude(coord::RADIANS));
+    double sinLon = std::sin(center->getLongitude());
+    double cosLon = std::cos(center->getLongitude());
+    double sinLat = std::sin(center->getLatitude());
+    double cosLat = std::cos(center->getLatitude());
     _origin = Eigen::Vector3d(cosLat*cosLon, cosLat*sinLon, sinLat);
-    if (std::fabs(center->getLatitude(coord::RADIANS)) == M_PI_2) {
+    if (std::fabs(center->getLatitude()) == afwGeom::HALFPI) {
         _north = Eigen::Vector3d(-1.0, 0.0, 0.0);
         _east = Eigen::Vector3d(0.0, 1.0, 0.0);
     } else {
@@ -311,11 +312,11 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> const cluster(
         // Convert epsilon and leafExtentThreshold to radians, and account
         // for the fact that our metric is the squared euclidian distance,
         // not angular separation.
-        epsilon = std::sin(0.5 * RADIANS_PER_ARCSEC * epsilon);
+        epsilon = std::sin(0.5 * afwGeom::arcsecToRad(epsilon));
         epsilon = 4.0 * epsilon * epsilon;
         if (leafExtentThreshold > 0.0) {
             leafExtentThreshold = std::sin(
-                0.5 * RADIANS_PER_ARCSEC * leafExtentThreshold);
+                0.5 * afwGeom::arcsecToRad(leafExtentThreshold));
             leafExtentThreshold = 4.0 * leafExtentThreshold * leafExtentThreshold;
         }
         Optics optics(entries.get(),
@@ -340,8 +341,8 @@ LSST_AP_API void updateSources(SourceClusterAttributes const & cluster,
     typedef detection::SourceSet::iterator Iter;
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
         (*i)->setObjectId(cluster.getClusterId());
-        (*i)->setRaObject(cluster.getRaPs());
-        (*i)->setDecObject(cluster.getDecPs());
+        (*i)->setRaObject(cluster.getRaPs() * afwGeom::radians);
+        (*i)->setDecObject(cluster.getDecPs() * afwGeom::radians);
     }
 }
 
@@ -427,11 +428,11 @@ LSST_AP_API void locateAndFilterSources(
                     invalid = true;
                 } else {
                     geom::AffineTransform xform =
-                        wcs->linearizePixelToSky(sky, coord::RADIANS);
+                        wcs->linearizePixelToSky(sky, afwGeom::radians);
                     v = (xform.getLinear().getMatrix().cwise() *
                          xform.getLinear().getMatrix()) * v.cwise().square();
-                    (*i)->setRaAstromErr(sqrt(v.x()));
-                    (*i)->setDecAstromErr(sqrt(v.y()));
+                    (*i)->setRaAstromErr(sqrt(v.x()) * afwGeom::radians);
+                    (*i)->setDecAstromErr(sqrt(v.y()) * afwGeom::radians);
                 }
             }
         }
@@ -462,11 +463,11 @@ LSST_AP_API void locateAndFilterSources(
                         invalid = true;
                     } else {
                         geom::AffineTransform xform =
-                            wcs->linearizePixelToSky(sky, coord::RADIANS);
+                            wcs->linearizePixelToSky(sky, afwGeom::radians);
                         v = (xform.getLinear().getMatrix().cwise() *
                              xform.getLinear().getMatrix()) * v.cwise().square();
-                        (*i)->setRaFluxErr(sqrt(v.x()));
-                        (*i)->setDecFluxErr(sqrt(v.y()));
+                        (*i)->setRaFluxErr(sqrt(v.x()) * afwGeom::radians);
+                        (*i)->setDecFluxErr(sqrt(v.y()) * afwGeom::radians);
                     }
                 }
             }
@@ -531,13 +532,12 @@ LSST_AP_API void segregateInvalidSources(
     Iter end = sources.end();
     for (Iter i = j; i != end; ++i) {
         bool invalid = false;
-        // radians
-        double ra = (*i)->getRa();
-        double dec = (*i)->getDec();
+        double ra = (*i)->getRa().asRadians();
+        double dec = (*i)->getDec().asRadians();
         if (lsst::utils::isnan(ra) ||
             lsst::utils::isnan(dec) ||
-            ra < 0.0 || ra >= 2.0 * M_PI ||
-            dec < -M_PI_2 || dec > M_PI_2) {
+            ra < 0.0 || ra >= afwGeom::TWOPI ||
+            dec < -afwGeom::HALFPI || dec > afwGeom::HALFPI) {
             log.format(logging::Log::WARN, "Source %lld in exposure %lld has "
                        "invalid position (NaN or out-of-bounds coordinate value(s))",
                        static_cast<long long>((*i)->getSourceId()),
@@ -1435,10 +1435,9 @@ void SourceClusterAttributes::computeAttributes(
     image::Wcs::ConstPtr wcs = exposure->getWcs();
     // get a Coord in the same coordinate system as the input WCSes
     coord::Coord::Ptr center = wcs->getSkyOrigin()->clone();
-    // radians
-    double ra = source->getRa();
-    double dec = source->getDec();
-    center->reset(degrees(ra), degrees(dec), center->getEpoch());
+    afwGeom::Angle ra = source->getRa();
+    afwGeom::Angle dec = source->getDec();
+    center->reset(ra, dec, center->getEpoch());
     NeTanProj proj(center);
 
     if (source->isNull(detection::RA_ASTROM_ERR) ||
@@ -1447,14 +1446,14 @@ void SourceClusterAttributes::computeAttributes(
         source->getRaAstromErr() < 0.0f ||
         lsst::utils::isnan(dec) ||
         source->getDecAstromErr() < 0.0f) {
-        setPsPosition(ra, dec, NullOr<float>(), NullOr<float>(), NullOr<float>());
-        setSgPosition(ra, dec, NullOr<float>(), NullOr<float>(), NullOr<float>());
+        setPsPosition(ra.asRadians(), dec.asRadians(), NullOr<float>(), NullOr<float>(), NullOr<float>());
+        setSgPosition(ra.asRadians(), dec.asRadians(), NullOr<float>(), NullOr<float>(), NullOr<float>());
     } else {
-        setPsPosition(ra, dec,
-                      source->getRaAstromErr(), source->getDecAstromErr(),
+        setPsPosition(ra.asRadians(), dec.asRadians(),
+                      source->getRaAstromErr().asRadians(), source->getDecAstromErr().asRadians(),
                       NullOr<float>());
-        setSgPosition(ra, dec,
-                      source->getRaAstromErr(), source->getDecAstromErr(),
+        setSgPosition(ra.asRadians(), dec.asRadians(),
+                      source->getRaAstromErr().asRadians(), source->getDecAstromErr().asRadians(),
                       NullOr<float>());
     }
     SourceAndExposure se(source, exposure, proj.pixelToNeTransform(
@@ -1535,7 +1534,7 @@ void SourceClusterAttributes::computeAttributes(
                               "No ExposureInfo found for source");
         }
         center = exposure->getWcs()->getSkyOrigin()->clone();
-        center->reset(degrees(_raPs), degrees(_decPs), center->getEpoch());
+        center->reset(_raPs * afwGeom::radians, _decPs * afwGeom::radians, center->getEpoch());
     }
     // construct N,E tan projection at fiducial cluster position
     NeTanProj proj(center);
@@ -1615,16 +1614,16 @@ void SourceClusterAttributes::_computePsPosition(
             source.getRaAstromErr() <= 0.0f ||
             lsst::utils::isnan(source.getDecAstromErr()) ||
             source.getDecAstromErr() <= 0.0f) {
-            setPsPosition(source.getRa(),
-                          source.getDec(),
+            setPsPosition(source.getRa().asRadians(),
+                          source.getDec().asRadians(),
                           NullOr<float>(),
                           NullOr<float>(),
                           NullOr<float>());
         } else {
-            setPsPosition(source.getRa(),
-                          source.getDec(),
-                          source.getRaAstromErr(),
-                          source.getDecAstromErr(),
+            setPsPosition(source.getRa().asRadians(),
+                          source.getDec().asRadians(),
+                          source.getRaAstromErr().asRadians(),
+                          source.getDecAstromErr().asRadians(),
                           NullOr<float>());
         }
         return;
@@ -1643,10 +1642,10 @@ void SourceClusterAttributes::_computePsPosition(
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
        // use minimum delta ra to avoid huge errors for samples spanning
        // the 0/2*M_PI discontinuity
-       double dr = std::fabs((*i)->getRa() - sc.x());
-       double dd = (*i)->getDec() - sc.y();
-       if (dr > M_PI) {
-          dr = 2*M_PI - dr;
+       double dr = std::fabs((*i)->getRa().asRadians() - sc.x());
+       double dd = (*i)->getDec().asRadians() - sc.y();
+       if (dr > afwGeom::PI) {
+           dr = afwGeom::TWOPI - dr;
        }
        covRaRa += dr * dr;
        covDecDec += dd * dd;

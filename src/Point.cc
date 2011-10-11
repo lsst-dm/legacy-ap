@@ -39,9 +39,10 @@
 #include "lsst/ap/Point.h"
 #include "lsst/ap/SpatialUtil.h"
 #include "lsst/ap/Time.h"
+#include "lsst/afw/geom/Angle.h"
 
 using lsst::afw::math::Random;
-
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace {
 
@@ -51,8 +52,8 @@ double randomDec(Random & rng, double const decMin, double const decMax) {
 
     double min  = (decMin < -90.0) ? -90.0 : decMin;
     double max  = (decMax >  90.0) ?  90.0 : decMax;
-    double z    = rng.flat(std::sin(radians(min)), std::sin(radians(max)));
-    double res  = degrees(std::asin(z));
+    double z    = rng.flat(std::sin(afwGeom::degToRad(min)), std::sin(afwGeom::degToRad(max)));
+    double res  = afwGeom::radToDeg(std::asin(z));
     if (res < decMin) {
         return decMin;
     } else if (res > decMax) {
@@ -80,18 +81,18 @@ lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma) {
  */
 lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma, double const pa) {
 
-    double sra  = std::sin(radians(_ra));
-    double cra  = std::cos(radians(_ra));
-    double sdec = std::sin(radians(_dec));
-    double cdec = std::cos(radians(_dec));
+    double sra  = std::sin(afwGeom::degToRad(_ra));
+    double cra  = std::cos(afwGeom::degToRad(_ra));
+    double sdec = std::sin(afwGeom::degToRad(_dec));
+    double cdec = std::cos(afwGeom::degToRad(_dec));
 
     // original position p
     double x = cra*cdec;
     double y = sra*cdec;
     double z = sdec;
 
-    double spa = std::sin(radians(pa));
-    double cpa = std::cos(radians(pa));
+    double spa = std::sin(afwGeom::degToRad(pa));
+    double cpa = std::cos(afwGeom::degToRad(pa));
 
     // north vector tangential to p
     double nx = - cra*sdec;
@@ -110,7 +111,7 @@ lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma, dou
 
     // perturb in this direction by a random angle that is normally
     // distributed with a standard deviation of sigma degrees
-    double mag  = radians(rng.gaussian()*sigma);
+    double mag  = afwGeom::degToRad(rng.gaussian()*sigma);
     double smag = std::sin(mag);
     double cmag = std::cos(mag);
 
@@ -119,11 +120,11 @@ lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma, dou
     y = y*cmag + ty*smag;
     z = z*cmag + tz*smag;
     // finally, convert back to spherical coordinates (in degrees)
-    _ra = degrees(std::atan2(y, x));
+    _ra = afwGeom::radToDeg(std::atan2(y, x));
     if (_ra < 0.0) {
         _ra += 360.0;
     }
-    _dec = degrees(std::asin(z));
+    _dec = afwGeom::radToDeg(std::asin(z));
     if (_dec <= -90.0) {
         _dec = -90.0;
     } else if (_dec >= 90.0) {
@@ -136,32 +137,32 @@ lsst::ap::Point & lsst::ap::Point::perturb(Random & rng, double const sigma, dou
 /** Returns the angular distance to the given point (in degrees). */
 double lsst::ap::Point::distance(Point const & p) const {
 
-    double sra  = std::sin(radians(_ra));
-    double cra  = std::cos(radians(_ra));
-    double sdec = std::sin(radians(_dec));
-    double cdec = std::cos(radians(_dec));
+    double sra  = std::sin(afwGeom::degToRad(_ra));
+    double cra  = std::cos(afwGeom::degToRad(_ra));
+    double sdec = std::sin(afwGeom::degToRad(_dec));
+    double cdec = std::cos(afwGeom::degToRad(_dec));
 
     double x = cra*cdec;
     double y = sra*cdec;
     double z = sdec;
 
-    sra  = std::sin(radians(p._ra));
-    cra  = std::cos(radians(p._ra));
-    sdec = std::sin(radians(p._dec));
-    cdec = std::cos(radians(p._dec));
+    sra  = std::sin(afwGeom::degToRad(p._ra));
+    cra  = std::cos(afwGeom::degToRad(p._ra));
+    sdec = std::sin(afwGeom::degToRad(p._dec));
+    cdec = std::cos(afwGeom::degToRad(p._dec));
 
     x *= cra*cdec;
     y *= sra*cdec;
     z *= sdec;
 
-    return degrees(std::acos(x + y + z));
+    return afwGeom::radToDeg(std::acos(x + y + z));
 }
 
 
 /** Picks a point uniformly at random on the unit sphere. */
 lsst::ap::Point const lsst::ap::Point::random(Random & rng) {
     double z = rng.flat(-1.0, 1.0);
-    return Point(rng.flat(0.0, 360.0), degrees(std::asin(z)));
+    return Point(rng.flat(0.0, 360.0), afwGeom::radToDeg(std::asin(z)));
 }
 
 

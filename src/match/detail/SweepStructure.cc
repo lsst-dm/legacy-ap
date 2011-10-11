@@ -29,11 +29,12 @@
   * @author Serge Monkewitz
   */
 #include "lsst/ap/match/detail/SweepStructure.h"
-
+#include "lsst/afw/geom/Angle.h"
 #include <stdexcept>
 
 #include "lsst/utils/ieee.h"
 
+namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match { namespace detail {
 
@@ -382,7 +383,7 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
         SphericalNode *n1 = new (_arena) SphericalNode(b, 0.0, max);
         SphericalNode *n2 = 0;
         try {
-            n2 = new (_arena) SphericalNode(b, min, 2.0*M_PI);
+            n2 = new (_arena) SphericalNode(b, min, afwGeom::TWOPI);
         } catch (...) {
             // exception safety: if allocation for n2 fails, delete n1.
             _arena.destroy(n1);

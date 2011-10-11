@@ -45,12 +45,14 @@
 #include "lsst/daf/persistence/FormatterImpl.h"
 #include "lsst/daf/persistence/LogicalLocation.h"
 #include "lsst/afw/image/Filter.h"
+#include "lsst/afw/geom/Angle.h"
 
 #include "lsst/ap/Common.h"
 #include "lsst/ap/cluster/SourceCluster.h"
 
 
 namespace except = lsst::pex::exceptions;
+namespace afwGeom = lsst::afw::geom;
 
 using lsst::daf::base::Persistable;
 using lsst::daf::base::PropertySet;
@@ -110,16 +112,8 @@ inline void insertFloat(StorageT & db, char const * const col, NullOr<T> const &
     insertFloat(db, col, static_cast<T>(val));
 }
 
-template <typename FloatT> inline FloatT radians(FloatT deg) {
-    return static_cast<FloatT>(deg * RADIANS_PER_DEGREE);
-}
-
-template <typename FloatT> inline FloatT degrees(FloatT rad) {
-    return static_cast<FloatT>(rad * DEGREES_PER_RADIAN);
-}
-
 template <typename FloatT> inline FloatT rangeReducedDegrees(FloatT rad) {
-    FloatT deg = std::fmod(degrees(rad), static_cast<FloatT>(360));
+    FloatT deg = std::fmod(afwGeom::radToDeg(rad), static_cast<FloatT>(360));
     if (deg < static_cast<FloatT>(0)) {
         deg = deg + static_cast<FloatT>(360);
         if (deg == static_cast<FloatT>(360)) {
@@ -329,15 +323,15 @@ void insertObjectRow(DbStorageT & db,
     // set filter-agnostic columns
     db.template setColumn<int64_t>("objectId", attributes.getClusterId());
     insertFloat(db, "ra_PS", rangeReducedDegrees(attributes.getRaPs()));
-    insertFloat(db, "ra_PS_Sigma", degrees(attributes.getRaPsSigma()));
-    insertFloat(db, "decl_PS", degrees(attributes.getDecPs()));
-    insertFloat(db, "decl_PS_Sigma", degrees(attributes.getDecPsSigma()));
-    insertFloat(db, "radecl_PS_Cov", degrees(degrees(attributes.getRaDecPsCov())));
+    insertFloat(db, "ra_PS_Sigma", afwGeom::radToDeg(attributes.getRaPsSigma()));
+    insertFloat(db, "decl_PS", afwGeom::radToDeg(attributes.getDecPs()));
+    insertFloat(db, "decl_PS_Sigma", afwGeom::radToDeg(attributes.getDecPsSigma()));
+    insertFloat(db, "radecl_PS_Cov", afwGeom::radToDeg(afwGeom::radToDeg(attributes.getRaDecPsCov())));
     insertFloat(db, "ra_SG", rangeReducedDegrees(attributes.getRaSg()));
-    insertFloat(db, "ra_SG_Sigma", degrees(attributes.getRaSgSigma()));
-    insertFloat(db, "decl_SG", degrees(attributes.getDecSg()));
-    insertFloat(db, "decl_SG_Sigma", degrees(attributes.getDecSgSigma()));
-    insertFloat(db, "radecl_SG_Cov", degrees(degrees(attributes.getRaDecSgCov())));
+    insertFloat(db, "ra_SG_Sigma", afwGeom::radToDeg(attributes.getRaSgSigma()));
+    insertFloat(db, "decl_SG", afwGeom::radToDeg(attributes.getDecSg()));
+    insertFloat(db, "decl_SG_Sigma", afwGeom::radToDeg(attributes.getDecSgSigma()));
+    insertFloat(db, "radecl_SG_Cov", afwGeom::radToDeg(afwGeom::radToDeg(attributes.getRaDecSgCov())));
     insertFloat(db, "earliestObsTime", attributes.getEarliestObsTime());
     insertFloat(db, "latestObsTime", attributes.getLatestObsTime());
     insertFloat(db, "meanObsTime", attributes.getMeanObsTime());
@@ -635,12 +629,12 @@ void ObjectRow::to(DbStorage * db,
     attributes.setClusterId(objectId);
     attributes.setFlags(flags);
     attributes.setObsTime(earliestObsTime, latestObsTime, meanObsTime);
-    attributes.setPsPosition(radians(ra_PS), radians(decl_PS),
-                             radians(ra_PS_Sigma), radians(decl_PS_Sigma),
-                             radians(radians(radecl_PS_Cov)));
-    attributes.setSgPosition(radians(ra_SG), radians(decl_SG),
-                             radians(ra_SG_Sigma), radians(decl_SG_Sigma),
-                             radians(radians(radecl_SG_Cov)));
+    attributes.setPsPosition(afwGeom::degToRad(ra_PS), afwGeom::degToRad(decl_PS),
+                             afwGeom::degToRad(ra_PS_Sigma), afwGeom::degToRad(decl_PS_Sigma),
+                             afwGeom::degToRad(afwGeom::degToRad(radecl_PS_Cov)));
+    attributes.setSgPosition(afwGeom::degToRad(ra_SG), afwGeom::degToRad(decl_SG),
+                             afwGeom::degToRad(ra_SG_Sigma), afwGeom::degToRad(decl_SG_Sigma),
+                             afwGeom::degToRad(afwGeom::degToRad(radecl_SG_Cov)));
 
     // per-filter columns
 #define LSST_AP_HANDLE_PF_NULLS(i, filter) \
