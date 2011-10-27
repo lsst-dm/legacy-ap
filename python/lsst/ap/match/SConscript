@@ -1,10 +1,3 @@
 # -*- python -*-
-import re
-Import("env")
-
-pkg = env["eups_product"]
-env.CheckSwig("python", ilang="c++", includedProducts="base utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data ndarray afw")
-env.LoadableModuleIncomplete("_matchLib", Split("matchLib.i"),
-                             CCFLAGS=re.sub("-Wall", "", " ".join(env['CCFLAGS'])),
-                             LIBS=env.getlibs(pkg))
-
+from lsst.sconsUtils import scripts
+scripts.BasicSConscript.python(['matchLib'])

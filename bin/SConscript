@@ -1,9 +1,0 @@
-# -*- python -*-
-Import('env')
-
-sysLibs = ['z', 'pthread']
-if env['PLATFORM'] == 'posix':
-    sysLibs += ['rt']
-
-#env.Program('ap_shmem_admin', ['../util/SharedMemoryAdmin.cc'], LIBS=env.getlibs('ap') + sysLibs)
-#env.Program('dumpObjects', ['../util/dumpObjects.cc'], LIBS = env.getlibs('boost mysqlclient utils daf_base daf_persistence pex_exceptions pex_logging pex_policy'))

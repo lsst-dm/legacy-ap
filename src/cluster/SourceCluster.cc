@@ -247,7 +247,7 @@ bool combinePositions(std::vector<SourceAndExposure> const & sources,
         }
         geom::Point2D p(s.getXAstrom(), s.getYAstrom());
         Eigen::Vector2d var(s.getXAstromErr(), s.getYAstromErr());
-        var = var.cwise().square();
+        var = var.array().square().matrix();
         geom::AffineTransform const & transform = i->getTransform();
         Eigen::Matrix2d const & m = transform.getLinear().getMatrix();
         Eigen::Matrix2d invCov = (m*var.asDiagonal()*m.transpose()).inverse();
@@ -429,8 +429,9 @@ LSST_AP_API void locateAndFilterSources(
                 } else {
                     geom::AffineTransform xform =
                         wcs->linearizePixelToSky(sky, afwGeom::radians);
-                    v = (xform.getLinear().getMatrix().cwise() *
-                         xform.getLinear().getMatrix()) * v.cwise().square();
+                    v = (xform.getLinear().getMatrix().array()
+			 * xform.getLinear().getMatrix().array()).matrix()
+		      * v.array().square().matrix();
                     (*i)->setRaAstromErr(sqrt(v.x()) * afwGeom::radians);
                     (*i)->setDecAstromErr(sqrt(v.y()) * afwGeom::radians);
                 }
@@ -464,8 +465,9 @@ LSST_AP_API void locateAndFilterSources(
                     } else {
                         geom::AffineTransform xform =
                             wcs->linearizePixelToSky(sky, afwGeom::radians);
-                        v = (xform.getLinear().getMatrix().cwise() *
-                             xform.getLinear().getMatrix()) * v.cwise().square();
+                        v = (xform.getLinear().getMatrix().array()
+			     * xform.getLinear().getMatrix().array()).matrix()
+			  * v.array().square().matrix();
                         (*i)->setRaFluxErr(sqrt(v.x()) * afwGeom::radians);
                         (*i)->setDecFluxErr(sqrt(v.y()) * afwGeom::radians);
                     }
