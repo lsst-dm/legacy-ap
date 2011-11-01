@@ -41,16 +41,6 @@
 #include "boost/cstdint.hpp"
 
 
-// -- Shared library support ----------------
-
-// Define alignment macro if the compiler supports it
-#if LSST_AP_HAVE_ALIGNED
-#   define LSST_AP_ALIGNED(x) __attribute__((aligned(x)))
-#else
-#   define LSST_AP_ALIGNED(x) 
-#endif
-
-
 namespace lsst { namespace ap { namespace {
 
 /// The radius of an LSST FOV, in degrees.
