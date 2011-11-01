@@ -41,7 +41,7 @@
 namespace lsst { namespace ap {
 
 /** @brief  A circular region of the unit sphere (sky). */
-class LSST_AP_API CircularRegion {
+class CircularRegion {
 
 public :
 

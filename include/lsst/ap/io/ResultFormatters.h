@@ -55,7 +55,7 @@ namespace lsst { namespace ap { namespace io {
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API MatchPairVectorFormatter : public lsst::daf::persistence::Formatter {
+class MatchPairVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~MatchPairVectorFormatter();
@@ -101,7 +101,7 @@ private:
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API IdPairVectorFormatter : public lsst::daf::persistence::Formatter {
+class IdPairVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~IdPairVectorFormatter();
@@ -147,7 +147,7 @@ private:
  * - lsst::daf::persistence::DbTsvStorage
  * - lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API IdVectorFormatter : public lsst::daf::persistence::Formatter {
+class IdVectorFormatter : public lsst::daf::persistence::Formatter {
 public:
 
     virtual ~IdVectorFormatter();

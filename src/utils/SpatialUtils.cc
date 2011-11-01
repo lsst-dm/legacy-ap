@@ -46,7 +46,7 @@ namespace lsst { namespace ap { namespace utils {
   * @li  <tt> min \> max </tt> so long as
   *      <tt> min \<= 2*M_PI && max \>= 0.0 </tt>
   */
-LSST_AP_API void thetaRangeReduce(double &min, double &max) {
+void thetaRangeReduce(double &min, double &max) {
     if (min > max) {
         if (max < 0.0 || min >= afwGeom::TWOPI) {
             throw LSST_EXCEPT(pexExcept::InvalidParameterException,
@@ -81,7 +81,7 @@ LSST_AP_API void thetaRangeReduce(double &min, double &max) {
   *
   * Note that @a centerPhi is clamped to lie in [-M_PI/2, M_PI/2].
   */
-LSST_AP_API double maxAlpha(
+double maxAlpha(
     double radius,   ///< circle radius (rad)
     double centerPhi ///< latitude angle of circle center (rad)
 ) {
@@ -128,7 +128,7 @@ LSST_AP_API double maxAlpha(
   *
   * @sa earthPosition(double)
   */
-LSST_AP_API void positionAndVelocity(
+void positionAndVelocity(
     Eigen::Vector3d &p, ///< [out] position, AU
     Eigen::Vector3d &v, ///< [out] velocity, AU/day
     double ra,          ///< right ascension, rad
@@ -163,7 +163,7 @@ LSST_AP_API void positionAndVelocity(
 /** Converts the input position vector, which need not have unit magnitude,
   * to spherical coordinates (rad).
   */
-LSST_AP_API Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
+Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
     double d2 = v.x()*v.x() + v.y()*v.y();
     double theta = (d2 == 0.0) ? 0.0 : std::atan2(v.y(), v.x());
     double phi = (v.z() == 0.0) ? 0.0 : std::atan2(v.z(), std::sqrt(d2));

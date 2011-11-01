@@ -1803,7 +1803,7 @@ static double const AM33 =  0.917482137087;
   * sufficiently large input vectors:
   * http://software.intel.com/sites/products/documentation/hpc/mkl/vml/functions/cos.html
   */
-LSST_AP_API Eigen::Vector3d const earthPosition(
+Eigen::Vector3d const earthPosition(
     double const epoch ///< epoch, MJD TDB. Using TT is acceptable for most applications.
 ) {
     static double const J2000_MJD = 51544.5;

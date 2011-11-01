@@ -55,7 +55,7 @@ namespace lsst { namespace ap { namespace match {
   * metadata AP cares about, which is important since metadata for tens of
   * thousands of CCDs may need to be kept in memory simultaneously.
   */
-class LSST_AP_API ExposureInfo : public BBox {
+class ExposureInfo : public BBox {
 public:
      typedef boost::shared_ptr<ExposureInfo> Ptr;
      typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
@@ -159,7 +159,7 @@ private:
 
 /** A map from exposure ids to ExposureInfo objects.
   */
-class LSST_AP_API ExposureInfoMap {
+class ExposureInfoMap {
 public:
      typedef boost::shared_ptr<ExposureInfoMap> Ptr;
      typedef boost::shared_ptr<ExposureInfoMap const> ConstPtr;
@@ -190,7 +190,7 @@ private:
 };
 
 
-LSST_AP_API void readExposureInfos(
+void readExposureInfos(
     std::vector<ExposureInfo::Ptr> & exposures,
     std::string const & csvFile,
     lsst::pex::policy::Policy::Ptr expPolicy=lsst::pex::policy::Policy::Ptr());

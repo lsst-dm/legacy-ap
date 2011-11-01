@@ -48,7 +48,7 @@ namespace lsst { namespace ap { namespace cluster { namespace optics {
   * memory usage per node on a typical machine is just 16 bytes - nodes
   * typically will not span cache-lines.
   */
-struct LSST_AP_LOCAL KDTreeNode {
+struct KDTreeNode {
     double split;   ///< Splitting value
     int splitDim;   ///< Dimension of splitting value, -1 for leaf nodes
     int right;      ///< Index of first entry to the right of the split
@@ -79,7 +79,7 @@ struct LSST_AP_LOCAL KDTreeNode {
   * a data object exceeds the lifetime of any Point referencing it.
   */
 template <int K, typename DataT>
-struct LSST_AP_LOCAL Point {
+struct Point {
     static int const PROCESSED = -2;
     static int const UNPROCESSED = -1;
     
@@ -132,7 +132,7 @@ struct LSST_AP_LOCAL Point {
   * while the k-d tree is alive.
   */
 template <int K, typename DataT>
-class LSST_AP_LOCAL KDTree {
+class KDTree {
 public:
     typedef Eigen::Matrix<double, K, 1> Vector;
 

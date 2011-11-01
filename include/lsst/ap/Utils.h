@@ -38,7 +38,7 @@
 
 namespace lsst { namespace ap {
 
-LSST_AP_API void verifyPathName(std::string const & name);
+void verifyPathName(std::string const & name);
 
 }} // end of namespace lsst::ap
 

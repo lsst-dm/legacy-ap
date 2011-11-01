@@ -43,7 +43,7 @@ namespace lsst { namespace ap {
  *
  * The units of all angles (stored or passed to member functions) are degrees.
  */
-struct LSST_AP_API Point {
+struct Point {
 
     double _ra;
     double _dec;

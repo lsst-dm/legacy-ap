@@ -47,28 +47,28 @@ template <typename WordT> struct BitTraits {
     static bool const IS_SPECIALIZED = false;
 };
 
-template <> struct LSST_AP_LOCAL BitTraits<uint8_t>  {
+template <> struct BitTraits<uint8_t>  {
     static bool const IS_SPECIALIZED      = true;
     static int  const BITS_PER_WORD_LOG2  = 3;
     static int  const BITS_PER_WORD       = 8;
     static boost::uint8_t const WORD_MASK = 0xff;
 };
 
-template <> struct LSST_AP_LOCAL BitTraits<uint16_t> {
+template <> struct BitTraits<uint16_t> {
     static bool const IS_SPECIALIZED       = true;
     static int  const BITS_PER_WORD_LOG2   = 4;
     static int  const BITS_PER_WORD        = 16;
     static boost::uint16_t const WORD_MASK = 0xffff;
 };
 
-template <> struct LSST_AP_LOCAL BitTraits<uint32_t> {
+template <> struct BitTraits<uint32_t> {
     static bool const IS_SPECIALIZED       = true;
     static int  const BITS_PER_WORD_LOG2   = 5;
     static int  const BITS_PER_WORD        = 32;
     static boost::uint32_t const WORD_MASK = 0xffffffff;
 };
 
-template <> struct LSST_AP_LOCAL BitTraits<uint64_t> {
+template <> struct BitTraits<uint64_t> {
     static bool const IS_SPECIALIZED       = true;
     static int  const BITS_PER_WORD_LOG2   = 6;
     static int  const BITS_PER_WORD        = 64;

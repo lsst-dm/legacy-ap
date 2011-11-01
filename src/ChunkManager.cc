@@ -85,7 +85,7 @@ namespace detail {
  * and initialization of shared memory blocks themselves. BootstrapLock instances get around this by
  * spinning on exclusive creation of a zero-size shared memory object.
  */
-struct LSST_AP_LOCAL BootstrapLock {
+struct BootstrapLock {
 
     char const * const _name;
     int                _fd;
@@ -126,7 +126,7 @@ BootstrapLock::~BootstrapLock() {
 
 
 template <typename ManagerT>
-LSST_AP_LOCAL ManagerT * getSingleton(char const * const shmObjName, char const * const shmLockName) {
+ManagerT * getSingleton(char const * const shmObjName, char const * const shmLockName) {
 
     static Mutex mutex;
     static ManagerT * singleton = 0;
@@ -231,7 +231,7 @@ static char const * const sSharedPrefix  = "/ap_";
 SharedObjectChunkManager::SharedObjectChunkManager(std::string const & name) : _manager(instance(name)) {}
 
 
-LSST_AP_LOCAL detail::ObjChunkMgr * SharedObjectChunkManager::instance(std::string const & name) {
+detail::ObjChunkMgr * SharedObjectChunkManager::instance(std::string const & name) {
     std::string actualName(sSharedPrefix);
     actualName += name;
     return detail::getSingleton<detail::ObjChunkMgr>(actualName.c_str(), sSharedObjLock);

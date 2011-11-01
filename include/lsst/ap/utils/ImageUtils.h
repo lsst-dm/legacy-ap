@@ -43,17 +43,17 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-LSST_AP_API void makeSourceHistogram(
+void makeSourceHistogram(
     lsst::afw::image::Image<unsigned short>::Ptr histogram,
     lsst::afw::detection::SourceSet const & sources,
     lsst::afw::image::Wcs::Ptr wcs,
     bool ignoreOffImage);
 
-LSST_AP_API void rasterizePolygon(
+void rasterizePolygon(
     std::vector<lsst::afw::geom::Point2D> const &verts,
     lsst::afw::image::Image<float>::Ptr img);
 
-LSST_AP_API void updateCoverageMap(
+void updateCoverageMap(
     lsst::afw::image::Image<float>::Ptr covMap,
     lsst::afw::image::Wcs::Ptr covMapWcs,
     lsst::afw::image::Wcs::Ptr wcs,

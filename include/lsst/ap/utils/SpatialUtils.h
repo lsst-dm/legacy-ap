@@ -45,20 +45,20 @@ inline double clampPhi(double const a) {
     return a <= -M_PI_2 ? -M_PI_2 : (a >= M_PI_2 ? M_PI_2 : a);
 }
 
-LSST_AP_API void thetaRangeReduce(double &min, double &max);
+void thetaRangeReduce(double &min, double &max);
 
-LSST_AP_API double maxAlpha(double radius, double centerPhi);
+double maxAlpha(double radius, double centerPhi);
 
-LSST_AP_API void positionAndVelocity(Eigen::Vector3d &p,
-                                     Eigen::Vector3d &v,
-                                     double ra,
-                                     double decl,
-                                     double muRa,
-                                     double muDecl,
-                                     double vRadial,
-                                     double parallax);
+void positionAndVelocity(Eigen::Vector3d &p,
+                         Eigen::Vector3d &v,
+                         double ra,
+                         double decl,
+                         double muRa,
+                         double muDecl,
+                         double vRadial,
+                         double parallax);
 
-LSST_AP_API Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
+Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
 
 /** Converts spherical coordinate <tt>(theta, phi)</tt> (rad) to a unit 3-vector.
   */

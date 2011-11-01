@@ -34,7 +34,7 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-LSST_AP_API Eigen::Vector3d const earthPosition(double const epoch);
+Eigen::Vector3d const earthPosition(double const epoch);
 
 }}} // namespace lsst::ap::utils
 

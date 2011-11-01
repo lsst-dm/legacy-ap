@@ -1584,7 +1584,7 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
 /** Matches a declination sorted reference catalog (stored as a CSV file)
   * to a table of positions.
   */
-LSST_AP_API void referenceMatch(
+void referenceMatch(
     std::string const &refPath,    ///< Path to declination sorted reference catalog CSV file.
     std::string const &posPath,    ///< Path to declination sorted position CSV file.
     std::string const &matchPath,  ///< Match output file path.
@@ -1652,7 +1652,7 @@ LSST_AP_API void referenceMatch(
   * observation counts are appended as columns [ugrizy]Cov. Reference catalog
   * entries not falling on any of the given exposures are dropped from the output.
   */
-LSST_AP_API void referenceFilter(
+void referenceFilter(
     std::string const &refPath,  ///< Reference catalog path
     std::string const &filtPath, ///< Filtered output catalog path
     std::vector<ExposureInfo::Ptr> &exposures,  ///< Exposures to filter against - 

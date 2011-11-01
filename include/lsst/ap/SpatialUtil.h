@@ -66,7 +66,7 @@ namespace {
  * to integer zone, stripe, and chunk ids -- these are obtained by simple quantization of
  * declination and right ascension.
  */
-class LSST_AP_API ZoneStripeChunkDecomposition {
+class ZoneStripeChunkDecomposition {
 
 public :
 
@@ -227,11 +227,11 @@ inline void swap(ZoneStripeChunkDecomposition & a, ZoneStripeChunkDecomposition 
 }
 
 
-LSST_AP_API double alpha(double const theta, double const centerDec, double const dec);
+double alpha(double const theta, double const centerDec, double const dec);
 
-LSST_AP_API double maxAlpha(double const theta, double const centerDec);
+double maxAlpha(double const theta, double const centerDec);
 
-LSST_AP_API void computeChunkIds(
+void computeChunkIds(
     std::vector<int>                   & chunkIds,
     CircularRegion               const & region,
     ZoneStripeChunkDecomposition const & zsc,
@@ -239,7 +239,7 @@ LSST_AP_API void computeChunkIds(
     int                          const   numWorkers  = 1
 );
 
-LSST_AP_API void computeChunkIds(
+void computeChunkIds(
     std::vector<int>                   & chunkIds,
     RectangularRegion            const & region,
     ZoneStripeChunkDecomposition const & zsc,

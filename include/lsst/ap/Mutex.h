@@ -53,7 +53,7 @@ template <typename MutexT> class Condition;
 
 
 /** @brief A wrapper for a process private POSIX mutual exclusion lock. */
-class LSST_AP_LOCAL Mutex : private boost::noncopyable {
+class Mutex : private boost::noncopyable {
 
 public :
 
@@ -94,7 +94,7 @@ private :
 
 
 /** @brief A wrapper for a POSIX process shared mutual exclusion lock. */
-class LSST_AP_LOCAL SharedMutex : private boost::noncopyable {
+class SharedMutex : private boost::noncopyable {
 
 public :
 

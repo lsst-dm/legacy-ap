@@ -52,29 +52,29 @@ namespace lsst { namespace ap { namespace cluster {
 
 class SourceClusterAttributes;
 
-LSST_AP_API std::vector<lsst::afw::detection::SourceSet> const cluster(
+std::vector<lsst::afw::detection::SourceSet> const cluster(
     lsst::afw::detection::SourceSet const & sources,
     lsst::pex::policy::Policy::Ptr policy);
 
-LSST_AP_API void updateSources(
+void updateSources(
     SourceClusterAttributes const & cluster,
     lsst::afw::detection::SourceSet & sources);
 
-LSST_AP_API void locateAndFilterSources(
+void locateAndFilterSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & invalidSources,
     lsst::ap::match::ExposureInfoMap const & exposures);
 
-LSST_AP_API void segregateInvalidSources(
+void segregateInvalidSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & invalidSources);
 
-LSST_AP_API void segregateBadSources(
+void segregateBadSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & badSources,
     int badSourceMask);
 
-LSST_AP_API void updateUnclusteredSources(
+void updateUnclusteredSources(
      lsst::afw::detection::SourceSet & badSources);
 
 
@@ -143,7 +143,7 @@ inline bool operator!=(FloatT const & value, NullOr<FloatT> const & n) {
   * of a tangent plane projection centered at the fiducial cluster position
   * and with the standard north, east basis.
   */
-class LSST_AP_API SourceAndExposure {
+class SourceAndExposure {
 public:
     SourceAndExposure(
         boost::shared_ptr<lsst::afw::detection::Source const> source,
@@ -172,7 +172,7 @@ private:
 
 /** Per filter source cluster attributes.
   */
-class LSST_AP_API PerFilterSourceClusterAttributes {
+class PerFilterSourceClusterAttributes {
 public:
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes> Ptr;
     typedef boost::shared_ptr<PerFilterSourceClusterAttributes const> ConstPtr;
@@ -324,7 +324,7 @@ inline bool operator!=(PerFilterSourceClusterAttributes const & lhs,
   * have been determined to be observations of the same physical object
   * according to some clustering algorithm.
   */
-class LSST_AP_API SourceClusterAttributes
+class SourceClusterAttributes
 {
 public:
     typedef boost::shared_ptr<SourceClusterAttributes> Ptr;
@@ -502,7 +502,7 @@ typedef std::vector<SourceClusterAttributes::Ptr> SourceClusterVector;
 /** A lsst::daf::base::Persistable wrapper for vectors of shared pointers to
   * SourceClusterAttributes objects.
   */
-class LSST_AP_API PersistableSourceClusterVector :
+class PersistableSourceClusterVector :
     public lsst::daf::base::Persistable
 {
 public:

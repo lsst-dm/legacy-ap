@@ -49,7 +49,7 @@ enum Color {
 
 /** A node in an x-interval tree for a 2 dimensional cartesian space.
   */
-struct LSST_AP_API CartesianNode {
+struct CartesianNode {
     CartesianNode *link[2];
     Color color;
     double reach;
@@ -71,7 +71,7 @@ inline bool operator<(std::pair<double, CartesianNode *> const &left,
 /** A node in a theta (longitude/right ascension) interval tree for a
   * 2 dimensional spherical space.
   */
-struct LSST_AP_API SphericalNode {
+struct SphericalNode {
     SphericalNode *link[2];
     Color color;
     unsigned int foundBy;
@@ -99,7 +99,7 @@ inline bool operator<(std::pair<double, SphericalNode *> const &left,
 /** A base class for sweep-structures, templated on tree node type.
   */
 template <typename Node>
-class LSST_AP_API SweepStructure {
+class SweepStructure {
 public:
     SweepStructure() : _arena(), _root(0), _heap() { }
     virtual ~SweepStructure();
@@ -177,7 +177,7 @@ private:
   * destroyed while they are in the sweep structure.
   */
 template <typename Region>
-class LSST_AP_API CartesianSweep : public SweepStructure<CartesianNode> {
+class CartesianSweep : public SweepStructure<CartesianNode> {
 public:
     CartesianSweep() : SweepStructure<CartesianNode>() { }
     virtual ~CartesianSweep() { }
@@ -262,7 +262,7 @@ public:
   * destroyed while they are in the sweep structure.
   */
 template <typename Region>
-class LSST_AP_API SphericalSweep : public SweepStructure<SphericalNode> {
+class SphericalSweep : public SweepStructure<SphericalNode> {
 public:
     SphericalSweep() : SweepStructure<SphericalNode>(), _searchId(1u) { }
     virtual ~SphericalSweep() { }

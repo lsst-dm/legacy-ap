@@ -42,7 +42,7 @@
 namespace lsst { namespace ap {
 
 /** @brief  A manager for Object chunks that exist in shared memory. */
-class LSST_AP_API SharedObjectChunkManager {
+class SharedObjectChunkManager {
 
 private :
 
@@ -50,7 +50,7 @@ private :
 
     Manager * _manager;
 
-    static LSST_AP_LOCAL Manager * instance(std::string const & name);
+    static Manager * instance(std::string const & name);
 
 public :
 

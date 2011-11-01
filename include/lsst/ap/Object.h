@@ -50,7 +50,7 @@ namespace lsst { namespace ap {
  * This is sufficient for performing spatial crosss matches. None of these fields
  * may ever be NULL.
  */
-struct LSST_AP_API Object {
+struct Object {
     static int const NUM_FILTERS = 6;
     boost::int64_t _objectId;
     double _ra;
@@ -107,7 +107,7 @@ struct LSST_AP_API Object {
     }
 };
 
-LSST_AP_API bool operator==(Object const & o1, Object const & o2);
+bool operator==(Object const & o1, Object const & o2);
 
 inline bool operator!=(Object const & o1, Object const & o2) {
     return !(o1 == o2);

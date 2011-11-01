@@ -291,7 +291,7 @@ std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
   * must have been grouped by exposure id). An ExposureInfo object
   * is created for each input exposure and appended to @a exposures.
   */
-LSST_AP_API void readExposureInfos(
+void readExposureInfos(
     std::vector<ExposureInfo::Ptr> & exposures, ///< ExposureInfo objects are
                                                 ///  appended to this vector.
     std::string const & csvFile,             ///< Metadata table path.

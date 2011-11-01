@@ -42,7 +42,7 @@ namespace lsst { namespace ap { namespace cluster { namespace optics {
   * reachability of a seed are provided.
   */
 template <int K, typename DataT>
-class LSST_AP_LOCAL SeedList {
+class SeedList {
 public:
     SeedList(Point<K, DataT> * points, int numPoints);
     ~SeedList();

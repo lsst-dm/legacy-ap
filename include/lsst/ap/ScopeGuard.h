@@ -48,7 +48,7 @@ namespace lsst { namespace ap {
  * See http://www.ddj.com/cpp/184403758 and http://www.zete.org/people/jlehrer/scopeguard.html
  * for details on the origins and uses of this class.
  */
-class LSST_AP_API ScopeGuard : public boost::function<void ()>, private boost::noncopyable {
+class ScopeGuard : public boost::function<void ()>, private boost::noncopyable {
 
 public :
 
