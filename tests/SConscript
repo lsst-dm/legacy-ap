@@ -13,5 +13,5 @@ for key in envKeys:
 
 scripts.BasicSConscript.tests(
     ignoreList=ignoreList,
-    ccTests=["kdtree.cc", "seedList.cc", "csv.cc", "earthPosition.cc", "sweepStructure.cc"]
+    ccList=["kdtree.cc", "seedList.cc", "csv.cc", "earthPosition.cc", "sweepStructure.cc"]
 )

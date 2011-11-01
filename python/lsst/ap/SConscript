@@ -1,3 +1,5 @@
 # -*- python -*-
 from lsst.sconsUtils import scripts
-scripts.BasicSConscript.python(['apLib'])
+
+# apLib disabled until mops comes back to the stack
+#scripts.BasicSConscript.python(['apLib'])
