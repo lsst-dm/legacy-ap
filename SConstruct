@@ -1,10 +1,7 @@
 # -*- python -*-
 from lsst.sconsUtils import scripts, env
 
-scripts.BasicSConstruct.initialize(
-    packageName="ap",
-    versionString=r"$HeadURL",
-)
+scripts.BasicSConstruct.initialize("ap")
 
 # If one of the randomized unit tests fail, uncomment and
 # set the following defines to obtain repeatable behaviour
