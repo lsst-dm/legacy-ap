@@ -67,14 +67,14 @@ namespace lsst { namespace ap {
 
 /** @brief  A default "let everything through" filter implementation. */
 template <typename T>
-struct LSST_AP_LOCAL PassthroughFilter {
+struct PassthroughFilter {
     bool operator() (T const &) { return true; }
 };
 
 
 /** @brief  Contains a pointer to a match and an associated distance. */
 template <typename T>
-struct LSST_AP_LOCAL MatchWithDistance {
+struct MatchWithDistance {
 
     MatchWithDistance() {}
 
@@ -93,7 +93,7 @@ struct LSST_AP_LOCAL MatchWithDistance {
 
 /** @brief Contains a pointer to a match. */
 template <typename T>
-struct LSST_AP_LOCAL MatchWithoutDistance {
+struct MatchWithoutDistance {
 
     MatchWithoutDistance() {}
 
@@ -108,7 +108,7 @@ struct LSST_AP_LOCAL MatchWithoutDistance {
 
 /** @brief  A default "do nothing" match list processing implementation. */
 template <typename F, typename M>
-struct LSST_AP_LOCAL EmptyMatchListProcessor {
+struct EmptyMatchListProcessor {
 
     typedef M Match;
     typedef typename std::vector<M>::const_iterator MatchIterator;
@@ -119,7 +119,7 @@ struct LSST_AP_LOCAL EmptyMatchListProcessor {
 
 /** @brief  A default "do nothing" match pair processing implementation. */
 template <typename F, typename S>
-struct LSST_AP_LOCAL EmptyMatchPairProcessor {
+struct EmptyMatchPairProcessor {
     inline void operator() (F & first, S & second) {}
 };
 
@@ -150,7 +150,7 @@ template <
     typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
     typename MatchListProcessorT  // = EmptyMatchListProcessor<FirstEntryT, MatchWithoutDistance<SecondEntryT> >
 >
-LSST_AP_LOCAL std::size_t distanceMatch(
+std::size_t distanceMatch(
     ZoneIndex<FirstEntryT>  & first,
     ZoneIndex<SecondEntryT> & second,
     double const              radius,
@@ -383,7 +383,7 @@ template <
     typename SecondFilterT,       // = PassthroughFilter<SecondEntryT>,
     typename MatchPairProcessorT  // = EmptyMatchPairProcessor<FirstEntryT, SecondEntryT>
 >
-LSST_AP_LOCAL std::size_t ellipseMatch(
+std::size_t ellipseMatch(
     EllipseList<FirstEntryT> & first,
     ZoneIndex<SecondEntryT>  & second,
     FirstFilterT             & firstFilter,
@@ -532,7 +532,7 @@ template <
     typename SecondFilterT,      // = PassthroughFilter<SecondEntryT>,
     typename MatchListProcessorT // = EmptyMatchListProcessor<FirstEntryT, SecondEntryT>
 >
-LSST_AP_LOCAL std::size_t ellipseGroupedMatch(
+std::size_t ellipseGroupedMatch(
     EllipseList<FirstEntryT> & first,
     ZoneIndex<SecondEntryT>  & second,
     FirstFilterT             & firstFilter,

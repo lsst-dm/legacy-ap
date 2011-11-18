@@ -45,7 +45,7 @@ namespace ap {
 
 
 /** @brief  Wraps the C library timespec struct. */
-class LSST_AP_API TimeSpec : public ::timespec {
+class TimeSpec : public ::timespec {
 
 public :
 
@@ -95,7 +95,7 @@ public :
 
 
 /** @brief  Utility class for profiling. */
-class LSST_AP_API Stopwatch {
+class Stopwatch {
 
 public :
 

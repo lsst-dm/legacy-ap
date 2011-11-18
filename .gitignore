@@ -1,87 +1,32 @@
-
-# /
-/.sconf_temp
-/.sconsign.dblite
-/config.log
-/.gdb_history
-/prof.out
-/TAGS
-
-# /bin/
-/bin/ap_shmem_admin
-/bin/dumpObjects
-
-# /doc/
-/doc/htmlDir
-
-# /include/lsst/ap/
-/include/lsst/ap/CustomExceptions.h
-
-# /lib/
-/lib/*.dylib
-/lib/*.so
-
-# /policy/examples/
-/policy/examples/*.pyc
-/policy/examples/*.log
-
-# /python/lsst/ap/
-/python/lsst/ap/*.os
-/python/lsst/ap/*.pyc
-/python/lsst/ap/*.so
-/python/lsst/ap/*_wrap.cc
-/python/lsst/ap/apLib.py
-
-# /python/lsst/ap/cluster/
-/python/lsst/ap/cluster/*.os
-/python/lsst/ap/cluster/*.pyc
-/python/lsst/ap/cluster/*.so
-/python/lsst/ap/cluster/*_wrap.cc
-/python/lsst/ap/cluster/clusterLib.py
-
-# /python/lsst/ap/match/
-/python/lsst/ap/match/*.os
-/python/lsst/ap/match/*.pyc
-/python/lsst/ap/match/*.so
-/python/lsst/ap/match/*_wrap.cc
-/python/lsst/ap/match/matchLib.py
-
-# /python/lsst/ap/utils/
-/python/lsst/ap/utils/*.os
-/python/lsst/ap/utils/*.pyc
-/python/lsst/ap/utils/*.so
-/python/lsst/ap/utils/*_wrap.cc
-/python/lsst/ap/utils/utilsLib.py
-
-# /src/
-/src/*.os
-
-# /src/cluster/
-/src/cluster/*.os
-
-# /src/io/
-/src/io/*.os
-
-# /src/match/
-/src/match/*.os
-
-# /src/match/detail/
-/src/match/detail/*.os
-
-# /src/utils/
-/src/utils/*.os
-
-# /tests/
-/tests/.tests
-/tests/ResultsIoTest
-/tests/BitsetTest
-/tests/MatchTest
-/tests/ChunkManagerTest
-/tests/FileIoTest
-/tests/ChunkTest
-/tests/HashedSetTest
-/tests/seedList
-/tests/kdtree
-/tests/csv
-/tests/earthPosition
-/tests/sweepStructure
+bin/ap_shmem_admin
+bin/dumpObjects
+include/lsst/ap/CustomExceptions.h
+policy/examples/*.log
+tests/ResultsIoTest
+tests/BitsetTest
+tests/MatchTest
+tests/ChunkManagerTest
+tests/FileIoTest
+tests/ChunkTest
+tests/HashedSetTest
+tests/seedList
+tests/kdtree
+tests/csv
+tests/earthPosition
+tests/sweepStructure
+.sconsign.dblite
+config.log
+.sconf_temp
+*.o
+*.os
+*.so
+*.cfgc
+*.pyc
+*_wrap.cc
+*Lib.py
+doc/html
+doc/*.tag
+doc/*.inc
+doc/doxygen.conf
+tests/.tests
+version.py

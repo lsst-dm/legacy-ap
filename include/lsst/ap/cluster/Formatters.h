@@ -50,7 +50,7 @@ namespace lsst { namespace ap { namespace cluster {
  * @li lsst::daf::persistence::DbTsvStorage
  * @li lsst::daf::persistence::BoostStorage
  */
-class LSST_AP_API SourceClusterVectorFormatter :
+class SourceClusterVectorFormatter :
     public lsst::daf::persistence::Formatter
 {
 public:

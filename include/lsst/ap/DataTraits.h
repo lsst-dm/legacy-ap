@@ -61,7 +61,7 @@ namespace lsst { namespace ap {
  */
 template <typename D> struct DataTraits {};
 
-template <> struct LSST_AP_LOCAL DataTraits<Object> {
+template <> struct DataTraits<Object> {
     static int const ENTRIES_PER_BLOCK_LOG2 = 12;
     static int const MAX_BLOCKS_PER_CHUNK   = 128;
     static int const MAX_CHUNKS_PER_FOV     = 128;

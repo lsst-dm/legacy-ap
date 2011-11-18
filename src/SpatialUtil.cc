@@ -245,7 +245,7 @@ double lsst::ap::ZoneStripeChunkDecomposition::stripeAndCircleToRaRange(
  * @return  alpha, the largest right ascension of the two points in the intersection
  *          of the input circle with the input plane.
  */
-LSST_AP_API double lsst::ap::alpha(
+double lsst::ap::alpha(
     double const theta,
     double const centerDec,
     double const dec
@@ -276,7 +276,7 @@ LSST_AP_API double lsst::ap::alpha(
  *
  * @return  the largest right ascension of any point on the input circle
  */
-LSST_AP_API double lsst::ap::maxAlpha(
+double lsst::ap::maxAlpha(
     double const theta,
     double const centerDec
 ) {
@@ -305,7 +305,7 @@ LSST_AP_API double lsst::ap::maxAlpha(
  *                          workers).
  * @param[in]  numWorkers   The number of parallel workers.
  */
-LSST_AP_API void lsst::ap::computeChunkIds(
+void lsst::ap::computeChunkIds(
     std::vector<int>                   & chunkIds,
     CircularRegion               const & region,
     ZoneStripeChunkDecomposition const & zsc,
@@ -390,7 +390,7 @@ LSST_AP_API void lsst::ap::computeChunkIds(
  *                          workers).
  * @param[in]  numWorkers   The number of parallel workers.
  */
-LSST_AP_API void lsst::ap::computeChunkIds(
+void lsst::ap::computeChunkIds(
     std::vector<int>                   & chunkIds,
     RectangularRegion            const & region,
     ZoneStripeChunkDecomposition const & zsc,

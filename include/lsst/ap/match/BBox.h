@@ -40,7 +40,7 @@ namespace lsst { namespace ap { namespace match {
   * The interface simply consists of methods for retrieving a bounding
   * box for an entity.
   */
-class LSST_AP_API BBox {
+class BBox {
 public:
     virtual ~BBox();
 

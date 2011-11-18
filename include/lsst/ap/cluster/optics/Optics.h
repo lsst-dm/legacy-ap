@@ -56,7 +56,7 @@ namespace lsst { namespace ap { namespace cluster { namespace optics {
   * OPTICS algorithm.
   */
 template <int K, typename DataT>
-class LSST_AP_LOCAL Optics {
+class Optics {
 public:
     Optics(Point<K, DataT> * points,
            int numPoints,

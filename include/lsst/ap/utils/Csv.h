@@ -54,7 +54,7 @@ namespace lsst { namespace ap { namespace utils {
   * of various RDBMSes to be read and written. Accordingly, there are
   * parameters that allow database NULLs to be recognized.
   */
-class LSST_AP_API CsvDialect {
+class CsvDialect {
 public:
     static CsvDialect const MYSQL;
     static CsvDialect const POSTGRES;
@@ -194,7 +194,7 @@ private:
   * @li CSV files containing embedded null characters are not read in properly.
   * @li The line terminator cannot be specified, and is always '\\n'.
   */
-class LSST_AP_API CsvReader {
+class CsvReader {
 public:
     CsvReader(std::string const &path,
               CsvDialect const &dialect,
@@ -321,7 +321,7 @@ private:
   *     be written.
   * @li The line terminator cannot be specified, and is always '\\n'.
   */
-class LSST_AP_API CsvWriter {
+class CsvWriter {
 public:
     CsvWriter(std::string const &path,
               CsvDialect const &dialect,

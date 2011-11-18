@@ -100,7 +100,7 @@ unsigned int const MAX_SOURCES =
 /** @internal
   * A tangent plane projection centered at a point with the standard N,E basis.
   */
-class LSST_AP_LOCAL NeTanProj {
+class NeTanProj {
 public:
     NeTanProj(lsst::afw::coord::Coord::Ptr center);
 
@@ -247,7 +247,7 @@ bool combinePositions(std::vector<SourceAndExposure> const & sources,
         }
         geom::Point2D p(s.getXAstrom(), s.getYAstrom());
         Eigen::Vector2d var(s.getXAstromErr(), s.getYAstromErr());
-        var = var.cwise().square();
+        var = var.array().square().matrix();
         geom::AffineTransform const & transform = i->getTransform();
         Eigen::Matrix2d const & m = transform.getLinear().getMatrix();
         Eigen::Matrix2d invCov = (m*var.asDiagonal()*m.transpose()).inverse();
@@ -284,7 +284,7 @@ bool combinePositions(std::vector<SourceAndExposure> const & sources,
   *
   * @return     A vector of SourceCluster objects.
   */
-LSST_AP_API std::vector<lsst::afw::detection::SourceSet> const cluster(
+std::vector<lsst::afw::detection::SourceSet> const cluster(
     lsst::afw::detection::SourceSet const & sources,
     lsst::pex::policy::Policy::Ptr policy)
 {
@@ -335,7 +335,7 @@ LSST_AP_API std::vector<lsst::afw::detection::SourceSet> const cluster(
   * to the database, sources will be partitioned by their associated object
   * (cluster), and objects are partitioned by position.
   */
-LSST_AP_API void updateSources(SourceClusterAttributes const & cluster,
+void updateSources(SourceClusterAttributes const & cluster,
                                lsst::afw::detection::SourceSet & sources)
 {
     typedef detection::SourceSet::iterator Iter;
@@ -351,7 +351,7 @@ LSST_AP_API void updateSources(SourceClusterAttributes const & cluster,
   * outside the originating exposure or with negative flux or shape errors are
   * removed from @a sources and appended to @a invalidSources.
   */
-LSST_AP_API void locateAndFilterSources(
+void locateAndFilterSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & invalidSources,
     lsst::ap::match::ExposureInfoMap const & exposures
@@ -429,8 +429,9 @@ LSST_AP_API void locateAndFilterSources(
                 } else {
                     geom::AffineTransform xform =
                         wcs->linearizePixelToSky(sky, afwGeom::radians);
-                    v = (xform.getLinear().getMatrix().cwise() *
-                         xform.getLinear().getMatrix()) * v.cwise().square();
+                    v = (xform.getLinear().getMatrix().array()
+			 * xform.getLinear().getMatrix().array()).matrix()
+		      * v.array().square().matrix();
                     (*i)->setRaAstromErr(sqrt(v.x()) * afwGeom::radians);
                     (*i)->setDecAstromErr(sqrt(v.y()) * afwGeom::radians);
                 }
@@ -464,8 +465,9 @@ LSST_AP_API void locateAndFilterSources(
                     } else {
                         geom::AffineTransform xform =
                             wcs->linearizePixelToSky(sky, afwGeom::radians);
-                        v = (xform.getLinear().getMatrix().cwise() *
-                             xform.getLinear().getMatrix()) * v.cwise().square();
+                        v = (xform.getLinear().getMatrix().array()
+			     * xform.getLinear().getMatrix().array()).matrix()
+			  * v.array().square().matrix();
                         (*i)->setRaFluxErr(sqrt(v.x()) * afwGeom::radians);
                         (*i)->setDecFluxErr(sqrt(v.y()) * afwGeom::radians);
                     }
@@ -517,7 +519,7 @@ LSST_AP_API void locateAndFilterSources(
   * to @a invalidSources. A source is invalid if it has NaN or out-of-bounds
   * right ascension and/or declination, or negative errors.
   */
-LSST_AP_API void segregateInvalidSources(
+void segregateInvalidSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & invalidSources)
 {
@@ -629,7 +631,7 @@ LSST_AP_API void segregateInvalidSources(
   * A source is considered bad when one or more of the bits set in its detection
   * flags matches a bit set in @a badSourceMask.
   */
-LSST_AP_API void segregateBadSources(
+void segregateBadSources(
     lsst::afw::detection::SourceSet & sources,
     lsst::afw::detection::SourceSet & badSources,
     int const badSourceMask
@@ -657,7 +659,7 @@ LSST_AP_API void segregateBadSources(
   * sources (which are partitioned by the position of their associated
   * objects/clusters).
   */
-LSST_AP_API void updateUnclusteredSources(
+void updateUnclusteredSources(
     lsst::afw::detection::SourceSet & badSources
 ) {
     typedef detection::SourceSet::iterator Iter;

@@ -38,7 +38,7 @@ namespace lsst { namespace ap { namespace match {
 
 // -- Functions to perform the match
 
-LSST_AP_API void referenceMatch(
+void referenceMatch(
     std::string const &refInPath,
     std::string const &posInPath,
     std::string const &matchOutPath,
@@ -47,7 +47,7 @@ LSST_AP_API void referenceMatch(
     lsst::pex::policy::Policy::Ptr matchPolicy=lsst::pex::policy::Policy::Ptr(),
     bool truncate=false);
 
-LSST_AP_API void referenceFilter(
+void referenceFilter(
     std::string const &refInPath,
     std::string const &filtOutPath,
     std::vector<ExposureInfo::Ptr> &exposures,

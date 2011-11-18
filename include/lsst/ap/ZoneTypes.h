@@ -51,7 +51,7 @@ namespace lsst { namespace ap {
  * magnitudes, etc...).
  */
 template <typename ChunkT>
-struct LSST_AP_LOCAL ZoneEntry {
+struct ZoneEntry {
     typedef ChunkT Chunk;
     typedef typename ChunkT::Entry Data;
 
@@ -75,32 +75,32 @@ struct LSST_AP_LOCAL ZoneEntry {
 };
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator< (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
+inline bool operator< (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
     return a._ra < b._ra;
 }
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator== (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
+inline bool operator== (ZoneEntry<ChunkT> const & a, ZoneEntry<ChunkT> const & b) {
     return a._ra == b._ra;
 }
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator< (boost::uint32_t const a, ZoneEntry<ChunkT> const & b) {
+inline bool operator< (boost::uint32_t const a, ZoneEntry<ChunkT> const & b) {
     return a < b._ra;
 }
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator< (ZoneEntry<ChunkT> const & a, boost::uint32_t const b) {
+inline bool operator< (ZoneEntry<ChunkT> const & a, boost::uint32_t const b) {
     return a._ra < b;
 }
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator== (boost::uint32_t const a, ZoneEntry<ChunkT> const & b) {
+inline bool operator== (boost::uint32_t const a, ZoneEntry<ChunkT> const & b) {
     return a == b._ra;
 }
 
 template <typename ChunkT>
-LSST_AP_LOCAL inline bool operator== (ZoneEntry<ChunkT> const & a, boost::uint32_t const b) {
+inline bool operator== (ZoneEntry<ChunkT> const & a, boost::uint32_t const b) {
     return a._ra == b;
 }
 
@@ -110,7 +110,7 @@ LSST_AP_LOCAL inline bool operator== (ZoneEntry<ChunkT> const & a, boost::uint32
  *         in a sorted array.
  */
 template <typename EntryT>
-struct LSST_AP_LOCAL ZoneEntryArray {
+struct ZoneEntryArray {
     typedef typename EntryT::Chunk Chunk;
     typedef typename EntryT::Data  Data;
 
@@ -196,7 +196,7 @@ struct LSST_AP_LOCAL ZoneEntryArray {
 
 /** @brief  Container for a sequence of adjacent zones. */
 template <typename EntryT>
-class LSST_AP_LOCAL ZoneIndex :
+class ZoneIndex :
     public  lsst::daf::base::Citizen,
     private boost::noncopyable
 {

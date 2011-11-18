@@ -40,7 +40,7 @@
 namespace lsst { namespace ap {
 
 /** @brief  A rectangular region (in right ascension and declination) of the unit sphere. */
-class LSST_AP_API RectangularRegion {
+class RectangularRegion {
 
 public :
 

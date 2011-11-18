@@ -66,7 +66,7 @@ struct DiaSourceChunk {
 
 
 /** @brief  Container for inter-stage association pipeline state. */
-class LSST_AP_API VisitProcessingContext :
+class VisitProcessingContext :
     public  lsst::daf::base::Citizen,
     private boost::noncopyable
 {
@@ -180,31 +180,31 @@ private :
 };
 
 
-LSST_AP_API void initialize(std::string const & runId);
+void initialize(std::string const & runId);
 
-LSST_AP_API void registerVisit(VisitProcessingContext & context);
+void registerVisit(VisitProcessingContext & context);
 
-LSST_AP_API void loadSliceObjects(VisitProcessingContext & context);
+void loadSliceObjects(VisitProcessingContext & context);
 
-LSST_AP_API void buildObjectIndex(VisitProcessingContext & context);
+void buildObjectIndex(VisitProcessingContext & context);
 
-LSST_AP_API void matchDiaSources(
+void matchDiaSources(
     MatchPairVector & matches,
     VisitProcessingContext & context
 );
 
-LSST_AP_API void matchMops(
+void matchMops(
     MatchPairVector & matches,
     IdPairVector & newObjects,
     VisitProcessingContext & context,
     lsst::mops::MovingObjectPredictionVector & predictions
 );
 
-LSST_AP_API void storeSliceObjects(VisitProcessingContext & context);
+void storeSliceObjects(VisitProcessingContext & context);
 
-LSST_AP_API void failVisit(VisitProcessingContext & context);
+void failVisit(VisitProcessingContext & context);
 
-LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback);
+bool endVisit(VisitProcessingContext & context, bool const rollback);
 
 
 }} // end of namespace lsst::ap

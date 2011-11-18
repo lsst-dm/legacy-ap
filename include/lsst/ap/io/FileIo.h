@@ -47,7 +47,7 @@
 namespace lsst { namespace ap { namespace io {
 
 /** @brief  Abstract base class for sequential I/O classes. */
-class LSST_AP_API SequentialIoBase {
+class SequentialIoBase {
 
 public :
 
@@ -77,7 +77,7 @@ protected :
 
 
 /** @brief  Abstract base class for reading a stream of data in sequential fashion. */
-class LSST_AP_API SequentialReader : public SequentialIoBase {
+class SequentialReader : public SequentialIoBase {
 
 public :
 
@@ -90,7 +90,7 @@ public :
 
 
 /** @brief  Abstract base class for writing a stream of data in sequential fashion. */
-class LSST_AP_API SequentialWriter : public SequentialIoBase {
+class SequentialWriter : public SequentialIoBase {
 
 public :
 
@@ -103,7 +103,7 @@ public :
 
 
 /** @brief  A sequential reader for uncompressed files. Uses standard (blocking) IO calls. */
-class LSST_AP_API SequentialFileReader :
+class SequentialFileReader :
     public  SequentialReader,
     private boost::noncopyable
 {
@@ -128,7 +128,7 @@ private :
 
 
 /** @brief  A sequential writer for uncompressed files. Uses standard (blocking) IO calls. */
-class LSST_AP_API SequentialFileWriter :
+class SequentialFileWriter :
     public  SequentialWriter,
     private boost::noncopyable
 {
@@ -162,7 +162,7 @@ private :
  *
  * Gzip compatible files, or files written with zlib compression can be read by this class.
  */
-class LSST_AP_API CompressedFileReader : public SequentialReader {
+class CompressedFileReader : public SequentialReader {
 
 public :
 
@@ -201,7 +201,7 @@ private :
  *
  * Gzip compatible files are written by this class.
  */
-class LSST_AP_API CompressedFileWriter : public SequentialWriter {
+class CompressedFileWriter : public SequentialWriter {
 
 public :
 

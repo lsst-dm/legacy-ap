@@ -63,7 +63,7 @@ namespace lsst { namespace ap { namespace utils {
   * critical code only. 
   */
 template <typename T>
-class LSST_AP_LOCAL Arena {
+class Arena {
 public:
     Arena(size_t blockCapacity=262144/sizeof(T));
     ~Arena();

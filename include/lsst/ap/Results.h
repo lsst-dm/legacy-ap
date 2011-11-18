@@ -62,7 +62,7 @@ namespace io {
 
 
 /** @brief  Holds a pair of ids and the distance between the corresponding positions on the unit sphere. */
-class LSST_AP_API MatchPair {
+class MatchPair {
 
 public :
 
@@ -128,7 +128,7 @@ typedef std::vector<boost::int64_t> IdVector;
 
 
 /** @brief  A persistable wrapper for a MatchPairVector. */
-class LSST_AP_API PersistableMatchPairVector :
+class PersistableMatchPairVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
@@ -161,7 +161,7 @@ private:
 
 
 /** @brief  A persistable wrapper for an IdPairVector. */
-class LSST_AP_API PersistableIdPairVector :
+class PersistableIdPairVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {
@@ -194,7 +194,7 @@ private:
 
 
 /** @brief  A persistable wrapper for an IdVector. */
-class LSST_AP_API PersistableIdVector :
+class PersistableIdVector :
     public lsst::daf::base::Persistable,
     public lsst::daf::base::Citizen
 {

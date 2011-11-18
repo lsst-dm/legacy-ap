@@ -76,7 +76,7 @@ namespace {
 /** @internal
   * Returns the name of the database table to read/write to.
   */
-LSST_AP_LOCAL std::string const getTableName(Policy::Ptr policy,
+std::string const getTableName(Policy::Ptr policy,
                                              PropertySet::Ptr additionalData)
 {
     std::string itemName = additionalData->getAsString("itemName");
@@ -88,7 +88,7 @@ LSST_AP_LOCAL std::string const getTableName(Policy::Ptr policy,
 /** @internal
   * Returns the name of the template database table to copy.
   */
-LSST_AP_LOCAL std::string const getTemplateTableName(Policy::Ptr policy,
+std::string const getTemplateTableName(Policy::Ptr policy,
                                                      PropertySet::Ptr additionalData)
 {
     std::string itemName = additionalData->getAsString("itemName");
@@ -128,7 +128,7 @@ template <typename FloatT> inline FloatT rangeReducedDegrees(FloatT rad) {
   * named "u", "g", "r", "i", "z", "y" | "i2" in @c filterIds. (If no filter
   * named "y" is found, "i2" is used instead).
   */
-LSST_AP_LOCAL void getFilterIds(int * const filterIds) {
+void getFilterIds(int * const filterIds) {
     filterIds[0] = Filter("u").getId();
     filterIds[1] = Filter("g").getId();
     filterIds[2] = Filter("r").getId();
@@ -404,7 +404,7 @@ void insertObjectRow(DbStorageT & db,
   * uses this type to read Object rows from the database, then translates to a
   * SourceClusterAttributes.
   */
-struct LSST_AP_LOCAL ObjectRow
+struct ObjectRow
 {
     int64_t objectId;
     double  earliestObsTime;

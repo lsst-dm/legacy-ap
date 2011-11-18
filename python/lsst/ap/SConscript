@@ -1,9 +1,5 @@
 # -*- python -*-
-import re
-Import("env")
+from lsst.sconsUtils import scripts
 
-pkg = env["eups_product"]
-env.CheckSwig("python", ilang="c++", includedProducts="base utils pex_exceptions daf_base pex_logging pex_policy security daf_persistence daf_data afw mops")
-env.LoadableModuleIncomplete("_apLib", Split("apLib.i"),
-                             CCFLAGS=re.sub("-Wall", "", " ".join(env['CCFLAGS'])),
-                             LIBS=env.getlibs(pkg))
+# apLib disabled until mops comes back to the stack
+#scripts.BasicSConscript.python(['apLib'])

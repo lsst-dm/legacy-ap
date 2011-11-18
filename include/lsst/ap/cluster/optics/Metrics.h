@@ -47,7 +47,7 @@ namespace lsst { namespace ap { namespace cluster { namespace optics {
 /** Metric that computes the squared euclidian distance. Defined
   * over the set of 3-vectors with unit L2 norm.
   */
-struct LSST_AP_LOCAL SquaredEuclidianDistanceOverSphere {
+struct SquaredEuclidianDistanceOverSphere {
     /** Computes the distance between two unit vectors v1, v2.
       */
     double operator()(Eigen::Vector3d const & v1,

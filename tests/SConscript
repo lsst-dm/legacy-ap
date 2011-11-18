@@ -1,29 +1,17 @@
 # -*- python -*-
-Import('env')
-import glob, os
+import os
+
+from lsst.sconsUtils import scripts, env
 
 ignoreList=[ "NightlyPipelineTest.py", "ResultsTest.py" ] # broken, will be fixed during nightly rewrite
 ignoreList+=[ "sourceAssocPipelineTest.py" ] # waiting on afw tag and updated boost persisted source inputs
 
-for src in ("kdtree.cc", "seedList.cc", "csv.cc", "earthPosition.cc", "sweepStructure.cc"): #glob.glob("*.cc"):
-    env.Program(src, LIBS=env.getlibs(env["eups_product"]))
+envKeys = ['LSST_DB_AUTH', 'LSST_RNG_SEED', 'LSST_RNG_ALGORITHM']
+for key in envKeys:
+    if os.environ.has_key(key):
+        env['ENV'][key] = os.environ[key]
 
-if not env.CleanFlagIsSet():
-    import lsst.tests
-    import lsst.daf.persistence
-
-    tests = lsst.tests.Control(env, ignoreList=ignoreList, verbose=True)
-
-    envKeys = ['LSST_DB_AUTH', 'LSST_RNG_SEED', 'LSST_RNG_ALGORITHM']
-    for key in envKeys:
-        if os.environ.has_key(key):
-            env['ENV'][key] = os.environ[key]
-
-    tests.run("kdtree.cc")
-    tests.run("seedList.cc")
-    tests.run("csv.cc")
-    tests.run("earthPosition.cc")
-    tests.run("sweepStructure.cc")
-    for target in tests.run("*.py"):
-        env.Depends(target, "../python/lsst/ap/cluster/_clusterLib%s" % env['LDMODULESUFFIX'])
-
+scripts.BasicSConscript.tests(
+    ignoreList=ignoreList,
+    ccList=["kdtree.cc", "seedList.cc", "csv.cc", "earthPosition.cc", "sweepStructure.cc"]
+)

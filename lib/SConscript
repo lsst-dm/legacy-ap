@@ -1,8 +1,9 @@
 # -*- python -*-
-Import('env')
 import os, fnmatch
 
-pkg = env["eups_product"]
+from lsst.sconsUtils import scripts, env
+
+pkg = env["packageName"]
 sources = []
 for top in ("../src/cluster", "../src/utils", "../src/match"):
     for root, dirs, files in os.walk(top):
@@ -10,6 +11,5 @@ for top in ("../src/cluster", "../src/utils", "../src/match"):
         dirs = [d for d in dirs if not fnmatch.fnmatch(d, ".*")]
 
 sources += [os.path.join("../src", s) for s in ("Point.cc", "SpatialUtil.cc", "Time.cc")]
-env.SharedLibrary(pkg, sources,
-    LIBS=filter(lambda x: x != pkg, env.getlibs(pkg)))
 
+scripts.BasicSConscript.lib(src=sources)

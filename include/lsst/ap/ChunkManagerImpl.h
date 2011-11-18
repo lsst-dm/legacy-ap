@@ -69,7 +69,7 @@ namespace lsst { namespace ap { namespace detail {
  * </ul>
  */
 template <typename EntryT, int NumEntries>
-class LSST_AP_LOCAL HashedSet : private boost::noncopyable {
+class HashedSet : private boost::noncopyable {
     BOOST_STATIC_ASSERT(NumEntries > 0 && (NumEntries & (NumEntries - 1)) == 0);
     BOOST_STATIC_ASSERT(NumEntries < INT_MAX);
 //    BOOST_STATIC_ASSERT(boost::has_nothrow_constructor<EntryT>::value);
@@ -146,7 +146,7 @@ private :
  * simply by adding the offsets to the (process-specific) block allocator address.
  */
 template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class LSST_AP_LOCAL BlockAllocator : private boost::noncopyable {
+class BlockAllocator : private boost::noncopyable {
 public :
     BlockAllocator(unsigned char const * const ref, std::size_t const offset);
 
@@ -169,7 +169,7 @@ private :
 
 
 /** @brief  State for a single visit to a field of view. */
-class LSST_AP_LOCAL Visit {
+class Visit {
 public :
     Visit() : _id(-1), _next(-1), _failed(false) {}
 
@@ -202,7 +202,7 @@ private :
 
 
 /** @brief  Tracks a set of visits. */
-class LSST_AP_LOCAL VisitTracker : public HashedSet<Visit, MAX_VISITS_IN_FLIGHT> {
+class VisitTracker : public HashedSet<Visit, MAX_VISITS_IN_FLIGHT> {
 public :
     bool isValid(int const visitId) const;
     void print(std::ostream & os) const;
@@ -216,7 +216,7 @@ public :
  * To be used exclusively by chunk manager implementations.
  */
 template <typename MutexT, typename DataT, typename TraitsT = DataTraits<DataT> >
-class LSST_AP_LOCAL SubManager : private boost::noncopyable {
+class SubManager : private boost::noncopyable {
 public :
     typedef BlockAllocator<MutexT, DataT, TraitsT> Allocator;
     typedef ChunkRef<Allocator, DataT, TraitsT> Chunk;
@@ -289,7 +289,7 @@ template <
     typename DataT,
     typename TraitsT = DataTraits<DataT>
 >
-class LSST_AP_API ChunkManagerImpl : private boost::noncopyable {
+class ChunkManagerImpl : private boost::noncopyable {
 public :
     typedef SubManager<MutexT, DataT, TraitsT> Manager;
     typedef typename Manager::Chunk Chunk;

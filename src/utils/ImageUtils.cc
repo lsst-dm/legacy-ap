@@ -408,7 +408,7 @@ void SweepLine::finish() {
   * @param[in] ignoreOffImage If true ignore off image sources, otherwise raise
   *                           an exception.
   */
-LSST_AP_API void makeSourceHistogram(
+void makeSourceHistogram(
     lsst::afw::image::Image<unsigned short>::Ptr histogram,
     lsst::afw::detection::SourceSet const & sources,
     lsst::afw::image::Wcs::Ptr wcs,
@@ -439,7 +439,7 @@ LSST_AP_API void makeSourceHistogram(
   * @param[in,out] img  Image to rasterize to.
   * @param[in] verts    Polygon vertices
   */
-LSST_AP_API void rasterizePolygon(
+void rasterizePolygon(
     std::vector<lsst::afw::geom::Point2D> const &verts,
     lsst::afw::image::Image<float>::Ptr img)
 {
@@ -511,7 +511,7 @@ LSST_AP_API void rasterizePolygon(
   *                         step boundary pixels at a time (corners are
   *                         always included).
   */
-LSST_AP_API void updateCoverageMap(
+void updateCoverageMap(
     lsst::afw::image::Image<float>::Ptr covMap,
     lsst::afw::image::Wcs::Ptr covMapWcs,
     lsst::afw::image::Wcs::Ptr wcs,

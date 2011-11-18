@@ -146,7 +146,7 @@ namespace detail {
 // -- Proper motion correction for objects ----------------
 
 /** @return the proper motion corrected position of the given object */
-LSST_AP_LOCAL std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
+std::pair<double, double> correctProperMotion(Object const& obj, double const epoch) {
     static double const RAD_PER_MAS = (RADIANS_PER_DEGREE/360000.0);
     // (rad/mas)*(sec/year)/(km/AU)
     static double const SCALE = RAD_PER_MAS*(365.25*86400/149597870.691);
@@ -195,7 +195,7 @@ LSST_AP_LOCAL std::pair<double, double> correctProperMotion(Object const& obj, d
 
 /** @brief  Processor for lists of objects matching a difference source */
 template <typename ZoneEntryT>
-class LSST_AP_LOCAL ObjectMatchProcessor {
+class ObjectMatchProcessor {
 
 public :
 
@@ -235,7 +235,7 @@ public :
 
 
 /** @brief  Processor for matches between moving object predictions and difference sources. */
-struct LSST_AP_LOCAL MovingObjectPredictionMatchProcessor {
+struct MovingObjectPredictionMatchProcessor {
 
     typedef DiaSourceEntry * Match;
     typedef std::vector<Match>::iterator MatchIterator;
@@ -259,7 +259,7 @@ struct LSST_AP_LOCAL MovingObjectPredictionMatchProcessor {
 // -- Zone index filters and functors ----------------
 
 /** @brief  Filter which discards difference sources matching known variable objects. */
-struct LSST_AP_LOCAL DiscardKnownVariableFilter {
+struct DiscardKnownVariableFilter {
     bool operator()(DiaSourceEntry const & ds) {
         return (ds._flags & HAS_KNOWN_VARIABLE_MATCH) == 0;
     }
@@ -267,7 +267,7 @@ struct LSST_AP_LOCAL DiscardKnownVariableFilter {
 
 
 /** @brief  Filter which discards predicted moving objects with large position error ellipses. */
-struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
+struct DiscardLargeEllipseFilter {
     double semiMajorAxisThreshold;
 
     DiscardLargeEllipseFilter(Policy::Ptr const policy) :
@@ -280,7 +280,7 @@ struct LSST_AP_LOCAL DiscardLargeEllipseFilter {
 
 
 /** @brief  Records ids of difference sources with no matches. */
-struct LSST_AP_LOCAL NewObjectCreator {
+struct NewObjectCreator {
 
     typedef std::map<int, ObjectChunk> ChunkMap;
     typedef ChunkMap::value_type ChunkMapValue;
@@ -380,7 +380,7 @@ struct LSST_AP_LOCAL NewObjectCreator {
 // -- Index creation ----------------
 
 template <typename EntryT>
-void LSST_AP_LOCAL buildZoneIndex(
+void buildZoneIndex(
     ZoneIndex<EntryT> & index,
     std::vector<typename EntryT::Chunk> const & chunks,
     double const epoch
@@ -641,7 +641,7 @@ void VisitProcessingContext::buildObjectIndex() {
  * Sets up all fundamental visit processing parameters using a policy and ensure
  * that a reference to the shared memory object used for chunk storage exists.
  */
-LSST_AP_API void initialize(std::string const & runId) {
+void initialize(std::string const & runId) {
     // create shared memory object if it doesn't already exist
     volatile SharedObjectChunkManager manager(runId);
 }
@@ -651,7 +651,7 @@ LSST_AP_API void initialize(std::string const & runId) {
  * Computes ids for all object chunks covering the visit FOV and
  * registers the visit with the shared memory chunk manager.
  */
-LSST_AP_API void registerVisit(VisitProcessingContext & context) {
+void registerVisit(VisitProcessingContext & context) {
     context.getChunkIds().clear();
     computeChunkIds(context.getChunkIds(), context.getFov(), context.getDecomposition(), 0, 1);
     SharedObjectChunkManager manager(context.getRunId());
@@ -663,7 +663,7 @@ LSST_AP_API void registerVisit(VisitProcessingContext & context) {
  * Ensures that object data for the chunks assigned to the calling slice has been read in or is
  * owned by the given visit.
  */
-LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
+void loadSliceObjects(VisitProcessingContext & context) {
 
     typedef VisitProcessingContext::ObjectChunk Chunk;
     typedef std::vector<Chunk>                        ChunkVector;
@@ -772,7 +772,7 @@ LSST_AP_API void loadSliceObjects(VisitProcessingContext & context) {
  *
  * @param[in, out] context  State involved in processing a single visit.
  */
-LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
+void buildObjectIndex(VisitProcessingContext & context) {
     if (!context.debugSharedMemory()) {
         // if the shared memory object used for chunk storage hasn't yet been unlinked, do so now
         SharedObjectChunkManager::destroyInstance(context.getRunId());
@@ -805,7 +805,7 @@ LSST_AP_API void buildObjectIndex(VisitProcessingContext & context) {
  * @param[out]     matches  Set to a list of difference source to object match pairs.
  * @param[in, out] context  State involved in processing a single visit.
  */
-LSST_AP_API void matchDiaSources(
+void matchDiaSources(
     MatchPairVector & matches,
     VisitProcessingContext & context
 ) {
@@ -863,7 +863,7 @@ LSST_AP_API void matchDiaSources(
  * @param[in, out] context     State involved in processing a single visit.
  * @param[in]      predictions The list of moving object predictions to match against difference sources.
  */
-LSST_AP_API void matchMops(
+void matchMops(
     MatchPairVector & matches,
     IdPairVector & newObjects,
     VisitProcessingContext & context,
@@ -964,7 +964,7 @@ LSST_AP_API void matchMops(
  *
  * @param[in, out] context  State involved in processing a single visit.
  */
-LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
+void storeSliceObjects(VisitProcessingContext & context) {
 
     typedef VisitProcessingContext::ObjectChunk Chunk;
     typedef std::vector<Chunk> ChunkVector;
@@ -1009,7 +1009,7 @@ LSST_AP_API void storeSliceObjects(VisitProcessingContext & context) {
  *
  * @param[in, out] context  State involved in processing a single visit.
  */
-LSST_AP_API void failVisit(VisitProcessingContext & context) {
+void failVisit(VisitProcessingContext & context) {
     SharedObjectChunkManager manager(context.getRunId());
     manager.failVisit(context.getVisitId());
 }
@@ -1025,7 +1025,7 @@ LSST_AP_API void failVisit(VisitProcessingContext & context) {
  * @return  @c true if the visit existed, was not marked as a failure and was committed,
  *          @c false otherwise.
  */
-LSST_AP_API bool endVisit(VisitProcessingContext & context, bool const rollback) {
+bool endVisit(VisitProcessingContext & context, bool const rollback) {
     SharedObjectChunkManager manager(context.getRunId());
     bool committed = manager.endVisit(context.getVisitId(), rollback);
     Log log(Log::getDefaultLog(), "lsst.ap");

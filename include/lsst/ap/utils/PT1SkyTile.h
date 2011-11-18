@@ -43,7 +43,7 @@ namespace lsst { namespace ap { namespace utils {
   * to lsst::skypix. For now, this small class provides the minimal
   * functionality required by the PT1 SourceAssoc pipeline.
   */
-class LSST_AP_API PT1SkyTile {
+class PT1SkyTile {
 public:
     PT1SkyTile(int resolution, int root, int x, int y, int id);
     ~PT1SkyTile();

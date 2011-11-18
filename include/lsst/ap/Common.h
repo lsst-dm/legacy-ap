@@ -41,31 +41,6 @@
 #include "boost/cstdint.hpp"
 
 
-// -- Shared library support ----------------
-
-#if LSST_AP_HAVE_VISIBILITY
-#    define LSST_AP_PUBLIC  __attribute__((visibility("default")))
-#    define LSST_AP_LOCAL   __attribute__((visibility("hidden")))
-#else
-#    define LSST_AP_PUBLIC
-#    define LSST_AP_LOCAL
-#endif
-
-// Define LSST_AP_API for shared library builds
-#if LSST_AP_SHARED_LIBRARY_BUILD
-#   define LSST_AP_API LSST_AP_PUBLIC
-#else
-#   define LSST_AP_API
-#endif
-
-// Define alignment macro if the compiler supports it
-#if LSST_AP_HAVE_ALIGNED
-#   define LSST_AP_ALIGNED(x) __attribute__((aligned(x)))
-#else
-#   define LSST_AP_ALIGNED(x) 
-#endif
-
-
 namespace lsst { namespace ap { namespace {
 
 /// The radius of an LSST FOV, in degrees.
