@@ -17,6 +17,7 @@ tests/sweepStructure
 .sconsign.dblite
 config.log
 .sconf_temp
+*.dylib
 *.o
 *.os
 *.so
