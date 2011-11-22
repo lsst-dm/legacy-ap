@@ -19,8 +19,12 @@
 # the GNU General Public License along with this program.  If not, 
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
+import sys
 
 from clusterLib import *
-from sourceClusteringStage import SourceClusteringParallel, SourceClusteringStage
-from sourceClusterAttributesStage import SourceClusterAttributesParallel, SourceClusterAttributesStage
+try:
+    from sourceClusteringStage import SourceClusteringParallel, SourceClusteringStage
+    from sourceClusterAttributesStage import SourceClusterAttributesParallel, SourceClusterAttributesStage
+except ImportError:
+    print >> sys.stderr, "Failed to import ap stage code; proceeding"
 
