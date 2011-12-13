@@ -37,9 +37,11 @@ Access to association pipeline matching functionality.
 
 %{
 #include "lsst/daf/base.h"
+#include "lsst/pex/logging.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
 #include "lsst/afw/image.h"
+#include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/match/ExposureInfo.h"
 #include "lsst/ap/match/ReferenceMatch.h"
 
@@ -52,14 +54,6 @@ Access to association pipeline matching functionality.
 %init %{
     import_array();
 %}
-
-namespace boost {
-#if defined(SWIGWORDSIZE64)
-    typedef long int64_t;
-#else
-    typedef long long int64_t;
-#endif
-}
 
 %include "lsst/p_lsstSwig.i"
 
@@ -75,9 +69,9 @@ namespace boost {
 
 %lsst_exceptions()
 
-SWIG_SHARED_PTR(BBox, lsst::ap::match::BBox);
-SWIG_SHARED_PTR_DERIVED(ExposureInfo, lsst::ap::match::BBox, lsst::ap::match::ExposureInfo);
-SWIG_SHARED_PTR(ExposureInfoMap, lsst::ap::match::ExposureInfoMap);
+%shared_ptr(lsst::ap::match::BBox);
+%shared_ptr(lsst::ap::match::ExposureInfo);
+%shared_ptr(lsst::ap::match::ExposureInfoMap);
 
 %import "lsst/ap/Common.h"
 %include "lsst/ap/match/BBox.h"

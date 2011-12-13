@@ -38,23 +38,16 @@ Access to association pipeline utilities.
 %{
 #include "lsst/tr1/unordered_map.h"
 #include "lsst/daf/base.h"
+#include "lsst/pex/logging.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
 #include "lsst/afw/detection.h"
-#include "lsst/afw/detection/Psf.h"
-#include "lsst/afw/detection/SourceMatch.h"
+#include "lsst/afw/detection/AperturePhotometry.h"
 #include "lsst/afw/image.h"
+#include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/utils/ImageUtils.h"
 #include "lsst/ap/utils/PT1SkyTile.h"
 %}
-
-namespace boost {
-#if defined(SWIGWORDSIZE64)
-    typedef long int64_t;
-#else
-    typedef long long int64_t;
-#endif
-}
 
 %include "lsst/p_lsstSwig.i"
 
@@ -65,7 +58,7 @@ namespace boost {
 
 %lsst_exceptions()
 
-SWIG_SHARED_PTR(PT1SkyTile, lsst::ap::utils::PT1SkyTile);
+%shared_ptr(lsst::ap::utils::PT1SkyTile);
 
 %import "lsst/ap/Common.h"
 %include "lsst/ap/utils/ImageUtils.h"

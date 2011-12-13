@@ -47,14 +47,6 @@ Access to association pipeline persistable result objects and implementation met
 #include <sstream>
 %}
 
-namespace boost {
-#if defined(SWIGWORDSIZE64)
-    typedef long int64_t;
-#else
-    typedef long long int64_t;
-#endif
-}
-
 %include "std_pair.i"
 %include "lsst/p_lsstSwig.i"
 %include "lsst/daf/base/persistenceMacros.i"
@@ -66,9 +58,9 @@ namespace boost {
 
 %lsst_exceptions()
 
-SWIG_SHARED_PTR(PersistableIdVec, lsst::ap::PersistableIdVector);
-SWIG_SHARED_PTR(PersistableIdPairVec, lsst::ap::PersistableIdPairVector);
-SWIG_SHARED_PTR(PersistableMatchPairVec, lsst::ap::PersistableMatchPairVector);
+%shared_ptr(lsst::ap::PersistableIdVector);
+%shared_ptr(lsst::ap::PersistableIdPairVector);
+%shared_ptr(lsst::ap::PersistableMatchPairVector);
 
 %include "lsst/ap/Common.h"
 %include "lsst/ap/Results.h"
@@ -107,7 +99,7 @@ MatchPair.__str__ = MatchPair.toString
 %include "lsst/ap/RectangularRegion.h"
 %include "lsst/ap/SpatialUtil.h"
 
-SWIG_SHARED_PTR(VisitProcessingContext, lsst::ap::VisitProcessingContext);
+%shared_ptr(VisitProcessingContext, lsst::ap::VisitProcessingContext);
 
 %include "lsst/ap/Stages.h"
 
