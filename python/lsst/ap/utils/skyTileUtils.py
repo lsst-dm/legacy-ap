@@ -44,7 +44,7 @@ def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
         raise RuntimeError("Image resolution must be at least 1")
     crpix = afwGeom.Point2D(0.5*(imageRes + 1), 0.5*(imageRes + 1))
     crval = geom.sphericalCoords(skyPixelization.getCenter(skyTileId))
-    crval = afwCoord.makeCoord(afwCoord.ICRS, crval[0] * afwGeom.radians, crval[1] * afwGeom.radians)
+    crval = afwCoord.makeCoord(afwCoord.ICRS, crval[0] * afwGeom.degrees, crval[1] * afwGeom.degrees)
     skyTile = skyPixelization.getGeometry(skyTileId)
     # Start with a huge TAN image centered at the sky-tile center,
     # then shrink it using binary search to determine suitable
