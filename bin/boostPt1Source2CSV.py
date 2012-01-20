@@ -51,15 +51,16 @@ def translate(source, method, flag=-1):
 
 def translateDeg(source, method, flag=-1):
     val = method(source)
+    val = val.asDegrees()
     if source.isNull(flag) or isSpecial(val):
         return nullstr
-    return repr(math.degrees(val))
+    return repr(val)
 
 def translateDegRangeReduce(source, method, flag=-1):
     val = method(source)
+    val = math.fmod(val.asDegrees(), 360.0)
     if source.isNull(flag) or isSpecial(val):
         return nullstr
-    val = math.fmod(math.degrees(val), 360.0)
     if val < 0.0:
         val += 360.0
         if val == 360.0:
