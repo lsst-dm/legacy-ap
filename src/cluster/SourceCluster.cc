@@ -428,7 +428,7 @@ void locateAndFilterSources(
                     invalid = true;
                 } else {
                     geom::AffineTransform xform =
-                        wcs->linearizePixelToSky(sky, afwGeom::radians);
+                        wcs->linearizePixelToSky(*sky, afwGeom::radians);
                     v = (xform.getLinear().getMatrix().array()
 			 * xform.getLinear().getMatrix().array()).matrix()
 		      * v.array().square().matrix();
@@ -464,7 +464,7 @@ void locateAndFilterSources(
                         invalid = true;
                     } else {
                         geom::AffineTransform xform =
-                            wcs->linearizePixelToSky(sky, afwGeom::radians);
+                            wcs->linearizePixelToSky(*sky, afwGeom::radians);
                         v = (xform.getLinear().getMatrix().array()
 			     * xform.getLinear().getMatrix().array()).matrix()
 			  * v.array().square().matrix();
