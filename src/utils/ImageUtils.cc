@@ -416,7 +416,7 @@ void makeSourceHistogram(
 {
     typedef detection::SourceSet::const_iterator SourceIter;
     for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        geom::Point2D xy = wcs->skyToPixel((*i)->getRaDec());
+        geom::Point2D xy = wcs->skyToPixel(*(*i)->getRaDec());
        int x = histogram->positionToIndex(xy[0], image::X).first;
        int y = histogram->positionToIndex(xy[1], image::Y).first;
        if (x < 0 || x >= histogram->getWidth() ||
@@ -548,7 +548,7 @@ void updateCoverageMap(
     }
     // Convert from image pixel space to coverage map pixel space.
     for (VertexIter i = v.begin(), e = v.end(); i != e; ++i) {
-        *i = covMapWcs->skyToPixel(wcs->pixelToSky(*i));
+        *i = covMapWcs->skyToPixel(*wcs->pixelToSky(*i));
     }
     // rasterize polygon
     rasterizePolygon(v, covMap);

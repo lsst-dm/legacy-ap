@@ -1569,7 +1569,7 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     lsst::afw::coord::IcrsCoord coord(sc.x() * afwGeom::radians, sc.y() * afwGeom::radians);
     // avoid at least one memory allocation
     boost::shared_ptr<lsst::afw::coord::Coord> sky(&coord, _nullDeleter);
-    lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(sky);
+    lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(*sky);
     if (p.getX() >= PixelZeroPos - 0.5 &&
         p.getX() <= e->getWidth() + PixelZeroPos - 0.5 &&
         p.getY() >= PixelZeroPos - 0.5 &&
