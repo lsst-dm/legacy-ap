@@ -138,7 +138,7 @@ inline void SmallPtrVector<T, N>::clear() {
 template <typename T, size_t N>
 inline void SmallPtrVector<T, N>::pop_back() {
     if (_end > _beg) {
-        --end;
+        --_end;
     }
 }
 
