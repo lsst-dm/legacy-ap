@@ -34,11 +34,14 @@
 
 namespace pexExcept = lsst::pex::exceptions;
 
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::radians;
+using lsst::afw::coord::IcrsCoord;
+
 using lsst::ap::utils::angularSeparation;
-using lsst::ap::utils::cartesianToSpherical;
+using lsst::ap::utils::cartesianToIcrs;
 using lsst::ap::utils::clampPhi;
 using lsst::ap::utils::maxAlpha;
-using lsst::ap::utils::sphericalToCartesian;
 
 
 namespace lsst { namespace ap { namespace match {
@@ -46,13 +49,13 @@ namespace lsst { namespace ap { namespace match {
 /** Clears the motion parameters of this reference position.
   */
 void ReferencePosition::clearMotion() {
-    _p = sphericalToCartesian(_sc.x(), _sc.y());
+    _p = _sc.getVector().asEigen();
     _v = Eigen::Vector3d::Zero();
-    _parallax = 0.0;
-    _minDecl = _sc.y();
-    _maxDecl = _sc.y();
-    _minRa = _sc.x();
-    _maxRa = _sc.x();
+    _parallax = 0.0 * radians;
+    _minDecl = _sc.getLatitude();
+    _maxDecl = _sc.getLatitude();
+    _minRa = _sc.getLongitude();
+    _maxRa = _sc.getLongitude();
     _flags = 0;
 }
 
@@ -62,16 +65,16 @@ void ReferencePosition::setMotion(
     double muRa,      ///< Rate of change of RA (true or coordinate angle),
                       ///  rad/day
     double muDecl,    ///< Declination rate of change, rad/day 
-    double parallax,  ///< Parallax, rad
+    Angle parallax,   ///< Parallax, rad
     double vRadial,   ///< Radial velocity, AU/day
     bool trueAngle,   ///< Is muRa dRA/dt*cos(decl) (@c true)
                       ///  or dRA/dt (@c false)?
     bool parallaxCor  ///< Apply parallax corrections in getPosition()?
 ) {
-    double sr = std::sin(_sc.x());
-    double cr = std::cos(_sc.x()); 
-    double sd = std::sin(_sc.y());
-    double cd = std::cos(_sc.y());
+    double sr = std::sin(_sc.getLongitude().asRadians());
+    double cr = std::cos(_sc.getLongitude().asRadians()); 
+    double sd = std::sin(_sc.getLatitude().asRadians());
+    double cd = std::cos(_sc.getLatitude().asRadians());
     if (trueAngle) {
         muRa = (cd == 0.0) ? 0.0 : muRa/cd;
     }
@@ -87,7 +90,7 @@ void ReferencePosition::setMotion(
         _flags = MOVING;
         return;
     }
-    double r = 1.0/parallax;
+    double r = 1.0 / parallax.asRadians();
     double s = r*cd;
     double t = r*sd*muDecl;
     double u = cd*vRadial;
@@ -118,35 +121,35 @@ void ReferencePosition::setTimeRange(double epoch1, double epoch2) {
         Eigen::Vector3d p1 = _p + _v*(epoch1 - _epoch);
         Eigen::Vector3d p2 = _p + _v*(epoch2 - _epoch);
         Eigen::Vector3d m = p1 + p2;
-        double r = std::max(angularSeparation(m, p1),
-                            angularSeparation(m, p2));
+        Angle r = std::max(angularSeparation(m, p1),
+                           angularSeparation(m, p2));
         if ((_flags & PARALLAX_COR) != 0) {
             r += 2.0*_parallax;
         }
-        Eigen::Vector2d sc = cartesianToSpherical(m);
-        double alpha = maxAlpha(r, sc.y());
-        _minDecl = clampPhi(sc.y() - r);
-        _maxDecl = clampPhi(sc.y() + r);
-        _minRa = sc.x() - alpha;
-        _maxRa = sc.x() + alpha;
+        IcrsCoord sc = cartesianToIcrs(m);
+        Angle alpha = maxAlpha(r, sc.getLatitude());
+        _minDecl = clampPhi(sc.getLatitude() - r);
+        _maxDecl = clampPhi(sc.getLatitude() + r);
+        _minRa = sc.getLongitude() - alpha;
+        _maxRa = sc.getLongitude() + alpha;
     }
 }
 
 
 double ReferencePosition::getMinCoord0() const {
-    return _minRa;
+    return static_cast<double>(_minRa);
 }
 
 double ReferencePosition::getMaxCoord0() const {
-    return _maxRa;
+    return static_cast<double>(_maxRa);
 }
 
 double ReferencePosition::getMinCoord1() const {
-    return _minDecl;
+    return static_cast<double>(_minDecl);
 }
 
 double ReferencePosition::getMaxCoord1() const {
-    return _maxDecl;
+    return static_cast<double>(_maxDecl);
 }
 
 }}} // namespace lsst::ap::match

@@ -30,78 +30,72 @@
 #include <cfloat>
 
 #include "lsst/pex/exceptions.h"
-#include "lsst/afw/geom/Angle.h"
 
-namespace pexExcept = lsst::pex::exceptions;
-namespace afwGeom = lsst::afw::geom;
+using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::RuntimeErrorException;
+
+using lsst::afw::geom::HALFPI;
+using lsst::afw::geom::PI;
+using lsst::afw::geom::TWOPI;
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::radians;
+using lsst::afw::coord::IcrsCoord;
 
 
 namespace lsst { namespace ap { namespace utils {
 
 /** Reduces a theta (longitude/right-ascension) range. The resulting
-  * range will have <tt> min \> max </tt> if it wraps across the 0/2*M_PI
+  * range will have <tt> min \> max </tt> if it wraps across the 0/2*PI
   * radiandiscontinuity. Valid inputs are:
   *
   * @li  any <tt> min, max </tt> with <tt> min \<= max </tt>
   * @li  <tt> min \> max </tt> so long as
-  *      <tt> min \<= 2*M_PI && max \>= 0.0 </tt>
+  *      <tt> min \<= 2*PI && max \>= 0.0 </tt>
   */
-void thetaRangeReduce(double &min, double &max) {
+void thetaRangeReduce(Angle &min, Angle &max) {
     if (min > max) {
-        if (max < 0.0 || min >= afwGeom::TWOPI) {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+        if (max < 0.0 || min >= TWOPI) {
+            throw LSST_EXCEPT(InvalidParameterException,
                               "Invalid longitude angle interval");
         }
-    } else if (max - min >= afwGeom::TWOPI) {
-        min = 0.0;
-        max = afwGeom::TWOPI;
-    } else if (min < 0.0 || max >= afwGeom::TWOPI) {
+    } else if (max - min >= TWOPI) {
+        min = 0.0 * radians;
+        max = TWOPI * radians;
+    } else if (min < 0.0 || max >= TWOPI) {
         // range reduce
-        min = std::fmod(min, afwGeom::TWOPI);
-        max = std::fmod(max, afwGeom::TWOPI);
-        if (min < 0.0) {
-            min += afwGeom::TWOPI;
-            if (min == afwGeom::TWOPI) {
-                min = 0.0;
-            }
-        }
-        if (max < 0.0) {
-            max += afwGeom::TWOPI;
-            if (max == afwGeom::TWOPI) {
-                max = 0.0;
-            }
-        }
+        min.wrap();
+        max.wrap();
     }
 }
 
-/** Computes the extent in longitude angle <tt> [-alpha, alpha] </tt> (rad) of
+/** Computes the extent in longitude angle <tt> [-alpha, alpha] </tt> of
   * the circle with radius @a radius and center at latitude angle @a centerPhi.
   *
-  * @pre  <tt> radius >= 0.0 && radius <= M_PI/2 </tt>
+  * @pre  <tt> radius >= 0.0 && radius <= PI/2 </tt>
   *
-  * Note that @a centerPhi is clamped to lie in [-M_PI/2, M_PI/2].
+  * Note that @a centerPhi is clamped to lie in [-PI/2, PI/2].
   */
-double maxAlpha(
-    double radius,   ///< circle radius (rad)
-    double centerPhi ///< latitude angle of circle center (rad)
+Angle const maxAlpha(
+    Angle radius,   ///< circle radius
+    Angle centerPhi ///< latitude angle of circle center
 ) {
     static const double POLE_EPSILON = 1e-7;
 
-    if (radius < 0.0 || radius > afwGeom::HALFPI) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "radius must be in range [0, M_PI/2] deg");
+    if (radius < 0.0 || radius > HALFPI) {
+        throw LSST_EXCEPT(InvalidParameterException,
+                          "radius must be in range [0, PI/2] deg");
     }
     if (radius == 0.0) {
-        return 0.0;
+        return 0.0 * radians;
     }
     centerPhi = clampPhi(centerPhi);
-    if (std::fabs(centerPhi) + radius > afwGeom::HALFPI - POLE_EPSILON) {
-        return afwGeom::PI*(1 + 2.0*DBL_EPSILON);
+    if (std::fabs(centerPhi.asRadians()) + radius.asRadians() > HALFPI - POLE_EPSILON) {
+        return PI*(1 + 2.0*DBL_EPSILON) * radians;
     }
-    double y = std::sin(radius);
-    double x = std::sqrt(std::fabs(std::cos(centerPhi - radius) *
-                                   std::cos(centerPhi + radius)));
-    return std::fabs(std::atan(y / x));
+    double y = std::sin(radius.asRadians());
+    double x = std::sqrt(std::fabs(std::cos(centerPhi.asRadians() - radius.asRadians()) *
+                                   std::cos(centerPhi.asRadians() + radius.asRadians())));
+    return std::fabs(std::atan(y / x)) * radians;
 }
 
 /** Converts from spherical coordinates, proper motions, parallax and
@@ -131,21 +125,21 @@ double maxAlpha(
 void positionAndVelocity(
     Eigen::Vector3d &p, ///< [out] position, AU
     Eigen::Vector3d &v, ///< [out] velocity, AU/day
-    double ra,          ///< right ascension, rad
-    double decl,        ///< declination, rad
+    Angle ra,           ///< right ascension
+    Angle decl,         ///< declination
     double muRa,        ///< proper motion in RA, rad/day
     double muDecl,      ///< proper motion in Dec, rad/day
     double vRadial,     ///< radial velocity, AU/day
-    double parallax     ///< parallax, rad
+    Angle parallax      ///< parallax
 ) {
     // distance (AU)
-    double r = 1.0 / parallax;
+    double r = 1.0 / parallax.asRadians();
 
     // convert to position and velocity vector (AU, AU/day)
-    double sinRa = sin(ra);
-    double cosRa = cos(ra);
-    double sinDecl = sin(decl);
-    double cosDecl = cos(decl);
+    double sinRa = sin(ra.asRadians());
+    double cosRa = cos(ra.asRadians());
+    double sinDecl = sin(decl.asRadians());
+    double cosDecl = cos(decl.asRadians());
     double s = r*cosDecl;
     double t = r*muDecl*sinDecl;
     double u = cosDecl*vRadial;
@@ -154,7 +148,7 @@ void positionAndVelocity(
                         sinRa*u + p.x()*muRa - sinRa*t,
                         sinDecl*vRadial + s*muDecl);
     if (v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(RuntimeErrorException,
                           "star velocity vector magnitude exceeds half "
                           "the speed of light");
     }
@@ -167,12 +161,6 @@ Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v) {
     double d2 = v.x()*v.x() + v.y()*v.y();
     double theta = (d2 == 0.0) ? 0.0 : std::atan2(v.y(), v.x());
     double phi = (v.z() == 0.0) ? 0.0 : std::atan2(v.z(), std::sqrt(d2));
-    if (theta < 0.0) {
-        theta += afwGeom::TWOPI;
-        if (theta == afwGeom::TWOPI) {
-            theta = 0.0;
-        }
-    }
     return Eigen::Vector2d(theta, phi);
 }
 

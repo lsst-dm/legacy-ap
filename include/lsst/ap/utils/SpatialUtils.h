@@ -34,6 +34,9 @@
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
+#include "lsst/afw/geom/Angle.h"
+#include "lsst/afw/coord/Coord.h"
+
 #include "../Common.h"
 
 
@@ -41,42 +44,57 @@ namespace lsst { namespace ap { namespace utils {
 
 /** Clamps the given latitude/declination to <tt>[-M_PI/2, M_PI/2]</tt>.
   */
-inline double clampPhi(double const a) {
-    return a <= -M_PI_2 ? -M_PI_2 : (a >= M_PI_2 ? M_PI_2 : a);
+inline lsst::afw::geom::Angle const clampPhi(lsst::afw::geom::Angle const a) {
+    using lsst::afw::geom::Angle;
+    using lsst::afw::geom::radians;
+    using lsst::afw::geom::HALFPI;
+
+    if (static_cast<double>(a) < -HALFPI) {
+        return Angle(-HALFPI, radians);
+    } else if (static_cast<double>(a) > HALFPI) {
+        return Angle(HALFPI, radians);
+    }
+    return a;
 }
 
-void thetaRangeReduce(double &min, double &max);
+void thetaRangeReduce(lsst::afw::geom::Angle &min, lsst::afw::geom::Angle &max);
 
-double maxAlpha(double radius, double centerPhi);
+lsst::afw::geom::Angle const maxAlpha(lsst::afw::geom::Angle radius,
+                                      lsst::afw::geom::Angle centerPhi);
 
 void positionAndVelocity(Eigen::Vector3d &p,
                          Eigen::Vector3d &v,
-                         double ra,
-                         double decl,
+                         lsst::afw::geom::Angle ra,
+                         lsst::afw::geom::Angle decl,
                          double muRa,
                          double muDecl,
                          double vRadial,
-                         double parallax);
+                         lsst::afw::geom::Angle parallax);
 
 Eigen::Vector2d const cartesianToSpherical(Eigen::Vector3d const &v);
 
-/** Converts spherical coordinate <tt>(theta, phi)</tt> (rad) to a unit 3-vector.
-  */
-inline Eigen::Vector3d const sphericalToCartesian(double ra, double dec) {
-    double cosDec = std::cos(dec);
-    return Eigen::Vector3d(std::cos(ra)*cosDec,
-                           std::sin(ra)*cosDec,
-                           std::sin(dec));
+inline lsst::afw::coord::IcrsCoord const cartesianToIcrs(Eigen::Vector3d const &v) {
+    Eigen::Vector2d sc = cartesianToSpherical(v);
+    return lsst::afw::coord::IcrsCoord(sc.x() * lsst::afw::geom::radians,
+                                       sc.y() * lsst::afw::geom::radians);
 }
 
 /** Returns the angular separation (rad) between two 3-vectors of arbitrary
   * magnitude.
   */
-inline double angularSeparation(Eigen::Vector3d const &v1,
-                                Eigen::Vector3d const &v2) {
+inline lsst::afw::geom::Angle const angularSeparation(
+    Eigen::Vector3d const &v1,
+    Eigen::Vector3d const &v2)
+{
+    using lsst::afw::geom::Angle;
+    using lsst::afw::geom::radians;
+
     double ss = v1.cross(v2).norm();
     double cs = v1.dot(v2);
-    return (ss != 0.0 || cs != 0.0) ? std::atan2(ss, cs) : 0.0;
+    if (ss != 0.0 || cs != 0.0) {
+        return Angle(std::atan2(ss, cs), radians);
+    }
+    return Angle(0.0, radians);
 }
 
 }}} // namespace lsst::ap::utils

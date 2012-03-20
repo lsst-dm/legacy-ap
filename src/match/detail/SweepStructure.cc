@@ -29,12 +29,16 @@
   * @author Serge Monkewitz
   */
 #include "lsst/ap/match/detail/SweepStructure.h"
-#include "lsst/afw/geom/Angle.h"
+
 #include <stdexcept>
 
 #include "lsst/utils/ieee.h"
+#include "lsst/afw/geom/Angle.h"
 
-namespace afwGeom = lsst::afw::geom;
+using lsst::afw::geom::TWOPI;
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::radians;
+
 
 namespace lsst { namespace ap { namespace match { namespace detail {
 
@@ -370,8 +374,8 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
     if (b == 0) {
         return;
     }
-    double min = b->getMinCoord0();
-    double max = b->getMaxCoord0();
+    Angle min = b->getMinCoord0() * radians;
+    Angle max = b->getMaxCoord0() * radians;
     lsst::ap::utils::thetaRangeReduce(min, max);
     if (min > max) {
         // box wraps across the 0/2*M_PI longitude angle
@@ -380,10 +384,11 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
 	if (_heap.capacity() - _heap.size() < 2) {
             _grow(2);
         }
-        SphericalNode *n1 = new (_arena) SphericalNode(b, 0.0, max);
+        SphericalNode *n1 = new (_arena) SphericalNode(
+            b, 0.0, static_cast<double>(max));
         SphericalNode *n2 = 0;
         try {
-            n2 = new (_arena) SphericalNode(b, min, afwGeom::TWOPI);
+            n2 = new (_arena) SphericalNode(b, static_cast<double>(min), TWOPI);
         } catch (...) {
             // exception safety: if allocation for n2 fails, delete n1.
             _arena.destroy(n1);
@@ -404,7 +409,8 @@ void SweepStructure<SphericalNode>::_insert(BBox *b) {
         if (_heap.size() == _heap.capacity()) {
             _grow(1);
         }
-        SphericalNode *n = new (_arena) SphericalNode(b, min, max);
+        SphericalNode *n = new (_arena) SphericalNode(
+            b, static_cast<double>(min), static_cast<double>(max));
         // after this point no exception can be thrown
         _insert(n);
         _heap.push_back(HeapEntry(b->getMaxCoord1(), n));

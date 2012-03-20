@@ -37,14 +37,14 @@ namespace lsst { namespace ap { namespace match {
   */
 ReferencePosition::ReferencePosition(
     int64_t id,   ///< Reference position id
-    double ra,    ///< Reference position right ascension, ICRS (radians)
-    double decl,  ///< Reference position declination, ICRS (radians)
+    lsst::afw::geom::Angle const ra,    ///< Reference position right ascension, ICRS (radians)
+    lsst::afw::geom::Angle const decl,  ///< Reference position declination, ICRS (radians)
     double epoch  ///< Reference position epoch, MJD
    ) :
     _sc(ra, decl),
     _id(id),
     _epoch(epoch),
-    _p(lsst::ap::utils::sphericalToCartesian(ra, decl)),
+    _p(_sc.getVector().asEigen()),
     _v(Eigen::Vector3d::Zero()),
     _parallax(0.0),
     _minDecl(decl),
@@ -76,7 +76,7 @@ inline int ReferencePosition::getFlags() const {
 /** Returns the ICRS spherical coordinates (rad) of the reference position
   * at epoch getEpoch().
   */
-inline Eigen::Vector2d const & ReferencePosition::getSphericalCoords() const {
+inline lsst::afw::coord::IcrsCoord const & ReferencePosition::getSphericalCoords() const {
     return _sc;
 }
 
@@ -104,9 +104,7 @@ inline Eigen::Vector3d const & ReferencePosition::getVelocity() const {
 
 /** Returns the reference position at epoch @a epoch, accounting for motion
   * and optionally adjusting the coordinates to be geocentric rather than
-  * barycentric. The return value is normalized to be a unit 3-vector,
-  * which can then be converted to spherical coordinates using
-  * lsst::ap::utils::cartesianToSpherical().
+  * barycentric. The return value is normalized to be a unit 3-vector.
   *
   * Note that the change to a geocentric origin is only performed if the
   * the reference position flags contain the PARALLAX bit and @a ssbToGeo

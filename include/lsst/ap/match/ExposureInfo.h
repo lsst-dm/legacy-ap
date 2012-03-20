@@ -34,12 +34,14 @@
 
 #include "Eigen/Core"
 
-#include "lsst/pex/policy/Policy.h"
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/geom/Extent.h"
+#include "lsst/afw/coord/Coord.h"
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
 #include "../Common.h"
+#include "../utils/Csv.h"
 #include "../utils/EarthPosition.h"
 #include "BBox.h"
 
@@ -84,7 +86,7 @@ public:
 
      /** Returns the ICRS coordinates of the image center (rad).
        */
-     inline Eigen::Vector2d const & getCenter() const {
+     inline lsst::afw::coord::IcrsCoord const & getCenter() const {
          return _center;
      }
 
@@ -140,9 +142,9 @@ public:
 private:
      Eigen::Vector3d const _pixToSky(double x, double y) const;
 
-     Eigen::Vector2d _center;
-     double _radius;
-     double _alpha;
+     lsst::afw::coord::IcrsCoord _center;
+     lsst::afw::geom::Angle _radius;
+     lsst::afw::geom::Angle _alpha;
      mutable Eigen::Vector3d _earthPos;
      int64_t _id;
      double _epoch;
@@ -193,7 +195,8 @@ private:
 void readExposureInfos(
     std::vector<ExposureInfo::Ptr> & exposures,
     std::string const & csvFile,
-    lsst::pex::policy::Policy::Ptr expPolicy=lsst::pex::policy::Policy::Ptr());
+    lsst::ap::utils::CsvControl const &control,
+    std::string const & idKey);
 
 }}} // namespace lsst::ap::match
 

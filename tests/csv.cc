@@ -48,38 +48,85 @@ using std::vector;
 
 using lsst::pex::exceptions::Exception;
 using lsst::afw::math::Random;
-using lsst::ap::utils::CsvDialect;
+using lsst::ap::utils::CsvControl;
 using lsst::ap::utils::CsvReader;
 using lsst::ap::utils::CsvWriter;
 
 
-BOOST_AUTO_TEST_CASE(dialect) {
+BOOST_AUTO_TEST_CASE(control) {
     // illegal delimiters should throw
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, '\0'), Exception);
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, '\n'), Exception);
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, '\r'), Exception);
+    CsvControl ctrl;
+    ctrl.quoting = "QUOTE_NONE";
+    ctrl.delimiter = "";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.delimiter = "\n";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.delimiter = "\r";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.delimiter = "ab";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // quote/escape char equal to delimiter should throw
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', ','), Exception);
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', '\0', ','), Exception);
+    ctrl.delimiter = ",";
+    ctrl.escapeChar = ",";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.escapeChar = "";
+    ctrl.quoteChar = ",";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // identical quote/escape characters should throw
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', 'a', 'a'), Exception);
+    ctrl.escapeChar = "a";
+    ctrl.quoteChar = "a";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
+    // quote/escape strings must be at most one character in length
+    ctrl.escapeChar = "ab";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "quote";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // a quote char of '\0' requires QUOTE_NONE
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_ALL, ',', '\\', '\0'), Exception);
+    ctrl.quoting = "QUOTE_ALL";
+    ctrl.quoteChar = "";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.quoting = "QUOTE_MINIMAL";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // an escape char of '\0' requires standardEscapes to be false
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_ALL, ',', '\0', '"', false, false, true), Exception);
+    ctrl.quoteChar = "\"";
+    ctrl.escapeChar = "";
+    ctrl.standardEscapes = true;
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // illegal escape characters should throw
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', '\n'), Exception);
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', '\r'), Exception);
+    ctrl.escapeChar = "\n";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.escapeChar = "\r";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // illegal quote characters should throw
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', '\\', '\n'), Exception);
-    BOOST_CHECK_THROW(CsvDialect(CsvDialect::QUOTE_NONE, ',', '\\', '\r'), Exception);
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "\n";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.quoteChar = "\r";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // null string containing illegal characters should throw
-    BOOST_CHECK_THROW(CsvDialect("\n", CsvDialect::QUOTE_NONE), Exception);
-    BOOST_CHECK_THROW(CsvDialect("\r", CsvDialect::QUOTE_NONE), Exception);
+    ctrl.quoteChar = "\"";
+    ctrl.null = "\n";
+    ctrl.hasNull = true;
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.null = "\r";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+
     // null string containing delimter/escape/quote characters should throw
-    BOOST_CHECK_THROW(CsvDialect(",", CsvDialect::QUOTE_NONE, ','), Exception);
-    BOOST_CHECK_THROW(CsvDialect("a", CsvDialect::QUOTE_NONE, ',', 'a'), Exception);
-    BOOST_CHECK_THROW(CsvDialect("b", CsvDialect::QUOTE_NONE, ',', 'a', 'b'), Exception);
+    ctrl.null = ",";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.null = "\\";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
+    ctrl.null = "\"";
+    BOOST_CHECK_THROW(ctrl.validate(), Exception);
 }
 
 
@@ -88,7 +135,7 @@ static char const * const END = NULLF - 1;
 static char const * const ENDR = NULLF - 2;
 
 static void roundTrip(char const * const result,
-                      CsvDialect const & dialect,
+                      CsvControl const & control,
                       ...)
 {
     typedef vector<vector<char const *> >::const_iterator RecIter;
@@ -97,7 +144,7 @@ static void roundTrip(char const * const result,
     // read in the fields to output
     vector<vector<char const *> > records;
     std::va_list args;
-    va_start(args, dialect);
+    va_start(args, control);
     while (true) {
         vector<char const *> record;
         char const *s;
@@ -119,7 +166,7 @@ static void roundTrip(char const * const result,
 
     // write out fields
     ostringstream oss;
-    CsvWriter writer(oss, dialect);
+    CsvWriter writer(oss, control);
     for (RecIter r = records.begin(), er = records.end(); r != er; ++r) {
         for (FieldIter f = r->begin(), ef = r->end(); f != ef; ++f) {
             writer.appendField(*f);
@@ -132,7 +179,7 @@ static void roundTrip(char const * const result,
 
     // check that round tripping works
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, control);
     if (records.size() == 0) {
         BOOST_CHECK(reader.isDone());
         return;
@@ -158,99 +205,264 @@ static void roundTrip(char const * const result,
 
 BOOST_AUTO_TEST_CASE(quoting) {
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'');
-        roundTrip("a,b,'c,d'\n", dialect, "a", "b", "c,d", END);
-        roundTrip("a,b,'c,\\'d\\''\n", dialect, "a", "b", "c,'d'", END);
-        roundTrip("\\'\n", dialect, "'", END);
-        roundTrip("'a\nb',c\n", dialect, "a\nb", "c", END);
-        roundTrip("'a\rb',c\n", dialect, "a\rb", "c", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("a,b,'c,d'\n", ctrl, "a", "b", "c,d", END);
+        roundTrip("a,b,'c,\\'d\\''\n", ctrl, "a", "b", "c,'d'", END);
+        roundTrip("\\'\n", ctrl, "'", END);
+        roundTrip("'a\nb',c\n", ctrl, "a\nb", "c", END);
+        roundTrip("'a\rb',c\n", ctrl, "a\rb", "c", END);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\0', '\'');
-        roundTrip("a,b,'c,d'\n", dialect, "a", "b", "c,d", END);
-        roundTrip("'a\nb,c'\n", dialect, "a\nb,c", END);
-        roundTrip("'a\rb',c\n", dialect, "a\rb", "c", END);
-        BOOST_CHECK_THROW(roundTrip("", dialect, "a", "b", "c,'d'", END), Exception);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ","; 
+        ctrl.escapeChar = "";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("a,b,'c,d'\n", ctrl, "a", "b", "c,d", END);
+        roundTrip("'a\nb,c'\n", ctrl, "a\nb,c", END);
+        roundTrip("'a\rb',c\n", ctrl, "a\rb", "c", END);
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "a", "b", "c,'d'", END), Exception);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_NONE, ',', '\\', '\0');
-        roundTrip("a,b,c\\,d\n", dialect, "a", "b", "c,d", END);
-        roundTrip("'\n", dialect, "'", END);
-        roundTrip("\\,\n", dialect, ",", END);
-        roundTrip("\\\n\n", dialect, "\n", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_NONE";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("a,b,c\\,d\n", ctrl, "a", "b", "c,d", END);
+        roundTrip("'\n", ctrl, "'", END);
+        roundTrip("\\,\n", ctrl, ",", END);
+        roundTrip("\\\n\n", ctrl, "\n", END);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_NONE, ',', '\0', '\'');
-        roundTrip("'\n", dialect, "'", END);
-        BOOST_CHECK_THROW(roundTrip("", dialect, "\n", END), Exception);
-        BOOST_CHECK_THROW(roundTrip("", dialect, "\r", END), Exception);
-        BOOST_CHECK_THROW(roundTrip("", dialect, "a","b","c,d", END), Exception);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_NONE";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("'\n", ctrl, "'", END);
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "\n", END), Exception);
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "\r", END), Exception);
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "a","b","c,d", END), Exception);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_ALL, ',', '\\', '\'');
-        roundTrip("'a','b','c,d'\n", dialect, "a", "b", "c,d", END);
-        roundTrip("'a','b','c,\\'d\\''\n", dialect, "a", "b", "c,'d'", END);
-        roundTrip("'a\n','b\r'\n", dialect, "a\n", "b\r", END);
-        roundTrip("'\\\\'\n", dialect, "\\", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_ALL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("'a','b','c,d'\n", ctrl, "a", "b", "c,d", END);
+        roundTrip("'a','b','c,\\'d\\''\n", ctrl, "a", "b", "c,'d'", END);
+        roundTrip("'a\n','b\r'\n", ctrl, "a\n", "b\r", END);
+        roundTrip("'\\\\'\n", ctrl, "\\", END);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_ALL, ',', '\0', '\'');
-        BOOST_CHECK_THROW(roundTrip("", dialect, "'", END), Exception);
-        roundTrip("','\n", dialect, ",", END);
-        roundTrip("'\n'\n", dialect, "\n", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_ALL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "'", END), Exception);
+        roundTrip("','\n", ctrl, ",", END);
+        roundTrip("'\n'\n", ctrl, "\n", END);
     }
 }
 
 BOOST_AUTO_TEST_CASE(escaping) {
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\0', '\'');
-        BOOST_CHECK_THROW(roundTrip("", dialect, "'", END), Exception);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        BOOST_CHECK_THROW(roundTrip("", ctrl, "'", END), Exception);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'', false, true, true);
-        roundTrip("\\n,\\r\n", dialect, "\n", "\r", END);
-        roundTrip("'''',''''\n", dialect, "'", "'", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = true;
+        ctrl.standardEscapes = true;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("\\n,\\r\n", ctrl, "\n", "\r", END);
+        roundTrip("'''',''''\n", ctrl, "'", "'", END);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'', false, true);
-        roundTrip("'\n','\r'\n", dialect, "\n", "\r", END);
-        roundTrip("'''',''''\n", dialect, "'", "'", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = true;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("'\n','\r'\n", ctrl, "\n", "\r", END);
+        roundTrip("'''',''''\n", ctrl, "'", "'", END);
     }
     {
-        CsvDialect dialect(CsvDialect::QUOTE_NONE, ',', '\\', '\0', false, false, true);
-        roundTrip("\\n,\\r\n", dialect, "\n", "\r", END);
-        roundTrip("a,b,c\\,d\n", dialect, "a", "b", "c,d", END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_NONE";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = true;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("\\n,\\r\n", ctrl, "\n", "\r", END);
+        roundTrip("a,b,c\\,d\n", ctrl, "a", "b", "c,d", END);
     }
 }
 
 BOOST_AUTO_TEST_CASE(null) {
     {
-        CsvDialect dialect(CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'', false, false, true);
-        roundTrip("a,\\N,b\n", dialect, "a", NULLF, "b", END);
-        roundTrip("\\N,\\N,\\N\n", dialect, NULLF, NULLF, NULLF, END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = false;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = true;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("a,\\N,b\n", ctrl, "a", NULLF, "b", END);
+        roundTrip("\\N,\\N,\\N\n", ctrl, NULLF, NULLF, NULLF, END);
     }
     {
-        CsvDialect dialect("NULL", CsvDialect::QUOTE_ALL, ',', '\\', '\'');
-        roundTrip("'a',NULL,'b'\n", dialect, "a", NULLF, "b", END);
-        roundTrip("NULL\n", dialect, NULLF, END);
+        CsvControl ctrl;
+        ctrl.null = "NULL";
+        ctrl.hasNull = true;
+        ctrl.quoting = "QUOTE_ALL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("'a',NULL,'b'\n", ctrl, "a", NULLF, "b", END);
+        roundTrip("NULL\n", ctrl, NULLF, END);
     }
     {
-        CsvDialect dialect("NULL", CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'');
-        roundTrip("'NULL',NULL,'NULL',NULL\n", dialect, "NULL", NULLF, "NULL", NULLF, END);
-        roundTrip("NULL\n", dialect, NULLF, END);
+        CsvControl ctrl;
+        ctrl.null = "NULL";
+        ctrl.hasNull = true;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("'NULL',NULL,'NULL',NULL\n", ctrl, "NULL", NULLF, "NULL", NULLF, END);
+        roundTrip("NULL\n", ctrl, NULLF, END);
     }
     {
-        CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'');
-        roundTrip("a,,b,''\n", dialect, "a", NULLF, "b", "", END);
-        roundTrip("\n\n", dialect, NULLF, ENDR, NULLF, END);
+        CsvControl ctrl;
+        ctrl.null = "";
+        ctrl.hasNull = true;
+        ctrl.quoting = "QUOTE_MINIMAL";
+        ctrl.delimiter = ",";
+        ctrl.escapeChar = "\\";
+        ctrl.quoteChar = "'";
+        ctrl.skipInitialSpace = false;
+        ctrl.doubleQuote = false;
+        ctrl.standardEscapes = false;
+        ctrl.trailingDelimiter = false;
+        ctrl.validate();
+        roundTrip("a,,b,''\n", ctrl, "a", NULLF, "b", "", END);
+        roundTrip("\n\n", ctrl, NULLF, ENDR, NULLF, END);
     }
 }
 
 BOOST_AUTO_TEST_CASE(trailingDelimiter) {
-    CsvDialect dialect("", CsvDialect::QUOTE_NONE, '|', '\\', '\0', false, false, false, true);
-    roundTrip("a|b|\n", dialect, "a", "b", END);
-    roundTrip("a|b|\nc|d|\n", dialect, "a", "b", ENDR, "c", "d", END);
-    roundTrip("||a||\n", dialect, NULLF, NULLF, "a", NULLF, END);
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_NONE";
+    ctrl.delimiter = "|";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = true;
+    ctrl.validate();
+    roundTrip("a|b|\n", ctrl, "a", "b", END);
+    roundTrip("a|b|\nc|d|\n", ctrl, "a", "b", ENDR, "c", "d", END);
+    roundTrip("||a||\n", ctrl, NULLF, NULLF, "a", NULLF, END);
 }
 
 template <typename T>
@@ -261,8 +473,21 @@ static void fpIoTest(T const tolerance) {
         numeric_limits<T>::max_exponent - numeric_limits<T>::min_exponent);
     Random rng;
     ostringstream oss;
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
-    CsvWriter writer(oss, dialect);
+
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_MINIMAL";
+    ctrl.delimiter = "|";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "'";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = false;
+    ctrl.validate();
+
+    CsvWriter writer(oss, ctrl);
     std::vector<T> input;
     for (size_t r = 0; r < NREC; ++r) {
         for (size_t i = 0; i < NFIELD; ++i) {
@@ -295,7 +520,7 @@ static void fpIoTest(T const tolerance) {
     writer.endRecord();
 
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, ctrl);
     bool warned = false;
     for (size_t r = 0; r < NREC; ++r) {
         BOOST_CHECK_EQUAL(r + 1, reader.getNumRecords());
@@ -493,8 +718,20 @@ BOOST_AUTO_TEST_CASE(hardRounding) {
     static size_t const NREC = sizeof(TYDEMAN_HARD)/(4*sizeof(double));
 
     ostringstream oss;
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
-    CsvWriter writer(oss, dialect);
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_MINIMAL";
+    ctrl.delimiter = "|";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "'";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = false;
+    ctrl.validate();
+
+    CsvWriter writer(oss, ctrl);
     for (size_t r = 0; r < NREC; ++r) {
         for (size_t f = 0; f < 4u; ++ f) {
             writer.appendField(TYDEMAN_HARD[r*4 + f]);
@@ -503,7 +740,7 @@ BOOST_AUTO_TEST_CASE(hardRounding) {
     }
 
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, ctrl);
     bool warned = false;
     for (size_t r = 0; r < NREC; ++r) {
         BOOST_CHECK_EQUAL(r + 1, reader.getNumRecords());
@@ -529,8 +766,19 @@ BOOST_AUTO_TEST_CASE(hardRounding) {
 template <typename T>
 static void integerIoTest() {
     ostringstream oss;
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '\t', '\\', '\'');
-    CsvWriter writer(oss, dialect);
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_MINIMAL";
+    ctrl.delimiter = "\t";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "\'";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = false;
+    ctrl.validate();
+    CsvWriter writer(oss, ctrl);
     for (int i = 0; i < 100; ++i) {
         writer.appendField(static_cast<T>(i));
         if (numeric_limits<T>::is_signed) {
@@ -554,7 +802,7 @@ static void integerIoTest() {
     writer.endRecord();
 
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, ctrl);
     for (int i = 0; i < 100; ++i) {
         BOOST_CHECK_EQUAL(reader.get<T>(i*2), static_cast<T>(i));
         if (numeric_limits<T>::is_signed) {
@@ -590,8 +838,19 @@ BOOST_AUTO_TEST_CASE(unsignedLongLongIo) { integerIoTest<unsigned long long>(); 
 
 BOOST_AUTO_TEST_CASE(boolIo) {
     ostringstream oss;
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, ',', '\\', '\'');
-    CsvWriter writer(oss, dialect);
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_MINIMAL";
+    ctrl.delimiter = ",";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "'";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = false;
+    ctrl.validate();
+    CsvWriter writer(oss, ctrl);
     writer.appendField(true);
     writer.appendField(false);
     writer.appendField("2");
@@ -625,7 +884,7 @@ BOOST_AUTO_TEST_CASE(boolIo) {
     writer.appendField("no");
     writer.appendField("NO");
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, ctrl);
     BOOST_CHECK_EQUAL(reader.get<char>(0), '1');
     BOOST_CHECK_EQUAL(reader.get<char>(1), '0');
     BOOST_CHECK(reader.get<bool>(0));
@@ -658,8 +917,20 @@ BOOST_AUTO_TEST_CASE(boolIo) {
 BOOST_AUTO_TEST_CASE(charIo) {
     string characters("abcdefgHIJKLMNOP");
     ostringstream oss;
-    CsvDialect dialect("", CsvDialect::QUOTE_MINIMAL, '|', '\\', '\'');
-    CsvWriter writer(oss, dialect);
+    CsvControl ctrl;
+    ctrl.null = "";
+    ctrl.hasNull = true;
+    ctrl.quoting = "QUOTE_MINIMAL";
+    ctrl.delimiter = "|";
+    ctrl.escapeChar = "\\";
+    ctrl.quoteChar = "'";
+    ctrl.skipInitialSpace = false;
+    ctrl.doubleQuote = false;
+    ctrl.standardEscapes = false;
+    ctrl.trailingDelimiter = false;
+    ctrl.validate();
+
+    CsvWriter writer(oss, ctrl);
     for (size_t i = 0; i < characters.size(); ++i) {
         writer.appendField(characters[i]);
     }
@@ -672,7 +943,7 @@ BOOST_AUTO_TEST_CASE(charIo) {
     writer.endRecord();
 
     istringstream iss(oss.str());
-    CsvReader reader(iss, dialect);
+    CsvReader reader(iss, ctrl);
     for (size_t i = 0; i < characters.size(); ++i) {
         BOOST_CHECK_EQUAL(reader.get<char>(static_cast<int>(i)), characters[i]);
     }

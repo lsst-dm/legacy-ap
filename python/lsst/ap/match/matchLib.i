@@ -40,6 +40,8 @@ Access to association pipeline matching functionality.
 #include "lsst/pex/logging.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
+#include "lsst/afw/detection.h"
+#include "lsst/afw/detection/AperturePhotometry.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/match/ExposureInfo.h"
@@ -58,11 +60,13 @@ Access to association pipeline matching functionality.
 %include "lsst/p_lsstSwig.i"
 
 %import "lsst/daf/base/baseLib.i"
-%import "lsst/pex/policy/policyLib.i"
 %import "lsst/afw/geom/geomLib.i"
+%import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/image/imageLib.i"
+%import "lsst/ap/utils/utilsLib.i"
 
 %include "lsst/ndarray/ndarray.i"
+%include "lsst/pex/config.h"
 
 %declareEigenMatrix(Eigen::Vector2d);
 %declareEigenMatrix(Eigen::Vector3d);
@@ -70,11 +74,13 @@ Access to association pipeline matching functionality.
 %lsst_exceptions()
 
 %shared_ptr(lsst::ap::match::BBox);
+%shared_ptr(lsst::ap::match::CatalogControl);
 %shared_ptr(lsst::ap::match::ExposureInfo);
 %shared_ptr(lsst::ap::match::ExposureInfoMap);
 
 %import "lsst/ap/Common.h"
 %include "lsst/ap/match/BBox.h"
+%include "lsst/ap/match/CatalogControl.h"
 %include "lsst/ap/match/ExposureInfo.h"
 %include "lsst/ap/match/ReferenceMatch.h"
 

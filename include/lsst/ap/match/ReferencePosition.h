@@ -30,6 +30,9 @@
 
 #include "Eigen/Core"
 
+#include "lsst/afw/geom/Angle.h"
+#include "lsst/afw/coord/Coord.h"
+
 #include "../Common.h"
 #include "../utils/SpatialUtils.h"
 #include "../utils/EarthPosition.h"
@@ -54,8 +57,8 @@ public:
     static double const MIN_PARALLAX = 1e-11; // rad
 
     inline ReferencePosition(int64_t id,
-                             double ra,
-                             double dec,
+                             lsst::afw::geom::Angle const ra,
+                             lsst::afw::geom::Angle const dec,
                              double epoch=J2000_MJD);
 
     virtual ~ReferencePosition() { }
@@ -63,7 +66,7 @@ public:
     void clearMotion();    
     void setMotion(double muRa,
                    double muDecl,
-                   double parallax,
+                   lsst::afw::geom::Angle parallax,
                    double vRadial,
                    bool trueAngle,
                    bool parallaxCor);
@@ -73,7 +76,7 @@ public:
     inline int64_t getId() const; 
     inline double getEpoch() const;
     inline int getFlags() const;
-    inline Eigen::Vector2d const & getSphericalCoords() const;
+    inline lsst::afw::coord::IcrsCoord const & getSphericalCoords() const;
     inline Eigen::Vector3d const & getPosition() const;
     inline Eigen::Vector3d const & getVelocity() const;
 
@@ -90,17 +93,17 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 private:
-    Eigen::Vector2d _sc; ///< (ra, decl) at _epoch, ICRS rad
+    lsst::afw::coord::IcrsCoord _sc; ///< (ra, decl) at _epoch, ICRS rad
     int64_t _id;
     double _epoch;       ///< epoch of reference position, MJD
     Eigen::Vector3d _p;  ///< (x, y, z) at _epoch
     Eigen::Vector3d _v;  ///< (dx/dt, dy/dt, dz/dt)
-    double _parallax;    ///< parallax, rad
+    lsst::afw::geom::Angle _parallax; ///< parallax, rad
     // BBox coordinates
-    double _minDecl;
-    double _maxDecl;
-    double _minRa;
-    double _maxRa; 
+    lsst::afw::geom::Angle _minDecl;
+    lsst::afw::geom::Angle _maxDecl;
+    lsst::afw::geom::Angle _minRa;
+    lsst::afw::geom::Angle _maxRa; 
     int _flags;          ///< Bit-wise OR of Flags
 };
 

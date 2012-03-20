@@ -37,7 +37,9 @@
 
 
 namespace except = lsst::pex::exceptions;
-namespace afwGeom = lsst::afw::geom;
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::ONE_OVER_PI;
+using lsst::afw::geom::PI;
 
 namespace lsst { namespace ap { namespace utils {
 
@@ -81,23 +83,23 @@ PT1SkyTile::~PT1SkyTile() { }
   *
   * @return     @c true iff @c (theta,phi) is inside this sky-tile.
   */
-bool PT1SkyTile::contains(double theta, double phi) const {
-    int root = static_cast<int>(std::fmod(0.5 + 2.0 * afwGeom::ONE_OVER_PI * theta, 4.0));
-    double theta1 = theta - 0.5 * afwGeom::PI * root;
-    double tanPhi = std::tan(phi);
+bool PT1SkyTile::contains(Angle theta, Angle phi) const {
+    int root = static_cast<int>(std::fmod(0.5 + 2.0 * ONE_OVER_PI * theta.asRadians(), 4.0));
+    double theta1 = theta.asRadians() - 0.5 * PI * root;
+    double tanPhi = std::tan(phi.asRadians());
     double x, y = tanPhi / std::cos(theta1);
     if (y > 1.0) {
         if (_root != 0) {
             return false;
         }
-        x = -std::sin(theta) / tanPhi;
-        y = std::cos(theta) / tanPhi;
+        x = -std::sin(theta.asRadians()) / tanPhi;
+        y = std::cos(theta.asRadians()) / tanPhi;
     } else if (y < -1.0) {
         if (_root != 5) {
             return false;
         }
-        x = std::sin(theta) / tanPhi;
-        y = std::cos(theta) / tanPhi;
+        x = std::sin(theta.asRadians()) / tanPhi;
+        y = std::cos(theta.asRadians()) / tanPhi;
     } else {
         if (_root != root + 1) {
             return false;

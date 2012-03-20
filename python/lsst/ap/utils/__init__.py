@@ -19,7 +19,6 @@
 # the GNU General Public License along with this program.  If not, 
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
-
-from utilsLib import *
-from skyTileUtils import findWcsCoveringSkyTile, createImageCoveringSkyTile
-
+from .utilsLib import *
+from .skyTileUtils import findWcsCoveringSkyTile, createImageCoveringSkyTile
+from .config import CsvConfig

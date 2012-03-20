@@ -30,7 +30,10 @@
 
 #include <vector>
 
-#include "lsst/pex/policy/Policy.h"
+#include "lsst/afw/geom/Angle.h"
+
+#include "../utils/CsvControl.h"
+#include "CatalogControl.h"
 #include "ExposureInfo.h"
 
 
@@ -39,21 +42,27 @@ namespace lsst { namespace ap { namespace match {
 // -- Functions to perform the match
 
 void referenceMatch(
-    std::string const &refInPath,
-    std::string const &posInPath,
-    std::string const &matchOutPath,
-    lsst::pex::policy::Policy::Ptr refInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr posInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr matchPolicy=lsst::pex::policy::Policy::Ptr(),
-    bool truncate=false);
+    std::string                 const &refFile,
+    CatalogControl              const &refControl,
+    lsst::ap::utils::CsvControl const &refDialect,
+    std::string                 const &posFile,
+    CatalogControl              const &posControl,
+    lsst::ap::utils::CsvControl const &posDialect,
+    std::string                 const &outFile,
+    lsst::ap::utils::CsvControl const &outDialect,
+    lsst::afw::geom::Angle      const  radius=2.0*lsst::afw::geom::arcseconds,
+    lsst::afw::geom::Angle      const  parallaxThresh=0.01*lsst::afw::geom::arcseconds,
+    bool                               truncateOutFile=false);
 
 void referenceFilter(
-    std::string const &refInPath,
-    std::string const &filtOutPath,
-    std::vector<ExposureInfo::Ptr> &exposures,
-    lsst::pex::policy::Policy::Ptr refInPolicy=lsst::pex::policy::Policy::Ptr(),
-    lsst::pex::policy::Policy::Ptr outPolicy=lsst::pex::policy::Policy::Ptr(),
-    bool truncate=false);
+    std::vector<ExposureInfo::Ptr>    &exposures,
+    std::string                 const &refFile,
+    CatalogControl              const &refControl,
+    lsst::ap::utils::CsvControl const &refDialect,
+    std::string                 const &outFile,
+    lsst::ap::utils::CsvControl const &outDialect,
+    lsst::afw::geom::Angle      const  parallaxThresh=0.01*lsst::afw::geom::arcseconds,
+    bool                               truncateOutFile=false);
 
 }}} // namespace lsst::ap::match
 

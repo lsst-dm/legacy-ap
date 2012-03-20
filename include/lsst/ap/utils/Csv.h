@@ -38,87 +38,13 @@
 #include "boost/scoped_ptr.hpp"
 #include "boost/scoped_array.hpp"
 
-#include "lsst/pex/policy/Policy.h"
+#include "lsst/pex/config.h"
 
 #include "../Common.h"
+#include "CsvControl.h"
 
 
 namespace lsst { namespace ap { namespace utils {
-
-/** @brief Parameters that define a Character-Separated-Value dialect.
-  *
-  * These are intended to cover variations on the ubiquitous but often
-  * inconsistently defined comma-separated-value and tab-separated-value
-  * formats, and largely follow the parameters for dialect specification
-  * in the python csv module. One important goal is to allow the CSV output
-  * of various RDBMSes to be read and written. Accordingly, there are
-  * parameters that allow database NULLs to be recognized.
-  */
-class CsvDialect {
-public:
-    static CsvDialect const MYSQL;
-    static CsvDialect const POSTGRES;
-    static CsvDialect const INFORMIX;
-    static CsvDialect const CSV;
-
-    enum Quoting {
-        QUOTE_NONE = 0, ///< Never quote fields.
-        QUOTE_ALL,      ///< Always quote fields.
-        QUOTE_MINIMAL   ///< Only quote fields when necessary.
-    };
-
-    CsvDialect(Quoting quoting=QUOTE_MINIMAL,
-               char delimiter=',',
-               char escapeChar='\0',
-               char quoteChar='\0',
-               bool skipInitialSpace=false,
-               bool doubleQuote=false,
-               bool standardEscapes=false,
-               bool trailingDelimiter=false);
-    CsvDialect(std::string const &null,
-               Quoting quoting=QUOTE_MINIMAL,
-               char delimiter=',',
-               char escapeChar='\0',
-               char quoteChar='\0',
-               bool skipInitialSpace=false,
-               bool doubleQuote=false,
-               bool standardEscapes=false,
-               bool trailingDelimiter=false);
-    CsvDialect(lsst::pex::policy::Policy::Ptr const &ptr);
-    ~CsvDialect();
-
-    // dialect parameter access
-    std::string const & getNull() const;
-    inline bool hasNull() const;
-    inline bool isNullRecognizable() const;
-
-    inline Quoting getQuoting() const;
-    inline char getDelimiter() const;
-    inline char getEscapeChar() const;
-    inline char getQuoteChar() const;
-
-    inline bool skipInitialSpace() const;
-    inline bool doubleQuote() const;
-    inline bool standardEscapes() const;
-    inline bool trailingDelimiter() const;
-
-private:
-    void _validate() const;
-
-    std::string _null;        ///< Database NULL representation.
-    Quoting _quoting;         ///< Field quoting style.
-    char _delimiter;          ///< Delimiter character.
-    char _escapeChar;         ///< Escape character - '\0' disables escaping.
-    char _quoteChar;          ///< Quote character - '\0' disables quoting.
-    bool _hasNull;            ///< Is _null valid?
-    bool _skipInitialSpace;   ///< Skip initial space after the delimiter?
-    bool _doubleQuote;        ///< Should an embedded quoteChar be escaped by
-                              ///  doubling?
-    bool _standardEscapes;    ///< Handle standard escapes \[bnrtvZN], \xDD?
-    bool _trailingDelimiter;  ///< Is a trailing delimiter expected at
-                              ///  the end of a record?
-};
-
 
 /** A class for reading records from Character-Separated-Value files in
   * sequential order.
@@ -167,8 +93,8 @@ private:
   * @par NULL values
   *
   * When a field is recognized as a database NULL (e.g. \\N with the
-  * CsvDialect::MYSQL dialect), the field access methods return the following
-  * values:
+  * CsvControl::standardEscapes == true), the field access methods return
+  * the following values:
   *
   * <dl>
   * <dt><b> std::string </b></dt>  <dd> An empty string </dd>
@@ -197,14 +123,14 @@ private:
 class CsvReader {
 public:
     CsvReader(std::string const &path,
-              CsvDialect const &dialect,
+              CsvControl const &control,
               bool namesInFirstRecord=false);
     CsvReader(std::istream &in,
-              CsvDialect const &dialect,
+              CsvControl const &control,
               bool namesInFirstRecord=false);
     ~CsvReader();
 
-    inline CsvDialect const & getDialect() const;
+    inline CsvControl const & getControl() const;
 
     // Return the number of lines/records read
     inline size_t getNumLines() const;
@@ -278,7 +204,7 @@ private:
     template <typename T> T _get(char const *value) const; 
 
     std::string _path;                  ///< File name.
-    CsvDialect _dialect;                ///< File format.
+    CsvControl _control;                ///< File format.
     std::vector<std::string> _names;    ///< Field names in order of occurence.
     FieldIndexes _indexes;              ///< Field name to index map.
 
@@ -324,13 +250,13 @@ private:
 class CsvWriter {
 public:
     CsvWriter(std::string const &path,
-              CsvDialect const &dialect,
+              CsvControl const &control,
               bool truncate=false);
     CsvWriter(std::ostream &out,
-              CsvDialect const &dialect);
+              CsvControl const &control);
     ~CsvWriter();
 
-    inline CsvDialect const & getDialect() const;
+    inline CsvControl const & getControl() const;
 
     // End the current record
     void endRecord();
@@ -382,7 +308,7 @@ private:
 
     boost::scoped_ptr<std::ofstream> _stream; ///< Output file stream.
     std::ostream *_out;                       ///< Output stream.
-    CsvDialect _dialect;                      ///< File format.
+    CsvControl _control;                      ///< File format.
     size_t _numRecords;                       ///< Number of records written.
     size_t _numLines;                         ///< Number of lines written.
     size_t _numFields;                        ///< Number of fields written.

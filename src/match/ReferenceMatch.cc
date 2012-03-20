@@ -40,8 +40,6 @@
 #include "lsst/utils/ieee.h"
 
 #include "lsst/pex/logging/Log.h"
-#include "lsst/pex/policy/DefaultPolicyFile.h"
-#include "lsst/pex/policy/Policy.h"
 #include "lsst/afw/coord/Coord.h"
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/image/ImageUtils.h"
@@ -52,6 +50,7 @@
 #include "lsst/ap/utils/SmallPtrVector.h"
 #include "lsst/ap/utils/SpatialUtils.h"
 #include "lsst/ap/match/BBox.h"
+#include "lsst/ap/match/CatalogControl.h"
 #include "lsst/ap/match/ExposureInfo.h"
 #include "lsst/ap/match/ReferencePosition.h"
 #include "lsst/ap/match/detail/SweepStructure.h"
@@ -65,22 +64,28 @@ using std::vector;
 using std::string;
 
 using lsst::pex::logging::Log;
-using lsst::pex::policy::Policy;
-using lsst::pex::policy::DefaultPolicyFile;
+using lsst::afw::geom::HALFPI;
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::arcsecToRad;
+using lsst::afw::geom::masToRad;
+using lsst::afw::geom::radians;
+using lsst::afw::geom::radToArcsec;
+using lsst::afw::geom::radToMas;
+using lsst::afw::geom::radToDeg;
+
+using lsst::afw::coord::IcrsCoord;
 using lsst::afw::image::PixelZeroPos;
 
 using lsst::ap::match::detail::SphericalSweep;
 using lsst::ap::utils::angularSeparation;
 using lsst::ap::utils::Arena;
-using lsst::ap::utils::cartesianToSpherical;
+using lsst::ap::utils::cartesianToIcrs;
 using lsst::ap::utils::clampPhi;
-using lsst::ap::utils::CsvDialect;
+using lsst::ap::utils::CsvControl;
 using lsst::ap::utils::CsvReader;
 using lsst::ap::utils::CsvWriter;
 using lsst::ap::utils::maxAlpha;
-using lsst::ap::utils::sphericalToCartesian;
 
-namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match {
 
@@ -102,11 +107,11 @@ public:
      RefPosMatch(MatchableRef *ref,
                  MatchablePos *pos,
                  Eigen::Vector3d const &v,
-                 double angularSeparation
+                 Angle angularSeparation
                 ) :
          _ref(ref),
          _pos(pos),
-         _sc(cartesianToSpherical(v)),
+         _sc(cartesianToIcrs(v)),
          _angSep(angularSeparation),
          _refCount(2)
     { }
@@ -130,13 +135,10 @@ public:
     MatchablePos *getPos() {
         return _pos;
     }
-    double getRa() const {
-        return _sc.x();
+    IcrsCoord const & getSphericalCoordinates() const {
+        return _sc;
     }
-    double getDecl() const {
-        return _sc.y();
-    }
-    double getAngularSeparation() const {
+    Angle getAngularSeparation() const {
         return _angSep;
     }
 
@@ -150,8 +152,8 @@ public:
 private:
     MatchableRef *_ref;
     MatchablePos *_pos;
-    Eigen::Vector2d _sc;
-    double _angSep;
+    IcrsCoord _sc;
+    Angle _angSep;
     int _refCount;
 };
 
@@ -229,10 +231,10 @@ private:
 class MatchablePos : public Matchable {
 public:
     MatchablePos(int64_t id,
-                 double ra,
-                 double decl,
+                 Angle ra,
+                 Angle decl,
                  double epoch,
-                 double radius,
+                 Angle radius,
                  std::string const &record);
 
     virtual ~MatchablePos() { }
@@ -243,54 +245,54 @@ public:
     double getEpoch() const {
         return _epoch;
     }
-    Eigen::Vector2d const & getSphericalCoordinates() const {
+    IcrsCoord const & getSphericalCoordinates() const {
         return _sc;
     }
     Eigen::Vector3d const & getPosition() const {
         return _p;
     }
-    double getRadius() const {
+    Angle getRadius() const {
         return _radius;
     }
 
     // BBox API
     virtual double getMinCoord0() const {
-        return _sc.x() - _alpha;
+        return static_cast<double>(_sc.getLongitude() - _alpha);
     }
     virtual double getMaxCoord0() const {
-        return _sc.x() + _alpha;
+        return static_cast<double>(_sc.getLongitude() + _alpha);
     }
     virtual double getMinCoord1() const {
-        return clampPhi(_sc.y() - _radius);
+        return clampPhi(_sc.getLatitude() - _radius);
     }
     virtual double getMaxCoord1() const {
-        return clampPhi(_sc.y() + _radius);
+        return clampPhi(_sc.getLatitude() + _radius);
     }
 
 private:
     int64_t _id;
     double _epoch;
-    Eigen::Vector2d _sc;
+    IcrsCoord _sc;
     Eigen::Vector3d _p;
-    double _radius;
-    double _alpha;
+    Angle _radius;
+    Angle _alpha;
 };
 
 MatchablePos::MatchablePos(
-    int64_t id,    ///< Unique id.
-    double ra,     ///< ICRS right ascension, rad.
-    double decl,   ///< ICRS declination, rad
-    double epoch,  ///< Epoch of position, MJD
-    double radius, ///< Match radius, rad.
+    int64_t id,   ///< Unique id.
+    Angle ra,     ///< ICRS right ascension, rad.
+    Angle decl,   ///< ICRS declination, rad
+    double epoch, ///< Epoch of position, MJD
+    Angle radius, ///< Match radius, rad.
     std::string const &record ///< Ancillary match output data
 ) :
     Matchable(record),
     _id(id),
     _epoch(epoch),
     _sc(ra, decl),
-    _p(sphericalToCartesian(ra, decl)),
+    _p(_sc.getVector().asEigen()),
     _radius(radius),
-    _alpha(maxAlpha(radius, max(fabs(getMinCoord1()), fabs(getMaxCoord1()))))
+    _alpha(maxAlpha(radius, max(fabs(getMinCoord1()), fabs(getMaxCoord1())) * radians))
 { }
 
 
@@ -336,8 +338,8 @@ MatchableRef::MatchableRef(
     _rp(rp)
 { }
 
-inline bool operator<(std::pair<double, MatchableRef *> const &r1,
-                      std::pair<double, MatchableRef *> const &r2) {
+inline bool operator<(std::pair<Angle, MatchableRef *> const &r1,
+                      std::pair<Angle, MatchableRef *> const &r2) {
     return r1.first > r2.first;
 }
 
@@ -411,8 +413,8 @@ RefWithCov::RefWithCov(
     }
 }
 
-inline bool operator<(std::pair<double, RefWithCov *> const &r1,
-                      std::pair<double, RefWithCov *> const &r2) {
+inline bool operator<(std::pair<Angle, RefWithCov *> const &r1,
+                      std::pair<Angle, RefWithCov *> const &r2) {
     return r1.first > r2.first;
 }
 
@@ -427,9 +429,10 @@ inline bool operator<(std::pair<double, RefWithCov *> const &r1,
 class MatchablePosReader {
 public:
     MatchablePosReader(std::string const &path,
-                       lsst::pex::policy::Policy::Ptr policy,
-                       CsvDialect const &outDialect,
-                       double radius);
+                       CatalogControl const &control,
+                       CsvControl const &dialect,
+                       CsvControl const &outDialect,
+                       Angle radius);
 
     ~MatchablePosReader();
 
@@ -459,8 +462,8 @@ public:
     /** Returns the minimum declination of the next positions bounding box.
       * Assumes that <tt>isDone() == false</tt>.
       */
-    double peek() const {
-        return _next->getMinCoord1();
+    Angle peek() const {
+        return _next->getMinCoord1() * radians;
     }
 
     /** Returns the next MatchablePos. Assumes that <tt>isDone() == false</tt>.
@@ -482,11 +485,11 @@ private:
     void _scan(lsst::ap::utils::CsvReader &reader);
 
     Arena<MatchablePos> _arena;
-    double _decl;
+    Angle _decl;
     double _defaultEpoch;
     double _minEpoch;
     double _maxEpoch;
-    double _radius;
+    Angle _radius;
     MatchablePos *_next;
     boost::scoped_ptr<CsvReader> _reader;
     int _idCol;
@@ -504,13 +507,14 @@ private:
 
 MatchablePosReader::MatchablePosReader(
     std::string const &path,
-    lsst::pex::policy::Policy::Ptr policy,
-    CsvDialect const &outDialect,
-    double radius
+    CatalogControl const &control,
+    CsvControl const &dialect,
+    CsvControl const &outDialect,
+    Angle radius
 ) :
     _arena(),
-    _decl(-afwGeom::HALFPI),
-    _defaultEpoch(policy->getDouble("epoch")),
+    _decl(-HALFPI, radians),
+    _defaultEpoch(control.epoch),
     _minEpoch(_defaultEpoch),
     _maxEpoch(_defaultEpoch),
     _radius(radius),
@@ -528,40 +532,40 @@ MatchablePosReader::MatchablePosReader(
     log.log(Log::INFO, "Opening position table " + path);
 
     // create CSV reader
-    CsvDialect inDialect(policy->getPolicy("csvDialect"));
-    _reader.reset(new CsvReader(path, inDialect, !policy->exists("fieldNames")));
-    if (policy->exists("fieldNames")) {
-        _reader->setFieldNames(policy->getStringArray("fieldNames"));
+    _reader.reset(new CsvReader(path, dialect, control.fieldNames.empty()));
+    if (!control.fieldNames.empty()) {
+        _reader->setFieldNames(control.fieldNames);
     }
     // get standard column info
-    _idCol = _reader->getIndexOf(policy->getString("idColumn"));
-    if (policy->exists("epochColumn")) {
-        _epochCol = _reader->getIndexOf(policy->getString("epochColumn"));
+    _idCol = _reader->getIndexOf(control.idColumn);
+    if (!control.epochColumn.empty()) {
+        _epochCol = _reader->getIndexOf(control.epochColumn);
     } else {
         _epochCol = -1;
     }
-    _raCol = _reader->getIndexOf(policy->getString("raColumn"));
-    _declCol = _reader->getIndexOf(policy->getString("declColumn"));
-    _raScale = policy->getDouble("raScale");
-    _declScale = policy->getDouble("declScale");
+    _raCol = _reader->getIndexOf(control.raColumn);
+    _declCol = _reader->getIndexOf(control.declColumn);
+    _raScale = control.raScale;
+    _declScale = control.declScale;
     if (_idCol < 0 || _raCol < 0 || _declCol < 0) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Position table does not contain unique id, "
                           "right ascension, or declination column(s)");
     }
     // compute vector of output field indexes and NULL record
-    if (policy->exists("outputFields")) { 
-        vector<string> ofs = policy->getStringArray("outputFields");
+    if (!control.outputFields.empty()) {
         _writer.endRecord();
         _buf.str("");
-        if (ofs.size() == 1 && ofs[0] == "*") {
+        if (control.outputFields.size() == 1 &&
+            control.outputFields[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
             for (int i = 0; i < nFields; ++i) {
                 _columns.push_back(i);
                 _writer.appendNull();
             }
         } else {
-            for (Iter i = ofs.begin(), e = ofs.end(); i != e; ++i) {
+            for (Iter i = control.outputFields.begin(),
+                 e = control.outputFields.end(); i != e; ++i) {
                 int idx = _reader->getIndexOf(*i);
                 if (idx < 0) {
                     throw LSST_EXCEPT(pexExcept::InvalidParameterException,
@@ -575,14 +579,14 @@ MatchablePosReader::MatchablePosReader(
         _nullRecord = _buf.str();
     }
     if (_epochCol >= 0) {
-        if (policy->exists("minEpoch") && policy->exists("maxEpoch")) {
-            _minEpoch = policy->getDouble("minEpoch");
-            _maxEpoch = policy->getDouble("maxEpoch");
+        if (!lsst::utils::isnan(control.minEpoch) &&
+            !lsst::utils::isnan(control.maxEpoch)) {
+            _minEpoch = control.minEpoch;
+            _maxEpoch = control.maxEpoch;
         } else  {
             log.log(Log::INFO, "Scanning position table to determine min/max "
                     "epoch of input positions");
-            CsvReader reader(path, _reader->getDialect(),
-                             !policy->exists("fieldNames"));
+            CsvReader reader(path, dialect, control.fieldNames.empty());
             _scan(reader);
             log.format(Log::INFO, "Scanned %llu records",
                        static_cast<unsigned long long>(reader.getNumRecords()));
@@ -609,21 +613,21 @@ void MatchablePosReader::_read() {
     if (_epochCol >= 0) {
         epoch = _reader->get<double>(_epochCol);
     }
-    double ra = _reader->get<double>(_raCol)*_raScale;
-    double decl = _reader->get<double>(_declCol)*_declScale;
+    Angle ra = _reader->get<double>(_raCol)*_raScale * radians;
+    Angle decl = _reader->get<double>(_declCol)*_declScale * radians;
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "NULL unique id found in position table");
     }
-    if (lsst::utils::isnan(ra) ||
-        lsst::utils::isnan(decl) ||
+    if (lsst::utils::isnan(static_cast<double>(ra)) ||
+        lsst::utils::isnan(static_cast<double>(decl)) ||
         lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Position table contains NULL or NaN right "
                           "ascension, declination, or epoch");
     }
-    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI) {
+    if (decl < -HALFPI || decl > HALFPI) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Invalid declination found in position table");
     }
@@ -691,11 +695,12 @@ void MatchablePosReader::_scan(lsst::ap::utils::CsvReader &reader) {
 class RefReaderBase {
 public:
     RefReaderBase(std::string const &path,
-                  lsst::pex::policy::Policy::Ptr inPolicy,
-                  CsvDialect const &outDialect,
+                  CatalogControl const &control,
+                  CsvControl const &dialect,
+                  CsvControl const &outDialect,
                   double minMatchEpoch,
                   double maxMatchEpoch,
-                  double parallaxThresh);
+                  Angle parallaxThresh);
 
     virtual ~RefReaderBase();
 
@@ -703,10 +708,10 @@ public:
     double getMaxEpoch() const { return _maxEpoch; }
     double getMinMatchEpoch() const { return _minMatchEpoch; }
     double getMaxMatchEpoch() const { return _maxMatchEpoch; }
-    double getMaxParallax() const { return _maxParallax; }
+    Angle  getMaxParallax() const { return _maxParallax; }
     double getMaxAngularVelocity() const { return _maxAngularVelocity; }
-    double getParallaxThresh() const { return _parallaxThresh; }
-    double getReadAhead() const { return _readAhead; }
+    Angle  getParallaxThresh() const { return _parallaxThresh; }
+    Angle  getReadAhead() const { return _readAhead; }
 
     /** Returns a string consisting of pre-formatted all NULL
       * output for requested reference catalog columns.
@@ -729,8 +734,8 @@ protected:
         return _record;
     }
 
-    double _decl;
-    double _readAhead;
+    Angle _decl;
+    Angle _readAhead;
     boost::scoped_ptr<CsvReader> _reader;
 
 private:
@@ -744,9 +749,9 @@ private:
     double _maxEpoch;
     double _minMatchEpoch;
     double _maxMatchEpoch;
-    double _maxParallax;
+    Angle  _maxParallax;
     double _maxAngularVelocity;
-    double _parallaxThresh;
+    Angle  _parallaxThresh;
     int _idCol;
     int _epochCol;
     int _raCol;
@@ -771,22 +776,23 @@ private:
 
 RefReaderBase::RefReaderBase(
     std::string const &path,
-    lsst::pex::policy::Policy::Ptr policy,
-    lsst::ap::utils::CsvDialect const &outDialect,
+    CatalogControl const &control,
+    CsvControl const &dialect,
+    CsvControl const &outDialect,
     double minMatchEpoch,
     double maxMatchEpoch,
-    double parallaxThresh
+    Angle parallaxThresh
 ) :
-    _decl(-afwGeom::HALFPI),
-    _readAhead(0.0),
+    _decl(-HALFPI, radians),
+    _readAhead(0.0, radians),
     _reader(),
-    _pos(0, 0.0, 0.0),
-    _defaultEpoch(policy->getDouble("epoch")),
+    _pos(0, 0.0 * radians, 0.0 * radians),
+    _defaultEpoch(control.epoch),
     _minEpoch(_defaultEpoch),
     _maxEpoch(_defaultEpoch),
     _minMatchEpoch(min(minMatchEpoch, maxMatchEpoch)),
     _maxMatchEpoch(max(minMatchEpoch, maxMatchEpoch)),
-    _maxParallax(0.0),
+    _maxParallax(0.0 * radians),
     _maxAngularVelocity(0.0),
     _parallaxThresh(parallaxThresh),
     _columns(),
@@ -801,49 +807,49 @@ RefReaderBase::RefReaderBase(
     log.log(Log::INFO, "Opening reference catalog " + path);
 
     // create CSV reader
-    CsvDialect inDialect(policy->getPolicy("csvDialect"));
-    _reader.reset(new CsvReader(path, inDialect, !policy->exists("fieldNames")));
-    if (policy->exists("fieldNames")) {
-        _reader->setFieldNames(policy->getStringArray("fieldNames"));
+    _reader.reset(new CsvReader(path, dialect, control.fieldNames.empty()));
+    if (!control.fieldNames.empty()) {
+        _reader->setFieldNames(control.fieldNames);
     }
     // get standard column info
-    _idCol = _reader->getIndexOf(policy->getString("idColumn"));
-    if (policy->exists("epochColumn")) {
-        _epochCol = _reader->getIndexOf(policy->getString("epochColumn"));
+    _idCol = _reader->getIndexOf(control.idColumn);
+    if (!control.epochColumn.empty()) {
+        _epochCol = _reader->getIndexOf(control.epochColumn);
     } else {
         _epochCol = -1;
     }
-    _raCol = _reader->getIndexOf(policy->getString("raColumn"));
-    _declCol = _reader->getIndexOf(policy->getString("declColumn"));
-    _muRaCol = _reader->getIndexOf(policy->getString("muRaColumn"));
-    _muDeclCol = _reader->getIndexOf(policy->getString("muDeclColumn"));
-    _vRadialCol = _reader->getIndexOf(policy->getString("vRadialColumn"));
-    _parallaxCol = _reader->getIndexOf(policy->getString("parallaxColumn"));
-    _raScale = policy->getDouble("raScale");
-    _declScale = policy->getDouble("declScale");
-    _muRaScale = policy->getDouble("muRaScale");
-    _muDeclScale = policy->getDouble("muDeclScale");
-    _vRadialScale = policy->getDouble("vRadialScale");
-    _parallaxScale = policy->getDouble("parallaxScale");
-    _muRaTrueAngle = policy->getBool("muRaTrueAngle");
+    _raCol = _reader->getIndexOf(control.raColumn);
+    _declCol = _reader->getIndexOf(control.declColumn);
+    _muRaCol = _reader->getIndexOf(control.muRaColumn);
+    _muDeclCol = _reader->getIndexOf(control.muDeclColumn);
+    _vRadialCol = _reader->getIndexOf(control.vRadialColumn);
+    _parallaxCol = _reader->getIndexOf(control.parallaxColumn);
+    _raScale = control.raScale;
+    _declScale = control.declScale;
+    _muRaScale = control.muRaScale;
+    _muDeclScale = control.muDeclScale;
+    _vRadialScale = control.vRadialScale;
+    _parallaxScale = control.parallaxScale;
+    _muRaTrueAngle = control.muRaTrueAngle;
     if (_idCol < 0 || _raCol < 0 || _declCol < 0) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Reference catalog doesn't contain unique id, "
                           "right ascension, or declination column(s)");
     }
     // compute vector of output field indexes and NULL record
-    if (policy->exists("outputFields")) {
-        vector<string> ofs = policy->getStringArray("outputFields");
+    if (!control.outputFields.empty()) {
         _writer.endRecord();
         _buf.str("");
-        if (ofs.size() == 1 && ofs[0] == "*") {
+        if (control.outputFields.size() == 1 &&
+            control.outputFields[0] == "*") {
             int nFields = static_cast<int>(_reader->getFieldNames().size());
             for (int i = 0; i < nFields; ++i) {
                 _columns.push_back(i);
                 _writer.appendNull();
             }
         } else {
-            for (Iter i = ofs.begin(), e = ofs.end(); i != e; ++i) {
+            for (Iter i = control.outputFields.begin(),
+                 e = control.outputFields.end(); i != e; ++i) {
                 int idx = _reader->getIndexOf(*i);
                 if (idx < 0) {
                     throw LSST_EXCEPT(pexExcept::InvalidParameterException,
@@ -862,19 +868,19 @@ RefReaderBase::RefReaderBase(
         bool needEpochStats = false;
         bool needMotionStats = false;
         if (_epochCol >= 0) {
-            if (policy->exists("minEpoch") && policy->exists("maxEpoch")) {
-                _minEpoch = policy->getDouble("minEpoch");
-                _maxEpoch = policy->getDouble("maxEpoch");
+            if (!lsst::utils::isnan(control.minEpoch) &&
+                !lsst::utils::isnan(control.maxEpoch)) {
+                _minEpoch = control.minEpoch;
+                _maxEpoch = control.maxEpoch;
             } else {
                 needEpochStats = true;
             }
         }
         if (_muRaCol >= 0 && _muDeclCol >= 0 && _parallaxCol >= 0) {
-            if (policy->exists("maxParallax") &&
-                policy->exists("maxAngularVelocity")) {
-                _maxParallax = afwGeom::masToRad(policy->getDouble("maxParallax"));
-                _maxAngularVelocity =
-                    policy->getDouble("maxAngularVelocity")*RADY_PER_MASD;
+            if (!lsst::utils::isnan(control.maxParallax) &&
+                !lsst::utils::isnan(control.maxAngularVelocity)) {
+                _maxParallax = masToRad(control.maxParallax) * radians;
+                _maxAngularVelocity = control.maxAngularVelocity*RADY_PER_MASD;
             } else {
                 needMotionStats = true;
             } 
@@ -883,8 +889,7 @@ RefReaderBase::RefReaderBase(
         if (needEpochStats || needMotionStats) {
             log.log(Log::INFO, "Scanning reference catalog to determine "
                     "time-range and/or maximum velocity/parallax");
-            CsvReader reader(path, _reader->getDialect(),
-                             !policy->exists("fieldNames"));
+            CsvReader reader(path, dialect, control.fieldNames.empty());
             _scan(reader, needEpochStats, needMotionStats);
             log.format(Log::INFO, "Scanned %llu records",
                        static_cast<unsigned long long>(reader.getNumRecords()));
@@ -894,15 +899,16 @@ RefReaderBase::RefReaderBase(
     // determine read-ahead amount
     double dtMax = max(fabs(_maxEpoch - _minMatchEpoch),
                        fabs(_maxMatchEpoch - _minEpoch));
-    _readAhead = 2.0*_maxParallax + _maxAngularVelocity*dtMax;
+    _readAhead = Angle(2.0*static_cast<double>(_maxParallax) + 
+                       _maxAngularVelocity*dtMax, radians);
     log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
                _minEpoch, _maxEpoch);
     log.format(Log::INFO, "  - max parallax is %.3f milliarcsec",
-               afwGeom::radToMas(_maxParallax));
+               radToMas(static_cast<double>(_maxParallax)));
     log.format(Log::INFO, "  - max angular velocity is %.3f milliarcsec/yr",
                _maxAngularVelocity/RADY_PER_MASD);
     log.format(Log::INFO, "  - read-ahead is %.3f milliarcsec",
-               afwGeom::radToMas(_readAhead));
+               radToMas(static_cast<double>(_readAhead)));
 }
 
 RefReaderBase::~RefReaderBase() { }
@@ -919,21 +925,21 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
     if (_epochCol >= 0) {
         epoch = _reader->get<double>(_epochCol);
     }
-    double ra = _reader->get<double>(_raCol)*_raScale;
-    double decl = _reader->get<double>(_declCol)*_declScale;
+    Angle ra = _reader->get<double>(_raCol)*_raScale * radians;
+    Angle decl = _reader->get<double>(_declCol)*_declScale * radians;
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "NULL unique id found in reference catalog");
     }
-    if (lsst::utils::isnan(ra) ||
-        lsst::utils::isnan(decl) ||
+    if (lsst::utils::isnan(static_cast<double>(ra)) ||
+        lsst::utils::isnan(static_cast<double>(decl)) ||
         lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Reference catalog record contains NULL/NaN right "
                           "ascension, declination, or epoch");
     }
-    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI) {
+    if (decl < -HALFPI || decl > HALFPI) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Invalid declination found in reference catalog");
     }
@@ -963,7 +969,8 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
         // have motion parameters
         double muRa = _reader->get<double>(_muRaCol)*_muRaScale;
         double muDecl = _reader->get<double>(_muDeclCol)*_muDeclScale;
-        double parallax = _reader->get<double>(_parallaxCol)*_parallaxScale;
+        Angle parallax(_reader->get<double>(_parallaxCol)*_parallaxScale,
+                       radians);
         double vRadial = (_vRadialCol < 0) ? 0.0 :
                           _reader->get<double>(_vRadialCol)*_vRadialScale;
         if (parallax < 0.0) {
@@ -1010,21 +1017,22 @@ void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
             }
         }
         if (needMotionStats) {
-            double parallax = reader.get<double>(_parallaxCol)*_parallaxScale;
+            Angle parallax(reader.get<double>(_parallaxCol)*_parallaxScale,
+                           radians);
             double muRa = reader.get<double>(_muRaCol)*_muRaScale;
             double muDecl = reader.get<double>(_muDeclCol)*_muDeclScale;
             if (!lsst::utils::isnan(parallax) &&
                 !lsst::utils::isnan(muRa) &&
                 !lsst::utils::isnan(muDecl)) {
                 if (!_muRaTrueAngle) {
-                    double decl = reader.get<double>(_declCol)*_declScale;
-                    if (decl < -afwGeom::HALFPI || decl > afwGeom::HALFPI ||
-                        lsst::utils::isnan(decl)) {
+                    Angle decl(reader.get<double>(_declCol)*_declScale, radians);
+                    if (decl < -HALFPI || decl > HALFPI ||
+                        lsst::utils::isnan(static_cast<double>(decl))) {
                         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                                           "Invalid declination found in "
                                           "reference catalog");
                     }
-                    muRa *= std::cos(decl);
+                    muRa *= std::cos(static_cast<double>(decl));
                 }
                 if (parallax > _maxParallax) {
                     _maxParallax = parallax;
@@ -1047,11 +1055,12 @@ template <typename Ref>
 class RefReader : public RefReaderBase {
 public:
     RefReader(std::string const &path,
-              lsst::pex::policy::Policy::Ptr inPolicy,
-              CsvDialect const &outDialect,
+              CatalogControl const &control,
+              CsvControl const &dialect,
+              CsvControl const &outDialect,
               double minMatchEpoch,
               double maxMatchEpoch,
-              double parallaxThresh);
+              Angle parallaxThresh);
 
     ~RefReader();
 
@@ -1064,7 +1073,7 @@ public:
     /** Returns the minimum declination of the next reference positions
       * bounding box.  Assumes that <tt>isDone() == false</tt>.
       */
-    double peek() const {
+    Angle peek() const {
         return _heap.front().first;
     }
 
@@ -1097,20 +1106,22 @@ private:
     }
 
     Arena<Ref> _arena;
-    std::vector<std::pair<double, Ref *> > _heap;
+    std::vector<std::pair<Angle, Ref *> > _heap;
 };
 
 template <typename Ref>
 RefReader<Ref>::RefReader(
     std::string const &path,
-    lsst::pex::policy::Policy::Ptr policy,
-    lsst::ap::utils::CsvDialect const &outDialect,
+    CatalogControl const &control,
+    CsvControl const &dialect,
+    CsvControl const &outDialect,
     double minMatchEpoch,
     double maxMatchEpoch,
-    double parallaxThresh
+    Angle parallaxThresh
 ) :
     RefReaderBase(path,
-                  policy,
+                  control,
+                  dialect,
                   outDialect,
                   minMatchEpoch,
                   maxMatchEpoch,
@@ -1196,8 +1207,8 @@ void RefPosMatcher::match(CsvWriter &writer,
         if (_posReader->isDone()) {
             _refSweep.clear(*this);
             while (!_refReader->isDone()) {
-                double refDecl = _refReader->peek();
-                _posSweep.advance(refDecl, *this);
+                Angle refDecl = _refReader->peek();
+                _posSweep.advance(static_cast<double>(refDecl), *this);
                 MatchableRef *r = _refReader->next();
                 _posSweep.search(r, *this);
                 _finish(r);
@@ -1206,18 +1217,18 @@ void RefPosMatcher::match(CsvWriter &writer,
         } else if (_refReader->isDone()) {
             _posSweep.clear(*this);
             while (!_posReader->isDone()) {
-                double posDecl = _posReader->peek();
-                _refSweep.advance(posDecl, *this);
+                Angle posDecl = _posReader->peek();
+                _refSweep.advance(static_cast<double>(posDecl), *this);
                 MatchablePos *p = _posReader->next();
                 _refSweep.search(p, *this);
                 _finish(p);
             }
             break;
         }
-        double posDecl = _posReader->peek();
-        double refDecl = _refReader->peek();
-        _refSweep.advance(posDecl, *this);
-        _posSweep.advance(refDecl, *this);
+        Angle posDecl = _posReader->peek();
+        Angle refDecl = _refReader->peek();
+        _refSweep.advance(static_cast<double>(posDecl), *this);
+        _posSweep.advance(static_cast<double>(refDecl), *this);
         if (refDecl < posDecl) {
             MatchableRef *r = _refReader->next();
             _posSweep.search(r, *this);
@@ -1242,20 +1253,22 @@ void RefPosMatcher::_writeMatch(RefPosMatch const *m) {
     MatchablePos const *p = m->getPos();
     _writer->appendField(r->getReferencePosition().getId());
     _writer->appendField(p->getId());
-    _writer->appendField(afwGeom::radToDeg(m->getRa()));
-    _writer->appendField(afwGeom::radToDeg(m->getDecl()));
-    _writer->appendField(afwGeom::radToArcsec(m->getAngularSeparation()));
+    _writer->appendField(radToDeg(
+        static_cast<double>(m->getSphericalCoordinates().getLongitude())));
+    _writer->appendField(radToDeg(
+        static_cast<double>(m->getSphericalCoordinates().getLatitude())));
+    _writer->appendField(radToArcsec(m->getAngularSeparation()));
     _writer->appendField(r->getNumMatches());
     _writer->appendField(p->getNumMatches());
     _writer->appendField(r->getClosestId() == p->getId());
     _writer->appendField(p->getClosestId() == r->getReferencePosition().getId());
     _writer->appendField(r->getReferencePosition().getFlags());
     if (_refReader->haveOutputRecord()) {
-        _writer->write(_writer->getDialect().getDelimiter());
+        _writer->write(_writer->getControl().getDelimiter());
         _writer->write(r->getRecord());
     }
     if (_posReader->haveOutputRecord()) {
-        _writer->write(_writer->getDialect().getDelimiter());
+        _writer->write(_writer->getControl().getDelimiter());
         _writer->write(p->getRecord());
     }
     _writer->endRecord();
@@ -1280,11 +1293,11 @@ void RefPosMatcher::_finish(MatchablePos *p) {
         _writer->appendNull();
         _writer->appendNull();
         if (_refReader->haveOutputRecord()) {
-            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_writer->getControl().getDelimiter());
             _writer->write(_refReader->getNullRecord());
         }
         if (_posReader->haveOutputRecord()) {
-            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_writer->getControl().getDelimiter());
             _writer->write(p->getRecord());
         }
         _writer->endRecord();
@@ -1338,11 +1351,11 @@ void RefPosMatcher::_finish(MatchableRef *r) {
         _writer->appendNull();
         _writer->appendNull();
         if (_refReader->haveOutputRecord()) {
-            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_writer->getControl().getDelimiter());
             _writer->write(r->getRecord());
         }
         if (_posReader->haveOutputRecord()) {
-            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_writer->getControl().getDelimiter());
             _writer->write(_posReader->getNullRecord());
         }
         _writer->endRecord();
@@ -1381,7 +1394,7 @@ void RefPosMatcher::_finish(MatchableRef *r) {
   */
 void RefPosMatcher::_candidateMatch(MatchableRef *r, MatchablePos *p) {
     Eigen::Vector3d v = r->getReferencePosition().getPosition(p->getEpoch());
-    double sep = angularSeparation(v, p->getPosition());
+    Angle sep = angularSeparation(v, p->getPosition());
     if (sep <= p->getRadius()) {
         // got a match
         RefPosMatch *m = new (_arena) RefPosMatch(r, p, v, sep);
@@ -1428,7 +1441,7 @@ private:
     void _candidateMatch(RefWithCov *r, ExposureInfo *e);
 
     // heap that reorders to produce declination sorted output
-    std::vector<std::pair<double, RefWithCov *> > _heap;
+    std::vector<std::pair<Angle, RefWithCov *> > _heap;
 
     // data structures for matching
     SphericalSweep<ExposureInfo> _expSweep;
@@ -1436,7 +1449,7 @@ private:
 
     CsvWriter *_writer;
     RefReader<RefWithCov> *_refReader;
-    double _maxDecl;
+    Angle _maxDecl;
 };
 
 RefExpMatcher::RefExpMatcher() :
@@ -1444,7 +1457,7 @@ RefExpMatcher::RefExpMatcher() :
     _refSweep(),
     _writer(0),
     _refReader(0),
-    _maxDecl(-afwGeom::HALFPI)
+    _maxDecl(-HALFPI, radians)
 { }
 
 RefExpMatcher::~RefExpMatcher() {
@@ -1472,8 +1485,8 @@ void RefExpMatcher::match(CsvWriter &writer,
         if (i == end) {
             _refSweep.clear(*this);
             while (!_refReader->isDone()) {
-                double refDecl = _refReader->peek();
-                _expSweep.advance(refDecl, *this);
+                Angle refDecl = _refReader->peek();
+                _expSweep.advance(static_cast<double>(refDecl), *this);
                 RefWithCov *r = _refReader->next();
                 _expSweep.search(r, *this);
                 _finish(r);
@@ -1482,17 +1495,17 @@ void RefExpMatcher::match(CsvWriter &writer,
         } else if (_refReader->isDone()) {
             _expSweep.clear(*this);
             for (; i != end; ++i) {
-                double expDecl = (*i)->getMinCoord1();
-                _refSweep.advance(expDecl, *this);
+                Angle expDecl((*i)->getMinCoord1(), radians);
+                _refSweep.advance(static_cast<double>(expDecl), *this);
                 ExposureInfo *info = i->get();
                 _refSweep.search(info, *this);
             }
             break;
         }
-        double expDecl = (*i)->getMinCoord1();
-        double refDecl = _refReader->peek();
-        _refSweep.advance(expDecl, *this);
-        _expSweep.advance(refDecl, *this);
+        Angle expDecl((*i)->getMinCoord1(), radians);
+        Angle refDecl = _refReader->peek();
+        _refSweep.advance(static_cast<double>(expDecl), *this);
+        _expSweep.advance(static_cast<double>(refDecl), *this);
         if (refDecl < expDecl) {
             RefWithCov *r = _refReader->next();
             _expSweep.search(r, *this);
@@ -1514,7 +1527,7 @@ void RefExpMatcher::match(CsvWriter &writer,
         _heap.pop_back();
         if (_refReader->haveOutputRecord()) {
             _writer->write(r->getRecord());
-            _writer->write(_writer->getDialect().getDelimiter());
+            _writer->write(_writer->getControl().getDelimiter());
         }
         r->writeCoverage(*_writer);
         _writer->endRecord();
@@ -1533,11 +1546,11 @@ void RefExpMatcher::_finish(RefWithCov *r) {
     } else {
         // insert r into declination heap, and update max declination
         // seen so far.
-        double decl = r->getReferencePosition().getSphericalCoords().y();
+        Angle decl = r->getReferencePosition().getSphericalCoords().getLatitude();
         if (decl >= _maxDecl) {
             _maxDecl = decl;
         }
-        _heap.push_back(std::pair<double, RefWithCov *>(decl, r));
+        _heap.push_back(std::pair<Angle, RefWithCov *>(decl, r));
         std::push_heap(_heap.begin(), _heap.end());
         while (!_heap.empty() &&
                _maxDecl - _heap.front().first > _refReader->getReadAhead()) {
@@ -1546,7 +1559,7 @@ void RefExpMatcher::_finish(RefWithCov *r) {
             _heap.pop_back();
             if (_refReader->haveOutputRecord()) {
                 _writer->write(r->getRecord());
-                _writer->write(_writer->getDialect().getDelimiter());
+                _writer->write(_writer->getControl().getDelimiter());
             }
             r->writeCoverage(*_writer);
             _writer->endRecord();
@@ -1555,9 +1568,6 @@ void RefExpMatcher::_finish(RefWithCov *r) {
     }
 }
 
-namespace {
-    void _nullDeleter(void *) { }
-}
 
 /** Called on candidate matches (r, i).
   */
@@ -1565,11 +1575,8 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     double epoch = e->getEpoch();
     Eigen::Vector3d v = r->getReferencePosition().getPosition(
         epoch, e->getEarthPosition());
-    Eigen::Vector2d sc = cartesianToSpherical(v);
-    lsst::afw::coord::IcrsCoord coord(sc.x() * afwGeom::radians, sc.y() * afwGeom::radians);
-    // avoid at least one memory allocation
-    boost::shared_ptr<lsst::afw::coord::Coord> sky(&coord, _nullDeleter);
-    lsst::afw::geom::PointD p = e->getWcs()->skyToPixel(*sky);
+    IcrsCoord sc = cartesianToIcrs(v);
+    lsst::afw::geom::Point2D p = e->getWcs()->skyToPixel(sc);
     if (p.getX() >= PixelZeroPos - 0.5 &&
         p.getX() <= e->getWidth() + PixelZeroPos - 0.5 &&
         p.getY() >= PixelZeroPos - 0.5 &&
@@ -1583,67 +1590,41 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
 
 /** Matches a declination sorted reference catalog (stored as a CSV file)
   * to a table of positions.
+  *
+  * Note that a reduction for parallax from barycentric to geocentric place is 
+  * applied to reference catalog entries with parallax above parallaxThresh.
+  * To disable this reduction, use a large threshold (e.g. +Inf).
   */
 void referenceMatch(
-    std::string const &refPath,    ///< Path to declination sorted reference catalog CSV file.
-    std::string const &posPath,    ///< Path to declination sorted position CSV file.
-    std::string const &matchPath,  ///< Match output file path.
-    lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
-                                                ///  See policy/ReferenceCatalogDictionary 
-                                                ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr posInPolicy, ///< Policy describing input position table.
-                                                ///  See policy/PositionTableDictionary.paf
-                                                ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr matchPolicy, ///< Policy describing match parameters.
-                                                ///  See policy/ReferenceMatchDictionary.paf
-                                                ///  for parameters and default values.
-    bool truncate ///< Overwrite existing output file?
+    std::string            const &refFile,        ///< Declination sorted reference catalog CSV file name.
+    CatalogControl         const &refControl,     ///< Reference catalog CSV file properties.
+    CsvControl             const &refDialect,     ///< CSV dialect of reference catalog CSV file.
+    std::string            const &posFile,        ///< Declination sorted position CSV file name.
+    CatalogControl         const &posControl,     ///< Position CSV file properties.
+    CsvControl             const &posDialect,     ///< CSV dialect of position CSV file.
+    std::string            const &outFile,        ///< Output file name.
+    CsvControl             const &outDialect,     ///< Output file CSV dialect.
+    lsst::afw::geom::Angle const  radius,         ///< Match radius
+    lsst::afw::geom::Angle const  parallaxThresh, ///< Parallax threshold
+    bool                          truncateOutFile ///< Truncate outFile before appending to it?
 ) {
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Matching reference catalog to position table...");
 
-    // Merge input policies with defaults
-    Policy::Ptr refPolicy;
-    if (refInPolicy) {
-        refPolicy.reset(new Policy(*refInPolicy, true));
-    } else {
-        refPolicy.reset(new Policy());
-    }
-    DefaultPolicyFile refDef("ap", "ReferenceCatalogDictionary.paf", "policy");
-    refPolicy->mergeDefaults(Policy(refDef));
-    Policy::Ptr posPolicy;
-    if (posInPolicy) {
-        posPolicy.reset(new Policy(*posInPolicy, true));
-    } else {
-        posPolicy.reset(new Policy());
-    }
-    DefaultPolicyFile posDef("ap", "PositionTableDictionary.paf", "policy");
-    posPolicy->mergeDefaults(Policy(posDef));
-    Policy::Ptr xPolicy;
-    if (matchPolicy) {
-        xPolicy.reset(new Policy(*matchPolicy, true));
-    } else {
-        xPolicy.reset(new Policy());
-    }
-    DefaultPolicyFile xDef("ap", "ReferenceMatchDictionary.paf", "policy");
-    xPolicy->mergeDefaults(Policy(xDef));
-
     // Create readers, writer and matcher
-    CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
     MatchablePosReader posReader(
-        posPath, posPolicy, outDialect,
-        afwGeom::arcsecToRad(xPolicy->getDouble("radius")));
+        posFile, posControl, posDialect, outDialect, radius);
     RefReader<MatchableRef> refReader(
-        refPath, refPolicy, outDialect, posReader.getMinEpoch(),
-        posReader.getMaxEpoch(), afwGeom::masToRad(xPolicy->getDouble("parallaxThresh")));
-    CsvWriter writer(matchPath, outDialect, truncate);
+        refFile, refControl, refDialect, outDialect,
+        posReader.getMinEpoch(), posReader.getMaxEpoch(), parallaxThresh);
+    CsvWriter writer(outFile, outDialect, truncateOutFile);
     RefPosMatcher matcher;
 
     log.log(Log::INFO, "Starting reference catalog to position table match");
     matcher.match(writer, refReader, posReader);
     log.format(Log::INFO, "Wrote %llu records to output match table %s",
                static_cast<unsigned long long>(writer.getNumRecords()),
-               matchPath.c_str());
+               outFile.c_str());
 }
 
 
@@ -1651,19 +1632,20 @@ void referenceMatch(
   * each filter with an ideal observatory, given a set of exposures. The per-filter
   * observation counts are appended as columns [ugrizy]Cov. Reference catalog
   * entries not falling on any of the given exposures are dropped from the output.
+  *
+  * Note that a reduction for parallax from barycentric to geocentric place is 
+  * applied to reference catalog entries with parallax above parallaxThresh.
+  * To disable this reduction, use a large threshold (e.g. +Inf).
   */
 void referenceFilter(
-    std::string const &refPath,  ///< Reference catalog path
-    std::string const &filtPath, ///< Filtered output catalog path
-    std::vector<ExposureInfo::Ptr> &exposures,  ///< Exposures to filter against - 
-                                                ///  reordered by the call.
-    lsst::pex::policy::Policy::Ptr refInPolicy, ///< Policy describing input reference catalog.
-                                                ///  See policy/ReferenceCatalogDictionary 
-                                                ///  for parameters and default values.
-    lsst::pex::policy::Policy::Ptr matchPolicy, ///< Policy describing match parameters.
-                                                ///  See policy/ReferenceMatchDictionary.paf
-                                                ///  for parameters and default values.
-    bool truncate ///< Overwrite existing output file?
+    std::vector<ExposureInfo::Ptr> &exposures,    ///< Exposures to filter against - reordered by the call.
+    std::string            const &refFile,        ///< Declination sorted reference catalog CSV file name.
+    CatalogControl         const &refControl,     ///< CSV dialect of reference catalog CSV file. 
+    CsvControl             const &refDialect,     ///< CSV dialect of reference catalog CSV file.
+    std::string            const &outFile,        ///< Output file name.
+    CsvControl             const &outDialect,     ///< Output file CSV dialect.
+    lsst::afw::geom::Angle const  parallaxThresh, ///< Parallax threshold
+    bool                          truncateOutFile ///< Truncate outFile before appending to it?
 ) {
     typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
     if (exposures.empty()) {
@@ -1674,24 +1656,6 @@ void referenceFilter(
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Filtering out reference catalog entries not "
             "observable in any exposure...");
-
-    // Merge input policies with defaults
-    Policy::Ptr refPolicy;
-    if (refInPolicy) {
-        refPolicy.reset(new Policy(*refInPolicy, true));
-    } else {
-        refPolicy.reset(new Policy());
-    }
-    DefaultPolicyFile refDef("ap", "ReferenceCatalogDictionary.paf", "policy");
-    refPolicy->mergeDefaults(Policy(refDef));
-    Policy::Ptr xPolicy;
-    if (matchPolicy) {
-        xPolicy.reset(new Policy(*matchPolicy, true));
-    } else {
-        xPolicy.reset(new Policy());
-    }
-    DefaultPolicyFile xDef("ap", "ReferenceMatchDictionary.paf", "policy");
-    xPolicy->mergeDefaults(Policy(xDef));
 
     // determine min/max epoch of exposures
     Iter i = exposures.begin();
@@ -1710,18 +1674,17 @@ void referenceFilter(
                minEpoch, maxEpoch);
 
     // Create reader, writer and matcher
-    CsvDialect outDialect(xPolicy->getPolicy("csvDialect"));
     RefReader<RefWithCov> refReader(
-        refPath, refPolicy, outDialect, minEpoch, maxEpoch,
-        afwGeom::masToRad(xPolicy->getDouble("parallaxThresh")));
-    CsvWriter writer(filtPath, outDialect, truncate);
+        refFile, refControl, refDialect, outDialect,
+        minEpoch, maxEpoch, parallaxThresh);
+    CsvWriter writer(outFile, outDialect, truncateOutFile);
     RefExpMatcher matcher;
 
     log.log(Log::INFO, "Starting reference catalog to exposure match");
     matcher.match(writer, refReader, exposures);
     log.format(Log::INFO, "Wrote %llu records to output match table %s",
                static_cast<unsigned long long>(writer.getNumRecords()),
-               filtPath.c_str());
+               outFile.c_str());
 }
 
 }}} // namespace lsst::ap::match

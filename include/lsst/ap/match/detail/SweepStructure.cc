@@ -37,11 +37,10 @@
 #include <climits>
 #include <algorithm>
 
-#include "lsst/afw/geom/Angle.h"
 #include "lsst/pex/exceptions.h"
+#include "lsst/afw/geom/Angle.h"
 #include "../../utils/SpatialUtils.h"
 
-namespace afwGeom = lsst::afw::geom;
 
 namespace lsst { namespace ap { namespace match { namespace detail {
 
@@ -428,17 +427,21 @@ void SphericalSweep<Region>::search(OtherRegion *r,
                                     MatchProcessor &f
                                    )
 {
+    using lsst::afw::geom::TWOPI;
+    using lsst::afw::geom::Angle;
+    using lsst::afw::geom::radians;
+
     if (_root == 0) {
         return;
     }
-    double min = r->getMinCoord0();
-    double max = r->getMaxCoord0();
+    Angle min = r->getMinCoord0() * radians;
+    Angle max = r->getMaxCoord0() * radians;
     lsst::ap::utils::thetaRangeReduce(min, max);
     if (min > max) {
-        _search(r, f, 0.0, max);
-        max = afwGeom::TWOPI;
+        _search(r, f, 0.0, static_cast<double>(max));
+        max = TWOPI * radians;
     }
-    _search(r, f, min, max);
+    _search(r, f, static_cast<double>(min), static_cast<double>(max));
     ++_searchId;
     if (_searchId == 0) {
         // _searchId wrapped to zero. Without further action, a region

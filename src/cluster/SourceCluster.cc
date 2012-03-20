@@ -65,7 +65,6 @@ namespace afwGeom = lsst::afw::geom;
 using std::sqrt;
 
 using lsst::ap::utils::cartesianToSpherical;
-using lsst::ap::utils::sphericalToCartesian;
 
 
 namespace lsst { namespace ap { namespace cluster {
@@ -1634,7 +1633,7 @@ void SourceClusterAttributes::_computePsPosition(
     // between P and each source position is minimized.
     Eigen::Vector3d v = Eigen::Vector3d::Zero();
     for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        v += sphericalToCartesian((*i)->getRa(), (*i)->getDec());
+        v += (*i)->getRaDec()->getVector().asEigen();
     }
     Eigen::Vector2d sc = cartesianToSpherical(v);
     // compute covariance matrix

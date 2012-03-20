@@ -49,15 +49,13 @@ using boost::algorithm::trim_copy;
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::pex::exceptions::RuntimeErrorException;
 using lsst::pex::logging::Log;
-using lsst::pex::policy::Policy;
-using lsst::pex::policy::DefaultPolicyFile;
 using lsst::daf::base::DateTime;
 using lsst::daf::base::PropertySet;
 using lsst::afw::image::PixelZeroPos;
 
 using lsst::ap::utils::angularSeparation;
-using lsst::ap::utils::cartesianToSpherical;
-using lsst::ap::utils::CsvDialect;
+using lsst::ap::utils::cartesianToIcrs;
+using lsst::ap::utils::CsvControl;
 using lsst::ap::utils::CsvReader;
 using lsst::ap::utils::maxAlpha;
 
@@ -136,12 +134,12 @@ ExposureInfo::ExposureInfo(
     Eigen::Vector3d urc = _pixToSky(_extent.getX() - 0.5 + PixelZeroPos,
                                     _extent.getY() - 0.5 + PixelZeroPos);
     // compute bounding box from bounding circle
-    _center = cartesianToSpherical(c);
+    _center = cartesianToIcrs(c);
     _radius = angularSeparation(c, llc);
     _radius = max(_radius, angularSeparation(c, ulc));
     _radius = max(_radius, angularSeparation(c, lrc));
     _radius = max(_radius, angularSeparation(c, urc));
-    _alpha = maxAlpha(_radius, _center.y());
+    _alpha = maxAlpha(_radius, _center.getLatitude());
 }
 
 ExposureInfo::~ExposureInfo() { }
@@ -193,19 +191,19 @@ std::pair<double, double> const ExposureInfo::calibrateFlux(
 }
 
 double ExposureInfo::getMinCoord0() const {
-    return _center.x() - _alpha;
+    return static_cast<double>(_center.getLongitude() - _alpha);
 }
 
 double ExposureInfo::getMaxCoord0() const {
-    return _center.x() + _alpha;
+    return static_cast<double>(_center.getLongitude() + _alpha);
 }
 
 double ExposureInfo::getMinCoord1() const {
-    return _center.y() - _radius;
+    return static_cast<double>(_center.getLatitude() - _radius);
 }
 
 double ExposureInfo::getMaxCoord1() const {
-    return _center.y() + _radius;
+    return static_cast<double>(_center.getLatitude() + _radius);
 }
 
 Eigen::Vector3d const ExposureInfo::_pixToSky(double x, double y) const {
@@ -294,11 +292,9 @@ std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
 void readExposureInfos(
     std::vector<ExposureInfo::Ptr> & exposures, ///< ExposureInfo objects are
                                                 ///  appended to this vector.
-    std::string const & csvFile,             ///< Metadata table path.
-    lsst::pex::policy::Policy::Ptr expPolicy ///< Policy describing metadata table. See
-                                             ///  policy/ExposureMetadataTableDictionary.paf
-                                             ///  for parameters and default values.
-
+    std::string const & csvFile,                ///< Metadata table path.
+    CsvControl  const & control,                ///< Metadata table CSV format.
+    std::string const & idColumn                ///< Name of ID column, e.g. "scienceCcdExposureId".
 ) {
     typedef std::tr1::unordered_map<std::string, int> FkMap;
     typedef FkMap::const_iterator FkIter;
@@ -308,26 +304,34 @@ void readExposureInfos(
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Reading exposure metadata from " + csvFile);
 
-    // Merge input policy with default
     FkMap const & fkMap = fitsKeyMap();
-    Policy::Ptr policy;
-    if (expPolicy) {
-        policy.reset(new Policy(*expPolicy, true));
-    } else {
-        policy.reset(new Policy());
+    // open CSV file and get column indexes
+    CsvReader reader(csvFile, control, true);
+    int const idCol = reader.getIndexOf(idColumn);
+    int const keyCol = reader.getIndexOf("metadataKey");
+    int const intCol = reader.getIndexOf("intValue");
+    int const doubleCol = reader.getIndexOf("doubleValue");
+    int const stringCol = reader.getIndexOf("stringValue");
+    if (idCol == -1) {
+        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+                          "has no column named " + idCol);
     }
-    DefaultPolicyFile expDef("ap", "ExposureMetadataTableDictionary.paf",
-                             "policy");
-    policy->mergeDefaults(Policy(expDef));
-    // get column indexes and open CSV file
-    int const idCol = policy->getInt("exposureIdColumn");
-    int const keyCol = policy->getInt("metadataKeyColumn");
-    int const intCol = policy->getInt("intValueColumn");
-    int const doubleCol = policy->getInt("doubleValueColumn");
-    int const stringCol = policy->getInt("stringValueColumn");
-    CsvDialect dialect(policy->getPolicy("csvDialect"));
-    CsvReader reader(csvFile, dialect, false);
-
+    if (keyCol == -1) {
+        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+                          "has no column named metadataKey");
+    }
+    if (intCol == -1) {
+        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+                          "has no column named intValue");
+    }
+    if (doubleCol == -1) {
+        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+                          "has no column named doubleValue");
+    }
+    if (stringCol == -1) {
+        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+                          "has no column named stringValue");
+    }
     PropertySet::Ptr ps;
     int64_t lastId = reader.get<int64_t>(idCol) - 1;
     for (; !reader.isDone(); reader.nextRecord()) {
@@ -337,7 +341,7 @@ void readExposureInfos(
                 exposures.push_back(ExposureInfo::Ptr(new ExposureInfo(ps)));
             }
             ps.reset(new PropertySet());
-            ps->set(ExposureInfo::DEF_ID_KEY, id);
+            ps->set(idColumn, id);
             lastId = id;
         }
         std::string const key = reader.get(keyCol);

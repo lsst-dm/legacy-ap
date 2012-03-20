@@ -31,6 +31,7 @@
 #ifndef LSST_AP_UTILS_PT1SKYTILE_H
 #define LSST_AP_UTILS_PT1SKYTILE_H
 
+#include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/detection/Source.h"
 
 #include "../Common.h"
@@ -50,7 +51,7 @@ public:
 
     int getId() const { return _id; }
 
-    bool contains(double theta, double phi) const;
+    bool contains(lsst::afw::geom::Angle theta, lsst::afw::geom::Angle phi) const;
 
     void prune(lsst::afw::detection::SourceSet & sources) const;
 

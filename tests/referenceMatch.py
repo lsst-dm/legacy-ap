@@ -26,7 +26,7 @@ from __future__ import with_statement
 from contextlib import nested
 import csv
 import math
-import optparse
+import argparse
 import os
 import pdb
 import random
@@ -36,7 +36,7 @@ import unittest
 
 import lsst.utils.tests as utilsTests
 import lsst.geom as geom
-import lsst.pex.policy as pexPolicy
+import lsst.afw.geom as afwGeom
 import lsst.ap.match as apMatch
 
 
@@ -172,34 +172,38 @@ class ReferenceMatchTestCase(unittest.TestCase):
     """Tests the reference matching implementation.
     """
     def setUp(self):
-        self.radius = float(os.environ['TEST_RM_RADIUS'])
-        self.refPolicy = pexPolicy.Policy()
-        self.posPolicy = pexPolicy.Policy()
-        for f in ("refObjectId", "ra", "decl", "refMatches"):
-            self.refPolicy.add("fieldNames", f)
-        self.refPolicy.set("outputFields", "refMatches")
-        for f in ("posId", "ra", "decl", "posMatches"):
-            self.posPolicy.add("fieldNames", f)
-        self.posPolicy.set("outputFields", "posMatches")
-        self.posPolicy.set("idColumn", "posId")
-        self.matchPolicy = pexPolicy.Policy()
-        self.matchPolicy.set("radius", self.radius*3600.0)
+        self.config = apMatch.ReferenceMatchConfig()
+        self.config.radius = (float(os.environ['TEST_RM_RADIUS']) * afwGeom.degrees).asArcseconds()
+        self.config.ref.fieldNames = ["refObjectId", "ra", "decl", "refMatches"]
+        self.config.ref.outputFields = ["refMatches"]
+        self.config.ref.idColumn = "refObjectId"
+        self.config.pos.fieldNames = ["posId", "ra", "decl", "posMatches"]
+        self.config.pos.outputFields = ["posMatches"]
+        self.config.pos.idColumn = "posId"
 
     def tearDown(self):
         # Without this, memory is leaked
-        del self.refPolicy
-        del self.posPolicy
-        del self.matchPolicy
+        del self.config
 
     def testMatch(self):
         random.seed(123456789)
         with NamedTemporaryFile() as matchFile:
             with nested(NamedTemporaryFile(),
                         NamedTemporaryFile()) as (refFile, posFile):
-                buildPoints(refFile, posFile, self.radius)
+                buildPoints(refFile, posFile,
+                            (self.config.radius * afwGeom.arcseconds).asDegrees())
                 apMatch.referenceMatch(
-                    refFile.name, posFile.name, matchFile.name,
-                    self.refPolicy, self.posPolicy, self.matchPolicy, True)
+                    refFile.name, 
+                    self.config.ref.makeControl(),
+                    self.config.refDialect.makeControl(),
+                    posFile.name,
+                    self.config.pos.makeControl(),
+                    self.config.posDialect.makeControl(),
+                    matchFile.name,
+                    self.config.refDialect.makeControl(),
+                    self.config.radius * afwGeom.arcseconds,
+                    self.config.parallaxThresh/1000.0 * afwGeom.arcseconds,
+                    True)
                 if False:
                     # print out the generated test data
                     for line in open(refFile.name, 'rb'):
@@ -282,7 +286,7 @@ class ReferenceMatchTestCase(unittest.TestCase):
                         self.assertTrue(refMatches != None and posMatches != None)
                         self.assertEqual(len(posMatches), 1)
                         self.assertEqual(refId, posMatches[0])
-                        self.assertTrue(angSep != None and angSep < self.radius*3600.0)
+                        self.assertTrue(angSep != None and angSep < self.config.radius*3600.0)
                         self.assertEqual(isClosestMatchForObj, "1")
                         self.assertEqual(flags, "0")
                         self.assertTrue(posId in refMatches)
@@ -310,18 +314,11 @@ def run(shouldExit=False):
     utilsTests.run(suite(), shouldExit)
 
 if __name__ == '__main__':
-    usage = """usage: %prog [options]
-
-    Tests the reference matching implementation
-    """
-    parser = optparse.OptionParser(usage)
-    parser.add_option(
-        "-r", "--radius", type="string", dest="radius",
-        help="Match radius (deg)")
-    (options, args) = parser.parse_args()
-    if options.radius:
-        os.environ['TEST_RM_RADIUS'] = options.radius
-    else:
-        os.environ['TEST_RM_RADIUS'] = "1.0"
+    parser = argparse.ArgumentParser(
+        description="Tests the reference matching implementation")
+    parser.add_argument(
+        "-r", "--radius", dest="radius", default="1.0", help="match radius (deg)")
+    ns = parser.parse_args()
+    os.environ['TEST_RM_RADIUS'] = ns.radius
     run(True)
 

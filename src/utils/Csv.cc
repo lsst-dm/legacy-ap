@@ -64,252 +64,6 @@ namespace pexExcept = lsst::pex::exceptions;
 
 namespace lsst { namespace ap { namespace utils {
 
-// -- CsvDialect implementation ----
-
-/** A dialect for CSV files output by MySQL using the
-  * <tt> SELECT ... INTO OUTFILE </tt> statement with no
-  *     @li <tt> FIELDS TERMINATED BY </tt>
-  *     @li <tt> FIELDS [OPTIONALLY] ENCLOSED BY </tt>
-  *     @li <tt> FIELDS ESCAPED BY </tt>
-  *     @li <tt> LINES STARTING BY </tt>
-  *     @li <tt> LINES TERMINATED BY </tt>
-  * clauses, i.e. the default.
-  */
-CsvDialect const CsvDialect::MYSQL(QUOTE_NONE, '\t', '\\', '\0',
-                                   false, false, true, false);
-
-/** A dialect for CSV files output by PostgreSQL using the
-  * <tt> COPY ... TO CSV </tt> statement with no
-  *     @li <tt> DELIMITER AS </tt>
-  *     @li <tt> NULL AS </tt>
-  *     @li <tt> QUOTE AS </tt>
-  *     @li <tt> ESCAPE AS </tt>
-  * clauses, i.e. the default.
-  */
-CsvDialect const CsvDialect::POSTGRES("", QUOTE_MINIMAL, ',', '\\', '"',
-                                      false, false, true, false);
-
-/** A dialect for CSV files output by Informix using the
-  * <tt> UNLOAD TO </tt> statement with no <tt> DELIMITER </tt> clause,
-  * i.e. the default.
-  */
-CsvDialect const CsvDialect::INFORMIX("", QUOTE_NONE, '|', '\\', '\0',
-                                      false, false, false, true);
-
-/** A dialect for CSV files output by the python csv module using
-  * the default dialect.
-  */
-CsvDialect const CsvDialect::CSV(QUOTE_MINIMAL, ',', '\0', '"',
-                                 false, true, false, false);
-
-/** Creates a new CsvDialect without a NULL representation. This means that
-  * unless escaping is enabled (<tt> escapeChar != '\\0' </tt>) and
-  * @a standardEscapes is true, database NULLs are not recognizable in the
-  * dialect.
-  */
-CsvDialect::CsvDialect(
-    Quoting quoting,       ///< See getQuoting() - if @a quoteChar is '\\0',
-                           ///  quoting must be QUOTE_NONE.
-    char delimiter,        ///< See getDelimiter() - anything but '\\[0nr]'
-    char escapeChar,       ///< See getEscapeChar() - anything but '\\[nr]'
-                           ///  or @a delimiter. '\\0' disables escaping.
-    char quoteChar,        ///< See getQuoteChar() - anything but '\\[nr]'
-                           ///  or @a delimiter. '\\0' disables quoting.
-    bool skipInitialSpace, ///< See skipInitialSpace()
-    bool doubleQuote,      ///< See doubleQuote()
-    bool standardEscapes,  ///< See standardEscapes() - if @a escapeChar is
-                           ///  '\\0', standardEscapes must be false.
-    bool trailingDelimiter ///< See trailingDelimiter()
-) :
-    _null(),
-    _quoting(quoting),
-    _delimiter(delimiter),
-    _escapeChar(escapeChar),
-    _quoteChar(quoteChar),
-    _hasNull(false),
-    _skipInitialSpace(skipInitialSpace),
-    _doubleQuote(doubleQuote),
-    _standardEscapes(standardEscapes),
-    _trailingDelimiter(trailingDelimiter)
-{
-    _validate();
-}
-
-/** Creates a new CsvDialect with a database NULL representation. On reading,
-  * unquoted fields matching this string will be treated as database NULLs.
-  */
-CsvDialect::CsvDialect(
-    std::string const &null, ///< Database NULL representation.
-    Quoting quoting,         ///< See getQuoting() - if @a quoteChar is '\\0',
-                             ///  quoting must be QUOTE_NONE.
-    char delimiter,          ///< See getDelimiter() - anything but '\\[0nr]'
-    char escapeChar,         ///< See getEscapeChar() - anything but '\\[nr]'
-                             ///  or @a delimiter. '\\0' disables escaping.
-    char quoteChar,          ///< See getQuoteChar() - anything but '\\[nr]'
-                             ///  or @a delimiter. '\\0' disables quoting.
-    bool skipInitialSpace,   ///< See skipInitialSpace()
-    bool doubleQuote,        ///< See doubleQuote()
-    bool standardEscapes,    ///< See standardEscapes() - if @a escapeChar is
-                             ///  '\\0', standardEscapes must be false.
-    bool trailingDelimiter   ///< See trailingDelimiter()
-) :
-    _null(null),
-    _quoting(quoting),
-    _delimiter(delimiter),
-    _escapeChar(escapeChar),
-    _quoteChar(quoteChar),
-    _hasNull(true),
-    _skipInitialSpace(skipInitialSpace),
-    _doubleQuote(doubleQuote),
-    _standardEscapes(escapeChar),
-    _trailingDelimiter(trailingDelimiter)
-{
-    _validate();
-}
-
-/** Creates a new CsvDialect from a policy. By default, there is no NULL
-  * representation, escaping and quoting are disabled, the delimiter is ','
-  * and skipInitialSpace(), doubleQuote(), standardEscapes(), and
-  * trailingDelimiter() are all false. The following properties, if present,
-  * are used as overrides:
-  *
-  * <dl>
-  * <dt> null              </dt>   <dd> @c string </dd>
-  * <dt> quoting           </dt>   <dd> "QUOTE_NONE", "QUOTE_ALL", or "QUOTE_MINIMAL" </dd>
-  * <dt> delimiter         </dt>   <dd> 1 character @c string </dd>
-  * <dt> escapeChar        </dt>   <dd> 1 character @c string </dd>
-  * <dt> quoteChar         </dt>   <dd> 1 character @c string </dd>
-  * <dt> skipInitialSpace  </dt>   <dd> @c boolean </dd>
-  * <dt> doubleQuote       </dt>   <dd> @c boolean </dd>
-  * <dt> standardEscapes   </dt>   <dd> @c boolean </dd>
-  * <dt> trailingDelimiter </dt>   <dd> @c boolean </dd>
-  * </dl>
-  */
-CsvDialect::CsvDialect(lsst::pex::policy::Policy::Ptr const &ptr) :
-    _null(),
-    _quoting(QUOTE_NONE),
-    _delimiter(','),
-    _escapeChar('\0'),
-    _quoteChar('\0'),
-    _hasNull(false),
-    _skipInitialSpace(false),
-    _doubleQuote(false),
-    _standardEscapes(false),
-    _trailingDelimiter(false)
-{
-    if (ptr->exists("null")) {
-        _null = ptr->getString("null");
-        _hasNull = true;
-    }
-    if (ptr->exists("quoting")) {
-        string s = ptr->getString("quoting");
-        if (s == "QUOTE_NONE") {
-            _quoting = QUOTE_NONE;
-        } else if (s == "QUOTE_ALL") {
-            _quoting = QUOTE_ALL;
-        } else if (s == "QUOTE_MINIMAL") {
-            _quoting = QUOTE_MINIMAL;
-        } else {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                              "policy value for quoting property " + s + " is "
-                              "not a legal CSV quoting style");
-        }
-    }
-    if (ptr->exists("delimiter")) {
-        string s = ptr->getString("delimiter");
-        if (s.size() != 1) {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                              "policy value for delimiter property must be "
-                              "a one character string");
-        }
-        _delimiter = s[0];
-    }
-    if (ptr->exists("escapeChar")) {
-        string s = ptr->getString("escapeChar");
-        if (s.size() == 0) {
-            _escapeChar = '\0';
-        } else if (s.size() == 1) {
-            _escapeChar = s[0];
-        } else {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                              "policy value for escapeChar property must be "
-                              "a one character string");
-        }
-    }
-    if (ptr->exists("quoteChar")) {
-        string s = ptr->getString("quoteChar");
-        if (s.size() == 0) {
-            _quoteChar = '\0';
-        } else if (s.size() == 1) {
-            _quoteChar = s[0];
-        } else {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                              "policy value for quoteChar property must be "
-                              "an empty or one character string");
-        }
-    }
-    if (ptr->exists("skipInitialSpace")) {
-        _skipInitialSpace = ptr->getBool("skipInitialSpace");
-    }
-    if (ptr->exists("doubleQuote")) {
-        _doubleQuote = ptr->getBool("doubleQuote");
-    }
-    if (ptr->exists("standardEscapes")) {
-        _standardEscapes = ptr->getBool("standardEscapes");
-    }
-    if (ptr->exists("trailingDelimiter")) {
-        _trailingDelimiter = ptr->getBool("trailingDelimiter");
-    }
-    _validate();
-}
-
-CsvDialect::~CsvDialect() { }
-
-void CsvDialect::_validate() const {
-    if (_delimiter == '\0' || _delimiter == '\n' || _delimiter == '\r') {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "CSV delimiter character equal to '\\[0nr]'");
-
-    }
-    if (_escapeChar == _delimiter ||
-        _escapeChar == '\n' || _escapeChar == '\r') {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "CSV escape character equal to delimiter character "
-                          "or '\\[nr]'.");
-    }
-    if (_quoteChar == _delimiter ||
-        _quoteChar == '\n' || _quoteChar == '\r') {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "CSV quote character equal to delimiter character "
-                          "or '\\[nr]'.");
-    }
-    if (_escapeChar == _quoteChar && _escapeChar != '\0') {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "CSV escape character equal to quote character. Did "
-                          "you mean to use the doubleQuote option instead?");
-    }
-    if (_escapeChar == '\0' && _standardEscapes) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "Escaping character set to '\\0', but standard "
-                          "escapes are enabled");
-    }
-    if (_quoteChar == '\0' && _quoting != QUOTE_NONE) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "Quote character set to '\\0', but quoting is "
-                          "not QUOTE_NONE");
-    }
-    if (_null.find('\n') != string::npos ||
-        _null.find('\r') != string::npos ||
-        _null.find(_delimiter) != string::npos ||
-        _null.find(_escapeChar) != string::npos ||
-        _null.find(_quoteChar) != string::npos) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
-                          "NULL string contains '\\[nr]', or the delimiter, "
-                          "escape or quote character.");
-    }
-}
-
-
 // -- CsvReader implementation ----
 
 std::string const CsvReader::WHITESPACE(" \t\f\v\n\r");
@@ -320,12 +74,12 @@ int const CsvReader::DEFAULT_CAPACITY = 128*1024;
   */
 CsvReader::CsvReader(
     std::string const &path,   ///< Input file name
-    CsvDialect const &dialect, ///< CSV dialect of the input file
+    CsvControl const &control, ///< CSV format of the input file
     bool namesInFirstRecord    ///< Set field names to the strings in the
                                ///  first record of the input file?
    ) :
     _path(path),
-    _dialect(dialect),
+    _control(control),
     _names(),
     _indexes(),
     _stream(new ifstream(path.c_str(), ios::binary | ios::in)),
@@ -362,12 +116,12 @@ CsvReader::CsvReader(
   */
 CsvReader::CsvReader(
     std::istream &in,           ///< Input stream
-    CsvDialect const &dialect,  ///< CSV dialect of the input stream
+    CsvControl const &control,  ///< CSV format of the input stream
     bool namesInFirstRecord     ///< Set field names to the strings in the
                                 ///  first record read from the input stream?
    ) :
     _path(),
-    _dialect(dialect),
+    _control(control),
     _names(),
     _indexes(),
     _stream(),
@@ -558,11 +312,11 @@ void CsvReader::_readRecord() {
         switch (state) {
             case START_RECORD:
                 if (c == '\0') {
-                    if (_dialect.trailingDelimiter()) {
+                    if (_control.trailingDelimiter) {
                         _runtimeError("expecting trailing delimiter "
                                       "at end of record");
-                    } else if (_dialect.hasNull() &&
-                               _dialect.getNull().empty()) {
+                    } else if (_control.hasNull &&
+                               _control.null.empty()) {
                        _fields.push_back(-1);
                     }
                     return; // finished record
@@ -575,32 +329,32 @@ void CsvReader::_readRecord() {
                 if (c == '\0') {
                     // finished empty field
                     _record[writeOffset++] = '\0';
-                    if (_dialect.hasNull() && _dialect.getNull().empty()) {
+                    if (_control.hasNull && _control.null.empty()) {
                         _fields.back() = -1; // NULL
                     }
-                    if (_dialect.trailingDelimiter()) {
+                    if (_control.trailingDelimiter) {
                         // a trailing delimiter is expected and does not
                         // yield a trailing empty field
                         _fields.pop_back();
                     }
                     return; // finished record
-                } else if (_dialect.getQuoting() != CsvDialect::QUOTE_NONE &&
-                           c == _dialect.getQuoteChar()) {
+                } else if (_control.quoting != "QUOTE_NONE" &&
+                           c == _control.getQuoteChar()) {
                     // start quoted field
                     state = IN_QUOTED_FIELD;
-                } else if (c == _dialect.getEscapeChar() &&
-                           _dialect.getEscapeChar() != '\0') {
+                } else if (c == _control.getEscapeChar() &&
+                           _control.getEscapeChar() != '\0') {
                     // escape at beginning of field
                     popState = IN_FIELD;
                     state = INITIAL_ESCAPE;
-                } else if (c == _dialect.getDelimiter()) {
+                } else if (c == _control.getDelimiter()) {
                     // finished empty field
                     _record[writeOffset++] = '\0';
-                    if (_dialect.hasNull() && _dialect.getNull().empty()) {
+                    if (_control.hasNull && _control.null.empty()) {
                         _fields.back() = -1; // NULL
                     }
                     state = START_FIELD;
-                } else if (_dialect.skipInitialSpace() &&
+                } else if (_control.skipInitialSpace &&
                            WHITESPACE.find(c) != string::npos) {
                     // eat initial whitespace
                     state = START_FIELD;
@@ -615,23 +369,23 @@ void CsvReader::_readRecord() {
                 if (c == '\0') {
                     // finished field
                     _record[writeOffset++] = '\0';
-                    if (_dialect.trailingDelimiter()) {
+                    if (_control.trailingDelimiter) {
                         _runtimeError("expecting trailing delimiter "
                                       "at end of record");
                     }
-                    if (_dialect.hasNull() &&
-                        _dialect.getNull() == _record.get() + _fields.back()) {
+                    if (_control.hasNull &&
+                        _control.null == _record.get() + _fields.back()) {
                         _fields.back() = -1; // NULL
                     }
                     return; // finished record
-                } else if (c == _dialect.getEscapeChar()) {
+                } else if (c == _control.getEscapeChar()) {
                     popState = IN_FIELD;
                     state = ESCAPE;
-                } else if (c == _dialect.getDelimiter()) {
+                } else if (c == _control.getDelimiter()) {
                     // finished field
                     _record[writeOffset++] = '\0';
-                    if (_dialect.hasNull() &&
-                        _dialect.getNull() == _record.get() + _fields.back()) {
+                    if (_control.hasNull &&
+                        _control.null == _record.get() + _fields.back()) {
                         _fields.back() = -1; // NULL
                     }
                     state = START_FIELD;
@@ -655,10 +409,10 @@ void CsvReader::_readRecord() {
                 } else if (c == '\0') {
                     _record[writeOffset++] = '\0';
                     _runtimeError("expecting quote character at end of field");
-                } else if (c == _dialect.getEscapeChar()) {
+                } else if (c == _control.getEscapeChar()) {
                     popState = IN_QUOTED_FIELD;
                     state = ESCAPE;
-                } else if (c == _dialect.getQuoteChar()) {
+                } else if (c == _control.getQuoteChar()) {
                     state = EMBEDDED_QUOTE;
                 } else {
                     _record[writeOffset++] = c;
@@ -667,18 +421,18 @@ void CsvReader::_readRecord() {
                 break;
 
             case INITIAL_ESCAPE:
-                if (c == 'N' && _dialect.standardEscapes()) {
+                if (c == 'N' && _control.standardEscapes) {
                     char c2 = _record[offset];
                     if (c2 == '\0') {
                         // finished NULL field
                         _fields.back() = -1;
-                        if (_dialect.trailingDelimiter()) {
+                        if (_control.trailingDelimiter) {
                             _runtimeError("expecting trailing delimiter "
                                           "at end of record");
                         }
                         // finished record
                         return;
-                    } else if (c2 == _dialect.getDelimiter()) {
+                    } else if (c2 == _control.getDelimiter()) {
                         // finished NULL field
                         _fields.back() = -1;
                         ++offset;
@@ -696,7 +450,7 @@ void CsvReader::_readRecord() {
                         _record[writeOffset++] = '\0';
                     }
                 }
-                if (_dialect.standardEscapes()) {
+                if (_control.standardEscapes) {
                     // handle standard escape sequences
                     switch (c) {
                         case 'Z': c = 0x1a; break;
@@ -744,17 +498,17 @@ void CsvReader::_readRecord() {
                 if (c == '\0') {
                     // finished field
                     _record[writeOffset++] = '\0';
-                    if (_dialect.trailingDelimiter()) {
+                    if (_control.trailingDelimiter) {
                         _runtimeError("expecting trailing delimiter "
                                       "at end of record");
                     }
                     return; // finished record
-                } else if (c == _dialect.getQuoteChar() &&
-                           _dialect.doubleQuote()) {
+                } else if (c == _control.getQuoteChar() &&
+                           _control.doubleQuote) {
                     // save "" as "
                     _record[writeOffset++] = c;
                     state = IN_QUOTED_FIELD;
-                } else if (c == _dialect.getDelimiter()) {
+                } else if (c == _control.getDelimiter()) {
                     // finished field
                     _record[writeOffset++] = '\0';
                     state = START_FIELD;
@@ -891,14 +645,14 @@ template <> char CsvReader::_get<char>(char const *field) const {
   */
 CsvWriter::CsvWriter(
     std::string const &path,   ///< Name of file to write to
-    CsvDialect const &dialect,
+    CsvControl const &control,
     bool truncate              ///< If true, an existing file is truncated
                                ///  Otherwise, an attempt to create a writer
                                ///  for an existing file raises an exception.
 ) :
     _stream(),
     _out(0),
-    _dialect(dialect),
+    _control(control),
     _numRecords(0),
     _numLines(0),
     _numFields(0)
@@ -929,10 +683,10 @@ CsvWriter::CsvWriter(
   * mask is changed, or external writes are performed on it), then the
   * behaviour and output of the writer is undefined.
   */
-CsvWriter::CsvWriter(std::ostream &out, CsvDialect const &dialect) :
+CsvWriter::CsvWriter(std::ostream &out, CsvControl const &control) :
     _stream(),
     _out(&out),
-    _dialect(dialect),
+    _control(control),
     _numRecords(0),
     _numLines(0),
     _numFields(0)
@@ -951,8 +705,8 @@ CsvWriter::~CsvWriter() {
 /** Terminates a record - subsequent apppends will be to a new record.
   */
 void CsvWriter::endRecord() {
-    if (_dialect.trailingDelimiter()) {
-        _out->put(_dialect.getDelimiter());
+    if (_control.trailingDelimiter) {
+        _out->put(_control.getDelimiter());
     }
     _out->put('\n');
     _numFields = 0;
@@ -1112,22 +866,22 @@ void CsvWriter::appendField(long double v) {
   * NULL representation, an empty field is written.
   */
 void CsvWriter::appendNull() {
-    if (_dialect.hasNull()) {
+    if (_control.hasNull) {
         // output leading delimiter except for the first field in a record
         if (_numFields > 0) {
-            _out->put(_dialect.getDelimiter());
+            _out->put(_control.getDelimiter());
         }
         ++_numFields;
         // NULL is never quoted, and guaranteed not to require escaping
-        _out->write(_dialect.getNull().c_str(), _dialect.getNull().size());
-    } else if (_dialect.standardEscapes()) {
+        _out->write(_control.null.c_str(), _control.null.size());
+    } else if (_control.standardEscapes) {
         // output leading delimiter except for the first field in a record
         if (_numFields > 0) {
-            _out->put(_dialect.getDelimiter());
+            _out->put(_control.getDelimiter());
         }
         ++_numFields;
         // write \N
-        _out->put(_dialect.getEscapeChar());
+        _out->put(_control.getEscapeChar());
         _out->put('N');
     } else {
         // write an empty field
@@ -1140,19 +894,19 @@ void CsvWriter::appendNull() {
 void CsvWriter::_write(char const *s) {
     // output leading delimiter except for the first field in a record
     if (_numFields > 0) {
-        _out->put(_dialect.getDelimiter());
+        _out->put(_control.getDelimiter());
     }
     ++_numFields;
-    if (_dialect.getQuoting() == CsvDialect::QUOTE_NONE) {
-        if (_dialect.hasNull() && _dialect.getNull() == s) {
+    if (_control.quoting == "QUOTE_NONE") {
+        if (_control.hasNull && _control.null == s) {
             throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                               "Field value coincides with NULL string "
                               "and quoting is disabled");
         }
         _writeUnquoted(s);
         return;
-    } else if (_dialect.getQuoting() == CsvDialect::QUOTE_ALL ||
-               (_dialect.hasNull() && _dialect.getNull() == s)) {
+    } else if (_control.quoting == "QUOTE_ALL" ||
+               (_control.hasNull && _control.null == s)) {
         _writeQuoted(s);
         return;
     }
@@ -1163,18 +917,18 @@ void CsvWriter::_write(char const *s) {
     bool wantQuote = false;
     for (char c = *s; c != '\0'; c = s[++n]) {
         if (c == '\n' || c == '\r') {
-            if (_dialect.standardEscapes()) {
+            if (_control.standardEscapes) {
                 wantEscape = true;
             } else {
                 wantQuote = true;
             }
-        } else if (c == _dialect.getDelimiter()) {
+        } else if (c == _control.getDelimiter()) {
             wantQuote = true;
-        } else if (c == _dialect.getEscapeChar()) {
+        } else if (c == _control.getEscapeChar()) {
             wantQuote = true;
             wantEscape = true;
-        } else if (c == _dialect.getQuoteChar()) {
-            if (_dialect.doubleQuote()) {
+        } else if (c == _control.getQuoteChar()) {
+            if (_control.doubleQuote) {
                 wantQuote = true;
             }
             wantEscape = true;
@@ -1186,9 +940,9 @@ void CsvWriter::_write(char const *s) {
         if (wantEscape) {
             _writeQuoted(s);
         } else {
-            _out->put(_dialect.getQuoteChar());
+            _out->put(_control.getQuoteChar());
             _out->write(s, n);
-            _out->put(_dialect.getQuoteChar());
+            _out->put(_control.getQuoteChar());
         }
     } else if (wantEscape) {
         _writeUnquoted(s);
@@ -1200,7 +954,7 @@ void CsvWriter::_write(char const *s) {
 /** Writes quoted field data, handling any required escaping.
   */
 void CsvWriter::_writeQuoted(char const *s) {
-    _out->put(_dialect.getQuoteChar());
+    _out->put(_control.getQuoteChar());
     size_t n = 0;
     while (true) {
         char const c = s[n];
@@ -1208,45 +962,45 @@ void CsvWriter::_writeQuoted(char const *s) {
             _out->write(s, n);
             break;
         }
-        if (c == _dialect.getQuoteChar()) {
+        if (c == _control.getQuoteChar()) {
             _out->write(s, n);
             s += n + 1;
             n = 0;
-            if (_dialect.doubleQuote()) {
+            if (_control.doubleQuote) {
                 _out->put(c);
                 _out->put(c);
-            } else if (_dialect.getEscapeChar() == '\0') {
+            } else if (_control.getEscapeChar() == '\0') {
                 _out->put(c);
                 throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             } else {
-                _out->put(_dialect.getEscapeChar());
+                _out->put(_control.getEscapeChar());
                 _out->put(c);
             }
-        } else if (c == _dialect.getEscapeChar()) {
+        } else if (c == _control.getEscapeChar()) {
             _out->write(s, n);
             s += n + 1;
             n = 0;
             _out->put(c);
             _out->put(c);
-        } else if (_dialect.standardEscapes() && (c == '\n' || c == '\r')) {
+        } else if (_control.standardEscapes && (c == '\n' || c == '\r')) {
             _out->write(s, n);
             s += n + 1;
             n = 0;
-            if (_dialect.getEscapeChar() == '\0') {
-                _out->put(_dialect.getQuoteChar());
+            if (_control.getEscapeChar() == '\0') {
+                _out->put(_control.getQuoteChar());
                 throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             }
-            _out->put(_dialect.getEscapeChar());
+            _out->put(_control.getEscapeChar());
             _out->put(c == '\n' ? 'n' : 'r');
         } else {
             ++n;
         }
     }
-    _out->put(_dialect.getQuoteChar());
+    _out->put(_control.getQuoteChar());
 }
 
 /** Writes unquoted field data, handling any required escaping.
@@ -1261,41 +1015,41 @@ void CsvWriter::_writeUnquoted(char const *s) {
         }
         if (c == '\n' ||
             c == '\r' ||
-            c == _dialect.getDelimiter() ||
-            c == _dialect.getEscapeChar()) {
+            c == _control.getDelimiter() ||
+            c == _control.getEscapeChar()) {
 
             _out->write(s, n);
             s += n + 1;
             n = 0;
-            if (_dialect.getEscapeChar() == '\0') {
+            if (_control.getEscapeChar() == '\0') {
                 throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             }
-            _out->put(_dialect.getEscapeChar());
+            _out->put(_control.getEscapeChar());
             if (c == '\n') {
-                _out->put(_dialect.standardEscapes() ? 'n' : c);
+                _out->put(_control.standardEscapes ? 'n' : c);
             } else if (c == '\r') {
-                _out->put(_dialect.standardEscapes() ? 'r' : c);
+                _out->put(_control.standardEscapes ? 'r' : c);
             } else {
                 _out->put(c);
             }
             continue;
-        } else if (c == _dialect.getQuoteChar() &&
-                   _dialect.getQuoting() != CsvDialect::QUOTE_NONE) {
+        } else if (c == _control.getQuoteChar() &&
+                   _control.quoting != "QUOTE_NONE") {
 
             _out->write(s, n);
             s += n + 1;
             n = 0;
-            if (_dialect.doubleQuote()) {
+            if (_control.doubleQuote) {
                 _out->put(c);
                 _out->put(c);
-            } else if (_dialect.getEscapeChar() == '\0') {
+            } else if (_control.getEscapeChar() == '\0') {
                 throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             } else {
-               _out->put(_dialect.getEscapeChar());
+               _out->put(_control.getEscapeChar());
                _out->put(c);
            }
         } else {

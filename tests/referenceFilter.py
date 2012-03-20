@@ -26,7 +26,6 @@ from __future__ import with_statement
 from contextlib import nested
 import csv
 import math
-import optparse
 import os
 import pdb
 import sys
@@ -35,9 +34,10 @@ import unittest
 
 import lsst.utils.tests as utilsTests
 import lsst.daf.base as dafBase
-import lsst.pex.policy as pexPolicy
+import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
 import lsst.ap.match as apMatch
+import lsst.ap.utils as apUtils
 
 
 def buildPoints(refFile, exposure):
@@ -102,15 +102,15 @@ class ReferenceFilterTestCase(unittest.TestCase):
         ps.setDouble("EXPTIME", 10.0)
         self.exposures = apMatch.ExposureInfoVector()
         self.exposures.append(apMatch.ExposureInfo(ps))
-        self.refPolicy = pexPolicy.Policy()
-        for f in ("refObjectId", "ra", "decl", "uCov", "x", "y"):
-            self.refPolicy.add("fieldNames", f)
-        for f in ("refObjectId", "ra", "decl", "uCov", "x", "y"):
-            self.refPolicy.add("outputFields", f)
+        self.config = apMatch.ReferenceFilterConfig()
+        self.config.ref.idColumn = "refObjectId"
+        self.config.ref.fieldNames = ["refObjectId", "ra", "decl", "uCov", "x", "y"]
+        self.config.ref.outputFields = ["refObjectId", "ra", "decl", "uCov", "x", "y"] 
+        self.config.validate()
 
     def tearDown(self):
         # Without this, memory is leaked
-        del self.refPolicy
+        del self.config
         del self.exposures
 
     
@@ -118,9 +118,15 @@ class ReferenceFilterTestCase(unittest.TestCase):
         with NamedTemporaryFile() as filtFile:
             with NamedTemporaryFile() as refFile:
                 matches = buildPoints(refFile, self.exposures[0])
-                apMatch.referenceFilter(refFile.name, filtFile.name,
-                                        self.exposures, self.refPolicy,
-                                        None, True)
+                apMatch.referenceFilter(
+                    self.exposures,
+                    refFile.name,
+                    self.config.ref.makeControl(),
+                    self.config.refDialect.makeControl(),
+                    filtFile.name,
+                    self.config.refDialect.makeControl(),
+                    self.config.parallaxThresh/1000.0 * afwGeom.arcseconds,
+                    True)
                 if False:
                     # print out the generated test data
                     for line in open(refFile.name, 'rb'):

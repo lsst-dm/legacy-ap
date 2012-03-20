@@ -42,121 +42,12 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-// -- CsvDialect inline members ----
-
-/** Returns the explicit database NULL representation, or an empty string
-  * if there is none. Note that an empty string is a valid NULL representation,
-  * so hasNull() should be called to determine whether or not a NULL
-  * representation has been specified. Note that dialects with escaping and
-  * standard escapes enabled can still represent a NULL (e.g. as "\N") when
-  * hasNull() returns false.
-  */
-inline std::string const & CsvDialect::getNull() const {
-    return _null;
-}
-
-/** Returns true if getNull() identifies the database NULL representation.
-  * @sa isNullRecognizable() const
-  */
-inline bool CsvDialect::hasNull() const {
-    return _hasNull;
-}
-
-/** Returns true if database NULLs are recognizable in this dialect.
-  * This is the case when hasNull() is true, or when getEscapeChar() is not
-  * '\\0' and standardEscapes() is true (in which case "\N" is recognized
-  * as a NULL).
-  */
-inline bool CsvDialect::isNullRecognizable() const {
-    return _hasNull || _standardEscapes;
-}
-
-/** Returns the dialects quoting style. Note that if this is equal to
-  * QUOTE_NONE, no special handling of quote characters on reading is
-  * performed.
-  */
-inline CsvDialect::Quoting CsvDialect::getQuoting() const {
-    return _quoting;
-}
-
-/** Returns the character used to delimit fields. Embedded delimiters
-  * are escaped with getEscapeChar(), unless the escape character is '\\0',
-  * in which case an attempt to write a field with an embedded delimiter
-  * will throw an exception. '\\[0nr]' are illegal delimiter characters.
-  */
-inline char CsvDialect::getDelimiter() const {
-    return _delimiter;
-}
-
-/** Returns the character used to escape special characters. If the escape
-  * character is '\\0', an attempt to write a field with an embedded special
-  * character will throw an exception. The escape character is not allowed
-  * to equal '\\[nr]' or the delimiter character - the only time it can equal
-  * the quote character is if both are '\\0'.
-  */
-inline char CsvDialect::getEscapeChar() const {
-    return _escapeChar;
-}
-
-/** Returns the character used to quote fields containing special characters.
-  * Embedded quote characters are escaped with a leading quote (if
-  * doubleQuote() returns true) or with getEscapeChar() otherwise. The quote
-  * character is not allowed to equal '\\[nr]' or the delimiter character -
-  * the only time it can equal the escape character is if both are '\\0'.
-  */
-inline char CsvDialect::getQuoteChar() const {
-    return _quoteChar;
-}
-
-/** If true, whitespace immediately following the delimiter is ignored.
-  */
-inline bool CsvDialect::skipInitialSpace() const {
-    return _skipInitialSpace;
-}
-
-/** If true, embedded quote characters are escaped with a leading quote
-  * character. Otherwise the escape character is used. If escaping is
-  * disabled and double-quoting is disabled, an attempt to write a field
-  * with an embedded quote character will throw an exception.
-  */
-inline bool CsvDialect::doubleQuote() const {
-    return _doubleQuote;
-}
-
-/** Should standard escapes be handled? If false, then the character sequence
-  * "\C", where C is any character, is mapped to C (assuming '\\' is the
-  * escape character). If true, behaviour is the the same except for the
-  * following special cases:
-  *
-  * @li "\b" is mapped to BS - backspace (ASCII 8)
-  * @li "\f" is mapped to FF - form feed (ASCII 12)
-  * @li "\n" is mapped to NL - newline (ASCII 10)
-  * @li "\r" is mapped to CR - carriage return (ASCII 13)
-  * @li "\t" is mapped to TAB - horizontal tab (ASCII 9)
-  * @li "\v" is mapped to VT - vertical tab (ASCII 11)
-  * @li "\xD" and "\xDD", where D is a hexadecimal digit, is mapped to
-  *     the character with that numeric code.
-  * @li A field value of exactly "\N" (no quotes, whitespace, or other
-  *     content) is treated as a database NULL.
-  */
-inline bool CsvDialect::standardEscapes() const {
-    return _standardEscapes;
-}
-
-/** If true, then a trailing delimiter character is expected and written
-  * at end of every record, immediately preceding the line terminator.
-  */
-inline bool CsvDialect::trailingDelimiter() const {
-    return _trailingDelimiter;
-}
-
-
 // -- CsvReader inline/template members ----
 
-/** Returns the dialect for this reader.
+/** Returns a description of the format understood by this reader.
   */
-inline CsvDialect const & CsvReader::getDialect() const {
-    return _dialect;
+inline CsvControl const & CsvReader::getControl() const {
+    return _control;
 }
 
 /** Returns the number of lines read in. This is the 1-based index of the
@@ -205,7 +96,7 @@ inline bool CsvReader::isDone() const {
   *
   * @throw lsst::pex::exception::RuntimeErrorException
   *        If this exception is thrown, it is because the input file did not
-  *        conform to the readers dialect. The current record will contain
+  *        conform to the readers format. The current record will contain
   *        the fields succesfully read-in, but the last field may be
   *        incomplete or otherwise incorrectly decoded. The next call to
   *        nextRecord() will resume reading at the beginning of the next line
@@ -356,10 +247,10 @@ inline std::string CsvReader::_get<std::string>(char const *field) const {
 
 // -- CsvWriter inlines ----
 
-/** Returns the dialect for this writer.
+/** Returns the format of this writer.
   */
-inline CsvDialect const & CsvWriter::getDialect() const {
-    return _dialect;
+inline CsvControl const & CsvWriter::getControl() const {
+    return _control;
 }
 
 /** Forces a write of all user-space buffered data to the underlying stream.

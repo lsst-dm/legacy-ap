@@ -45,6 +45,7 @@ Access to association pipeline utilities.
 #include "lsst/afw/detection/AperturePhotometry.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
+#include "lsst/ap/utils/CsvControl.h"
 #include "lsst/ap/utils/ImageUtils.h"
 #include "lsst/ap/utils/PT1SkyTile.h"
 %}
@@ -52,15 +53,18 @@ Access to association pipeline utilities.
 %include "lsst/p_lsstSwig.i"
 
 %import "lsst/daf/base/baseLib.i"
-%import "lsst/pex/policy/policyLib.i"
 %import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/image/imageLib.i"
 
+%include "lsst/pex/config.h"
+
 %lsst_exceptions()
 
+%shared_ptr(lsst::ap::utils::CsvControl);
 %shared_ptr(lsst::ap::utils::PT1SkyTile);
 
 %import "lsst/ap/Common.h"
 %include "lsst/ap/utils/ImageUtils.h"
 %include "lsst/ap/utils/PT1SkyTile.h"
+%include "lsst/ap/utils/CsvControl.h"
 
