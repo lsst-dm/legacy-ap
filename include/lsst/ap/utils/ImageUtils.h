@@ -38,8 +38,6 @@
 #include "lsst/afw/image/Image.h"
 #include "lsst/afw/image/Wcs.h"
 
-#include "../Common.h"
-
 
 namespace lsst { namespace ap { namespace utils {
 

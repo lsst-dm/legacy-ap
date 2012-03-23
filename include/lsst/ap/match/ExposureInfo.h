@@ -30,6 +30,7 @@
 #ifndef LSST_AP_MATCH_EXPOSUREINFO_H
 #define LSST_AP_MATCH_EXPOSUREINFO_H
 
+#include <cstddef>
 #include <utility>
 
 #include "Eigen/Core"
@@ -40,7 +41,6 @@
 #include "lsst/afw/image/Calib.h"
 #include "lsst/afw/image/Wcs.h"
 
-#include "../Common.h"
 #include "../utils/Csv.h"
 #include "../utils/EarthPosition.h"
 #include "BBox.h"

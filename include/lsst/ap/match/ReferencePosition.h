@@ -28,12 +28,13 @@
 #ifndef LSST_AP_MATCH_REFERENCEPOSITION_H
 #define LSST_AP_MATCH_REFERENCEPOSITION_H
 
+#include <cstddef>
 #include "Eigen/Core"
 
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/coord/Coord.h"
 
-#include "../Common.h"
+#include "../constants.h"
 #include "../utils/SpatialUtils.h"
 #include "../utils/EarthPosition.h"
 #include "BBox.h"

@@ -40,7 +40,6 @@
 
 #include "lsst/pex/config.h"
 
-#include "../Common.h"
 #include "CsvControl.h"
 
 

@@ -30,6 +30,7 @@
 #include <cfloat>
 
 #include "lsst/pex/exceptions.h"
+#include "lsst/ap/constants.h"
 
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::pex::exceptions::RuntimeErrorException;

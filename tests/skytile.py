@@ -30,6 +30,7 @@ import lsst.geom as geom
 import lsst.skypix as skypix
 import lsst.ap.utils as utils
 import lsst.afw.coord as afwCoord
+from lsst.afw.geom import degrees
 
 class SkyTileTestCase(unittest.TestCase):
     """Tests the PT1 sky-tile class.
@@ -40,7 +41,7 @@ class SkyTileTestCase(unittest.TestCase):
                          (0.1, 0.1),
                          (0.0, 90.0),
                          (0.0, -90.0) ]:
-            coords.append(afwCoord.IcrsCoord(ra, dec, afwGeom.degrees))
+            coords.append(afwCoord.IcrsCoord(ra * degrees, dec * degrees))
         res = 3
         qs = skypix.QuadSpherePixelization(res, 0.0)
         root, x, y = 1, 1, 1
@@ -64,7 +65,8 @@ class SkyTileTestCase(unittest.TestCase):
                     for y in xrange(cy2 * subdiv, (cy2 + 1) * subdiv):
                         pixelCenter = geom.sphericalCoords(
                             fineQs.getCenter(fineQs.id(root2, x, y)))
-                        s = afwCoord.IcrsCoord(pixelCenter[0], pixelCenter[1], afwGeom.degrees)
+                        s = afwCoord.IcrsCoord(pixelCenter[0] * degrees,
+                                               pixelCenter[1] * degrees)
                         if root == root2 and cx == cx2 and cy == cy2:
                            self.assertEqual(skyTile.contains(s), True)
                         else:

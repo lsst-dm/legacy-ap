@@ -30,7 +30,6 @@
 #define LSST_AP_UTILS_EARTHPOSITION_H
 
 #include "Eigen/Core"
-#include "../Common.h"
 
 namespace lsst { namespace ap { namespace utils {
 

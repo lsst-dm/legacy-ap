@@ -26,14 +26,12 @@
   * @brief  CSV format control.
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_UTILS_CSV_CONTROL_H
-#define LSST_AP_UTILS_CSV_CONTROL_H
+#ifndef LSST_AP_UTILS_CSVCONTROL_H
+#define LSST_AP_UTILS_CSVCONTROL_H
 
 #include <string>
 
 #include "lsst/pex/config.h"
-
-#include "../Common.h"
 
 
 namespace lsst { namespace ap { namespace utils {
@@ -173,5 +171,5 @@ struct CsvControl {
 
 }}} // namespace lsst::ap::utils
 
-#endif // LSST_AP_UTILS_CSV_DIALECT_H
+#endif // LSST_AP_UTILS_CSVCONTROL_H
 

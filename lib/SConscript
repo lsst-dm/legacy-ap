@@ -10,6 +10,4 @@ for top in ("../src/cluster", "../src/utils", "../src/match"):
         sources += [os.path.join(root, f) for f in fnmatch.filter(files, "*.cc")]
         dirs = [d for d in dirs if not fnmatch.fnmatch(d, ".*")]
 
-sources += [os.path.join("../src", s) for s in ("Point.cc", "SpatialUtil.cc", "Time.cc")]
-
 scripts.BasicSConscript.lib(src=sources)

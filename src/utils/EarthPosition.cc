@@ -29,7 +29,7 @@
 
 #include <cmath>
 
-#include "lsst/ap/Common.h"
+#include "lsst/ap/constants.h"
 
 
 namespace lsst { namespace ap { namespace utils {
@@ -1794,16 +1794,13 @@ static double const AM33 =  0.917482137087;
 Eigen::Vector3d const earthPosition(
     double const epoch ///< epoch, MJD TDB. Using TT is acceptable for most applications.
 ) {
-    static double const J2000_MJD = 51544.5;
-    static double const DAYS_PER_JULIAN_YEAR = 365.25;
-
     // maximum number of coeffs is 501, pad to the next power of 2.
     double angle[512];
     double tmp[512];
     double earth[3];
 
     // Compute time delta t from reference epoch (J2000) in Julian years
-    double const t = (epoch - J2000_MJD) / DAYS_PER_JULIAN_YEAR;
+    double const t = (epoch - J2000_MJD) / DAYS_PER_JY;
     double const t2 = t*t;
 
     for (int i = 0; i < 3; i++) {

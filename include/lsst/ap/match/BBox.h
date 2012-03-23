@@ -31,8 +31,6 @@
 #ifndef LSST_AP_MATCH_BBOX_H
 #define LSST_AP_MATCH_BBOX_H
 
-#include "../Common.h"
-
 
 namespace lsst { namespace ap { namespace match {
 

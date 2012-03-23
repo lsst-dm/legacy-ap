@@ -25,34 +25,20 @@
 
 /**
  * @file
- * @brief   Master header file for the association pipeline.
- *
- * Intended for things of broad utility, e.g. platform normalization and global constants
- *
- * @ingroup ap
+ * @brief   Useful astronomical constants.
  */
 
-#ifndef LSST_AP_COMMON_H
-#define LSST_AP_COMMON_H
-
-#include <math.h>
-#include <cstddef>
-
-#include "boost/cstdint.hpp"
-
+#ifndef LSST_AP_CONSTANTS_H
+#define LSST_AP_CONSTANTS_H
 
 namespace lsst { namespace ap { namespace {
 
-/// The radius of an LSST FOV, in degrees.
-double const FOV_RADIUS = 1.75;
-
-/**
- * The maximum number of LSST visits in-flight in the association pipeline. In-flight visits
- * are defined as those for which data is actively being read, processed, or written out.
- * @b Must be a power of 2.
- */
-int const MAX_VISITS_IN_FLIGHT = 16;
+double const J2000_MJD     = 51544.5;
+double const DAYS_PER_JY   = 365.25;         ///< Days per Julian year
+double const METERS_PER_AU = 149597870.7e3;
+double const SEC_PER_JD    = 86400.0;        ///< Seconds per Julian day
+double const C_AU_PER_DAY  = 173.1446326847; ///< Speed of light in AU/day
 
 }}} // end of namespace lsst::ap::<anonymous>
 
-#endif  // LSST_AP_COMMON_H
+#endif  // LSST_AP_CONSTANTS_H

@@ -33,8 +33,6 @@
 
 #include "lsst/afw/coord/Coord.h"
 
-#include "../Common.h"
-
 
 namespace lsst { namespace ap { namespace utils {
 

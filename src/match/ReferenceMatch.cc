@@ -30,6 +30,7 @@
 #include "lsst/ap/match/ReferenceMatch.h"
 
 #include <math.h>
+#include <cstddef>
 #include <algorithm>
 #include <limits>
 #include <string>
@@ -44,7 +45,7 @@
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/image/ImageUtils.h"
 
-#include "lsst/ap/Common.h"
+#include "lsst/ap/constants.h"
 #include "lsst/ap/utils/Arena.h"
 #include "lsst/ap/utils/Csv.h"
 #include "lsst/ap/utils/SmallPtrVector.h"
