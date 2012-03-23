@@ -39,18 +39,19 @@
 
 
 namespace except = lsst::pex::exceptions;
-namespace detection = lsst::afw::detection;
-namespace geom = lsst::afw::geom;
+namespace table = lsst::afw::table;
 namespace image = lsst::afw::image;
+
+using lsst::afw::geom::Point2D;
 
 
 namespace lsst { namespace ap { namespace utils {
 
 namespace {
 
-double orient2d(lsst::afw::geom::Point2D const &a,
-                lsst::afw::geom::Point2D const &b,
-                lsst::afw::geom::Point2D const &c)
+double orient2d(Point2D const &a,
+                Point2D const &b,
+                Point2D const &c)
 {
     double detLeft = (a.getX() - c.getX()) * (b.getY() - c.getY());
     double detRight = (a.getY() - c.getY()) * (b.getX() - c.getX());
@@ -84,13 +85,13 @@ double orient2d(lsst::afw::geom::Point2D const &a,
   * the corresponding line equation, and an embedded singly linked list.
   */
 struct Edge {
-    lsst::afw::geom::Point2D const *v1; /**< First (bottom) vertex */
-    lsst::afw::geom::Point2D const *v2; /**< Second (top) vertex */
+    Point2D const *v1; /**< First (bottom) vertex */
+    Point2D const *v2; /**< Second (top) vertex */
     double dx, dy;
     Edge *next;
 
-    Edge(lsst::afw::geom::Point2D const & p1,
-         lsst::afw::geom::Point2D const & p2) :
+    Edge(Point2D const & p1,
+         Point2D const & p2) :
         v1(p1.getY() < p2.getY() ? &p1 : &p2),
         v2(p1.getY() < p2.getY() ? &p2 : &p1),
         next(0)
@@ -403,32 +404,32 @@ void SweepLine::finish() {
   * exception to be raised.
   *
   * @param[in,out] histogram  Histogram image to update.
-  * @param[in] sources        Sources to generate a histogram for
-  * @param[in] wcs            WCS of histogram image
+  * @param[in] sources        Sources to generate a position histogram from.
+  * @param[in] wcs            WCS of histogram image.
   * @param[in] ignoreOffImage If true ignore off image sources, otherwise raise
   *                           an exception.
   */
 void makeSourceHistogram(
     lsst::afw::image::Image<unsigned short>::Ptr histogram,
-    lsst::afw::detection::SourceSet const & sources,
+    lsst::afw::table::SourceCatalog const & sources,
     lsst::afw::image::Wcs::Ptr wcs,
     bool ignoreOffImage)
 {
-    typedef detection::SourceSet::const_iterator SourceIter;
+    typedef table::SourceCatalog::const_iterator SourceIter;
     for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
-        geom::Point2D xy = wcs->skyToPixel(*((*i)->getRaDec()));
-       int x = histogram->positionToIndex(xy[0], image::X).first;
-       int y = histogram->positionToIndex(xy[1], image::Y).first;
-       if (x < 0 || x >= histogram->getWidth() ||
-           y < 0 || y >= histogram->getHeight()) {
-           if (!ignoreOffImage) {
-               throw LSST_EXCEPT(except::RuntimeErrorException,
-                                 "input SourceSet contains sources lying "
-                                 "outside the histogram image");
-           }
-           continue;
-       }
-       histogram->operator()(x, y) += 1;
+        Point2D xy = wcs->skyToPixel(i->getCoord());
+        int x = histogram->positionToIndex(xy[0], image::X).first;
+        int y = histogram->positionToIndex(xy[1], image::Y).first;
+        if (x < 0 || x >= histogram->getWidth() ||
+            y < 0 || y >= histogram->getHeight()) {
+            if (!ignoreOffImage) {
+                throw LSST_EXCEPT(except::RuntimeErrorException,
+                                  "SourceCatalog contains sources lying "
+                                  "outside the histogram image");
+            }
+            continue;
+        }
+        histogram->operator()(x, y) += 1;
     }
 }
 
@@ -440,10 +441,10 @@ void makeSourceHistogram(
   * @param[in] verts    Polygon vertices
   */
 void rasterizePolygon(
-    std::vector<lsst::afw::geom::Point2D> const &verts,
+    std::vector<Point2D> const &verts,
     lsst::afw::image::Image<float>::Ptr img)
 {
-    typedef std::vector<geom::Point2D>::const_iterator VertexIter;
+    typedef std::vector<Point2D>::const_iterator VertexIter;
     typedef std::vector<Edge>::iterator EdgeIter;
 
     if (img->getWidth() <= 0 || img->getHeight() <= 0) {
@@ -519,31 +520,31 @@ void updateCoverageMap(
     int height,
     int step)
 {
-    typedef std::vector<geom::Point2D>::iterator VertexIter;
+    typedef std::vector<Point2D>::iterator VertexIter;
     if (width <= 0 || height <= 0) {
         throw new LSST_EXCEPT(except::InvalidParameterException,
                               "Width/height of input image must be positive");
     }
-    std::vector<geom::Point2D> v;
+    std::vector<Point2D> v;
     if (step <= 0) {
         v.reserve(4);
-        v.push_back(geom::Point2D(-0.5, -0.5));
-        v.push_back(geom::Point2D(width - 0.5, -0.5));
-        v.push_back(geom::Point2D(width - 0.5, height - 0.5));
-        v.push_back(geom::Point2D(-0.5, height - 0.5));
+        v.push_back(Point2D(-0.5, -0.5));
+        v.push_back(Point2D(width - 0.5, -0.5));
+        v.push_back(Point2D(width - 0.5, height - 0.5));
+        v.push_back(Point2D(-0.5, height - 0.5));
     } else {
         v.reserve(2 * width + 2 * height + 2);
         for (int i = 0; i < width; i += step) {
-            v.push_back(geom::Point2D(i - 0.5, -0.5));
+            v.push_back(Point2D(i - 0.5, -0.5));
         }
         for (int i = 0; i < height; i += step) {
-            v.push_back(geom::Point2D(width - 0.5, i - 0.5));
+            v.push_back(Point2D(width - 0.5, i - 0.5));
         }
         for (int i = width; i > 0; i -= step) {
-            v.push_back(geom::Point2D(i - 0.5, height - 0.5));
+            v.push_back(Point2D(i - 0.5, height - 0.5));
         }
         for (int i = height; i > 0; i -= step) {
-            v.push_back(geom::Point2D(-0.5, i - 0.5));
+            v.push_back(Point2D(-0.5, i - 0.5));
         }
     }
     // Convert from image pixel space to coverage map pixel space.

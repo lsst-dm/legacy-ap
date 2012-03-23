@@ -49,8 +49,8 @@ Access to association pipeline matching functionality.
 
 #define PY_ARRAY_UNIQUE_SYMBOL LSST_AP_MATCH_NUMPY_ARRAY_API
 #include "numpy/arrayobject.h"
-#include "lsst/ndarray/python.h"
-#include "lsst/ndarray/python/eigen.h"
+#include "ndarray/swig.h"
+#include "ndarray/swig/eigen.h"
 %}
 
 %init %{
@@ -65,11 +65,11 @@ Access to association pipeline matching functionality.
 %import "lsst/afw/image/imageLib.i"
 %import "lsst/ap/utils/utilsLib.i"
 
-%include "lsst/ndarray/ndarray.i"
+%include "ndarray.i"
 %include "lsst/pex/config.h"
 
-%declareEigenMatrix(Eigen::Vector2d);
-%declareEigenMatrix(Eigen::Vector3d);
+%declareNumPyConverters(Eigen::Matrix<double,2,1,Eigen::DontAlign>);
+%declareNumPyConverters(Eigen::Matrix<double,3,1,Eigen::DontAlign>);
 
 %lsst_exceptions()
 

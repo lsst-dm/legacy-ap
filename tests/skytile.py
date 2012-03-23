@@ -29,30 +29,25 @@ import lsst.afw.detection as detection
 import lsst.geom as geom
 import lsst.skypix as skypix
 import lsst.ap.utils as utils
-import lsst.afw.geom as afwGeom
+import lsst.afw.coord as afwCoord
 
 class SkyTileTestCase(unittest.TestCase):
     """Tests the PT1 sky-tile class.
     """
     def testPrune1(self):
-        ss = detection.SourceSet()
+        coords = []
         for ra, dec in [ (0.0, 0.0),
                          (0.1, 0.1),
                          (0.0, 90.0),
                          (0.0, -90.0) ]:
-            s = detection.Source()
-            s.setRa(ra * afwGeom.degrees) 
-            s.setDec(dec * afwGeom.degrees)
-            ss.append(s)
+            coords.append(afwCoord.IcrsCoord(ra, dec, afwGeom.degrees))
         res = 3
         qs = skypix.QuadSpherePixelization(res, 0.0)
         root, x, y = 1, 1, 1
         skyTileId = qs.id(root, x, y)
         skyTile = utils.PT1SkyTile(res, root, x, y, skyTileId)
-        total = len(ss)
-        skyTile.prune(ss)
-        numRemaining = len(ss)
-        self.assertEqual(numRemaining, 2)
+        numContained = sum(skyTile.contains(s) for s in coords)
+        self.assertEqual(numContained, 2)
 
     def testPrune2(self):
         coarseRes = 3
@@ -60,30 +55,20 @@ class SkyTileTestCase(unittest.TestCase):
         fineRes = coarseRes * subdiv
         coarseQs = skypix.QuadSpherePixelization(coarseRes, 0.0)
         fineQs = skypix.QuadSpherePixelization(fineRes, 0.0)
-        ss = detection.SourceSet()
         for skyTileId in coarseQs:
             root, cx, cy = coarseQs.coords(skyTileId)
             skyTile = utils.PT1SkyTile(coarseRes, root, cx, cy, skyTileId)
-            expectedRemaining = 0
             for cid in coarseQs:
                 root2, cx2, cy2 = coarseQs.coords(cid)
                 for x in xrange(cx2 * subdiv, (cx2 + 1) * subdiv):
                     for y in xrange(cy2 * subdiv, (cy2 + 1) * subdiv):
-                        s = detection.Source()
                         pixelCenter = geom.sphericalCoords(
                             fineQs.getCenter(fineQs.id(root2, x, y)))
-                        s.setRa(pixelCenter[0] * afwGeom.degrees)
-                        s.setDec(pixelCenter[1] * afwGeom.degrees)
+                        s = afwCoord.IcrsCoord(pixelCenter[0], pixelCenter[1], afwGeom.degrees)
                         if root == root2 and cx == cx2 and cy == cy2:
-                           expectedRemaining += 1
-                           s.setSourceId(1)
+                           self.assertEqual(skyTile.contains(s), True)
                         else:
-                           s.setSourceId(0)
-                        ss.append(s)
-            skyTile.prune(ss)
-            self.assertEqual(len(ss), expectedRemaining)
-            for s in ss:
-                self.assertEqual(s.getSourceId(), 1)
+                           self.assertEqual(skyTile.contains(s), False)
 
 def suite():
     """Returns a suite containing all the test cases in this module."""

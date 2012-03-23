@@ -41,8 +41,7 @@ Access to association pipeline utilities.
 #include "lsst/pex/logging.h"
 #include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
-#include "lsst/afw/detection.h"
-#include "lsst/afw/detection/AperturePhotometry.h"
+#include "lsst/afw/table.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/utils/CsvControl.h"
@@ -53,7 +52,7 @@ Access to association pipeline utilities.
 %include "lsst/p_lsstSwig.i"
 
 %import "lsst/daf/base/baseLib.i"
-%import "lsst/afw/detection/detectionLib.i"
+%import "lsst/afw/table/tableLib.i"
 %import "lsst/afw/image/imageLib.i"
 
 %include "lsst/pex/config.h"

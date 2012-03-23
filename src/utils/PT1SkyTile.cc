@@ -37,7 +37,8 @@
 
 
 namespace except = lsst::pex::exceptions;
-using lsst::afw::geom::Angle;
+
+using lsst::afw::coord::Coord;
 using lsst::afw::geom::ONE_OVER_PI;
 using lsst::afw::geom::PI;
 
@@ -83,23 +84,25 @@ PT1SkyTile::~PT1SkyTile() { }
   *
   * @return     @c true iff @c (theta,phi) is inside this sky-tile.
   */
-bool PT1SkyTile::contains(Angle theta, Angle phi) const {
-    int root = static_cast<int>(std::fmod(0.5 + 2.0 * ONE_OVER_PI * theta.asRadians(), 4.0));
-    double theta1 = theta.asRadians() - 0.5 * PI * root;
-    double tanPhi = std::tan(phi.asRadians());
+bool PT1SkyTile::contains(Coord const & coord) const {
+    double theta = coord.getLongitude().asRadians();
+    double phi = coord.getLatitude().asRadians();
+    int root = static_cast<int>(std::fmod(0.5 + 2.0 * ONE_OVER_PI * theta, 4.0));
+    double theta1 = theta - 0.5 * PI * root;
+    double tanPhi = std::tan(phi);
     double x, y = tanPhi / std::cos(theta1);
     if (y > 1.0) {
         if (_root != 0) {
             return false;
         }
-        x = -std::sin(theta.asRadians()) / tanPhi;
-        y = std::cos(theta.asRadians()) / tanPhi;
+        x = -std::sin(theta) / tanPhi;
+        y = std::cos(theta) / tanPhi;
     } else if (y < -1.0) {
         if (_root != 5) {
             return false;
         }
-        x = std::sin(theta.asRadians()) / tanPhi;
-        y = std::cos(theta.asRadians()) / tanPhi;
+        x = std::sin(theta) / tanPhi;
+        y = std::cos(theta) / tanPhi;
     } else {
         if (_root != root + 1) {
             return false;
@@ -115,28 +118,6 @@ bool PT1SkyTile::contains(Angle theta, Angle phi) const {
         iy = _resolution - 1;
     }
     return _x == ix && _y == iy;
-}
-
-/** Removes sources falling outside of this sky-tile from the input
-  * source list.
-  *
-  * @param[in,out] sources   The sources to prune.
-  */
-void PT1SkyTile::prune(lsst::afw::detection::SourceSet & sources) const {
-    size_t const n = sources.size();
-    size_t j = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (contains(sources[i]->getRa(), sources[i]->getDec())) {
-            if (j != i) {
-                sources[j] = sources[i];
-                sources[i].reset();
-            }
-            ++j;
-        }
-    }
-    if (j < n) {
-        sources.erase(sources.begin() + j, sources.end());
-    }
 }
 
 }}} // namespace lsst:ap::utils
