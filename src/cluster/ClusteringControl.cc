@@ -39,7 +39,7 @@ ClusteringControl::ClusteringControl() :
     epsilonArcsec(0.75),
     minNeighbors(2),
     pointsPerLeaf(32),
-    leafExtentThresholdArcsec(2.0),
+    leafExtentThresholdArcsec(2.0)
 {
     validate();
 }

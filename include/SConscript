@@ -1,0 +1,4 @@
+from lsst.sconsUtils import env, targets
+
+targets["include"] = env.M4("lsst/ap/cluster/SourceCluster.h", "lsst/ap/cluster/SourceCluster.h.m4")
+
