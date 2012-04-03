@@ -355,6 +355,8 @@ public:
     DECLARE_SLOT_DEFINERS(`LatestTime', `double')
     //@}
 
+    /// @brief Get the list of filter names for which slot mappings have been defined.
+    std::vector<std::string> const getFilters() const;
 
     //@{
     /// @brief Convenience definers for filter-specific keys.

@@ -30,12 +30,92 @@
 
 #include "lsst/ap/cluster/SourceCluster.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
 
-namespace lsst { namespace ap { namespace cluster {
+
+// boilerplate macros for saving/loading slot definitionsa
+
+#define SAVE_SLOT(NAME, Name) \
+    if (table->get ## Name ## Key().isValid()) { \
+        std::string s = table->getSchema().find(table->get ## Name ## Key()).field.getName(); \
+        std::replace(s.begin(), s.end(), '.', '_'); \
+        _fits->writeKey(#NAME "_SLOT", s.c_str(), "Defines the " #Name " slot"); \
+    }
+
+#define SAVE_FILTER_SLOT(FILTER, filter, NAME, Name) \
+    if (table->get ## Name ## Key(filter).isValid()) { \
+        std::string s = table->getSchema().find(table->get ## Name ## Key(filter)).field.getName(); \
+        std::replace(s.begin(), s.end(), '.', '_'); \
+        _fits->writeKey(FILTER + "_" #NAME "_SLOT", s.c_str(), \
+                        "Defines the " #Name " slot in the " + filter + " filter"); \
+    }
+
+#define SAVE_COMPOUND_SLOT(FILTER, filter, NAME, Name) \
+    SAVE_FILTER_SLOT(FILTER, filter, NAME, Name) \
+    SAVE_FILTER_SLOT(FILTER, filter, NAME ## _ERR, Name ## Err) \
+    SAVE_FILTER_SLOT(FILTER, filter, NAME ## _COUNT, Name ## Count)
+
+#define LOAD_SLOT(NAME, Name) \
+    { \
+        _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK; \
+        std::string s; \
+        _fits->readKey(#NAME "_SLOT", s); \
+        if (_fits->status == 0) { \
+            metadata->remove(#NAME "_SLOT"); \
+            std::replace(s.begin(), s.end(), '_', '.'); \
+            table->define ## Name (schema[s]); \
+        } else { \
+            _fits->status = 0; \
+        } \
+        _fits->behavior |= lsst::afw::fits::Fits::AUTO_CHECK; \
+    }
+
+#define LOAD_FILTER_SLOT(FILTER, filter, NAME, Name) \
+    { \
+        _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK; \
+        std::string s; \
+        _fits->readKey(FILTER + "_" #NAME "_SLOT", s); \
+        if (_fits->status == 0) { \
+            metadata->remove(FILTER + "_" #NAME "_SLOT"); \
+            std::replace(s.begin(), s.end(), '_', '.'); \
+            table->define ## Name (filter, schema[s]); \
+        } else { \
+            _fits->status = 0; \
+        } \
+        _fits->behavior |= lsst::afw::fits::Fits::AUTO_CHECK; \
+    }
+
+#define LOAD_COMPOUND_SLOT(FILTER, filter, NAME, Name) \
+    { \
+        _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK; \
+        std::string s, sErr, sCount; \
+        _fits->readKey(FILTER + "_" #NAME "_SLOT", s); \
+        _fits->readKey(FILTER + "_" #NAME "_ERR_SLOT", s); \
+        _fits->readKey(FILTER + "_" #NAME "_COUNT_SLOT", s); \
+        if (_fits->status == 0) { \
+            metadata->remove(FILTER + "_" #NAME "_SLOT"); \
+            metadata->remove(FILTER + "_" #NAME "_ERR_SLOT"); \
+            metadata->remove(FILTER + "_" #NAME "_COUNT_SLOT"); \
+            std::replace(s.begin(), s.end(), '_', '.'); \
+            std::replace(sErr.begin(), sErr.end(), '_', '.'); \
+            std::replace(sCount.begin(), sCount.end(), '_', '.'); \
+            table->define ## Name (filter, schema[s], schema[sErr], schema[sCount]); \
+        } else { \
+            _fits->status = 0; \
+        } \
+        _fits->behavior |= lsst::afw::fits::Fits::AUTO_CHECK; \
+    }
+
 
 namespace except = lsst::pex::exceptions;
-namespace table = lsst::afw::table;
 
+using lsst::daf::base::PropertyList;
+using lsst::afw::table::BaseTable;
+using lsst::afw::table::io::FitsReader;
+using lsst::afw::table::io::FitsWriter;
+
+
+namespace lsst { namespace ap { namespace cluster {
 
 // -- SourceClusterRecordImpl and SourceClusterTableImpl --------
 //
@@ -64,7 +144,7 @@ namespace {
             SourceClusterTable(other) { }
 
     private:
-        virtual PTR(lsst::afw::table::BaseTable) _clone() const {
+        virtual PTR(BaseTable) _clone() const {
             return boost::make_shared<SourceClusterTableImpl>(*this);
         }
 
@@ -80,6 +160,130 @@ namespace {
     };
 
 } // namespace <anonymous>
+
+
+// -- SourceClusterFitsWriter --------
+
+namespace {
+
+    // A custom FitsWriter for source cluster tables - this adds header keys that
+    // define the slots. It also sets the AFW_TYPE key to SOURCE_CLUSTER, which
+    // should ensure that SourceClusterFitsReader is used to read it.
+    class SourceClusterFitsWriter : public FitsWriter {
+    public:
+        explicit SourceClusterFitsWriter(lsst::afw::fits::Fits * fits) :
+            FitsWriter(fits) { }
+    protected:
+        virtual void _writeTable(CONST_PTR(BaseTable) const & table);
+    };
+
+    void SourceClusterFitsWriter::_writeTable(CONST_PTR(BaseTable) const & t) {
+        CONST_PTR(SourceClusterTable) table =
+            boost::dynamic_pointer_cast<SourceClusterTable const>(t);
+        if (!table) {
+            throw LSST_EXCEPT(except::LogicErrorException, "SourceClusterFitsWriter "
+                              "can only write out SourceClusterTable instances!");
+        }
+        FitsWriter::_writeTable(table);
+        _fits->writeKey("AFW_TYPE", "SOURCE_CLUSTER",
+                        "Tells lsst::afw to load this as a lsst::ap::cluster::SourceClusterTable.");
+        // save filter agnostic slots
+        SAVE_SLOT(COORD_ERR, CoordErr)
+        SAVE_SLOT(COORD2, Coord2)
+        SAVE_SLOT(COORD2_ERR, Coord2Err)
+        SAVE_SLOT(NUM_SOURCES, NumSources)
+        SAVE_SLOT(EARLIEST_TIME, EarliestTime)
+        SAVE_SLOT(LATEST_TIME, LatestTime)
+        // save filters and filter-specific slots
+        std::vector<std::string> const filters = table->getFilters();
+        typedef std::vector<std::string>::const_iterator Iter;
+        for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
+            _fits->writeKey("FILTERS", i->c_str());
+        }
+        for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
+            std::string const f = *i;
+            std::string const F = boost::to_upper_copy(f);
+            SAVE_FILTER_SLOT(F, f, NUM_SOURCES, NumSources)
+            SAVE_FILTER_SLOT(F, f, EARLIEST_TIME, EarliestTime)
+            SAVE_FILTER_SLOT(F, f, LATEST_TIME, LatestTime)
+            SAVE_COMPOUND_SLOT(F, f, PSF_FLUX, PsfFlux)
+            SAVE_COMPOUND_SLOT(F, f, MODEL_FLUX, ModelFlux)
+            SAVE_COMPOUND_SLOT(F, f, AP_FLUX, ApFlux)
+            SAVE_COMPOUND_SLOT(F, f, INST_FLUX, InstFlux)
+            SAVE_COMPOUND_SLOT(F, f, SHAPE, Shape)
+        }
+    }
+
+} // namespace <anonymous>
+
+
+// -- SourceClusterFitsReader --------
+
+namespace {
+
+    // A custom FitsReader for source cluster tables - this reads header keys
+    // defining slots. It is registered with the name SOURCE_CLUSTER, so will
+    // be used whenever a table with AFW_TYPE set to that value is read.
+    class SourceClusterFitsReader : public FitsReader {
+    public:
+        explicit SourceClusterFitsReader(lsst::afw::fits::Fits * fits) :
+            FitsReader(fits) { }
+    protected:
+        virtual PTR(BaseTable) _readTable();
+    };
+
+    PTR(BaseTable) SourceClusterFitsReader::_readTable() {
+        PTR(PropertyList) metadata = boost::make_shared<PropertyList>();
+        _fits->readMetadata(*metadata, true);
+        if (metadata->exists("AFW_TYPE")) {
+            metadata->remove("AFW_TYPE");
+        }
+        lsst::afw::table::Schema schema(*metadata, true);
+        PTR(SourceClusterTable) table = SourceClusterTable::make(
+            schema, PTR(lsst::afw::table::IdFactory)());
+        // read in filter agnostic slots
+        LOAD_SLOT(COORD_ERR, CoordErr)
+        LOAD_SLOT(COORD2, Coord2)
+        LOAD_SLOT(COORD2_ERR, Coord2Err)
+        LOAD_SLOT(NUM_SOURCES, NumSources)
+        LOAD_SLOT(EARLIEST_TIME, EarliestTime)
+        LOAD_SLOT(LATEST_TIME, LatestTime)
+        // read in filter specific slots
+        std::vector<std::string> filters;
+        {
+            _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK;
+            std::string s;
+            _fits->readKey("FILTERS", s);
+            if (_fits->status == 0) {
+                filters = metadata->getArray<std::string>("FILTERS");
+                metadata->remove("FILTERS");
+            } else {
+                _fits->status = 0;
+            }
+            _fits->behavior |= lsst::afw::fits::Fits::AUTO_CHECK;
+        }
+        typedef std::vector<std::string>::const_iterator Iter;
+        for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
+            std::string const f = *i;
+            std::string const F = boost::to_upper_copy(f);
+            LOAD_FILTER_SLOT(F, f, NUM_SOURCES, NumSources)
+            LOAD_FILTER_SLOT(F, f, EARLIEST_TIME, EarliestTime)
+            LOAD_FILTER_SLOT(F, f, LATEST_TIME, LatestTime)
+            LOAD_COMPOUND_SLOT(F, f, PSF_FLUX, PsfFlux)
+            LOAD_COMPOUND_SLOT(F, f, MODEL_FLUX, ModelFlux)
+            LOAD_COMPOUND_SLOT(F, f, AP_FLUX, ApFlux)
+            LOAD_COMPOUND_SLOT(F, f, INST_FLUX, InstFlux)
+            LOAD_COMPOUND_SLOT(F, f, SHAPE, Shape)
+        }
+        _startRecords(*table);
+        table->setMetadata(metadata);
+        return table;
+    }
+
+} // namespace <anonymous>
+
+// registers the reader so FitsReader::make can use it.
+static FitsReader::FactoryT<SourceClusterFitsReader> sourceClusterFitsReaderFactory("SOURCE_CLUSTER");
 
 
 // -- SourceClusterRecord implementation --------
@@ -130,11 +334,19 @@ SourceClusterTable::SourceClusterTable(SourceClusterTable const & other) :
 
 SourceClusterTable::~SourceClusterTable() { }
 
+std::vector<std::string> const SourceClusterTable::getFilters() const {
+    typedef FilterSlotsMap::const_iterator Iter;
+    std::vector<std::string> filters;
+    for (Iter i = _filterSlots.begin(), e = _filterSlots.end(); i != e; ++i) {
+        filters.push_back(i->first);
+    }
+    return filters;
+}
+
 PTR(lsst::afw::table::io::FitsWriter) SourceClusterTable::makeFitsWriter(
     lsst::afw::table::io::FitsWriter::Fits * fits) const
 {
-    //TODO return boost::make_shared<SourceClusterFitsWriter>(fits);
-    return PTR(lsst::afw::table::io::FitsWriter)();
+    return boost::make_shared<SourceClusterFitsWriter>(fits);
 }
 
 SourceClusterTable::FilterSlots const & SourceClusterTable::getFilterSlots(std::string const & filter) const {
@@ -158,6 +370,7 @@ SourceClusterTable::FilterSlots::FilterSlots() :
 { }
 
 SourceClusterTable::FilterSlots::~FilterSlots() { }
+
 
 // -- SourceClusterIdFactory implementation --------
 
@@ -186,6 +399,48 @@ void SourceClusterIdFactory::notify(lsst::afw::table::RecordId id) {
         "of lsst::afw::table::IdFactory");
 }
 
+
+// -- UUtility function implementations --------
+
+KeyTuple<lsst::afw::table::Shape> addShapeFields(
+    lsst::afw::table::Schema & schema,
+    std::string const & filter,
+    std::string const & name,
+    std::string const & doc)
+{
+    using lsst::afw::table::Shape;
+    KeyTuple<Shape> kt;
+    kt.mean = schema.addField<Shape::MeasTag>(
+        filter + "." + name, doc, "rad^2");
+    kt.err = schema.addField<Shape::ErrTag>(
+        filter + "." + name + ".err",
+        "covariance matrix for " + filter + "." + name,
+        "rad^4");
+    kt.count = schema.addField<int>(
+        filter + "." + name + ".count",
+        "Number of samples used to compute the " + name + " mean");
+    return kt;
+}
+
+KeyTuple<lsst::afw::table::Flux> addFluxFields(
+    lsst::afw::table::Schema & schema,
+    std::string const & filter,
+    std::string const & name,
+    std::string const & doc)
+{
+    using lsst::afw::table::Flux;
+    KeyTuple<Flux> kt;
+    kt.mean = schema.addField<Flux::MeasTag>(
+        filter + "." + name, doc, "erg/s/cm^2/Hz");
+    kt.err = schema.addField<Flux::ErrTag>(
+        filter + "." + name + ".err",
+        "uncertainty for " + filter + "." + name,
+        "erg/s/cm^2/Hz");
+    kt.count = schema.addField<int>(
+        filter + "." + name + ".count",
+        "Number of samples used to compute the " + name + " mean");
+    return kt;
+}
 
 }}} // namespace lsst::ap::cluster
 
