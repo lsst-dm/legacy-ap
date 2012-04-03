@@ -24,28 +24,81 @@
 #include <iostream>
 
 #include "boost/shared_array.hpp"
+#include "boost/timer.hpp"
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE KDTree
 #include "boost/test/unit_test.hpp"
 
 #include "lsst/afw/math/Random.h"
 #include "lsst/afw/geom/Angle.h"
-#include "lsst/ap/Common.h"
-#include "lsst/ap/Point.h"
-#include "lsst/ap/SpatialUtil.h"
-#include "lsst/ap/Time.h"
+#include "lsst/afw/coord/Coord.h"
+#include "lsst/ap/utils/SpatialUtils.h"
 #include "lsst/ap/cluster/optics/KDTree.cc"
 #include "lsst/ap/cluster/optics/Metrics.h"
 
 
-namespace ap = lsst::ap;
+namespace utils = lsst::ap::utils;
 namespace optics = lsst::ap::cluster::optics;
 namespace afwGeom = lsst::afw::geom;
 
 using lsst::afw::math::Random;
+using lsst::afw::geom::Angle;
+using lsst::afw::geom::degrees;
+using lsst::afw::geom::radians;
+using lsst::afw::geom::HALFPI;
+using lsst::afw::geom::TWOPI;
+using lsst::afw::coord::IcrsCoord;
 
 
 namespace {
+
+// Pick a declination uniformly at random in the given range
+Angle randomDec(Random & rng, Angle decMin, Angle decMax) {
+    double z = rng.flat(std::sin(decMin.asRadians()), std::sin(decMax.asRadians()));
+    Angle res = std::asin(z) * radians;
+    if (res < decMin) {
+        return decMin;
+    } else if (res > decMax) {
+        return decMax;
+    }
+    return res;
+}
+
+// Pick a point uniformly at random in the specified box.
+IcrsCoord const random(Random & rng, Angle raMin, Angle raMax, Angle decMin, Angle decMax) {
+    assert(raMin < raMax);
+    Angle ra = rng.flat(raMin.asRadians(), raMax.asRadians()) * radians;
+    return IcrsCoord(ra, randomDec(rng, decMin, decMax));
+}
+
+// Perturb coords according to a normal distribution in the direction given by the specified position angle.
+IcrsCoord const perturb(Random & rng, IcrsCoord const & coords, Angle sigma, Angle pa) {
+    double sra = std::sin(coords.getLongitude().asRadians());
+    double cra = std::cos(coords.getLongitude().asRadians());
+    double sde = std::sin(coords.getLatitude().asRadians());
+    double cde = std::cos(coords.getLatitude().asRadians());
+    double spa = std::sin(pa.asRadians());
+    double cpa = std::cos(pa.asRadians());
+
+    // 3-vector corresponding to coords
+    Eigen::Vector3d p(cra*cde, sra*cde, sde);
+    // north vector tangential to p
+    Eigen::Vector3d n(-cra*sde, -sra*sde, cde);
+    // east vector tangential to p
+    Eigen::Vector3d e(-sra, cra, 0.0);
+    // rotate north vector at V by minus position angle
+    Eigen::Vector3d nt = spa*e + cpa*n;
+    // get magnitude of gaussian perturbation
+    double m = rng.gaussian() * sigma.asRadians();
+    // return the perturbed position
+    return utils::cartesianToIcrs(p*std::cos(m)+ nt*std::sin(m));
+}
+
+// Perturb coords according to a normal distribution.
+IcrsCoord const perturb(Random & rng, IcrsCoord const & coords, Angle sigma) {
+    return perturb(rng, coords, sigma, rng.uniform() * TWOPI * radians);
+}
+
 
 struct MatchOracle {
     static int const MAX_EXPECTED = 57;
@@ -88,55 +141,48 @@ void shuffle(RandomAccessIterT begin, RandomAccessIterT end) {
 // rewriting nightly AP code.
 void makePoints(std::vector<Point> & points,
                 std::vector<MatchOracle> & queryPoints,
-                double radiusDeg)
+                Angle radius)
 {
     static Random rng(Random::MT19937);
-    double minDec = -90.0;
-    double maxDec = 90.0;
-    double deltaDec = 4.0 * radiusDeg;
+    Angle minDec = -HALFPI * radians;
+    Angle maxDec =  HALFPI * radians;
+    Angle deltaDec = 4.0 * radius;
     int i = 0;
     // divide the unit sphere into longitude/latitude angle boxes
-    for (double dec = minDec; dec < maxDec; dec += deltaDec) {
-        double d1 = std::fabs(dec);
-        double d2 = std::fabs(dec + deltaDec);
-        double const deltaRa = ap::maxAlpha(
-            4.0 * radiusDeg, ap::clampDec(std::max(d1, d2)));
-        for (double ra = 0.0; ra < 360.0 - deltaRa; ra += deltaRa) {
+    for (Angle dec = minDec; dec < maxDec; dec += deltaDec) {
+        Angle d1 = std::fabs(dec) * radians;
+        Angle d2 = std::fabs(dec + deltaDec) * radians;
+        Angle const deltaRa = utils::maxAlpha(
+            4.0 * radius, utils::clampPhi(std::max(d1, d2)));
+        for (Angle ra = 0.0 * radians; ra < TWOPI * radians - deltaRa; ra += deltaRa) {
             // create a random query point inside a sub region of each box
             // such that a circle of the given radius centered on that point
             // is guaranteed not to cross the box boundaries
             MatchOracle m;
-            ap::Point qp = ap::Point::random(rng,
-                                             ra + deltaRa * 0.38,
-                                             ra + deltaRa * 0.62,
-                                             ap::clampDec(dec + deltaDec * 0.38),
-                                             ap::clampDec(dec + deltaDec * 0.62));
-            double theta = afwGeom::degToRad(qp._ra);
-            double phi = afwGeom::degToRad(qp._dec);
-            m.v[0] = std::cos(theta) * std::cos(phi);
-            m.v[1] = std::sin(theta) * std::cos(phi);
-            m.v[2] = std::sin(phi);
+            IcrsCoord qp = random(
+                rng,
+                ra + deltaRa * 0.38,
+                ra + deltaRa * 0.62,
+                utils::clampPhi(dec + deltaDec * 0.38),
+                utils::clampPhi(dec + deltaDec * 0.62)
+            );
+            m.v = qp.getVector().asEigen();
             int nm = static_cast<int>(rng.uniformInt(MatchOracle::MAX_EXPECTED));
 
             // generate matches for the MatchOracle
             for (int j = 0; j < nm; ++j) {
-                ap::Point kdp(qp);
-                kdp.perturb(rng, radiusDeg);
-                double const dist = kdp.distance(qp);
-                if (dist < 1.45 * radiusDeg) {
+                IcrsCoord pp = perturb(rng, qp, radius);
+                Angle const dist = pp.angularSeparation(qp);
+                if (dist < 1.45 * radius) {
                     Point p;
-                    theta = afwGeom::degToRad(kdp._ra);
-                    phi = afwGeom::degToRad(kdp._dec);
-                    p.coords[0] = std::cos(theta) * std::cos(phi);
-                    p.coords[1] = std::sin(theta) * std::cos(phi);
-                    p.coords[2] = std::sin(phi);
-                    if (dist < 0.999999999 * radiusDeg) {
+                    p.coords = pp.getVector().asEigen();
+                    if (dist < 0.999999999 * radius) {
                         // p is a match - store it and remember its insertion 
                         // index (the kdtree will reorder points)
                         m.expected[m.numExpected++] = i;
                         p.state = i++;
                         points.push_back(p);
-                    } else if (dist > 1.0000000001 * radiusDeg) {
+                    } else if (dist > 1.0000000001 * radius) {
                         // p does not match - store it and save its insertion
                         // index
                         p.state = i++;
@@ -155,22 +201,20 @@ void makePoints(std::vector<Point> & points,
 BOOST_AUTO_TEST_CASE(RangeQuery) {
     typedef std::vector<MatchOracle>::const_iterator Iter;
 
-    double const radiusDeg = 0.5;
-    double const radiusRad = afwGeom::degToRad(radiusDeg);
-    double d = 2.0 * std::sin(0.5 * radiusRad);
+    Angle const radius = 0.5 * degrees;
+    double d = 2.0 * std::sin(0.5 * radius.asRadians());
     d = d * d;
 
     optics::SquaredEuclidianDistanceOverSphere metric;
     std::vector<Point> points;
     std::vector<MatchOracle> queryPoints;
-    makePoints(points, queryPoints, radiusDeg);
+    makePoints(points, queryPoints, radius);
     BOOST_TEST_MESSAGE("Number of query points: " << queryPoints.size());
     BOOST_TEST_MESSAGE("Number of points: " << points.size());
-    ap::Stopwatch watch(true); 
+    boost::timer watch; 
     KDTree tree(&points[0], static_cast<int>(points.size()), 32, 0.0);
-    watch.stop();
-    BOOST_TEST_MESSAGE("Built tree in " << watch);
-    watch.start();
+    BOOST_TEST_MESSAGE("Built tree in " << watch.elapsed() << " s");
+    watch.restart();
     for (Iter i = queryPoints.begin(); i != queryPoints.end(); ++i) {
         MatchOracle const & m = *i;
         int nm = 0;
@@ -183,7 +227,7 @@ BOOST_AUTO_TEST_CASE(RangeQuery) {
         }
         BOOST_CHECK_EQUAL(m.numExpected, nm);
     }
-    watch.stop();
-    BOOST_TEST_MESSAGE("Validated range query for each query point in " << watch);
+    BOOST_TEST_MESSAGE("Validated range query for each query point in " <<
+                       watch.elapsed() << " s");
 }
 

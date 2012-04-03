@@ -40,16 +40,16 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-/** Clamps the given latitude/declination to <tt>[-M_PI/2, M_PI/2]</tt>.
+/** Clamps the given latitude/declination to <tt>[-&pi;/2, &pi/2]</tt> radians.
   */
 inline lsst::afw::geom::Angle const clampPhi(lsst::afw::geom::Angle const a) {
     using lsst::afw::geom::Angle;
     using lsst::afw::geom::radians;
     using lsst::afw::geom::HALFPI;
 
-    if (static_cast<double>(a) < -HALFPI) {
+    if (a.asRadians() < -HALFPI) {
         return Angle(-HALFPI, radians);
-    } else if (static_cast<double>(a) > HALFPI) {
+    } else if (a.asRadians() > HALFPI) {
         return Angle(HALFPI, radians);
     }
     return a;
@@ -77,7 +77,7 @@ inline lsst::afw::coord::IcrsCoord const cartesianToIcrs(Eigen::Vector3d const &
                                        sc.y() * lsst::afw::geom::radians);
 }
 
-/** Returns the angular separation (rad) between two 3-vectors of arbitrary
+/** Returns the angular separation between two 3-vectors of arbitrary
   * magnitude.
   */
 inline lsst::afw::geom::Angle const angularSeparation(

@@ -26,11 +26,11 @@
 #define BOOST_TEST_MODULE EarthPostion
 
 #include "boost/test/unit_test.hpp"
+#include "boost/timer.hpp"
 #include <cmath>
 #include <vector>
 
 #include "lsst/afw/math/Random.h"
-#include "lsst/ap/Time.h"
 #include "lsst/ap/utils/EarthPosition.h"
 
 // Include IAU SOFA reference implementation for comparison
@@ -43,7 +43,6 @@ using std::sqrt;
 using std::vector;
 
 using lsst::afw::math::Random;
-using lsst::ap::Stopwatch;
 using lsst::ap::utils::earthPosition;
 
 
@@ -90,7 +89,7 @@ BOOST_AUTO_TEST_CASE(compareToReference) {
 
 BOOST_AUTO_TEST_CASE(speed) {
     {
-        Stopwatch watch(true);
+        boost::timer watch;
         volatile double x = 0.0;
         volatile double y = 0.0;
         volatile double z = 0.0;
@@ -99,10 +98,11 @@ BOOST_AUTO_TEST_CASE(speed) {
             Eigen::Vector3d p = earthPosition(DJM00 + days);
             x += p[0]; y += p[1]; z += p[2];
         }
-        BOOST_TEST_MESSAGE("Computed " << n << " earth positions in " << watch);
+        BOOST_TEST_MESSAGE("Computed " << n << " earth positions in " <<
+                           watch.elapsed() << " s");
     }
     {
-        Stopwatch watch(true);
+        boost::timer watch;
         double pvh[2][3];
         double pvb[2][3];
         volatile double x = 0.0;
@@ -113,6 +113,6 @@ BOOST_AUTO_TEST_CASE(speed) {
             iauEpv00(DJ00, days, pvh, pvb);
             x += pvb[0][0]; y += pvb[0][1]; z += pvb[0][2];
         }
-        BOOST_TEST_MESSAGE("Computed " << n << " earth positions in " << watch << " [IAU]");
+        BOOST_TEST_MESSAGE("Computed " << n << " earth positions in " << watch.elapsed() << " s [IAU]");
     }
 }

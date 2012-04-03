@@ -36,10 +36,8 @@ Access to association pipeline utilities.
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
-#include "lsst/tr1/unordered_map.h"
 #include "lsst/daf/base.h"
 #include "lsst/pex/logging.h"
-#include "lsst/pex/policy.h"
 #include "lsst/afw/geom.h"
 #include "lsst/afw/table.h"
 #include "lsst/afw/image.h"
@@ -62,7 +60,6 @@ Access to association pipeline utilities.
 %shared_ptr(lsst::ap::utils::CsvControl);
 %shared_ptr(lsst::ap::utils::PT1SkyTile);
 
-%import "lsst/ap/Common.h"
 %include "lsst/ap/utils/ImageUtils.h"
 %include "lsst/ap/utils/PT1SkyTile.h"
 %include "lsst/ap/utils/CsvControl.h"

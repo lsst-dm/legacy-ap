@@ -38,10 +38,7 @@ Access to association pipeline matching functionality.
 %{
 #include "lsst/daf/base.h"
 #include "lsst/pex/logging.h"
-#include "lsst/pex/policy.h"
-#include "lsst/afw/geom.h"
-#include "lsst/afw/detection.h"
-#include "lsst/afw/detection/AperturePhotometry.h"
+#include "lsst/afw/table.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/match/ExposureInfo.h"
@@ -57,19 +54,18 @@ Access to association pipeline matching functionality.
     import_array();
 %}
 
+%declareNumPyConverters(Eigen::Matrix<double,2,1,Eigen::DontAlign>);
+%declareNumPyConverters(Eigen::Matrix<double,3,1,Eigen::DontAlign>);
+
 %include "lsst/p_lsstSwig.i"
 
 %import "lsst/daf/base/baseLib.i"
 %import "lsst/afw/geom/geomLib.i"
-%import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/image/imageLib.i"
 %import "lsst/ap/utils/utilsLib.i"
 
 %include "ndarray.i"
 %include "lsst/pex/config.h"
-
-%declareNumPyConverters(Eigen::Matrix<double,2,1,Eigen::DontAlign>);
-%declareNumPyConverters(Eigen::Matrix<double,3,1,Eigen::DontAlign>);
 
 %lsst_exceptions()
 
@@ -78,7 +74,6 @@ Access to association pipeline matching functionality.
 %shared_ptr(lsst::ap::match::ExposureInfo);
 %shared_ptr(lsst::ap::match::ExposureInfoMap);
 
-%import "lsst/ap/Common.h"
 %include "lsst/ap/match/BBox.h"
 %include "lsst/ap/match/CatalogControl.h"
 %include "lsst/ap/match/ExposureInfo.h"
