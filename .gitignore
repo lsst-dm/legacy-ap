@@ -1,6 +1,7 @@
 bin/ap_shmem_admin
 bin/dumpObjects
 include/lsst/ap/CustomExceptions.h
+include/lsst/ap/cluster/SourceCluster.h
 policy/examples/*.log
 tests/ResultsIoTest
 tests/BitsetTest
@@ -14,6 +15,7 @@ tests/kdtree
 tests/csv
 tests/earthPosition
 tests/sweepStructure
+tests/sourceClusterTable
 .sconsign.dblite
 config.log
 .sconf_temp
