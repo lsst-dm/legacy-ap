@@ -96,6 +96,14 @@ Access to association pipeline clustering functionality.
 namespace lsst { namespace ap { namespace cluster {
     %template (SourceClusterCatalogBase) lsst::afw::table::CatalogT<SourceClusterRecord>;
     %declareCatalog(lsst::afw::table::SimpleCatalogT, SourceCluster);
+
+    // The equivalent is performed by %declareCatalog(), but for some reason has no effect
+    %pythoncode %{
+        SourceClusterCatalog.Table = SourceClusterTable
+        SourceClusterCatalog.Record = SourceClusterRecord
+        SourceClusterCatalog.ColumnView = SourceClusterColumnView
+    %}
+
 }}}
 
 %pythonnondynamic; // Re-enable attribute restriction

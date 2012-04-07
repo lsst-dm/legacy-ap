@@ -241,9 +241,9 @@ public:
         `the uncertainty of the the inverse variance weighted mean sky-coordinates of the cluster')
     DECLARE_SLOT_ACCESSORS(`NumSources', `int',
         `the number of sources in the cluster')
-    DECLARE_SLOT_ACCESSORS(`EarliestTime', `double',
+    DECLARE_SLOT_ACCESSORS(`TimeMin', `double',
         `the earliest observation time [MJD TAI] of sources in the cluster')
-    DECLARE_SLOT_ACCESSORS(`LatestTime', `double',
+    DECLARE_SLOT_ACCESSORS(`TimeMax', `double',
         `the latest observation time [MJD TAI] of sources in the cluster')
     //@}
 
@@ -253,9 +253,9 @@ public:
 
     DECLARE_FILTER_SLOT_ACCESSORS(`NumSources', `int',
         `the number of sources in the given filter')
-    DECLARE_FILTER_SLOT_ACCESSORS(`EarliestTime', `double',
+    DECLARE_FILTER_SLOT_ACCESSORS(`TimeMin', `double',
         `the earliest observation time [MJD TAI] of sources in the given filter')
-    DECLARE_FILTER_SLOT_ACCESSORS(`LatestTime', `double',
+    DECLARE_FILTER_SLOT_ACCESSORS(`TimeMax', `double',
         `the latest observation time [MJD TAI] of sources in the given filter')
 
     DECLARE_FLUX_ACCESSORS(`Psf')
@@ -351,8 +351,8 @@ public:
     DECLARE_SLOT_DEFINERS(`Coord2', `lsst::afw::coord::Coord')
     DECLARE_SLOT_DEFINERS(`Coord2Err', `lsst::afw::table::Covariance<lsst::afw::table::Point<double> > ')
     DECLARE_SLOT_DEFINERS(`NumSources', `int')
-    DECLARE_SLOT_DEFINERS(`EarliestTime', `double')
-    DECLARE_SLOT_DEFINERS(`LatestTime', `double')
+    DECLARE_SLOT_DEFINERS(`TimeMin', `double')
+    DECLARE_SLOT_DEFINERS(`TimeMax', `double')
     //@}
 
     /// @brief Get the list of filter names for which slot mappings have been defined.
@@ -362,8 +362,8 @@ public:
     /// @brief Convenience definers for filter-specific keys.
 
     DECLARE_FILTER_SLOT_DEFINERS(`NumSources', `int')
-    DECLARE_FILTER_SLOT_DEFINERS(`EarliestTime', `double')
-    DECLARE_FILTER_SLOT_DEFINERS(`LatestTime', `double')
+    DECLARE_FILTER_SLOT_DEFINERS(`TimeMin', `double')
+    DECLARE_FILTER_SLOT_DEFINERS(`TimeMax', `double')
     DECLARE_FLUX_DEFINERS(`Psf')
     DECLARE_FLUX_DEFINERS(`Model')
     DECLARE_FLUX_DEFINERS(`Ap')
@@ -379,8 +379,8 @@ protected:
 
 private:
     struct FilterSlots {
-        lsst::afw::table::Key<double>     keyEarliestTime;
-        lsst::afw::table::Key<double>     keyLatestTime;
+        lsst::afw::table::Key<double>     keyTimeMin;
+        lsst::afw::table::Key<double>     keyTimeMax;
         lsst::afw::table::Key<int>        keyNumSources;
         KeyTuple<lsst::afw::table::Flux>  keyPsfFlux;
         KeyTuple<lsst::afw::table::Flux>  keyModelFlux;
@@ -404,8 +404,8 @@ private:
     lsst::afw::table::Key<lsst::afw::coord::Coord> _keyCoord2;
     lsst::afw::table::Key<lsst::afw::table::Covariance<lsst::afw::table::Point<double> > > _keyCoord2Err;
     lsst::afw::table::Key<int> _keyNumSources;
-    lsst::afw::table::Key<double> _keyEarliestTime;
-    lsst::afw::table::Key<double> _keyLatestTime;
+    lsst::afw::table::Key<double> _keyTimeMin;
+    lsst::afw::table::Key<double> _keyTimeMax;
 
     FilterSlotsMap _filterSlots;
 
@@ -423,21 +423,21 @@ public:
     ndarray::Array<int const,1> const getNumSources() const {
         return this->operator[](this->getTable()->getNumSourcesKey());
     }
-    ndarray::Array<double const,1> const getEarliestTime() const {
-        return this->operator[](this->getTable()->getEarliestTimeKey());
+    ndarray::Array<double const,1> const getTimeMin() const {
+        return this->operator[](this->getTable()->getTimeMinKey());
     }
-    ndarray::Array<double const,1> const getLatestTime() const {
-        return this->operator[](this->getTable()->getLatestTimeKey());
+    ndarray::Array<double const,1> const getTimeMax() const {
+        return this->operator[](this->getTable()->getTimeMaxKey());
     }
 
     ndarray::Array<int const,1> const getNumSources(std::string const & filter) const {
         return this->operator[](this->getTable()->getNumSourcesKey(filter));
     }
-    ndarray::Array<double const,1> const getEarliestTime(std::string const & filter) const {
-        return this->operator[](this->getTable()->getEarliestTimeKey(filter));
+    ndarray::Array<double const,1> const getTimeMin(std::string const & filter) const {
+        return this->operator[](this->getTable()->getTimeMinKey(filter));
     }
-    ndarray::Array<double const,1> const getLatestTime(std::string const & filter) const {
-        return this->operator[](this->getTable()->getLatestTimeKey(filter));
+    ndarray::Array<double const,1> const getTimeMax(std::string const & filter) const {
+        return this->operator[](this->getTable()->getTimeMaxKey(filter));
     }
 
     ndarray::Array<double const,1> const getPsfFlux(std::string const & filter) const {
@@ -483,7 +483,7 @@ typedef SourceClusterColumnViewT<SourceClusterRecord> SourceClusterColumnView;
 /** Generates at most 2^32 - 1 contiguous record IDs. The upper 32 bits of the
   * record IDs generated by this class are fixed to a specific sky-tile ID.
   *
-  * There is no support for notifying a factory of IDs that should not be
+  * There is no support for notifying an instance that a given ID should not be
   * returned. An ID of 0 will never be returned.
   */
 class SourceClusterIdFactory : public lsst::afw::table::IdFactory {
@@ -508,19 +508,19 @@ private:
 
 #ifndef SWIG
 
-typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> SourceCatalog;
-typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstSourceCatalog;
+typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> SourceClusterCatalog;
+typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstSourceClusterCatalog;
 
 DEFINE_SLOT_ACCESSORS(`CoordErr', `Eigen::Matrix<double,2,2>')
 DEFINE_SLOT_ACCESSORS(`Coord2', `lsst::afw::coord::IcrsCoord')
 DEFINE_SLOT_ACCESSORS(`Coord2Err', `Eigen::Matrix<double,2,2>')
 DEFINE_SLOT_ACCESSORS(`NumSources', `int')
-DEFINE_SLOT_ACCESSORS(`EarliestTime', `double')
-DEFINE_SLOT_ACCESSORS(`LatestTime', `double')
+DEFINE_SLOT_ACCESSORS(`TimeMin', `double')
+DEFINE_SLOT_ACCESSORS(`TimeMax', `double')
 
 DEFINE_FILTER_SLOT_ACCESSORS(`NumSources', `int')
-DEFINE_FILTER_SLOT_ACCESSORS(`EarliestTime', `double')
-DEFINE_FILTER_SLOT_ACCESSORS(`LatestTime', `double')
+DEFINE_FILTER_SLOT_ACCESSORS(`TimeMin', `double')
+DEFINE_FILTER_SLOT_ACCESSORS(`TimeMax', `double')
 
 DEFINE_FLUX_ACCESSORS(`Psf')
 DEFINE_FLUX_ACCESSORS(`Model')

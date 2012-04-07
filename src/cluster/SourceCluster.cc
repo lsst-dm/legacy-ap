@@ -90,8 +90,8 @@
         _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK; \
         std::string s, sErr, sCount; \
         _fits->readKey(FILTER + "_" #NAME "_SLOT", s); \
-        _fits->readKey(FILTER + "_" #NAME "_ERR_SLOT", s); \
-        _fits->readKey(FILTER + "_" #NAME "_COUNT_SLOT", s); \
+        _fits->readKey(FILTER + "_" #NAME "_ERR_SLOT", sErr); \
+        _fits->readKey(FILTER + "_" #NAME "_COUNT_SLOT", sCount); \
         if (_fits->status == 0) { \
             metadata->remove(FILTER + "_" #NAME "_SLOT"); \
             metadata->remove(FILTER + "_" #NAME "_ERR_SLOT"); \
@@ -184,28 +184,35 @@ namespace {
             throw LSST_EXCEPT(except::LogicErrorException, "SourceClusterFitsWriter "
                               "can only write out SourceClusterTable instances!");
         }
+        PTR(PropertyList) metadata = table->getMetadata();
+        // exploit hole in constness of table and remove the FILTERS key if present
+        if (metadata && metadata->exists("FILTERS")) {
+            metadata->remove("FILTERS");
+        }
         FitsWriter::_writeTable(table);
+        metadata = boost::make_shared<PropertyList>();
+        std::vector<std::string> const filters = table->getFilters();
+        if (!filters.empty()) {
+            metadata->set<std::string>("FILTERS", filters);
+            _fits->writeMetadata(*metadata);
+        }
         _fits->writeKey("AFW_TYPE", "SOURCE_CLUSTER",
-                        "Tells lsst::afw to load this as a lsst::ap::cluster::SourceClusterTable.");
+                        "Tells lsst::afw to load this as a SourceClusterTable.");
         // save filter agnostic slots
         SAVE_SLOT(COORD_ERR, CoordErr)
         SAVE_SLOT(COORD2, Coord2)
         SAVE_SLOT(COORD2_ERR, Coord2Err)
         SAVE_SLOT(NUM_SOURCES, NumSources)
-        SAVE_SLOT(EARLIEST_TIME, EarliestTime)
-        SAVE_SLOT(LATEST_TIME, LatestTime)
+        SAVE_SLOT(TIME_MIN, TimeMin)
+        SAVE_SLOT(TIME_MAX, TimeMax)
         // save filters and filter-specific slots
-        std::vector<std::string> const filters = table->getFilters();
         typedef std::vector<std::string>::const_iterator Iter;
-        for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
-            _fits->writeKey("FILTERS", i->c_str());
-        }
         for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
             std::string const f = *i;
             std::string const F = boost::to_upper_copy(f);
             SAVE_FILTER_SLOT(F, f, NUM_SOURCES, NumSources)
-            SAVE_FILTER_SLOT(F, f, EARLIEST_TIME, EarliestTime)
-            SAVE_FILTER_SLOT(F, f, LATEST_TIME, LatestTime)
+            SAVE_FILTER_SLOT(F, f, TIME_MIN, TimeMin)
+            SAVE_FILTER_SLOT(F, f, TIME_MAX, TimeMax)
             SAVE_COMPOUND_SLOT(F, f, PSF_FLUX, PsfFlux)
             SAVE_COMPOUND_SLOT(F, f, MODEL_FLUX, ModelFlux)
             SAVE_COMPOUND_SLOT(F, f, AP_FLUX, ApFlux)
@@ -246,29 +253,21 @@ namespace {
         LOAD_SLOT(COORD2, Coord2)
         LOAD_SLOT(COORD2_ERR, Coord2Err)
         LOAD_SLOT(NUM_SOURCES, NumSources)
-        LOAD_SLOT(EARLIEST_TIME, EarliestTime)
-        LOAD_SLOT(LATEST_TIME, LatestTime)
+        LOAD_SLOT(TIME_MIN, TimeMin)
+        LOAD_SLOT(TIME_MAX, TimeMax)
         // read in filter specific slots
         std::vector<std::string> filters;
-        {
-            _fits->behavior &= ~lsst::afw::fits::Fits::AUTO_CHECK;
-            std::string s;
-            _fits->readKey("FILTERS", s);
-            if (_fits->status == 0) {
-                filters = metadata->getArray<std::string>("FILTERS");
-                metadata->remove("FILTERS");
-            } else {
-                _fits->status = 0;
-            }
-            _fits->behavior |= lsst::afw::fits::Fits::AUTO_CHECK;
+        if (metadata->exists("FILTERS")) {
+            filters = metadata->getArray<std::string>("FILTERS");
+            metadata->remove("FILTERS");
         }
         typedef std::vector<std::string>::const_iterator Iter;
         for (Iter i = filters.begin(), e = filters.end(); i != e; ++i) {
             std::string const f = *i;
             std::string const F = boost::to_upper_copy(f);
             LOAD_FILTER_SLOT(F, f, NUM_SOURCES, NumSources)
-            LOAD_FILTER_SLOT(F, f, EARLIEST_TIME, EarliestTime)
-            LOAD_FILTER_SLOT(F, f, LATEST_TIME, LatestTime)
+            LOAD_FILTER_SLOT(F, f, TIME_MIN, TimeMin)
+            LOAD_FILTER_SLOT(F, f, TIME_MAX, TimeMax)
             LOAD_COMPOUND_SLOT(F, f, PSF_FLUX, PsfFlux)
             LOAD_COMPOUND_SLOT(F, f, MODEL_FLUX, ModelFlux)
             LOAD_COMPOUND_SLOT(F, f, AP_FLUX, ApFlux)
@@ -280,10 +279,10 @@ namespace {
         return table;
     }
 
-} // namespace <anonymous>
+    // registers the reader so FitsReader::make can use it.
+    static FitsReader::FactoryT<SourceClusterFitsReader> sourceClusterFitsReaderFactory("SOURCE_CLUSTER");
 
-// registers the reader so FitsReader::make can use it.
-static FitsReader::FactoryT<SourceClusterFitsReader> sourceClusterFitsReaderFactory("SOURCE_CLUSTER");
+} // namespace <anonymous>
 
 
 // -- SourceClusterRecord implementation --------
@@ -316,8 +315,8 @@ SourceClusterTable::SourceClusterTable(
     _keyCoord2(),
     _keyCoord2Err(),
     _keyNumSources(),
-    _keyEarliestTime(),
-    _keyLatestTime(),
+    _keyTimeMin(),
+    _keyTimeMax(),
     _filterSlots()
 { }
 
@@ -327,8 +326,8 @@ SourceClusterTable::SourceClusterTable(SourceClusterTable const & other) :
     _keyCoord2(other._keyCoord2),
     _keyCoord2Err(other._keyCoord2Err),
     _keyNumSources(other._keyNumSources),
-    _keyEarliestTime(other._keyEarliestTime),
-    _keyLatestTime(other._keyLatestTime),
+    _keyTimeMin(other._keyTimeMin),
+    _keyTimeMax(other._keyTimeMax),
     _filterSlots(other._filterSlots)
 { }
 
@@ -359,8 +358,8 @@ SourceClusterTable::FilterSlots const & SourceClusterTable::getFilterSlots(std::
 }
 
 SourceClusterTable::FilterSlots::FilterSlots() :
-    keyEarliestTime(),
-    keyLatestTime(),
+    keyTimeMin(),
+    keyTimeMax(),
     keyNumSources(),
     keyPsfFlux(),
     keyModelFlux(),
@@ -418,7 +417,8 @@ KeyTuple<lsst::afw::table::Shape> addShapeFields(
         "rad^4");
     kt.count = schema.addField<int>(
         filter + "." + name + ".count",
-        "Number of samples used to compute the " + name + " mean");
+        "Number of samples used to compute the " + filter + 
+        "." + name + " mean");
     return kt;
 }
 
@@ -438,7 +438,8 @@ KeyTuple<lsst::afw::table::Flux> addFluxFields(
         "erg/s/cm^2/Hz");
     kt.count = schema.addField<int>(
         filter + "." + name + ".count",
-        "Number of samples used to compute the " + name + " mean");
+        "Number of samples used to compute the " + filter +
+        "." + name + " mean");
     return kt;
 }
 
