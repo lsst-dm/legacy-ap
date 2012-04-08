@@ -36,9 +36,9 @@ import lsst.utils.tests as utilsTests
 import lsst.daf.base as dafBase
 import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
+import lsst.afw.image.utils as afwImageUtils
 import lsst.ap.match as apMatch
 import lsst.ap.utils as apUtils
-
 
 def buildPoints(refFile, exposure):
     id = 0
@@ -79,6 +79,15 @@ class ReferenceFilterTestCase(unittest.TestCase):
     """Tests the reference catalog to exposure matching implementation.
     """
     def setUp(self):
+        # The LSST Filters from L. Jones 04/07/10.
+        # Usually defined by lsst.obs.lsstSim.LsstSimMapper
+        afwImageUtils.defineFilter('u', 364.59)
+        afwImageUtils.defineFilter('g', 476.31)
+        afwImageUtils.defineFilter('r', 619.42)
+        afwImageUtils.defineFilter('i', 752.06)
+        afwImageUtils.defineFilter('z', 866.85)
+        afwImageUtils.defineFilter('y', 971.68, alias=['y4']) # official y filter
+        afwImageUtils.defineFilter('y3', 1002.44) # candidate y-band
         ps = dafBase.PropertySet()
         ps.setInt("scienceCcdExposureId", 0)
         ps.setString("RADESYS", "ICRS")

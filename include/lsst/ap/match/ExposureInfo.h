@@ -38,7 +38,8 @@
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/geom/Extent.h"
 #include "lsst/afw/coord/Coord.h"
-#include "lsst/afw/image/Calib.h"
+//#include "lsst/afw/image/Calib.h"
+#include "lsst/afw/image/Filter.h"
 #include "lsst/afw/image/Wcs.h"
 
 #include "../utils/Csv.h"
@@ -70,29 +71,29 @@ public:
 
      /** Returns a unique integer identifier for the exposure.
        */
-     inline int64_t getId() const { return _id; }
+     int64_t getId() const { return _id; }
 
-     /** Returns the filter-id of the exposure (0-5).
-       */
-     inline int getFilterId() const { return _filterId; }
+     /** Returns the filter of the exposure
+ *     */
+     lsst::afw::image::Filter const & getFilter() const { return _filter; }
 
      /** Returns the exposure mid-point, MJD TAI.
        */
-     inline double getEpoch() const { return _epoch; }
+     double getEpoch() const { return _epoch; }
 
      /** Returns the exposure time, s.
        */
-     inline double getExposureTime() const { return _expTime; }
+     double getExposureTime() const { return _expTime; }
 
      /** Returns the ICRS coordinates of the image center (rad).
        */
-     inline lsst::afw::coord::IcrsCoord const & getCenter() const {
+     lsst::afw::coord::IcrsCoord const & getCenter() const {
          return _center;
      }
 
      /** Returns the SSB coordinates of the earth at t = getEpoch().
        */
-     inline Eigen::Vector3d const & getEarthPosition() const {
+     Eigen::Vector3d const & getEarthPosition() const {
          if (!_epValid) {
              _earthPos = lsst::ap::utils::earthPosition(_epoch);
              _epValid = true;
@@ -103,14 +104,14 @@ public:
      /** Gets exposure width and/or height.
        */
      ///@{
-     inline int getWidth() const  { return _extent.getX(); }
-     inline int getHeight() const { return _extent.getY(); }
+     int getWidth() const  { return _extent.getX(); }
+     int getHeight() const { return _extent.getY(); }
      lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
      ///@}
 
      /** Is there enough information to calibrate fluxes?
        */
-     inline bool canCalibrateFlux() const { return _canCalibrateFlux; }
+     bool canCalibrateFlux() const { return _canCalibrateFlux; }
 
      double calibrateFlux(double flux, double fluxScale) const;
 
@@ -121,10 +122,10 @@ public:
      /** Returns the exposure WCS.
        */
      ///@{
-     inline lsst::afw::image::Wcs::ConstPtr getWcs() const {
+     lsst::afw::image::Wcs::ConstPtr getWcs() const {
          return _wcs;
      }
-     inline lsst::afw::image::Wcs::Ptr getWcs() {
+     lsst::afw::image::Wcs::Ptr getWcs() {
          return _wcs;
      }
      ///@}
@@ -153,6 +154,7 @@ private:
      double _fluxMag0Sigma;
      lsst::afw::geom::Extent2I _extent;
      lsst::afw::image::Wcs::Ptr _wcs;
+     lsst::afw::image::Filter _filter;
      int _filterId;
      bool _canCalibrateFlux;
      mutable bool _epValid;

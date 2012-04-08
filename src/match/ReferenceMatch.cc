@@ -377,7 +377,7 @@ public:
 
     void appendMatch(ExposureInfo *e) {
         _covered = true;
-        ++_filterCov[e->getFilterId()];
+        ++_filterCov[e->getFilter().getId()];
     }
 
     // BBox API

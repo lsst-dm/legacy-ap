@@ -37,6 +37,7 @@
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/logging/Log.h"
 #include "lsst/daf/base/DateTime.h"
+#include "lsst/afw/image/Filter.h"
 #include "lsst/afw/image/ImageUtils.h"
 
 #include "lsst/ap/utils/Csv.h"
@@ -51,6 +52,7 @@ using lsst::pex::exceptions::RuntimeErrorException;
 using lsst::pex::logging::Log;
 using lsst::daf::base::DateTime;
 using lsst::daf::base::PropertySet;
+using lsst::afw::image::Filter;
 using lsst::afw::image::PixelZeroPos;
 
 using lsst::ap::utils::angularSeparation;
@@ -77,26 +79,10 @@ ExposureInfo::ExposureInfo(
     _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
     _extent(),
     _wcs(lsst::afw::image::makeWcs(metadata, false)),
+    _filter(trim_copy(metadata->getAsString("FILTER")), false),
     _canCalibrateFlux(false),
     _epValid(false)
 {
-    std::string filter = trim_copy(metadata->getAsString("FILTER"));
-    if (filter == "u") {
-        _filterId = 0;
-    } else if (filter == "g") {
-        _filterId = 1;
-    } else if (filter == "r") {
-        _filterId = 2;
-    } else if (filter == "i") {
-        _filterId = 3;
-    } else if (filter == "z") {
-        _filterId = 4;
-    } else if (filter == "y" || filter == "i2") {
-        _filterId = 5;
-    } else {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "unknown filter " + filter);
-    }
     // get image extents
     _extent.setX(metadata->getAsInt("NAXIS1"));
     _extent.setY(metadata->getAsInt("NAXIS2"));
