@@ -71,12 +71,12 @@ struct KDTreeNode {
   *       range query input point.
   *   @li The reachability-distance of the point (defined by the
   *       OPTICS algorithm).
-  *   @li A raw pointer to the object coordinates were extracted from.
+  *   @li An object (or pointer) from which coordinates were obtained.
   *
   * @p
-  * Note that this class does not own its data object pointer - it is
-  * the responsibility of calling code to ensure that the lifetime of
-  * a data object exceeds the lifetime of any Point referencing it.
+  * Note that if DataT is a pointer, then it is the responsibility
+  * of calling code to ensure that the lifetimes of the objects
+  * pointed to exceed the lifetimes of any Points referencing them.
   */
 template <int K, typename DataT>
 struct Point {
@@ -86,7 +86,7 @@ struct Point {
     Eigen::Matrix<double, K, 1> coords; ///< Point coordinates.
     double dist;        ///< Distance to query point.
     double reach;       ///< Reachability distance (for OPTICS).
-    DataT const * data; ///< Pointer to data object - not managed by Point!
+    DataT data;         ///< Data object.
     int next;           ///< Index of next range query result or -1.
     int state;          ///< State of point ([un]processed or index in seed list)
 
@@ -94,14 +94,12 @@ struct Point {
         coords(),
         dist(std::numeric_limits<double>::quiet_NaN()),
         reach(std::numeric_limits<double>::infinity()),
-        data(0),
+        data(),
         next(-1),
         state(UNPROCESSED)
     { }
 
-    ~Point() {
-        data = 0;
-    }
+    ~Point() { }
 };
 
 

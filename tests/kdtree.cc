@@ -118,9 +118,8 @@ struct MatchOracle {
     }
 };
 
-typedef optics::Point<1, void> Point1;
-typedef optics::Point<3, MatchOracle> Point;
-typedef optics::KDTree<3, MatchOracle> KDTree;
+typedef optics::Point<3, MatchOracle *> Point;
+typedef optics::KDTree<3, MatchOracle *> KDTree;
 
 // randomly shuffles an input sequence
 template <typename RandomAccessIterT>
@@ -137,8 +136,6 @@ void shuffle(RandomAccessIterT begin, RandomAccessIterT end) {
 }
 
 // creates test points for KDTree range search
-// TODO: change to use radians and afw Point/Coord classes when
-// rewriting nightly AP code.
 void makePoints(std::vector<Point> & points,
                 std::vector<MatchOracle> & queryPoints,
                 Angle radius)

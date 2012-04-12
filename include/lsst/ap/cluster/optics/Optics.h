@@ -42,6 +42,7 @@
 
 #include "boost/scoped_array.hpp"
 #include "boost/scoped_ptr.hpp"
+#include "boost/shared_ptr.hpp"
 
 #include "lsst/pex/logging/Log.h"
 
@@ -55,10 +56,10 @@ namespace lsst { namespace ap { namespace cluster { namespace optics {
   * Class that encapsulates parameters and state operated on by the
   * OPTICS algorithm.
   */
-template <int K, typename DataT>
+template <int K, typename RecordT>
 class Optics {
 public:
-    Optics(Point<K, DataT> * points,
+    Optics(Point<K, boost::shared_ptr<RecordT> > * points,
            int numPoints,
            int minNeighbors,
            double epsilon,
@@ -67,10 +68,13 @@ public:
     ~Optics();
 
     template <typename MetricT>
-    void run(std::vector<std::vector<DataT> > & clusters,
+    void run(boost::shared_ptr<typename RecordT::Table> table,
+             std::vector<typename RecordT::Catalog> & clusters,
              MetricT const & metric);
 
 private:
+    typedef boost::shared_ptr<RecordT> DataT;
+
     Point<K, DataT> * _points;
     boost::scoped_ptr<KDTree<K, DataT> > _tree;
     boost::scoped_ptr<SeedList<K, DataT> > _seeds;

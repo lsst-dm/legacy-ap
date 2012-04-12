@@ -39,8 +39,6 @@
 
 namespace lsst { namespace ap { namespace cluster { namespace optics {
 
-namespace except = ::lsst::pex::exceptions;
-
 namespace {
 
 /** @internal
@@ -123,15 +121,15 @@ KDTree<K, DataT>::KDTree(Point<K, DataT> * points,
     _nodes()
 {
     if (points == 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
                           "pointer to Point array is null");
     }
     if (numPoints <= 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
                           "number of input points must be > 0");
     }
     if (pointsPerLeaf < 1) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
                           "target number of points per leaf must be > 0");
     }
     // compute tree height

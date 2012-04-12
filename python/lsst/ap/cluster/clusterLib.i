@@ -36,10 +36,15 @@ Access to association pipeline clustering functionality.
 #pragma SWIG nowarn=362                 // operator=  ignored
 
 %{
-#include "lsst/afw/image/TanWcs.h"
+#include "lsst/daf/base.h"
+#include "lsst/pex/logging.h"
+#include "lsst/afw/image.h"
+#include "lsst/afw/cameraGeom.h"
 #include "lsst/afw/table.h"
 #include "lsst/ap/cluster/ClusteringControl.h"
+#include "lsst/ap/cluster/SourceProcessingControl.h"
 #include "lsst/ap/cluster/SourceCluster.h"
+#include "lsst/ap/cluster/clustering.h"
 
 #define PY_ARRAY_UNIQUE_SYMBOL LSST_AFW_TABLE_NUMPY_ARRAY_API
 #include "numpy/arrayobject.h"
@@ -69,11 +74,12 @@ Access to association pipeline clustering functionality.
 
 %lsst_exceptions()
 
-
-// -- ClusteringControl --------
+// -- Control objects --------
 
 %shared_ptr(lsst::ap::cluster::ClusteringControl);
+%shared_ptr(lsst::ap::cluster::SourceProcessingControl);
 %include "lsst/ap/cluster/ClusteringControl.h"
+%include "lsst/ap/cluster/SourceProcessingControl.h"
 
 
 // -- SourceCluster table, record, and ID factory --------
@@ -90,21 +96,65 @@ Access to association pipeline clustering functionality.
 %template(SourceClusterColumnViewBase) lsst::afw::table::ColumnViewT<lsst::ap::cluster::SourceClusterRecord>;
 %template(SourceClusterColumnView) lsst::ap::cluster::SourceClusterColumnViewT<lsst::ap::cluster::SourceClusterRecord>;
 
+%pythondynamic;
 
-%pythondynamic;  // We want to add attributes in Python for the classes wrapped here.
-
-namespace lsst { namespace ap { namespace cluster {
-    %template (SourceClusterCatalogBase) lsst::afw::table::CatalogT<SourceClusterRecord>;
-    %declareCatalog(lsst::afw::table::SimpleCatalogT, SourceCluster);
-
-    // The equivalent is performed by %declareCatalog(), but for some reason has no effect
+%template(SourceClusterCatalogBase) lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord>;
+%template(SourceClusterCatalog)  lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord>;
+%extend lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord> {
     %pythoncode %{
         SourceClusterCatalog.Table = SourceClusterTable
         SourceClusterCatalog.Record = SourceClusterRecord
         SourceClusterCatalog.ColumnView = SourceClusterColumnView
     %}
+}
+%pythoncode %{
+    SourceClusterRecord.Table = SourceClusterTable
+    SourceClusterRecord.Catalog = SourceClusterCatalog
+    SourceClusterRecord.ColumnView = SourceClusterColumnView
+    SourceClusterTable.Record = SourceClusterRecord
+    SourceClusterTable.Catalog = SourceClusterCatalog
+    SourceClusterTable.ColumnView = SourceClusterColumnView
+    SourceClusterColumnView.Record = SourceClusterRecord
+    SourceClusterColumnView.Table = SourceClusterTable
+    SourceClusterColumnView.Catalog = SourceClusterCatalog
+%}
 
-}}}
+%pythonnondynamic;
 
-%pythonnondynamic; // Re-enable attribute restriction
+
+// -- clustering and attribute computation --------
+
+%import "lsst/ap/match/matchLib.i"
+%import "lsst/ap/utils/utilsLib.i"
+
+%typemap(out) std::vector<lsst::afw::table::SourceCatalog> const {
+    // $1 is a SwigValueWrapper, must dereference contents to call member functions
+    Py_ssize_t len = static_cast<Py_ssize_t>((*(&$1)).size());
+    $result = PyList_New(len);
+    for (Py_ssize_t i = 0; i < len; ++i) {
+        lsst::afw::table::SourceCatalog * cat = 
+            new lsst::afw::table::SourceCatalog((*(&$1))[i]);
+        PyObject * obj = SWIG_NewPointerObj(SWIG_as_voidptr(cat),
+            SWIGTYPE_p_lsst__afw__table__SimpleCatalogTT_lsst__afw__table__SourceRecord_t,
+            SWIG_POINTER_OWN);
+        PyList_SetItem($result, i, obj);
+    }
+}
+
+
+%typemap(out) std::pair<boost::shared_ptr<lsst::afw::table::SourceTable>, lsst::afw::table::SchemaMapper> const {
+    $result = PyTuple_New(2);
+    boost::shared_ptr<lsst::afw::table::SourceTable> *table =
+        new boost::shared_ptr<lsst::afw::table::SourceTable>((*(&$1)).first);
+    PyObject * obj1 = SWIG_NewPointerObj(SWIG_as_voidptr(table),
+        SWIGTYPE_p_boost__shared_ptrT_lsst__afw__table__SourceTable_t, SWIG_POINTER_OWN);
+    PyTuple_SetItem($result, 0, obj1);
+    lsst::afw::table::SchemaMapper * mapper =
+        new lsst::afw::table::SchemaMapper((*(&$1)).second);
+    PyObject * obj2 = SWIG_NewPointerObj(SWIG_as_voidptr(mapper),
+        SWIGTYPE_p_lsst__afw__table__SchemaMapper, SWIG_POINTER_OWN);
+    PyTuple_SetItem($result, 1, obj2);
+}
+
+%include "lsst/ap/cluster/clustering.h"
 

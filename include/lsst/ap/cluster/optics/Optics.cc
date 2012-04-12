@@ -44,13 +44,12 @@
 
 namespace lsst { namespace ap { namespace cluster { namespace optics {
 
-namespace except = ::lsst::pex::exceptions;
 
 /** Initializes data structures required by the OPTICS to run over the given
   * set of points.
   */
-template <int K, typename DataT>
-Optics<K, DataT>::Optics(Point<K, DataT> * points,
+template <int K, typename RecordT>
+Optics<K, RecordT>::Optics(Point<K, boost::shared_ptr<RecordT> > * points,
                          int numPoints,
                          int minNeighbors,
                          double epsilon,
@@ -67,25 +66,24 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
     _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.optics")
 {
     if (_points == 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
                           "Input point array is null");
     }
     if (_numPoints <= 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
                           "Number of input points must be at least 1");
     }
     if (_minNeighbors < 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException, "OPTICS "
-                          "minNeighbors parameter value is negative");
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+                          "OPTICS minNeighbors parameter value is negative");
     }
     if (_epsilon < 0.0) {
-        throw LSST_EXCEPT(except::InvalidParameterException, "OPTICS "
-                          "epsilon (clustering distance) parameter value "
-                          "is negative");
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+                          "OPTICS epsilon parameter value is negative");
     }
     if (pointsPerLeaf <= 0) {
-        throw LSST_EXCEPT(except::InvalidParameterException, "K-D tree "
-                          "pointsPerLeaf parameter must be positive");
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException, 
+                          "K-D tree pointsPerLeaf parameter must be positive");
     }
 
     _log.log(lsst::pex::logging::Log::INFO, "Building k-d tree for sources");
@@ -103,22 +101,23 @@ Optics<K, DataT>::Optics(Point<K, DataT> * points,
     swap(_distances, distances);
 }
 
-template <int K, typename DataT>
-Optics<K, DataT>::~Optics() { }
+template <int K, typename RecordT>
+Optics<K, RecordT>::~Optics() { }
 
 /** Runs the OPTICS algorithm, appending clusters to @c clusters.
   * This method may only be called once for a given Optics instance.
   */
-template <int K, typename DataT>
+template <int K, typename RecordT>
     template <typename MetricT>
-void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
-                           MetricT const & metric)
+void Optics<K, RecordT>::run(boost::shared_ptr<typename RecordT::Table> table,
+                             std::vector<typename RecordT::Catalog> & clusters,
+                             MetricT const & metric)
 {
     if (_ran) {
-        throw LSST_EXCEPT(except::LogicErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::LogicErrorException,
                           "OPTICS has already been run");
     }
-    std::vector<DataT> cluster;
+    typename RecordT::Catalog cluster(table);
     size_t const s = clusters.size();
     int scanFrom = 0;
 
@@ -145,13 +144,13 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
                 clusters.push_back(cluster);
                 cluster.clear();
             }
-            cluster.push_back(*(_points[i].data));
+            cluster.push_back(_points[i].data);
         } else {
             // expand cluster around seed with smallest reachability-distance
             i = _seeds->pop();
             expandClusterOrder(i, metric);
             assert(_points[i].reach != std::numeric_limits<double>::infinity());
-            cluster.push_back(*(_points[i].data));
+            cluster.push_back(_points[i].data);
         }
     }
     clusters.push_back(cluster);
@@ -159,9 +158,9 @@ void Optics<K, DataT>::run(std::vector<std::vector<DataT> > & clusters,
                 static_cast<int>(clusters.size() - s));
 }
 
-template <int K, typename DataT>
+template <int K, typename RecordT>
     template <typename MetricT>
-void Optics<K, DataT>::expandClusterOrder(int i, MetricT const & metric)
+void Optics<K, RecordT>::expandClusterOrder(int i, MetricT const & metric)
 {
     // find epsilon neighborhood of point i
     int range = _tree->inRange(_points[i].coords, _epsilon, metric);

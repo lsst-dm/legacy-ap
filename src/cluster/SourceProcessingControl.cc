@@ -23,43 +23,20 @@
  */
 
 /** @file
-  * @brief  ClusteringControl implementation.
+  * @brief  SourceProcessingControl implementation.
   * @author Serge Monkewitz
   */
-#include "lsst/ap/cluster/ClusteringControl.h"
+#include "lsst/ap/cluster/SourceProcessingControl.h"
 
-#include "lsst/pex/exceptions.h"
-
-
-using lsst::pex::exceptions::InvalidParameterException;
 
 namespace lsst { namespace ap { namespace cluster {
 
-ClusteringControl::ClusteringControl() :
-    epsilonArcsec(0.75),
-    minNeighbors(2),
-    pointsPerLeaf(32),
-    leafExtentThresholdArcsec(2.0)
-{
-    validate();
-}
+SourceProcessingControl::SourceProcessingControl() :
+    exposurePrefix("exposure"),
+    clusterPrefix("cluster"),
+    badFlagFields()
+{ }
 
-ClusteringControl::~ClusteringControl() { }
-
-void ClusteringControl::validate() const {
-    if (epsilonArcsec < 0.0 || epsilonArcsec > 36000.0) {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "epsilonArcsec must lie in the range [0, 36000]");
-    }
-    if (minNeighbors < 0) {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "minNeighbors must be non-negative");
-
-    }
-    if (pointsPerLeaf <= 0) {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "pointsPerLeaf must be positive");
-    }
-}
+SourceProcessingControl::~SourceProcessingControl() { }
 
 }}} // namespace lsst::ap::cluster

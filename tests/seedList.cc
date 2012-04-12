@@ -35,8 +35,8 @@ namespace optics = lsst::ap::cluster::optics;
 
 using lsst::afw::math::Random;
 
-typedef optics::Point<1, void> Point;
-typedef optics::SeedList<1, void> SeedList;
+typedef optics::Point<1, void *> Point;
+typedef optics::SeedList<1, void *> SeedList;
 
 namespace {
 
