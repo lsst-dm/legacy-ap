@@ -93,13 +93,13 @@ makeOutputSourceTable(
   */
 void processSources(
     lsst::afw::table::SourceCatalog const & expSources, /// @param[in] Single exposure sources to process.
-    lsst::ap::match::ExposureInfo const & expInfo,     /// @param[in] Exposure information.
-    lsst::ap::utils::PT1SkyTile const & skyTile,       /// @param[in] Sky-tile being processed.
-    SourceProcessingControl const & control,           /// @param[in] Source processing parameters.
-    lsst::afw::table::SchemaMapper const & mapper,     /// @param[in] Maps between input and output source records.
-    lsst::afw::table::SourceCatalog & sources,         /// @param[inout] Catalog for sources that will be clustered.
-    lsst::afw::table::SourceCatalog & badSources,      /// @param[inout] Catalog for sources with bad measurement flags.
-    lsst::afw::table::SourceCatalog & invalidSources   /// @param[inout] Catalog for sources with invalid measurements.
+    lsst::ap::match::ExposureInfo const & expInfo,      /// @param[in] Exposure information.
+    lsst::ap::utils::PT1SkyTile const & skyTile,        /// @param[in] Sky-tile being processed.
+    SourceProcessingControl const & control,            /// @param[in] Source processing parameters.
+    lsst::afw::table::SchemaMapper const & mapper,      /// @param[in] Maps between input and output source records.
+    lsst::afw::table::SourceCatalog & sources,          /// @param[inout] Catalog for sources that will be clustered.
+    lsst::afw::table::SourceCatalog & badSources,       /// @param[inout] Catalog for sources with bad measurement flags.
+    lsst::afw::table::SourceCatalog & invalidSources    /// @param[inout] Catalog for sources with invalid measurements.
 );
 
 /** Spatially cluster sources using the OPTICS algorithm.

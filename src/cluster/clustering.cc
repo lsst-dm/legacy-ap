@@ -168,7 +168,7 @@ void processSources(
     ExposureInfo const & expInfo,
     PT1SkyTile const & skyTile,
     SourceProcessingControl const & control,
-    SchemaMapper const mapper,
+    SchemaMapper const & mapper,
     SourceCatalog & sources,
     SourceCatalog & badSources,
     SourceCatalog & invalidSources)

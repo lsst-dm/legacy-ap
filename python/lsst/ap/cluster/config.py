@@ -21,9 +21,13 @@
 #
 
 import lsst.pex.config
-from .utilsLib import CsvControl
+from .clusterLib import ClusteringControl, SourceProcessingControl
 
-@lsst.pex.config.wrap(CsvControl)
-class CsvConfig(lsst.pex.config.Config):
+@lsst.pex.config.wrap(ClusteringControl)
+class ClusteringConfig(lsst.pex.config.Config):
+    pass
+
+@lsst.pex.config.wrap(SourceProcessingControl)
+class SourceProcessingConfig(lsst.pex.config.Config):
     pass
 
