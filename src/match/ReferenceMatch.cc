@@ -65,6 +65,7 @@ using std::vector;
 using std::string;
 
 using lsst::pex::logging::Log;
+
 using lsst::afw::geom::HALFPI;
 using lsst::afw::geom::Angle;
 using lsst::afw::geom::arcsecToRad;
@@ -75,9 +76,12 @@ using lsst::afw::geom::radToMas;
 using lsst::afw::geom::radToDeg;
 
 using lsst::afw::coord::IcrsCoord;
+
+using lsst::afw::image::Filter;
 using lsst::afw::image::PixelZeroPos;
 
 using lsst::ap::match::detail::SphericalSweep;
+
 using lsst::ap::utils::angularSeparation;
 using lsst::ap::utils::Arena;
 using lsst::ap::utils::cartesianToIcrs;
@@ -302,7 +306,8 @@ MatchablePos::MatchablePos(
 class MatchableRef : public Matchable {
 public:
     MatchableRef(ReferencePosition const &rp,
-                 std::string const &record);
+                 std::string const &record,
+                 int);
 
     virtual ~MatchableRef() { }
 
@@ -333,7 +338,8 @@ private:
 
 MatchableRef::MatchableRef(
     ReferencePosition const &rp,
-    std::string const &record
+    std::string const &record,
+    int
 ) :
     Matchable(record),
     _rp(rp)
@@ -350,7 +356,8 @@ inline bool operator<(std::pair<Angle, MatchableRef *> const &r1,
 class RefWithCov : public BBox {
 public:
     RefWithCov(ReferencePosition const &rp,
-               std::string const &record);
+               std::string const &record,
+               int numFilters);
 
     virtual ~RefWithCov() { }
 
@@ -366,7 +373,7 @@ public:
     }
 
     void writeCoverage(lsst::ap::utils::CsvWriter &writer) const {
-        for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
+        for (int i = 0; i < _numFilters; ++i) {
             writer.appendField(_filterCov[i]);
         }
     }
@@ -398,18 +405,22 @@ private:
     ReferencePosition _rp;
     std::string _record;
     bool _covered;
-    int _filterCov[6];
+    int _numFilters;
+    boost::scoped_array<int> _filterCov;
 };
 
 RefWithCov::RefWithCov(
     ReferencePosition const &rp,
-    std::string const &record
+    std::string const &record,
+    int numFilters
 ) :
     _rp(rp),
     _record(record),
-    _covered(false)
+    _covered(false),
+    _numFilters(numFilters),
+    _filterCov(new int[numFilters])
 {
-    for (size_t i = 0; i < sizeof(_filterCov)/sizeof(int); ++i) {
+    for (int i = 0; i < numFilters; ++i) {
         _filterCov[i] = 0;
     }
 }
@@ -738,6 +749,7 @@ protected:
     Angle _decl;
     Angle _readAhead;
     boost::scoped_ptr<CsvReader> _reader;
+    int _numFilters;
 
 private:
     void _scan(lsst::ap::utils::CsvReader &reader,
@@ -787,6 +799,7 @@ RefReaderBase::RefReaderBase(
     _decl(-HALFPI, radians),
     _readAhead(0.0, radians),
     _reader(),
+    _numFilters(static_cast<int>(Filter::getNames().size())),
     _pos(0, 0.0 * radians, 0.0 * radians),
     _defaultEpoch(control.epoch),
     _minEpoch(_defaultEpoch),
@@ -1100,7 +1113,7 @@ private:
     void _read() {
         ReferencePosition const *p = _readReferencePosition();
         if (p != 0) {
-            Ref *r = new (_arena) Ref(*p, getRecord());
+            Ref *r = new (_arena) Ref(*p, getRecord(), _numFilters);
             _heap.push_back(std::pair<double, Ref *>(r->getMinCoord1(), r));
             std::push_heap(_heap.begin(), _heap.end());
         }
@@ -1586,6 +1599,24 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
     }
 }
 
+
+/** Check that filter IDs are contiguous integers in range [0, N).
+  */
+void checkFilters() {
+    typedef std::vector<std::string>::const_iterator Iter;
+
+    std::vector<std::string> const names = Filter::getNames();
+    int n = static_cast<int>(names.size());
+    for (Iter i = names.begin(), e = names.end(); i != e; ++i) {
+        Filter f = Filter(*i, false);
+        if (f.getId() < 0 || f.getId() >= n) {
+            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                              "Filter IDs do not have contiguous IDs starting at 0");
+        }
+    }
+}
+
+
 } // namespace lsst::ap::match::<anonymous>
 
 
@@ -1631,8 +1662,11 @@ void referenceMatch(
 
 /** Computes the number of times a reference catalog should have been observed in
   * each filter with an ideal observatory, given a set of exposures. The per-filter
-  * observation counts are appended as columns [ugrizy]Cov. Reference catalog
-  * entries not falling on any of the given exposures are dropped from the output.
+  * observation counts are appended as columns "<filter>Cov", in order of filter ID.
+  * Note that filter IDs are required to be contiguous integers 0, 1, .... N - 1.
+  *
+  * Reference catalog entries not falling on any of the given exposures are dropped
+  * from the output.
   *
   * Note that a reduction for parallax from barycentric to geocentric place is 
   * applied to reference catalog entries with parallax above parallaxThresh.
@@ -1653,6 +1687,7 @@ void referenceFilter(
         throw LSST_EXCEPT(pexExcept::InvalidParameterException,
                           "no input exposure information");
     }
+    checkFilters();
 
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Filtering out reference catalog entries not "
@@ -1690,5 +1725,3 @@ void referenceFilter(
 
 }}} // namespace lsst::ap::match
 
-
-//  LocalWords:  declScale

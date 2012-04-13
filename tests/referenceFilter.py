@@ -160,11 +160,11 @@ class ReferenceFilterTestCase(unittest.TestCase):
                     self.assertTrue(d >= decl)
                     decl = d
                     refCov = int(row[3])
-                    filtCov = [int(row[i]) for i in xrange(6, 12)]
+                    filtCov = [int(row[i]) for i in xrange(6, 13)]
                     self.assertTrue(refId in matches)
                     if refId in matches:
                         del matches[refId]
-                    self.assertTrue(all(filtCov[i] == 0 for i in xrange(1,6)))
+                    self.assertTrue(all(filtCov[i] == 0 for i in xrange(1,7)))
                     self.assertEqual(refCov, filtCov[0])
                 for m in matches:
                     print matches[m] 
