@@ -40,9 +40,11 @@ using lsst::pex::logging::Log;
 using lsst::afw::geom::AffineTransform;
 using lsst::afw::geom::Angle;
 using lsst::afw::geom::radians;
+using lsst::afw::image::Filter;
 using lsst::afw::table::Covariance;
 using lsst::afw::table::Field;
 using lsst::afw::table::Flag;
+using lsst::afw::table::Flux;
 using lsst::afw::table::IdFactory;
 using lsst::afw::table::Key;
 using lsst::afw::table::SourceCatalog;
@@ -50,39 +52,16 @@ using lsst::afw::table::SourceRecord;
 using lsst::afw::table::SourceTable;
 using lsst::afw::table::Schema;
 using lsst::afw::table::SchemaMapper;
+using lsst::afw::table::Shape;
 using lsst::ap::match::ExposureInfo;
 using lsst::ap::utils::PT1SkyTile;
 
 
 namespace lsst { namespace ap { namespace cluster {
 
-// -- Source processing --------
+// -- Schema / table/ catalog setup --------
 
 namespace {
-
-    // Return true if the slot mappings for the two catalogs are identical
-    bool compareSlots(SourceTable const & a, SourceTable const & b) {
-        return (
-            a.getPsfFluxKey()       == b.getPsfFluxKey()       &&
-            a.getPsfFluxErrKey()    == b.getPsfFluxErrKey()    &&
-            a.getPsfFluxFlagKey()   == b.getPsfFluxFlagKey()   &&
-            a.getModelFluxKey()     == b.getModelFluxKey()     &&
-            a.getModelFluxErrKey()  == b.getModelFluxErrKey()  &&
-            a.getModelFluxFlagKey() == b.getModelFluxFlagKey() &&
-            a.getApFluxKey()        == b.getApFluxKey()        &&
-            a.getApFluxErrKey()     == b.getApFluxErrKey()     &&
-            a.getApFluxFlagKey()    == b.getApFluxFlagKey()    &&
-            a.getInstFluxKey()      == b.getInstFluxKey()      &&
-            a.getInstFluxErrKey()   == b.getInstFluxErrKey()   &&
-            a.getInstFluxFlagKey()  == b.getInstFluxFlagKey()  &&
-            a.getCentroidKey()      == b.getCentroidKey()      &&
-            a.getCentroidErrKey()   == b.getCentroidErrKey()   &&
-            a.getCentroidFlagKey()  == b.getCentroidFlagKey()  &&
-            a.getShapeKey()         == b.getShapeKey()         &&
-            a.getShapeErrKey()      == b.getShapeErrKey()      &&
-            a.getShapeFlagKey()     == b.getShapeFlagKey()     
-        );
-    }
 
     // Unary predicate that always returns true.
     struct True {
@@ -90,6 +69,36 @@ namespace {
             return true;
         }
     };
+
+    void addFlux(Schema & schema,
+                 Schema const & proto,
+                 std::string const & filter,
+                 Key<Flux::MeasTag> const & flux,
+                 Key<Flux::ErrTag> const & fluxErr)
+    {
+        if (flux.isValid()) {
+            std::string const name = proto.find(flux).field.getName();
+            std::string doc(fluxErr.isValid() ? "inverse variance " : "un");
+            doc += "weighted mean of " + filter + " filter source " + name;
+            doc += " (" + proto.find(flux).field.getDoc() + ")";
+            addFluxFields(schema, filter, name, doc);
+        }
+    }
+
+    void addShape(Schema & schema,
+                  Schema const & proto,
+                  std::string const & filter,
+                  Key<Shape::MeasTag> const & shape,
+                  Key<Shape::ErrTag> const & shapeErr)
+    {
+        if (shape.isValid()) {
+            std::string const name = proto.find(shape).field.getName();
+            std::string doc(shapeErr.isValid() ? "inverse variance " : "un");
+            doc += "weighted mean of " + filter + " filter source " + name;
+            doc += " (" + proto.find(shape).field.getDoc() + ")";
+            addShapeFields(schema, filter, name, doc);
+        }
+    }
 
 }   // namespace <anonymous>
 
@@ -108,7 +117,7 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
     mapper.addMappingsWhere(True());
     // add coordinate error
     mapper.addOutputField(Field<Covariance<lsst::afw::table::Point<double> > >(
-        prototype.getSchema().find(prototype.getCoordKey()).field.getName() + ".err",
+        "coord.err",
         "covariance matrix for source sky-coordinates",
         "rad^2"));
     if (!control.exposurePrefix.empty()) {
@@ -161,6 +170,155 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
                        prototype.getShapeFlagKey());
     return std::make_pair(table, mapper);
 }
+
+
+boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
+    SourceTable const & prototype,
+    boost::shared_ptr<IdFactory> const & idFactory,
+    SourceProcessingControl const & control)
+{
+    typedef std::vector<std::string>::const_iterator Iter;
+
+    Schema schema = SourceClusterTable::makeMinimalSchema();
+    // Add basic fields
+    schema.addField<Covariance<lsst::afw::table::Point<double> > >(
+        "coord.err",
+        "sample covariance matrix for coord field (unweighted mean sky-coordinates)",
+        "rad^2");
+    schema.addField<int>(
+        "obs.num",
+        "number of sources in cluster");
+    schema.addField<Flag>(
+        "flag.bad",
+        "set if cluster was created from a single bad source");
+    schema.addField<Flag>(
+        "flag.noise",
+        "set if cluster was created from a single noise source");
+    if (prototype.getCentroidKey().isValid() &&
+        prototype.getCentroidErrKey().isValid()) {
+        schema.addField<lsst::afw::table::Coord>(
+            "coord2",
+            "inverse variance weighted mean sky-coordinates (ICRS)",
+            "rad");
+        schema.addField<Covariance<lsst::afw::table::Point<double> > >(
+            "coord2.err",
+            "covariance matrix for coord2 field",
+            "rad^2");
+    }
+    if (!control.exposurePrefix.empty()) {
+        schema.addField<double>(
+            "obs.time.min",
+            "earliest observation time of sources in cluster (TAI)",
+            "mjd");
+        schema.addField<double>(
+            "obs.time.mean",
+            "mean observation time of sources in cluster (TAI)",
+            "mjd");
+        schema.addField<double>(
+            "obs.time.max",
+            "latest observation time of sources in cluster (TAI)",
+            "mjd");
+    }
+    // Add filter specific fields
+    std::vector<std::string> const filters = Filter::getNames();
+    for (Iter f = filters.begin(), e = filters.end(); f != e; ++f) {
+        schema.addField<int>(
+            *f + ".obs.num",
+            "number of " + *f + " filter sources in cluster");
+        if (!control.exposurePrefix.empty()) {
+            schema.addField<double>(
+                *f + ".obs.time.min",
+                "earliest observation time of " + *f + " filter sources in cluster (TAI)",
+                "mjd");
+            schema.addField<double>(
+                *f + ".obs.time.max",
+                "latest observation time of " + *f + " filter sources in cluster (TAI)",
+                "mjd");
+        }
+        addFlux(schema, prototype.getSchema(), *f,
+                prototype.getPsfFluxKey(), prototype.getPsfFluxErrKey());
+        addFlux(schema, prototype.getSchema(), *f,
+                prototype.getModelFluxKey(), prototype.getModelFluxErrKey());
+        addFlux(schema, prototype.getSchema(), *f,
+                prototype.getApFluxKey(), prototype.getApFluxErrKey());
+        addFlux(schema, prototype.getSchema(), *f,
+                prototype.getInstFluxKey(), prototype.getInstFluxErrKey());
+        addShape(schema, prototype.getSchema(), *f,
+                 prototype.getShapeKey(), prototype.getShapeErrKey());
+    }
+
+    // Create table
+    boost::shared_ptr<SourceClusterTable> table =
+        SourceClusterTable::make(schema, idFactory);
+
+    // setup slot mappings
+    table->defineCoordErr("coord.err");
+    table->defineNumSources("obs.num");
+    if (prototype.getCentroidKey().isValid() &&
+        prototype.getCentroidErrKey().isValid()) {
+        table->defineCoord2("coord2.err");
+        table->defineCoord2Err("coord2.err");
+    }
+    if (!control.exposurePrefix.empty()) {
+        table->defineTimeMin("obs.time.min");
+        table->defineTimeMin("obs.time.mean");
+        table->defineTimeMin("obs.time.max");
+    }
+    for (Iter f = filters.begin(), e = filters.end(); f != e; ++f) {
+        table->defineNumSources(*f, "obs.num");
+        if (!control.exposurePrefix.empty()) {
+            table->defineTimeMin(*f, "obs.time.min");
+            table->defineTimeMin(*f, "obs.time.max");
+        }
+        if (prototype.getPsfFluxKey().isValid()) {
+            table->definePsfFlux(*f, prototype.getPsfFluxDefinition());
+        }
+        if (prototype.getModelFluxKey().isValid()) {
+            table->defineModelFlux(*f, prototype.getModelFluxDefinition());
+        }
+        if (prototype.getApFluxKey().isValid()) {
+            table->defineApFlux(*f, prototype.getApFluxDefinition());
+        }
+        if (prototype.getInstFluxKey().isValid()) {
+            table->defineInstFlux(*f, prototype.getInstFluxDefinition());
+        }
+        if (prototype.getShapeKey().isValid()) {
+            table->defineShape(*f, prototype.getShapeDefinition());
+        }
+    }
+    return table;
+}
+
+
+// -- Source processing --------
+
+namespace {
+
+    // Return true if the slot mappings for the two catalogs are identical
+    bool compareSlots(SourceTable const & a, SourceTable const & b) {
+        return (
+            a.getPsfFluxKey()       == b.getPsfFluxKey()       &&
+            a.getPsfFluxErrKey()    == b.getPsfFluxErrKey()    &&
+            a.getPsfFluxFlagKey()   == b.getPsfFluxFlagKey()   &&
+            a.getModelFluxKey()     == b.getModelFluxKey()     &&
+            a.getModelFluxErrKey()  == b.getModelFluxErrKey()  &&
+            a.getModelFluxFlagKey() == b.getModelFluxFlagKey() &&
+            a.getApFluxKey()        == b.getApFluxKey()        &&
+            a.getApFluxErrKey()     == b.getApFluxErrKey()     &&
+            a.getApFluxFlagKey()    == b.getApFluxFlagKey()    &&
+            a.getInstFluxKey()      == b.getInstFluxKey()      &&
+            a.getInstFluxErrKey()   == b.getInstFluxErrKey()   &&
+            a.getInstFluxFlagKey()  == b.getInstFluxFlagKey()  &&
+            a.getCentroidKey()      == b.getCentroidKey()      &&
+            a.getCentroidErrKey()   == b.getCentroidErrKey()   &&
+            a.getCentroidFlagKey()  == b.getCentroidFlagKey()  &&
+            a.getShapeKey()         == b.getShapeKey()         &&
+            a.getShapeErrKey()      == b.getShapeErrKey()      &&
+            a.getShapeFlagKey()     == b.getShapeFlagKey()
+        );
+    }
+
+}   // namespace <anonymous>
 
 
 void processSources(
@@ -226,12 +384,9 @@ void processSources(
         sources.getTable()->getCentroidErrKey();
     Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey;
     try {
-        // grr.
-        std::string const coordErrName = sources.getSchema().find(
-            sources.getTable()->getCoordKey()).field.getName() + ".err";
-        coordErrKey = sources.getSchema()[coordErrName];
+        coordErrKey = sources.getSchema()["coord.err"];
     } catch (...) {
-        // no way to ask whether a field exists by name without throwing an exception?
+        // no easy way to ask whether a field exists by name?
     }
     if (!control.exposurePrefix.empty()) {
         Schema schema = mapper.getOutputSchema();
@@ -309,6 +464,13 @@ void processSources(
             os->set(coordErrKey, m * cov * m.transpose());
         }
     }
+    log.format(Log::INFO, "processed %lld sources (invalid: %lld, "
+               "outside sky-tile: %lld, bad: %lld, good: %lld)",
+               static_cast<long long>(expSources.size()),
+               static_cast<long long>(ninvalid),
+               static_cast<long long>(noutside),
+               static_cast<long long>(nbad),
+               static_cast<long long>(ngood));
 }
 
 

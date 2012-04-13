@@ -191,14 +191,14 @@ struct KeyTuple {
     ) : mean(mean_), err(err_), count(count_) { }
 };
 
-/// Convenience function to setup fields for shape measurement algorithms.
+/// Convenience function to setup fields for shapes.
 KeyTuple<lsst::afw::table::Shape> addShapeFields(
     lsst::afw::table::Schema & schema,
     std::string const & filter,
     std::string const & name,
     std::string const & doc);
 
-/// Convenience function to setup fields for flux measurement algorithms.
+/// Convenience function to setup fields for fluxes.
 KeyTuple<lsst::afw::table::Flux> addFluxFields(
     lsst::afw::table::Schema & schema,
     std::string const & filter,
@@ -243,6 +243,8 @@ public:
         `the number of sources in the cluster')
     DECLARE_SLOT_ACCESSORS(`TimeMin', `double',
         `the earliest observation time [MJD TAI] of sources in the cluster')
+    DECLARE_SLOT_ACCESSORS(`TimeMean', `double',
+        `the mean observation time [MJD TAI] of sources in the cluster')
     DECLARE_SLOT_ACCESSORS(`TimeMax', `double',
         `the latest observation time [MJD TAI] of sources in the cluster')
     //@}
@@ -352,6 +354,7 @@ public:
     DECLARE_SLOT_DEFINERS(`Coord2Err', `lsst::afw::table::Covariance<lsst::afw::table::Point<double> > ')
     DECLARE_SLOT_DEFINERS(`NumSources', `int')
     DECLARE_SLOT_DEFINERS(`TimeMin', `double')
+    DECLARE_SLOT_DEFINERS(`TimeMean', `double')
     DECLARE_SLOT_DEFINERS(`TimeMax', `double')
     //@}
 
@@ -405,6 +408,7 @@ private:
     lsst::afw::table::Key<lsst::afw::table::Covariance<lsst::afw::table::Point<double> > > _keyCoord2Err;
     lsst::afw::table::Key<int> _keyNumSources;
     lsst::afw::table::Key<double> _keyTimeMin;
+    lsst::afw::table::Key<double> _keyTimeMean;
     lsst::afw::table::Key<double> _keyTimeMax;
 
     FilterSlotsMap _filterSlots;
@@ -425,6 +429,9 @@ public:
     }
     ndarray::Array<double const,1> const getTimeMin() const {
         return this->operator[](this->getTable()->getTimeMinKey());
+    }
+    ndarray::Array<double const,1> const getTimeMean() const {
+        return this->operator[](this->getTable()->getTimeMeanKey());
     }
     ndarray::Array<double const,1> const getTimeMax() const {
         return this->operator[](this->getTable()->getTimeMaxKey());
@@ -516,6 +523,7 @@ DEFINE_SLOT_ACCESSORS(`Coord2', `lsst::afw::coord::IcrsCoord')
 DEFINE_SLOT_ACCESSORS(`Coord2Err', `Eigen::Matrix<double,2,2>')
 DEFINE_SLOT_ACCESSORS(`NumSources', `int')
 DEFINE_SLOT_ACCESSORS(`TimeMin', `double')
+DEFINE_SLOT_ACCESSORS(`TimeMean', `double')
 DEFINE_SLOT_ACCESSORS(`TimeMax', `double')
 
 DEFINE_FILTER_SLOT_ACCESSORS(`NumSources', `int')
