@@ -34,8 +34,16 @@ namespace lsst { namespace ap { namespace cluster {
 SourceProcessingControl::SourceProcessingControl() :
     exposurePrefix("exposure"),
     clusterPrefix("cluster"),
-    badFlagFields()
-{ }
+    badFlagFields(),
+    fluxFields(),
+    shapeFields()
+{
+    fluxFields.push_back("flux.gaussian");
+    fluxFields.push_back("flux.naive");
+    fluxFields.push_back("flux.psf");
+    fluxFields.push_back("flux.sinc");
+    shapeFields.push_back("shape.sdss");
+}
 
 SourceProcessingControl::~SourceProcessingControl() { }
 

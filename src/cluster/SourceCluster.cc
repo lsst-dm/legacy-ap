@@ -200,10 +200,11 @@ namespace {
                         "Tells lsst::afw to load this as a SourceClusterTable.");
         // save filter agnostic slots
         SAVE_SLOT(COORD_ERR, CoordErr)
-        SAVE_SLOT(COORD2, Coord2)
-        SAVE_SLOT(COORD2_ERR, Coord2Err)
+        SAVE_SLOT(COORD2, WeightedCoord)
+        SAVE_SLOT(COORD2_ERR, WeightedCoordErr)
         SAVE_SLOT(NUM_SOURCES, NumSources)
         SAVE_SLOT(TIME_MIN, TimeMin)
+        SAVE_SLOT(TIME_MEAN, TimeMean)
         SAVE_SLOT(TIME_MAX, TimeMax)
         // save filters and filter-specific slots
         typedef std::vector<std::string>::const_iterator Iter;
@@ -250,10 +251,11 @@ namespace {
             schema, PTR(lsst::afw::table::IdFactory)());
         // read in filter agnostic slots
         LOAD_SLOT(COORD_ERR, CoordErr)
-        LOAD_SLOT(COORD2, Coord2)
-        LOAD_SLOT(COORD2_ERR, Coord2Err)
+        LOAD_SLOT(COORD2, WeightedCoord)
+        LOAD_SLOT(COORD2_ERR, WeightedCoordErr)
         LOAD_SLOT(NUM_SOURCES, NumSources)
         LOAD_SLOT(TIME_MIN, TimeMin)
+        LOAD_SLOT(TIME_MEAN, TimeMean)
         LOAD_SLOT(TIME_MAX, TimeMax)
         // read in filter specific slots
         std::vector<std::string> filters;
@@ -312,10 +314,11 @@ SourceClusterTable::SourceClusterTable(
     PTR(lsst::afw::table::IdFactory) const & idFactory
 ) : lsst::afw::table::SimpleTable(schema, idFactory),
     _keyCoordErr(),
-    _keyCoord2(),
-    _keyCoord2Err(),
+    _keyWeightedCoord(),
+    _keyWeightedCoordErr(),
     _keyNumSources(),
     _keyTimeMin(),
+    _keyTimeMean(),
     _keyTimeMax(),
     _filterSlots()
 { }
@@ -323,10 +326,11 @@ SourceClusterTable::SourceClusterTable(
 SourceClusterTable::SourceClusterTable(SourceClusterTable const & other) :
     lsst::afw::table::SimpleTable(other),
     _keyCoordErr(other._keyCoordErr),
-    _keyCoord2(other._keyCoord2),
-    _keyCoord2Err(other._keyCoord2Err),
+    _keyWeightedCoord(other._keyWeightedCoord),
+    _keyWeightedCoordErr(other._keyWeightedCoordErr),
     _keyNumSources(other._keyNumSources),
     _keyTimeMin(other._keyTimeMin),
+    _keyTimeMean(other._keyTimeMean),
     _keyTimeMax(other._keyTimeMax),
     _filterSlots(other._filterSlots)
 { }

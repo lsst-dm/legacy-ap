@@ -36,11 +36,18 @@
 #include "lsst/ap/cluster/optics/Optics.cc"
 
 using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::NotFoundException;
+
 using lsst::pex::logging::Log;
+
+using lsst::afw::coord::IcrsCoord;
+
 using lsst::afw::geom::AffineTransform;
 using lsst::afw::geom::Angle;
 using lsst::afw::geom::radians;
+
 using lsst::afw::image::Filter;
+
 using lsst::afw::table::Covariance;
 using lsst::afw::table::Field;
 using lsst::afw::table::Flag;
@@ -53,7 +60,9 @@ using lsst::afw::table::SourceTable;
 using lsst::afw::table::Schema;
 using lsst::afw::table::SchemaMapper;
 using lsst::afw::table::Shape;
+
 using lsst::ap::match::ExposureInfo;
+
 using lsst::ap::utils::PT1SkyTile;
 
 
@@ -73,31 +82,32 @@ namespace {
     void addFlux(Schema & schema,
                  Schema const & proto,
                  std::string const & filter,
-                 Key<Flux::MeasTag> const & flux,
-                 Key<Flux::ErrTag> const & fluxErr)
+                 std::string const & name)
     {
-        if (flux.isValid()) {
-            std::string const name = proto.find(flux).field.getName();
-            std::string doc(fluxErr.isValid() ? "inverse variance " : "un");
-            doc += "weighted mean of " + filter + " filter source " + name;
-            doc += " (" + proto.find(flux).field.getDoc() + ")";
-            addFluxFields(schema, filter, name, doc);
-        }
+        std::string doc = "inverse variance weighted mean of " + filter +
+                          "-filter source " + name + " (" +
+                          proto.find<Flux::MeasTag>(name).field.getDoc() + ")";
+        addFluxFields(schema, filter, name, doc);
     }
 
     void addShape(Schema & schema,
                   Schema const & proto,
                   std::string const & filter,
-                  Key<Shape::MeasTag> const & shape,
-                  Key<Shape::ErrTag> const & shapeErr)
+                  std::string const & name)
     {
-        if (shape.isValid()) {
-            std::string const name = proto.find(shape).field.getName();
-            std::string doc(shapeErr.isValid() ? "inverse variance " : "un");
-            doc += "weighted mean of " + filter + " filter source " + name;
-            doc += " (" + proto.find(shape).field.getDoc() + ")";
-            addShapeFields(schema, filter, name, doc);
+        std::string doc = "inverse variance weighted mean of " + filter +
+                          "-filter source " + name + " (" +
+                          proto.find<Shape::MeasTag>(name).field.getDoc() + ")";
+        addShapeFields(schema, filter, name, doc);
+    }
+
+    bool hasField(Schema const & schema, std::string const & name) {
+        try {
+            lsst::afw::table::SubSchema ss = schema[name];
+        } catch (NotFoundException &) {
+            return false;
         }
+        return true;
     }
 
 }   // namespace <anonymous>
@@ -189,20 +199,20 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         "obs.num",
         "number of sources in cluster");
     schema.addField<Flag>(
-        "flag.bad",
+        "flags.bad",
         "set if cluster was created from a single bad source");
     schema.addField<Flag>(
-        "flag.noise",
+        "flags.noise",
         "set if cluster was created from a single noise source");
     if (prototype.getCentroidKey().isValid() &&
         prototype.getCentroidErrKey().isValid()) {
         schema.addField<lsst::afw::table::Coord>(
-            "coord2",
+            "coord.weighted",
             "inverse variance weighted mean sky-coordinates (ICRS)",
             "rad");
         schema.addField<Covariance<lsst::afw::table::Point<double> > >(
-            "coord2.err",
-            "covariance matrix for coord2 field",
+            "coord.weighted.err",
+            "covariance matrix for coord.weighted field",
             "rad^2");
     }
     if (!control.exposurePrefix.empty()) {
@@ -221,30 +231,32 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
     }
     // Add filter specific fields
     std::vector<std::string> const filters = Filter::getNames();
-    for (Iter f = filters.begin(), e = filters.end(); f != e; ++f) {
+    for (Iter filt = filters.begin(), eFilt = filters.end(); filt != eFilt; ++filt) {
         schema.addField<int>(
-            *f + ".obs.num",
-            "number of " + *f + " filter sources in cluster");
+            *filt + ".obs.num",
+            "number of " + *filt + "-filter sources in cluster");
         if (!control.exposurePrefix.empty()) {
             schema.addField<double>(
-                *f + ".obs.time.min",
-                "earliest observation time of " + *f + " filter sources in cluster (TAI)",
+                *filt + ".obs.time.min",
+                "earliest observation time of " + *filt + "-filter sources in cluster (TAI)",
                 "mjd");
             schema.addField<double>(
-                *f + ".obs.time.max",
-                "latest observation time of " + *f + " filter sources in cluster (TAI)",
+                *filt + ".obs.time.max",
+                "latest observation time of " + *filt + "-filter sources in cluster (TAI)",
                 "mjd");
         }
-        addFlux(schema, prototype.getSchema(), *f,
-                prototype.getPsfFluxKey(), prototype.getPsfFluxErrKey());
-        addFlux(schema, prototype.getSchema(), *f,
-                prototype.getModelFluxKey(), prototype.getModelFluxErrKey());
-        addFlux(schema, prototype.getSchema(), *f,
-                prototype.getApFluxKey(), prototype.getApFluxErrKey());
-        addFlux(schema, prototype.getSchema(), *f,
-                prototype.getInstFluxKey(), prototype.getInstFluxErrKey());
-        addShape(schema, prototype.getSchema(), *f,
-                 prototype.getShapeKey(), prototype.getShapeErrKey());
+        for (Iter flux = control.fluxFields.begin(), eFlux = control.fluxFields.end();
+             flux != eFlux; ++flux) {
+            if (hasField(prototype.getSchema(), *flux)) {
+                 addFlux(schema, prototype.getSchema(), *filt, *flux);
+            }
+        }
+        for (Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
+             shape != eShape; ++shape) {
+            if (hasField(prototype.getSchema(), *shape)) {
+                 addShape(schema, prototype.getSchema(), *filt, *shape);
+            }
+        }
     }
 
     // Create table
@@ -256,34 +268,42 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
     table->defineNumSources("obs.num");
     if (prototype.getCentroidKey().isValid() &&
         prototype.getCentroidErrKey().isValid()) {
-        table->defineCoord2("coord2.err");
-        table->defineCoord2Err("coord2.err");
+        table->defineWeightedCoord("coord.weighted");
+        table->defineWeightedCoordErr("coord.weighted.err");
     }
     if (!control.exposurePrefix.empty()) {
         table->defineTimeMin("obs.time.min");
-        table->defineTimeMin("obs.time.mean");
-        table->defineTimeMin("obs.time.max");
+        table->defineTimeMean("obs.time.mean");
+        table->defineTimeMax("obs.time.max");
     }
-    for (Iter f = filters.begin(), e = filters.end(); f != e; ++f) {
-        table->defineNumSources(*f, "obs.num");
+    for (Iter filt = filters.begin(), eFilt = filters.end();
+         filt != eFilt; ++filt) {
+        table->defineNumSources(*filt, "obs.num");
         if (!control.exposurePrefix.empty()) {
-            table->defineTimeMin(*f, "obs.time.min");
-            table->defineTimeMin(*f, "obs.time.max");
+            table->defineTimeMin(*filt, "obs.time.min");
+            table->defineTimeMin(*filt, "obs.time.max");
         }
-        if (prototype.getPsfFluxKey().isValid()) {
-            table->definePsfFlux(*f, prototype.getPsfFluxDefinition());
+        std::string def = prototype.getPsfFluxDefinition();
+        Iter flux = control.fluxFields.begin(), eFlux = control.fluxFields.end();
+        if (std::find(flux, eFlux, def) != eFlux) {
+            table->definePsfFlux(*filt, def);
         }
-        if (prototype.getModelFluxKey().isValid()) {
-            table->defineModelFlux(*f, prototype.getModelFluxDefinition());
+        def = prototype.getModelFluxDefinition();
+        if (std::find(flux, eFlux, def) != eFlux) {
+            table->defineModelFlux(*filt, def);
         }
-        if (prototype.getApFluxKey().isValid()) {
-            table->defineApFlux(*f, prototype.getApFluxDefinition());
+        def = prototype.getApFluxDefinition();
+        if (std::find(flux, eFlux, def) != eFlux) {
+            table->defineApFlux(*filt, def);
         }
-        if (prototype.getInstFluxKey().isValid()) {
-            table->defineInstFlux(*f, prototype.getInstFluxDefinition());
+        def = prototype.getInstFluxDefinition();
+        if (std::find(flux, eFlux, def) != eFlux) {
+            table->defineInstFlux(*filt, def);
         }
-        if (prototype.getShapeKey().isValid()) {
-            table->defineShape(*f, prototype.getShapeDefinition());
+        def = prototype.getShapeDefinition();
+        Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
+        if (std::find(shape, eShape, def) != eShape) {
+            table->defineShape(*filt, def);
         }
     }
     return table;
@@ -385,7 +405,7 @@ void processSources(
     Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey;
     try {
         coordErrKey = sources.getSchema()["coord.err"];
-    } catch (...) {
+    } catch (NotFoundException &) {
         // no easy way to ask whether a field exists by name?
     }
     if (!control.exposurePrefix.empty()) {
@@ -521,6 +541,38 @@ std::vector<SourceCatalog> const cluster(
     }
     return clusters;
 }
+
+
+// -- Cluster attributes --------
+
+void setClusterFields(
+    SourceCatalog & sources,
+    SourceClusterRecord const & record,
+    SourceProcessingControl const & control)
+{
+    typedef SourceCatalog::iterator Iter;
+
+    if (control.clusterPrefix.empty()) {
+        return;
+    }
+    Key<int64_t> idKey;
+    Key<lsst::afw::coord::Coord> coordKey;
+    try {
+        idKey = sources.getSchema().find<int64_t>(control.clusterPrefix + ".id").key;
+        coordKey = sources.getSchema().find<lsst::afw::coord::Coord>(
+            control.clusterPrefix + ".coord").key;
+    } catch (NotFoundException &) {
+        // could not find fields with the expected name
+        return;
+    }
+    int64_t const id = record.getId();
+    IcrsCoord const coord = record.getCoord();
+    for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+        i->set(idKey, id);
+        i->set(coordKey, coord);
+    }
+}
+
 
 }}} // namespace lsst::ap::cluster
 

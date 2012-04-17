@@ -54,6 +54,21 @@ struct SourceProcessingControl {
         "A list of flag field names. If an input source has any of the "
         "corresponding flag bits set, then the source is considered \"bad\", "
         "and does not participate in spatial clustering.");
+
+    LSST_CONTROL_FIELD(fluxFields, std::vector<std::string>,
+        "A list of flux field names which should be carried over from input "
+        "source tables to output source cluster tables. Input source tables "
+        "are expected to contain fields '<flux>', '<flux>.err' and "
+        "'<flux>.flags' for each list entry ('<flux>'). The default is: "
+        "['flux.gaussian', 'flux.naive', 'flux.psf', 'flux.sinc']");
+
+    LSST_CONTROL_FIELD(shapeFields, std::vector<std::string>,
+        "A list of shape field names which should be carried over from input "
+        "source tables to output source cluster tables. Input source tables "
+        "are expected to contain fields '<shape>', '<shape>.err' and "
+        "'<shape>.flags' for each list entry ('<shape>'). The default is: "
+        "['shape.sdss']");
+
 };
 
 }}} // namespace lsst::ap::cluster

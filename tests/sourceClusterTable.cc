@@ -70,16 +70,17 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
 
     Key<int> numSources = schema.addField<int>("obs.num", "number of sources");
     Key<Flag> flag = schema.addField<Flag>("flag", "a mysterious boolean value");
-    Key<double> timeMin = schema.addField<double>("obs.time.min", "earliest observation time", "MJD");
-    Key<double> timeMax = schema.addField<double>("obs.time.max", "latest observation time", "MJD");
+    Key<double> timeMin = schema.addField<double>("obs.time.min", "earliest observation time", "mjd");
+    Key<double> timeMean = schema.addField<double>("obs.time.mean", "mean observation time", "mjd");
+    Key<double> timeMax = schema.addField<double>("obs.time.max", "latest observation time", "mjd");
     Key<Covariance<Point<double> > > coordErr = schema.addField<Covariance<Point<double> > >(
-        "coord.err", "covariance matrix for coord field", "rad^4");
-    Key<Coord> coord2 = schema.addField<Coord>("coord2", "another coordinate", "rad");
-    Key<Covariance<Point<double> > > coord2Err = schema.addField<Covariance<Point<double> > >(
-        "coord2.err", "covariance matrix for coord2 field", "rad^4");
+        "coord.err", "covariance matrix for coord field", "rad^2");
+    Key<Coord> weightedCoord = schema.addField<Coord>("coord2", "another coordinate", "rad");
+    Key<Covariance<Point<double> > > weightedCoordErr = schema.addField<Covariance<Point<double> > >(
+        "coord2.err", "covariance matrix for coord2 field", "rad^2");
     Key<int> rNumSources = schema.addField<int>("r.obs.num", "number of sources");
-    Key<double> rTimeMin = schema.addField<double>("r.obs.time.min", "earliest observation time", "MJD");
-    Key<double> rTimeMax = schema.addField<double>("r.obs.time.max", "latest observation time", "MJD");
+    Key<double> rTimeMin = schema.addField<double>("r.obs.time.min", "earliest observation time", "mjd");
+    Key<double> rTimeMax = schema.addField<double>("r.obs.time.max", "latest observation time", "mjd");
 
     KeyTuple<Flux> uModelFlux = addFluxFields(schema, "u", "flux.model", "model flux");
     KeyTuple<Flux> uApFlux = addFluxFields(schema, "u", "flux.ap", "aperture flux");
@@ -91,10 +92,11 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         schema, boost::make_shared<SourceClusterIdFactory>(1)));
 
     outcat.getTable()->defineCoordErr(coordErr);
-    outcat.getTable()->defineCoord2(coord2);
-    outcat.getTable()->defineCoord2Err(coord2Err);
+    outcat.getTable()->defineWeightedCoord(weightedCoord);
+    outcat.getTable()->defineWeightedCoordErr(weightedCoordErr);
     outcat.getTable()->defineNumSources(numSources);
     outcat.getTable()->defineTimeMin(timeMin);
+    outcat.getTable()->defineTimeMean(timeMean);
     outcat.getTable()->defineTimeMax(timeMax);
     outcat.getTable()->defineModelFlux("u", uModelFlux.mean, uModelFlux.err, uModelFlux.count);
     outcat.getTable()->defineApFlux("u", uApFlux.mean, uApFlux.err, uApFlux.count);
@@ -127,23 +129,23 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                 0.75, 1.25;
         rec->setCoord(c1);
         rec->setCoordErr(cov1);
-        rec->setCoord2(c2);
-        rec->setCoord2Err(cov2);
+        rec->setWeightedCoord(c2);
+        rec->setWeightedCoordErr(cov2);
         rec->setNumSources(15);
         rec->setTimeMin(10.0);
         rec->setTimeMax(20.0);
 
         BOOST_CHECK_EQUAL(rec->getCoord().getLongitude(), c1.getLongitude());
         BOOST_CHECK_EQUAL(rec->getCoord().getLatitude(), c1.getLatitude());
-        IcrsCoord c = rec->get(coord2);
+        IcrsCoord c = rec->get(weightedCoord);
         BOOST_CHECK_EQUAL(c.getLongitude(), c2.getLongitude());
         BOOST_CHECK_EQUAL(c.getLatitude(), c2.getLatitude());
         Eigen::Matrix2d cov = rec->get(coordErr);
         BOOST_CHECK_EQUAL(cov, cov1);
         BOOST_CHECK_EQUAL(rec->getCoordErr(), cov1);
-        cov = rec->get(coord2Err);
+        cov = rec->get(weightedCoordErr);
         BOOST_CHECK_EQUAL(cov, cov2);
-        BOOST_CHECK_EQUAL(rec->getCoord2Err(), cov2);
+        BOOST_CHECK_EQUAL(rec->getWeightedCoordErr(), cov2);
         BOOST_CHECK_EQUAL(rec->getNumSources(), 15);
         BOOST_CHECK_EQUAL(rec->get(numSources), 15);
         BOOST_CHECK_EQUAL(rec->getTimeMin(), 10.0);
@@ -209,6 +211,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         rec->setCoord(IcrsCoord(2.5*radians, -0.25*radians));
         rec->setNumSources(33);
         rec->setTimeMin(11.0);
+        rec->setTimeMean(16.0);
         rec->setTimeMax(21.0);
 
         rec->setPsfFlux("u", 1000.0);
@@ -248,14 +251,16 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
 
     BOOST_CHECK_EQUAL(incat.getTable()->getCoordErrKey(),
                       outcat.getTable()->getCoordErrKey());
-    BOOST_CHECK_EQUAL(incat.getTable()->getCoord2Key(),
-                      outcat.getTable()->getCoord2Key());
-    BOOST_CHECK_EQUAL(incat.getTable()->getCoord2ErrKey(),
-                      outcat.getTable()->getCoord2ErrKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordKey(),
+                      outcat.getTable()->getWeightedCoordKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordErrKey(),
+                      outcat.getTable()->getWeightedCoordErrKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getNumSourcesKey(),
                       outcat.getTable()->getNumSourcesKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getTimeMinKey(),
                       outcat.getTable()->getTimeMinKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getTimeMeanKey(),
+                      outcat.getTable()->getTimeMeanKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getTimeMaxKey(),
                       outcat.getTable()->getTimeMaxKey());
 
@@ -310,10 +315,12 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         SourceClusterRecord const & b = incat[0];
         BOOST_CHECK_EQUAL(a.getCoord(), b.getCoord());
         BOOST_CHECK_EQUAL(a.getCoordErr(), b.getCoordErr());
-        BOOST_CHECK_EQUAL(a.getCoord2(), b.getCoord2());
-        BOOST_CHECK_EQUAL(a.getCoord2Err(), b.getCoord2Err());
+        BOOST_CHECK_EQUAL(a.getWeightedCoord(), b.getWeightedCoord());
+        BOOST_CHECK_EQUAL(a.getWeightedCoordErr(), b.getWeightedCoordErr());
         BOOST_CHECK_EQUAL(a.getNumSources(), b.getNumSources());
         BOOST_CHECK_EQUAL(a.getTimeMin(), b.getTimeMin());
+        BOOST_CHECK(lsst::utils::isnan(a.getTimeMean()) &&
+                    lsst::utils::isnan(b.getTimeMean()));
         BOOST_CHECK_EQUAL(a.getTimeMax(), b.getTimeMax());
         BOOST_CHECK_EQUAL(a.getNumSources("r"), b.getNumSources("r"));
         BOOST_CHECK_EQUAL(a.getTimeMin("r"), b.getTimeMin("r"));
@@ -339,13 +346,14 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(a.getCoord(), b.getCoord());
         BOOST_CHECK_EQUAL(a.getNumSources(), b.getNumSources());
         BOOST_CHECK_EQUAL(a.getTimeMin(), b.getTimeMin());
+        BOOST_CHECK_EQUAL(a.getTimeMean(), b.getTimeMean());
         BOOST_CHECK_EQUAL(a.getTimeMax(), b.getTimeMax());
         BOOST_CHECK_EQUAL(a.getInstFluxErr("r"), b.getInstFluxErr("r"));
         BOOST_CHECK_EQUAL(a.getPsfFlux("u"), b.getPsfFlux("u"));
         BOOST_CHECK_EQUAL(a.getApFlux("u"), b.getApFlux("u"));
         BOOST_CHECK_EQUAL(a.getModelFlux("u"), b.getModelFlux("u"));
         Eigen::Matrix2d cova = a.getCoordErr(), covb = b.getCoordErr(),
-                        cov2a = a.getCoord2Err(), cov2b = b.getCoord2Err();
+                        cov2a = a.getWeightedCoordErr(), cov2b = b.getWeightedCoordErr();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < 2; ++j) {
                 BOOST_CHECK(lsst::utils::isnan(cova(i,j)) &&
@@ -354,7 +362,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                             lsst::utils::isnan(cov2b(i,j)));
             }
         }
-        IcrsCoord ca = a.getCoord2(), cb = b.getCoord2();
+        IcrsCoord ca = a.getWeightedCoord(), cb = b.getWeightedCoord();
         BOOST_CHECK(lsst::utils::isnan(ca.getLongitude().asRadians()) &&
                     lsst::utils::isnan(ca.getLatitude().asRadians()) &&
                     lsst::utils::isnan(cb.getLongitude().asRadians()) &&

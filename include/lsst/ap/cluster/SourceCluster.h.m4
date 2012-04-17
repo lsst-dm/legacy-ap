@@ -235,9 +235,9 @@ public:
 
     DECLARE_SLOT_ACCESSORS(`CoordErr', `Eigen::Matrix<double,2,2>',
         `the uncertainty of the sky-coordinates of the cluster')
-    DECLARE_SLOT_ACCESSORS(`Coord2', `lsst::afw::coord::IcrsCoord',
+    DECLARE_SLOT_ACCESSORS(`WeightedCoord', `lsst::afw::coord::IcrsCoord',
         `the inverse variance weighted mean sky-coordinates of the cluster')
-    DECLARE_SLOT_ACCESSORS(`Coord2Err', `Eigen::Matrix<double,2,2>',
+    DECLARE_SLOT_ACCESSORS(`WeightedCoordErr', `Eigen::Matrix<double,2,2>',
         `the uncertainty of the the inverse variance weighted mean sky-coordinates of the cluster')
     DECLARE_SLOT_ACCESSORS(`NumSources', `int',
         `the number of sources in the cluster')
@@ -350,8 +350,8 @@ public:
     /// @brief Convenience definers for filter-agnostic keys.
 
     DECLARE_SLOT_DEFINERS(`CoordErr', `lsst::afw::table::Covariance<lsst::afw::table::Point<double> > ')
-    DECLARE_SLOT_DEFINERS(`Coord2', `lsst::afw::coord::Coord')
-    DECLARE_SLOT_DEFINERS(`Coord2Err', `lsst::afw::table::Covariance<lsst::afw::table::Point<double> > ')
+    DECLARE_SLOT_DEFINERS(`WeightedCoord', `lsst::afw::coord::Coord')
+    DECLARE_SLOT_DEFINERS(`WeightedCoordErr', `lsst::afw::table::Covariance<lsst::afw::table::Point<double> > ')
     DECLARE_SLOT_DEFINERS(`NumSources', `int')
     DECLARE_SLOT_DEFINERS(`TimeMin', `double')
     DECLARE_SLOT_DEFINERS(`TimeMean', `double')
@@ -404,8 +404,8 @@ private:
     FilterSlots const & getFilterSlots(std::string const & filter) const;
 
     lsst::afw::table::Key<lsst::afw::table::Covariance<lsst::afw::table::Point<double> > > _keyCoordErr;
-    lsst::afw::table::Key<lsst::afw::coord::Coord> _keyCoord2;
-    lsst::afw::table::Key<lsst::afw::table::Covariance<lsst::afw::table::Point<double> > > _keyCoord2Err;
+    lsst::afw::table::Key<lsst::afw::coord::Coord> _keyWeightedCoord;
+    lsst::afw::table::Key<lsst::afw::table::Covariance<lsst::afw::table::Point<double> > > _keyWeightedCoordErr;
     lsst::afw::table::Key<int> _keyNumSources;
     lsst::afw::table::Key<double> _keyTimeMin;
     lsst::afw::table::Key<double> _keyTimeMean;
@@ -519,8 +519,8 @@ typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> SourceClusterCatal
 typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstSourceClusterCatalog;
 
 DEFINE_SLOT_ACCESSORS(`CoordErr', `Eigen::Matrix<double,2,2>')
-DEFINE_SLOT_ACCESSORS(`Coord2', `lsst::afw::coord::IcrsCoord')
-DEFINE_SLOT_ACCESSORS(`Coord2Err', `Eigen::Matrix<double,2,2>')
+DEFINE_SLOT_ACCESSORS(`WeightedCoord', `lsst::afw::coord::IcrsCoord')
+DEFINE_SLOT_ACCESSORS(`WeightedCoordErr', `Eigen::Matrix<double,2,2>')
 DEFINE_SLOT_ACCESSORS(`NumSources', `int')
 DEFINE_SLOT_ACCESSORS(`TimeMin', `double')
 DEFINE_SLOT_ACCESSORS(`TimeMean', `double')
