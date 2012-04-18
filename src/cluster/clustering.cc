@@ -82,12 +82,13 @@ namespace {
     void addFlux(Schema & schema,
                  Schema const & proto,
                  std::string const & filter,
-                 std::string const & name)
+                 std::string const & name,
+                 std::string const & unit)
     {
         std::string doc = "inverse variance weighted mean of " + filter +
                           "-filter source " + name + " (" +
                           proto.find<Flux::MeasTag>(name).field.getDoc() + ")";
-        addFluxFields(schema, filter, name, doc);
+        addFluxFields(schema, filter, name, doc, unit);
     }
 
     void addShape(Schema & schema,
@@ -214,6 +215,9 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
             "coord.weighted.err",
             "covariance matrix for coord.weighted field",
             "rad^2");
+        schema.addField<int>(
+            "coord.weighted.count",
+            "number of samples used to compute coord.weighted");
     }
     if (!control.exposurePrefix.empty()) {
         schema.addField<double>(
@@ -248,7 +252,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         for (Iter flux = control.fluxFields.begin(), eFlux = control.fluxFields.end();
              flux != eFlux; ++flux) {
             if (hasField(prototype.getSchema(), *flux)) {
-                 addFlux(schema, prototype.getSchema(), *filt, *flux);
+                 addFlux(schema, prototype.getSchema(), *filt, *flux, control.fluxUnit);
             }
         }
         for (Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
@@ -270,6 +274,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         prototype.getCentroidErrKey().isValid()) {
         table->defineWeightedCoord("coord.weighted");
         table->defineWeightedCoordErr("coord.weighted.err");
+        table->defineWeightedCoordCount("coord.weighted.count");
     }
     if (!control.exposurePrefix.empty()) {
         table->defineTimeMin("obs.time.min");

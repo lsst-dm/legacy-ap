@@ -71,37 +71,74 @@ private:
 
 /** Computes basic cluster attributes.
   *
-  * TODO
-  * an unweighted position mean for the given cluster,
-  * and sets earliest/mean/latest observation times.
+  *
+  *
+  * @return    A list of source / exposure information pairs, grouped by filter.
   */
-std::vector<SourceAndExposure> const computeBasicAttributes(
-    SourceClusterRecord & cluster,
-    lsst::afw::table::SourceCatalog & sources,
-    lsst::ap::match::ExposureInfoMap & exposures,
-    SourceProcessingControl const & control
+boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
+    SourceClusterRecord & cluster,                      ///< @param[out] Cluster to store results in.
+    lsst::afw::table::SourceCatalog const & sources,    ///< @param[in]  Sources in cluster.
+    lsst::ap::match::ExposureInfoMap const & exposures, ///< @param[in]  Map from exposure ID to exposure information.
+    std::string const & exposurePrefix                  ///< @param[in]  Exposure column name prefix.
 );
 
-/** Compute per-filter calibrated flux means for a cluster.
-  *  
+/** Compute per-filter calibrated flux means for a cluster of sources.
+  *
+  * The input source vector is assumed to be grouped by filter. Flux
+  * measurments and errors are obtained from fields named '<fluxDef>'
+  * and '<fluxDef>.err'. Results are stored in fields named 
+  * '<filter>.<fluxDef>' and '<filter>.<fluxDef>.err', with a sample count
+  * stored in '<filter>.<fluxDef>.count' field. For an input source
+  * to be included in the mean, the following must hold:
+  *     - the source must have finite flux
+  *     - the source must have positive flux error
+  *     - none of the flag fields in skipFlags must be set.
+  *
+  * If, after applying these filtering critera, 2 or more flux samples
+  * are available, then the inverse variance weighted mean of the samples
+  * (after calibration) is computed and stored. If only one sample is
+  * available, the input flux and error are calibrated and stored directly.
+  * If no samples are available, the output flux, error, and sample count
+  * fields are left untouched.
   */
 void computeFluxMean(
-    SourceClusterRecord & cluster,
-    std::vector<SourceAndExposure> const & sources,
-    std::string const & fluxDef,
+    SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
+    std::vector<SourceAndExposure> const & sources, ///< @param[in]  List of sources and their exposures.
+    std::string const & fluxDef,                    ///< @param[in]  Name of flux field to operate on.
     std::vector<lsst::afw::table::Key<lsst::afw::table::Flag > > const & skipFlags,
-    double fluxScale
+                                                    ///< @param[in]  Flags marking sources to skip.
+    double fluxScale                                ///< @param[in]  Flux scaling factor.
 );
 
 /** Compute per-filter shape means for a cluster.
   *
+  * The input source vector is assumed to be grouped by filter. Shape 
+  * measurments and errors are obtained from fields named '<shapeDef>'
+  * and '<shapeDef>.err'. Results are stored in fields named 
+  * '<filter>.<shapeDef>' and '<filter>.<shapeDef>.err', with a sample
+  * count stored in '<filter>.<shapeDef>.count' field. For an input
+  * source to be included in the mean, the following must hold:
+  *     - the source must have finite moments
+  *     - the source must have positive entries in the covariance
+  *       matrix diagonals
+  *     - off diagonal elements of the covariance matrix must not be NaN
+  *     - the covariance matrix must be symmetric.
+  *     - none of the flag fields in skipFlags must be set.
+  *
+  * If, after applying these filtering critera, 2 or more shape samples
+  * are available, then the inverse variance weighted mean of the samples
+  * (after transformation to a coordinate system S centered on the cluster
+  * position with the standard N,E basis) is computed and stored. If only
+  * one sample is available, the input shape and error are transformed to S
+  * and stored directly. If no samples are available, the output moments,
+  * covariance matrix, and sample count fields are left untouched.
   */
 void computeShapeMean(
-    SourceClusterRecord & cluster,
-    SourceProcessingControl const & control,
-    std::vector<SourceAndExposure> const & sources,
-    std::string const & shapeDef,
+    SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
+    std::vector<SourceAndExposure> const & sources, ///< @param[in]  List of sources and their exposures.
+    std::string const & shapeDef,                   ///< @param[in]  Name of shape field to operate on.
     std::vector<lsst::afw::table::Key<lsst::afw::table::Flag > > const & skipFlags
+                                                    ///< @param[in]  Flags marking sources to skip.
 );
 
 }}} // namespace lsst::ap::cluster

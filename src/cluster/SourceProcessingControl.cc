@@ -35,6 +35,8 @@ SourceProcessingControl::SourceProcessingControl() :
     exposurePrefix("exposure"),
     clusterPrefix("cluster"),
     badFlagFields(),
+    fluxScale(3.63078054770101342467371212362e-20),
+    fluxUnit("erg/s/cm^2/Hz"),
     fluxFields(),
     shapeFields()
 {

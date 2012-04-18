@@ -55,6 +55,18 @@ struct SourceProcessingControl {
         "corresponding flag bits set, then the source is considered \"bad\", "
         "and does not participate in spatial clustering.");
 
+    LSST_CONTROL_FIELD(fluxScale, double,
+        "Scaling factor applied to F/F_0 prior to averaging, where F is "
+        "an uncalibrated source flux and F_0 is the flux of a 0-magnitude "
+        "object for the corresponding exposure. The default scaling factor "
+        "S is chosen such that the AB magnitude "
+        "-2.5*log10(S*F/F_0) - 48.6 = 0 when F = F_0, and is equal to "
+        "3.63078054770101342467371212362e-20");
+
+    LSST_CONTROL_FIELD(fluxUnit, std::string,
+        "Unit of calibrated flux. The default corresponds to an 'AB flux': "
+        "erg/s/cm^2/Hz.");
+
     LSST_CONTROL_FIELD(fluxFields, std::vector<std::string>,
         "A list of flux field names which should be carried over from input "
         "source tables to output source cluster tables. Input source tables "

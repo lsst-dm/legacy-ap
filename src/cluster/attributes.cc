@@ -31,18 +31,28 @@
 #include <utility>
 
 #include "lsst/utils/ieee.h"
-#include "lsst/afw/table/Schema.h"
+#include "lsst/ap/utils/SpatialUtils.h"
 
 
 using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::NotFoundException;
 
+using lsst::afw::coord::IcrsCoord;
+
+using lsst::afw::geom::HALFPI;
 using lsst::afw::geom::AffineTransform;
 using lsst::afw::geom::LinearTransform;
+using lsst::afw::geom::Point2D;
+using lsst::afw::geom::radians;
 using lsst::afw::geom::ellipses::Quadrupole;
 
+using lsst::afw::image::Wcs;
+
+using lsst::afw::table::Covariance;
 using lsst::afw::table::Flag;
 using lsst::afw::table::Flux;
 using lsst::afw::table::Key;
+using lsst::afw::table::SourceCatalog;
 using lsst::afw::table::SourceRecord;
 using lsst::afw::table::Schema;
 using lsst::afw::table::Shape;
@@ -64,19 +74,323 @@ SourceAndExposure::SourceAndExposure(
 SourceAndExposure::~SourceAndExposure() { }
 
 
+// -- Basic attributes ---------
+
+namespace {
+
+    // Compute unweighted position mean for the given sources.
+    void meanCoord(SourceClusterRecord & cluster, SourceCatalog const & sources) {
+        typedef SourceCatalog::const_iterator Iter;
+        // compute point v such that the sum of the squared angular separations
+        // between v and each source position is minimized.
+        Eigen::Vector3d v = Eigen::Vector3d::Zero();
+        for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+            v += i->getCoord().getVector().asEigen();
+        }
+        IcrsCoord c = lsst::ap::utils::cartesianToIcrs(v);
+        cluster.setCoord(c);
+        Eigen::Matrix2d cov;
+        if (sources.size() == 1) {
+            // copy position error from source (if available)
+            try {
+                Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey =
+                    sources[0].getSchema()[std::string("coord.err")];
+                cov = sources[0].get(coordErrKey);
+            } catch (NotFoundException &) {
+                cov = Eigen::Matrix2d::Constant(std::numeric_limits<double>::quiet_NaN());
+            }
+        } else {
+            // compute sample covariance matrix ...
+            cov = Eigen::Matrix2d::Zero();
+            for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+                double dra = i->getRa() - c.getRa();
+                double dde = i->getDec() - c.getDec();
+                cov(0,0) += dra * dra;
+                cov(0,1) += dra * dde;
+                cov(1,1) += dde * dde;
+            }
+            cov(1,0) = cov(0,1);
+            // ... and map to unbiased estimate of the covariance
+            // of the unweighted coordinate mean
+            cov /= static_cast<double>(sources.size() - 1);
+        }
+        cluster.setCoordErr(cov);
+    }
+
+
+    // A tangent plane projection with the standard N,E basis.
+    class NeTanProj {
+    public:
+        NeTanProj(IcrsCoord const & center);
+
+        // Map N,E coordinates to sky coordinates.
+        Eigen::Vector2d const neToSky(Eigen::Vector2d const & ne) const {
+            return lsst::ap::utils::cartesianToSpherical(
+                _origin + ne.x() * _east + ne.y() * _north);
+        }
+
+        // Map covariance matrix in the N,E tangent plane projection to sky coordinates.
+        Eigen::Matrix2d const neToSky(Eigen::Matrix2d const & cov) const {
+            return _jDiag.asDiagonal() * cov * _jDiag.asDiagonal();
+        }
+
+        // Compute a mapping from the given pixel space to this tangent plane.
+        AffineTransform const pixelToNeTransform(
+            Eigen::Vector2d const &point, Wcs const &wcs) const;
+
+    private:
+        IcrsCoord _center;
+        Eigen::Vector3d _origin;
+        Eigen::Vector3d _north;
+        Eigen::Vector3d _east;
+        Eigen::Vector2d _jDiag;
+    };
+
+    NeTanProj::NeTanProj(IcrsCoord const & center) : _center(center) {
+        double sinLon = std::sin(center.getLongitude().asRadians());
+        double cosLon = std::cos(center.getLongitude().asRadians());
+        double sinLat = std::sin(center.getLatitude().asRadians());
+        double cosLat = std::cos(center.getLatitude().asRadians());
+        _origin = Eigen::Vector3d(cosLat * cosLon, cosLat * sinLon, sinLat);
+        if (std::fabs(center.getLatitude().asRadians()) == HALFPI) {
+            _north = Eigen::Vector3d(-1.0, 0.0, 0.0);
+            _east = Eigen::Vector3d(0.0, 1.0, 0.0);
+        } else {
+            _north = Eigen::Vector3d(-sinLat * cosLon, -sinLat * sinLon, cosLat);
+            _east = Eigen::Vector3d(-sinLon, cosLon, 0.0);
+        }
+        // The Jacobian of the N,E to sky transform evaluated at (x,y) = (0,0) is
+        // [ 1/cos(lat), 0
+        //   0,          1 ]
+        // which is undefined when the tangent plane is centered at a pole.
+        // Maybe the LSST schema should specify position errors in the N,E basis,
+        // e.g. the usual semi major/minor axis lengths + position angle?
+        _jDiag = Eigen::Vector2d(1.0 / cosLat, 1.0);
+    }
+
+    AffineTransform const NeTanProj::pixelToNeTransform(
+        Eigen::Vector2d const &point, Wcs const &wcs) const
+    {
+        double const pix = 8.0;
+        double const invPix = 1.0 / pix; // exact
+
+        Eigen::Vector3d p = wcs.pixelToSky(
+            point.x(), point.y())->toIcrs().getVector().asEigen();
+        Eigen::Vector3d px = wcs.pixelToSky(
+            point.x() + pix, point.y())->toIcrs().getVector().asEigen();
+        Eigen::Vector3d py = wcs.pixelToSky(
+            point.x(), point.y() + pix)->toIcrs().getVector().asEigen();
+
+        Eigen::Vector2d pne(p.dot(_east), p.dot(_north));
+        Eigen::Vector2d pxne(px.dot(_east), px.dot(_north));
+        Eigen::Vector2d pyne(py.dot(_east), py.dot(_north));
+        pne /= p.dot(_origin);
+        pxne /= px.dot(_origin);
+        pyne /= py.dot(_origin);
+
+        Eigen::Matrix2d m;
+        m.col(0) = (pxne - pne)*invPix;
+        m.col(1) = (pyne - pne)*invPix;
+
+        return AffineTransform(m, pne - m*point);
+    }
+
+
+    // Min, mean, and max value of a source field.
+    struct StatTuple {
+        StatTuple();
+        void compute(
+            std::vector<SourceAndExposure>::const_iterator first,
+            std::vector<SourceAndExposure>::const_iterator last,
+            Key<double> const & key);
+
+        double min;
+        double mean;
+        double max;
+    };
+
+    StatTuple::StatTuple() :
+        min(std::numeric_limits<double>::quiet_NaN()),
+        mean(std::numeric_limits<double>::quiet_NaN()),
+        max(std::numeric_limits<double>::quiet_NaN())
+    { }
+
+    void StatTuple::compute(
+        std::vector<SourceAndExposure>::const_iterator first,
+        std::vector<SourceAndExposure>::const_iterator last,
+        Key<double> const & key)
+    {
+        if (first == last) {
+            min = std::numeric_limits<double>::quiet_NaN();
+            mean = std::numeric_limits<double>::quiet_NaN();
+            max = std::numeric_limits<double>::quiet_NaN();
+        } else {
+            min = std::numeric_limits<double>::infinity();
+            max = -min;
+            mean = 0.0;
+            double ns = static_cast<double>(last - first);
+            for (; first != last; ++first) {
+                double val = first->getSource()->get(key);
+                if (val < min) {
+                    min = val;
+                }
+                if (val > max) {
+                    max = val;
+                }
+                mean += val;
+            }
+            mean /= ns;
+            if (mean < min) {
+                mean = min;
+            } else if (mean > max) {
+                mean = max;
+            }
+        }
+    }
+
+
+    // Compute weighted position mean for the given sources.
+    void weightedMeanCoord(
+        SourceClusterRecord & cluster,
+        std::vector<SourceAndExposure> const & sources,
+        NeTanProj const & proj)
+    {
+        typedef std::vector<SourceAndExposure>::const_iterator Iter;
+
+        int n = 0;
+        Eigen::Vector2d wmean = Eigen::Vector2d::Zero();
+        Eigen::Matrix2d invCovSum = Eigen::Matrix2d::Zero();
+        for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
+            SourceRecord const & r = *(i->getSource());
+            Eigen::Matrix2d cov = r.getCentroidErr();
+            if (lsst::utils::isnan(cov(0,0)) ||
+                lsst::utils::isnan(cov(0,1)) ||
+                lsst::utils::isnan(cov(1,1))) {
+                continue; // covariance matrix contains NaNs
+            } else if (cov(0,0) <= 0.0 || cov(1,1) <= 0.0) {
+                continue; // negative variance
+            } else if (cov(0,1) != cov(1,0)) {
+                continue; // not symmetric!
+            }
+            Point2D p = r.getCentroid();
+            Eigen::Matrix2d m = i->getTransform().getLinear().getMatrix();
+            Eigen::Matrix2d invCov = (m * cov * m.transpose()).inverse();
+            invCovSum += invCov;
+            p = i->getTransform()(p);
+            wmean += invCov * p.asEigen();
+            ++n;
+        }
+        if (n > 0) {
+            Eigen::Matrix2d cov = invCovSum.inverse();
+            wmean = cov * wmean;
+            wmean = proj.neToSky(wmean);
+            cluster.setWeightedCoord(IcrsCoord(
+                wmean.x() * radians, wmean.y() * radians));
+            cluster.setWeightedCoordErr(proj.neToSky(cov));
+            // chi-squared correction for cov?
+        } else {
+            cluster.setWeightedCoord(IcrsCoord(
+                std::numeric_limits<double>::quiet_NaN() * radians,
+                std::numeric_limits<double>::quiet_NaN() * radians));
+            cluster.setWeightedCoordErr(Eigen::Matrix2d::Constant(
+                std::numeric_limits<double>::quiet_NaN()));
+        }
+        cluster.setWeightedCoordCount(n);
+    }
+
+
+    // Comparison functor for sorting std::vector<SourceAndExposure> by filter ID.
+    struct CmpSourceAndExposure {
+        bool operator()(SourceAndExposure const & a, SourceAndExposure const & b) const {
+            return a.getExposureInfo()->getFilter().getId() <
+                   b.getExposureInfo()->getFilter().getId();
+        }
+    };
+
+} // namespace <anonymous>
+
+
+boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
+    SourceClusterRecord & cluster,
+    SourceCatalog const & sources,
+    ExposureInfoMap const & exposures,
+    std::string const & exposurePrefix)
+{
+    typedef SourceCatalog::const_iterator SourceIter;
+    typedef std::vector<SourceAndExposure>::const_iterator SeIter;
+
+    if (sources.empty()) {
+        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
+    }
+    // unweighted mean coordinates
+    meanCoord(cluster, sources);
+
+    boost::shared_ptr<std::vector<SourceAndExposure> > se(
+        new std::vector<SourceAndExposure>);
+    NeTanProj const proj(cluster.getCoord());
+    Schema const schema = sources.getSchema();
+    Key<int64_t> const expIdKey = schema.find<int64_t>(exposurePrefix + ".id").key;
+    Key<double> const expTimeMidKey = schema.find<double>(exposurePrefix + ".time.mid").key;
+    // fill in vector of source,exposure pairs
+    se->reserve(sources.size());
+    for (SourceIter i = sources.begin(), e = sources.end(); i != e; ++i) {
+        boost::shared_ptr<ExposureInfo> exp =
+            const_cast<ExposureInfoMap &>(exposures).get(i->get(expIdKey));
+        if (!exp) {
+            throw LSST_EXCEPT(NotFoundException, "No ExposureInfo for source");
+        }
+        se->push_back(SourceAndExposure(
+            i, exp, proj.pixelToNeTransform(i->getCentroid().asEigen(), *exp->getWcs())));
+    }
+    // source counts and observation time range
+    StatTuple t;
+    t.compute(se->begin(), se->end(), expTimeMidKey);
+    cluster.setNumSources(static_cast<int>(sources.size()));
+    cluster.setTimeMin(t.min);
+    cluster.setTimeMean(t.mean);
+    cluster.setTimeMax(t.max);
+    // inverse variance weighted mean coordinates
+    if (sources.getTable()->getCentroidKey().isValid() &&
+        sources.getTable()->getCentroidErrKey().isValid()) {
+        weightedMeanCoord(cluster, *se, proj);
+    }
+    // sort source,exposure vector by filter
+    std::sort(se->begin(), se->end(), CmpSourceAndExposure());
+    // per-filter source counts and observation time range
+    SeIter i = se->begin();
+    SeIter const e = se->end();
+    while (i != e) {
+        int const filterId = i->getExposureInfo()->getFilter().getId();
+        SeIter j = i;
+        for (++j; j != e && filterId == j->getExposureInfo()->getFilter().getId(); ++j) { }
+        std::string const filterName = i->getExposureInfo()->getFilter().getName();
+        cluster.setNumSources(filterName, static_cast<int>(j - i));
+        t.compute(i, j, expTimeMidKey);
+        cluster.setTimeMin(filterName, t.min);
+        cluster.setTimeMax(filterName, t.max);
+        i = j;
+    }
+    return se;
+}
+
+
 // -- Flux --------
 
 namespace {
 
     typedef std::pair<double, double> FluxAndErr;
 
-    FluxAndErr const inverseVarianceWeightedMean(std::vector<FluxAndErr> const & samples) {
+    FluxAndErr const weightedMeanFlux(std::vector<FluxAndErr> const & samples)
+    {
         typedef std::vector<FluxAndErr>::const_iterator Iter;
         if (samples.empty()) {
-            throw LSST_EXCEPT(InvalidParameterException, "No samples supplied");
+            return FluxAndErr(std::numeric_limits<double>::quiet_NaN(),
+                              std::numeric_limits<double>::quiet_NaN());
         } else if (samples.size() == 1) {
             return std::make_pair(samples[0].first, std::sqrt(samples[0].second));
         }
+        // compute weighted mean x_w = sum(w_i * x_i) / sum(w_i), where
+        // w_i = 1/Var(x_i)
         double wsum = 0.0;
         double wmean = 0.0;
         for (Iter i = samples.begin(), e = samples.end(); i != e; ++i) {
@@ -85,6 +399,10 @@ namespace {
             wsum += w;
         }
         wmean /= wsum;
+        // Var(sum(w_i * x_i) / sum(w_i)) = sum(w_i)^-1
+        // Multiply by chi-squared over the number of degrees of freedom to
+        // account for errors in the variances of the individual samples,
+        // yielding Var(x_w) = sum(w_i)^-1 * sum(w_i * (x_i - x_w)) / (n - 1)
         double vwm = 0.0;
         for (Iter i = samples.begin(), e = samples.end(); i != e; ++i) {
             double d = i->first - wmean;
@@ -107,7 +425,7 @@ void computeFluxMean(
     typedef std::vector<Key<Flag > >::const_iterator FlagIter;
 
     if (sources.empty()) {
-        return;
+        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
     }
     Schema const sourceSchema = sources[0].getSource()->getSchema();
     Schema const clusterSchema = cluster.getSchema();
@@ -144,16 +462,14 @@ void computeFluxMean(
             }
             samples.push_back(i->getExposureInfo()->calibrateFlux(flux, fluxErr, fluxScale));
         }
-        if (!samples.empty()) {
-            FluxAndErr mean = inverseVarianceWeightedMean(samples);
-            std::string const filter = i->getExposureInfo()->getFilter().getName();
-            Flux::MeasKey const measKey = clusterSchema[filter + "." + fluxDef];
-            cluster.set(measKey, mean.first);
-            Flux::ErrKey const errKey = clusterSchema[filter + "." + fluxDef + ".err"];
-            cluster.set(errKey, mean.second);
-            Key<int> const countKey = clusterSchema[filter + "." + fluxDef + ".count"];
-            cluster.set(countKey, static_cast<int>(samples.size()));
-        }
+        FluxAndErr mean = weightedMeanFlux(samples);
+        std::string const filter = i->getExposureInfo()->getFilter().getName();
+        Flux::MeasKey const measKey = clusterSchema[filter + "." + fluxDef];
+        cluster.set(measKey, mean.first);
+        Flux::ErrKey const errKey = clusterSchema[filter + "." + fluxDef + ".err"];
+        cluster.set(errKey, mean.second);
+        Key<int> const countKey = clusterSchema[filter + "." + fluxDef + ".count"];
+        cluster.set(countKey, static_cast<int>(samples.size()));
     }
 }
 
@@ -162,14 +478,19 @@ void computeFluxMean(
 
 namespace {
 
-    typedef std::pair<Quadrupole, Eigen::Matrix3d> ShapeAndErr;
+    typedef std::pair<Quadrupole, Eigen::Matrix<double, 3, 3, Eigen::DontAlign> > ShapeAndErr;
 
-    ShapeAndErr const inverseVarianceWeightedMean(std::vector<ShapeAndErr> const & samples) {
+    void weightedMeanShape(ShapeAndErr & result, std::vector<ShapeAndErr> const & samples)
+    {
         typedef std::vector<ShapeAndErr>::const_iterator Iter;
         if (samples.empty()) {
-            throw LSST_EXCEPT(InvalidParameterException, "No samples supplied");
+            result.first.setParameterVector(
+                Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN()));
+            result.second = Eigen::Matrix3d::Constant(std::numeric_limits<double>::quiet_NaN());
+            return;
         } else if (samples.size() == 1) {
-            return samples[0];
+            result = samples[0];
+            return;
         }
 
         Eigen::Matrix3d invCovSum = Eigen::Matrix3d::Zero();
@@ -181,7 +502,9 @@ namespace {
         }
         Eigen::Matrix3d cov = invCovSum.inverse();
         wmean = cov * wmean;
-        return ShapeAndErr(Quadrupole(wmean), cov);
+        result.first = Quadrupole(wmean);
+        result.second = cov;
+        // chi-squared correction for cov?
     }
 
 } // namespace <anonymous>
@@ -197,7 +520,7 @@ void computeShapeMean(
     typedef std::vector<Key<Flag > >::const_iterator FlagIter;
 
     if (sources.empty()) {
-        return;
+        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
     }
     Schema const sourceSchema = sources[0].getSource()->getSchema();
     Schema const clusterSchema = cluster.getSchema();
@@ -243,30 +566,28 @@ void computeShapeMean(
             } else if (cov(0,0) <= 0.0 ||
                        cov(1,1) <= 0.0 ||
                        cov(2,2) <= 0.0) {
-                continue; // negative variance ?!
-            }
-            if (cov(0,1) != cov(1,0) ||
-                cov(0,2) != cov(2,0) ||
-                cov(1,2) != cov(2,1)) {
+                continue; // negative variance
+            } else if (cov(0,1) != cov(1,0) ||
+                       cov(0,2) != cov(2,0) ||
+                       cov(1,2) != cov(2,1)) {
                 continue; // not symmetric!
             }
-            // transform quadrupole moments and covariance matrix to N,E basis
+            // transform moments and covariance matrix to N,E basis
             LinearTransform const * xform = &(i->getTransform().getLinear());
             Eigen::Matrix3d j = q.transform(*xform).d();
             q.transform(*xform).inPlace();
             cov = j * cov * j.transpose();
             samples.push_back(ShapeAndErr(q, cov));
         }
-        if (!samples.empty()) {
-            ShapeAndErr mean = inverseVarianceWeightedMean(samples);
-            std::string const filter = i->getExposureInfo()->getFilter().getName();
-            Shape::MeasKey const measKey = clusterSchema[filter + "." + shapeDef];
-            cluster.set(measKey, mean.first);
-            Shape::ErrKey const errKey = clusterSchema[filter + "." + shapeDef + ".err"];
-            cluster.set(errKey, mean.second);
-            Key<int> const countKey = clusterSchema[filter + "." + shapeDef + ".count"];
-            cluster.set(countKey, static_cast<int>(samples.size()));
-        }
+        ShapeAndErr mean;
+        weightedMeanShape(mean, samples);
+        std::string const filter = i->getExposureInfo()->getFilter().getName();
+        Shape::MeasKey const measKey = clusterSchema[filter + "." + shapeDef];
+        cluster.set(measKey, mean.first);
+        Shape::ErrKey const errKey = clusterSchema[filter + "." + shapeDef + ".err"];
+        cluster.set(errKey, mean.second);
+        Key<int> const countKey = clusterSchema[filter + "." + shapeDef + ".count"];
+        cluster.set(countKey, static_cast<int>(samples.size()));
     }
 }
 

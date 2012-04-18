@@ -78,15 +78,16 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
     Key<Coord> weightedCoord = schema.addField<Coord>("coord2", "another coordinate", "rad");
     Key<Covariance<Point<double> > > weightedCoordErr = schema.addField<Covariance<Point<double> > >(
         "coord2.err", "covariance matrix for coord2 field", "rad^2");
+    Key<int> weightedCoordCount = schema.addField<int>("coord2.count", "sample count for coord2 field");
     Key<int> rNumSources = schema.addField<int>("r.obs.num", "number of sources");
     Key<double> rTimeMin = schema.addField<double>("r.obs.time.min", "earliest observation time", "mjd");
     Key<double> rTimeMax = schema.addField<double>("r.obs.time.max", "latest observation time", "mjd");
 
-    KeyTuple<Flux> uModelFlux = addFluxFields(schema, "u", "flux.model", "model flux");
-    KeyTuple<Flux> uApFlux = addFluxFields(schema, "u", "flux.ap", "aperture flux");
-    KeyTuple<Flux> uPsfFlux = addFluxFields(schema, "u", "flux.psf", "PSF flux");
+    KeyTuple<Flux> uModelFlux = addFluxFields(schema, "u", "flux.model", "model flux", "gremlins");
+    KeyTuple<Flux> uApFlux = addFluxFields(schema, "u", "flux.ap", "aperture fluxs", "gremlins");
+    KeyTuple<Flux> uPsfFlux = addFluxFields(schema, "u", "flux.psf", "PSF flux", "gremlins");
     KeyTuple<Shape> rShape = addShapeFields(schema, "r", "shape", "bogo-shape");
-    KeyTuple<Flux> rFlux = addFluxFields(schema, "r", "flux.inst", "instrumental flux");
+    KeyTuple<Flux> rFlux = addFluxFields(schema, "r", "flux.inst", "instrumental flux", "gremlins");
 
     SourceClusterCatalog outcat(SourceClusterTable::make(
         schema, boost::make_shared<SourceClusterIdFactory>(1)));
@@ -94,6 +95,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
     outcat.getTable()->defineCoordErr(coordErr);
     outcat.getTable()->defineWeightedCoord(weightedCoord);
     outcat.getTable()->defineWeightedCoordErr(weightedCoordErr);
+    outcat.getTable()->defineWeightedCoordCount(weightedCoordCount);
     outcat.getTable()->defineNumSources(numSources);
     outcat.getTable()->defineTimeMin(timeMin);
     outcat.getTable()->defineTimeMean(timeMean);
@@ -131,6 +133,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         rec->setCoordErr(cov1);
         rec->setWeightedCoord(c2);
         rec->setWeightedCoordErr(cov2);
+        rec->setWeightedCoordCount(-999);
         rec->setNumSources(15);
         rec->setTimeMin(10.0);
         rec->setTimeMax(20.0);
@@ -146,6 +149,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         cov = rec->get(weightedCoordErr);
         BOOST_CHECK_EQUAL(cov, cov2);
         BOOST_CHECK_EQUAL(rec->getWeightedCoordErr(), cov2);
+        BOOST_CHECK_EQUAL(rec->getWeightedCoordCount(), -999);
         BOOST_CHECK_EQUAL(rec->getNumSources(), 15);
         BOOST_CHECK_EQUAL(rec->get(numSources), 15);
         BOOST_CHECK_EQUAL(rec->getTimeMin(), 10.0);
@@ -255,6 +259,8 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                       outcat.getTable()->getWeightedCoordKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordErrKey(),
                       outcat.getTable()->getWeightedCoordErrKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordCountKey(),
+                      outcat.getTable()->getWeightedCoordCountKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getNumSourcesKey(),
                       outcat.getTable()->getNumSourcesKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getTimeMinKey(),
@@ -317,6 +323,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(a.getCoordErr(), b.getCoordErr());
         BOOST_CHECK_EQUAL(a.getWeightedCoord(), b.getWeightedCoord());
         BOOST_CHECK_EQUAL(a.getWeightedCoordErr(), b.getWeightedCoordErr());
+        BOOST_CHECK_EQUAL(a.getWeightedCoordCount(), b.getWeightedCoordCount());
         BOOST_CHECK_EQUAL(a.getNumSources(), b.getNumSources());
         BOOST_CHECK_EQUAL(a.getTimeMin(), b.getTimeMin());
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMean()) &&
@@ -367,6 +374,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                     lsst::utils::isnan(ca.getLatitude().asRadians()) &&
                     lsst::utils::isnan(cb.getLongitude().asRadians()) &&
                     lsst::utils::isnan(cb.getLatitude().asRadians()));
+        BOOST_CHECK(a.getWeightedCoordCount() == 0 && b.getWeightedCoordCount() == 0);
         BOOST_CHECK(a.getNumSources("r") == 0 && b.getNumSources("r") == 0);
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMin("r")) && lsst::utils::isnan(b.getTimeMin("r")));
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMax("r")) && lsst::utils::isnan(b.getTimeMax("r")));

@@ -200,8 +200,9 @@ namespace {
                         "Tells lsst::afw to load this as a SourceClusterTable.");
         // save filter agnostic slots
         SAVE_SLOT(COORD_ERR, CoordErr)
-        SAVE_SLOT(COORD2, WeightedCoord)
-        SAVE_SLOT(COORD2_ERR, WeightedCoordErr)
+        SAVE_SLOT(WCOORD, WeightedCoord)
+        SAVE_SLOT(WCOORD_ERR, WeightedCoordErr)
+        SAVE_SLOT(WCOORD_COUNT, WeightedCoordCount)
         SAVE_SLOT(NUM_SOURCES, NumSources)
         SAVE_SLOT(TIME_MIN, TimeMin)
         SAVE_SLOT(TIME_MEAN, TimeMean)
@@ -251,8 +252,9 @@ namespace {
             schema, PTR(lsst::afw::table::IdFactory)());
         // read in filter agnostic slots
         LOAD_SLOT(COORD_ERR, CoordErr)
-        LOAD_SLOT(COORD2, WeightedCoord)
-        LOAD_SLOT(COORD2_ERR, WeightedCoordErr)
+        LOAD_SLOT(WCOORD, WeightedCoord)
+        LOAD_SLOT(WCOORD_ERR, WeightedCoordErr)
+        LOAD_SLOT(WCOORD_COUNT, WeightedCoordCount)
         LOAD_SLOT(NUM_SOURCES, NumSources)
         LOAD_SLOT(TIME_MIN, TimeMin)
         LOAD_SLOT(TIME_MEAN, TimeMean)
@@ -316,6 +318,7 @@ SourceClusterTable::SourceClusterTable(
     _keyCoordErr(),
     _keyWeightedCoord(),
     _keyWeightedCoordErr(),
+    _keyWeightedCoordCount(),
     _keyNumSources(),
     _keyTimeMin(),
     _keyTimeMean(),
@@ -328,6 +331,7 @@ SourceClusterTable::SourceClusterTable(SourceClusterTable const & other) :
     _keyCoordErr(other._keyCoordErr),
     _keyWeightedCoord(other._keyWeightedCoord),
     _keyWeightedCoordErr(other._keyWeightedCoordErr),
+    _keyWeightedCoordCount(other._keyWeightedCoordCount),
     _keyNumSources(other._keyNumSources),
     _keyTimeMin(other._keyTimeMin),
     _keyTimeMean(other._keyTimeMean),
@@ -430,16 +434,17 @@ KeyTuple<lsst::afw::table::Flux> addFluxFields(
     lsst::afw::table::Schema & schema,
     std::string const & filter,
     std::string const & name,
-    std::string const & doc)
+    std::string const & doc,
+    std::string const & unit)
 {
     using lsst::afw::table::Flux;
     KeyTuple<Flux> kt;
     kt.mean = schema.addField<Flux::MeasTag>(
-        filter + "." + name, doc, "erg/s/cm^2/Hz");
+        filter + "." + name, doc, unit);
     kt.err = schema.addField<Flux::ErrTag>(
         filter + "." + name + ".err",
         "uncertainty for " + filter + "." + name,
-        "erg/s/cm^2/Hz");
+        unit);
     kt.count = schema.addField<int>(
         filter + "." + name + ".count",
         "Number of samples used to compute the " + filter +
