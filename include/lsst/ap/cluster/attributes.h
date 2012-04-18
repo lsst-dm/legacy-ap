@@ -69,11 +69,33 @@ private:
 };
 
 
-/** Computes basic cluster attributes.
+/** Compute basic cluster attributes.
   *
+  * The Coord slot of @c cluster is set to the unweighted mean of the
+  * coordinates of the associated sources. This fiducial cluster position
+  * is used as the center of a N,E tangent plane projection that serves
+  * as a common coordinate system for averaging other measurements. Exposure
+  * information for each input source is looked up, and used to create a
+  * vector of tuples that bundle a source with it's originating exposure
+  * and an affine transform from the pixel space coordinate system centered
+  * on the source's centroid to the common coordinate system.
   *
+  * This vector of tuples is sorted such that sources originating from
+  * exposures in the same filter are all consecutive.
   *
-  * @return    A list of source / exposure information pairs, grouped by filter.
+  * Finally, several other cluster attributes are computed/set:
+  *     - "obs.num" : number of sources in the cluster
+  *     - "obs.time.min", "obs.time.max", "obs.time.mean" :
+  *       observation time range
+  *     - "coord.weighted", "coord.weighted.err", "coord.weighted.count" :
+  *       inverse variance weighted mean coordinate, error, and sample count
+  *       (computed only if input sources have a valid CoordErr slot mapping).
+  *     - "<filter>.obs.num" : filter specific source count
+  *     - "<filter>.time.min", "<filter>.time.max" : filter specific
+  *       observation time range
+  *
+  * @return    A list of (source, exposure information, transform) tuples,
+  *            grouped by filter.
   */
 boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
     SourceClusterRecord & cluster,                      ///< @param[out] Cluster to store results in.
@@ -99,7 +121,7 @@ boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
   * (after calibration) is computed and stored. If only one sample is
   * available, the input flux and error are calibrated and stored directly.
   * If no samples are available, the output flux, error, and sample count
-  * fields are left untouched.
+  * fields are set to NaN, NaN, and 0.
   */
 void computeFluxMean(
     SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
@@ -130,8 +152,8 @@ void computeFluxMean(
   * (after transformation to a coordinate system S centered on the cluster
   * position with the standard N,E basis) is computed and stored. If only
   * one sample is available, the input shape and error are transformed to S
-  * and stored directly. If no samples are available, the output moments,
-  * covariance matrix, and sample count fields are left untouched.
+  * and stored directly. If no samples are available, the output moments and
+  * covariance matrix are set to NaNs, and the sample count is zeroed.
   */
 void computeShapeMean(
     SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
