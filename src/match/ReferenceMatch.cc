@@ -71,9 +71,7 @@ using lsst::afw::geom::Angle;
 using lsst::afw::geom::arcsecToRad;
 using lsst::afw::geom::masToRad;
 using lsst::afw::geom::radians;
-using lsst::afw::geom::radToArcsec;
 using lsst::afw::geom::radToMas;
-using lsst::afw::geom::radToDeg;
 
 using lsst::afw::coord::IcrsCoord;
 
@@ -262,10 +260,10 @@ public:
 
     // BBox API
     virtual double getMinCoord0() const {
-        return static_cast<double>(_sc.getLongitude() - _alpha);
+        return (_sc.getLongitude() - _alpha).asRadians();
     }
     virtual double getMaxCoord0() const {
-        return static_cast<double>(_sc.getLongitude() + _alpha);
+        return (_sc.getLongitude() + _alpha).asRadians();
     }
     virtual double getMinCoord1() const {
         return clampPhi(_sc.getLatitude() - _radius);
@@ -632,8 +630,8 @@ void MatchablePosReader::_read() {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "NULL unique id found in position table");
     }
-    if (lsst::utils::isnan(static_cast<double>(ra)) ||
-        lsst::utils::isnan(static_cast<double>(decl)) ||
+    if (lsst::utils::isnan(ra.asRadians()) ||
+        lsst::utils::isnan(decl.asRadians()) ||
         lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Position table contains NULL or NaN right "
@@ -913,16 +911,16 @@ RefReaderBase::RefReaderBase(
     // determine read-ahead amount
     double dtMax = max(fabs(_maxEpoch - _minMatchEpoch),
                        fabs(_maxMatchEpoch - _minEpoch));
-    _readAhead = Angle(2.0*static_cast<double>(_maxParallax) + 
+    _readAhead = Angle(2.0*_maxParallax.asRadians() +
                        _maxAngularVelocity*dtMax, radians);
     log.format(Log::INFO, "  - time range is [%.3f, %.3f] MJD",
                _minEpoch, _maxEpoch);
     log.format(Log::INFO, "  - max parallax is %.3f milliarcsec",
-               radToMas(static_cast<double>(_maxParallax)));
+               radToMas(_maxParallax.asRadians()));
     log.format(Log::INFO, "  - max angular velocity is %.3f milliarcsec/yr",
                _maxAngularVelocity/RADY_PER_MASD);
     log.format(Log::INFO, "  - read-ahead is %.3f milliarcsec",
-               radToMas(static_cast<double>(_readAhead)));
+               radToMas(_readAhead.asRadians()));
 }
 
 RefReaderBase::~RefReaderBase() { }
@@ -946,8 +944,8 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "NULL unique id found in reference catalog");
     }
-    if (lsst::utils::isnan(static_cast<double>(ra)) ||
-        lsst::utils::isnan(static_cast<double>(decl)) ||
+    if (lsst::utils::isnan(ra.asRadians()) ||
+        lsst::utils::isnan(decl.asRadians()) ||
         lsst::utils::isnan(epoch)) {
         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                           "Reference catalog record contains NULL/NaN right "
@@ -1041,12 +1039,12 @@ void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
                 if (!_muRaTrueAngle) {
                     Angle decl(reader.get<double>(_declCol)*_declScale, radians);
                     if (decl < -HALFPI || decl > HALFPI ||
-                        lsst::utils::isnan(static_cast<double>(decl))) {
+                        lsst::utils::isnan(decl.asRadians())) {
                         throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
                                           "Invalid declination found in "
                                           "reference catalog");
                     }
-                    muRa *= std::cos(static_cast<double>(decl));
+                    muRa *= std::cos(decl.asRadians());
                 }
                 if (parallax > _maxParallax) {
                     _maxParallax = parallax;
@@ -1222,7 +1220,7 @@ void RefPosMatcher::match(CsvWriter &writer,
             _refSweep.clear(*this);
             while (!_refReader->isDone()) {
                 Angle refDecl = _refReader->peek();
-                _posSweep.advance(static_cast<double>(refDecl), *this);
+                _posSweep.advance(refDecl.asRadians(), *this);
                 MatchableRef *r = _refReader->next();
                 _posSweep.search(r, *this);
                 _finish(r);
@@ -1232,7 +1230,7 @@ void RefPosMatcher::match(CsvWriter &writer,
             _posSweep.clear(*this);
             while (!_posReader->isDone()) {
                 Angle posDecl = _posReader->peek();
-                _refSweep.advance(static_cast<double>(posDecl), *this);
+                _refSweep.advance(posDecl.asRadians(), *this);
                 MatchablePos *p = _posReader->next();
                 _refSweep.search(p, *this);
                 _finish(p);
@@ -1241,8 +1239,8 @@ void RefPosMatcher::match(CsvWriter &writer,
         }
         Angle posDecl = _posReader->peek();
         Angle refDecl = _refReader->peek();
-        _refSweep.advance(static_cast<double>(posDecl), *this);
-        _posSweep.advance(static_cast<double>(refDecl), *this);
+        _refSweep.advance(posDecl.asRadians(), *this);
+        _posSweep.advance(refDecl.asRadians(), *this);
         if (refDecl < posDecl) {
             MatchableRef *r = _refReader->next();
             _posSweep.search(r, *this);
@@ -1267,11 +1265,11 @@ void RefPosMatcher::_writeMatch(RefPosMatch const *m) {
     MatchablePos const *p = m->getPos();
     _writer->appendField(r->getReferencePosition().getId());
     _writer->appendField(p->getId());
-    _writer->appendField(radToDeg(
-        static_cast<double>(m->getSphericalCoordinates().getLongitude())));
-    _writer->appendField(radToDeg(
-        static_cast<double>(m->getSphericalCoordinates().getLatitude())));
-    _writer->appendField(radToArcsec(m->getAngularSeparation()));
+    _writer->appendField(
+        m->getSphericalCoordinates().getLongitude().asDegrees());
+    _writer->appendField(
+        m->getSphericalCoordinates().getLatitude().asDegrees());
+    _writer->appendField(m->getAngularSeparation().asArcseconds());
     _writer->appendField(r->getNumMatches());
     _writer->appendField(p->getNumMatches());
     _writer->appendField(r->getClosestId() == p->getId());
@@ -1500,7 +1498,7 @@ void RefExpMatcher::match(CsvWriter &writer,
             _refSweep.clear(*this);
             while (!_refReader->isDone()) {
                 Angle refDecl = _refReader->peek();
-                _expSweep.advance(static_cast<double>(refDecl), *this);
+                _expSweep.advance(refDecl.asRadians(), *this);
                 RefWithCov *r = _refReader->next();
                 _expSweep.search(r, *this);
                 _finish(r);
@@ -1510,7 +1508,7 @@ void RefExpMatcher::match(CsvWriter &writer,
             _expSweep.clear(*this);
             for (; i != end; ++i) {
                 Angle expDecl((*i)->getMinCoord1(), radians);
-                _refSweep.advance(static_cast<double>(expDecl), *this);
+                _refSweep.advance(expDecl.asRadians(), *this);
                 ExposureInfo *info = i->get();
                 _refSweep.search(info, *this);
             }
@@ -1518,8 +1516,8 @@ void RefExpMatcher::match(CsvWriter &writer,
         }
         Angle expDecl((*i)->getMinCoord1(), radians);
         Angle refDecl = _refReader->peek();
-        _refSweep.advance(static_cast<double>(expDecl), *this);
-        _expSweep.advance(static_cast<double>(refDecl), *this);
+        _refSweep.advance(expDecl.asRadians(), *this);
+        _expSweep.advance(refDecl.asRadians(), *this);
         if (refDecl < expDecl) {
             RefWithCov *r = _refReader->next();
             _expSweep.search(r, *this);

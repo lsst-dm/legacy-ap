@@ -65,6 +65,8 @@ namespace lsst { namespace ap { namespace cluster {
 
 // -- SourceAndExposure implementation --------
 
+SourceAndExposure::SourceAndExposure() : _source(), _exposure(), _transform() { }
+
 SourceAndExposure::SourceAndExposure(
     boost::shared_ptr<SourceRecord> const & source,
     boost::shared_ptr<ExposureInfo> const & exposure,

@@ -45,6 +45,7 @@ Access to association pipeline clustering functionality.
 #include "lsst/ap/cluster/SourceProcessingControl.h"
 #include "lsst/ap/cluster/SourceCluster.h"
 #include "lsst/ap/cluster/clustering.h"
+#include "lsst/ap/cluster/attributes.h"
 
 #define PY_ARRAY_UNIQUE_SYMBOL LSST_AFW_TABLE_NUMPY_ARRAY_API
 #include "numpy/arrayobject.h"
@@ -122,7 +123,7 @@ Access to association pipeline clustering functionality.
 %pythonnondynamic;
 
 
-// -- clustering and attribute computation --------
+// -- clustering --------
 
 %import "lsst/ap/match/matchLib.i"
 %import "lsst/ap/utils/utilsLib.i"
@@ -157,4 +158,13 @@ Access to association pipeline clustering functionality.
 }
 
 %include "lsst/ap/cluster/clustering.h"
+
+// -- cluster attribute computation --------
+
+%shared_vec(lsst::ap::cluster::SourceAndExposure);
+%shared_ptr(std::vector<lsst::ap::cluster::SourceAndExposure>);
+
+%include "lsst/ap/cluster/attributes.h"
+
+%template(SourceAndExposureVector) std::vector<lsst::ap::cluster::SourceAndExposure>;
 

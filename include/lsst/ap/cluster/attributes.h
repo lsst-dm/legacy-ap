@@ -45,6 +45,8 @@ namespace lsst { namespace ap { namespace cluster {
   */
 class SourceAndExposure {
 public:
+    SourceAndExposure();
+
     SourceAndExposure(
         boost::shared_ptr<lsst::afw::table::SourceRecord> const & source,
         boost::shared_ptr<lsst::ap::match::ExposureInfo> const & exposure,
