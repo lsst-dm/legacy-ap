@@ -40,6 +40,8 @@ using lsst::pex::exceptions::NotFoundException;
 using lsst::afw::coord::IcrsCoord;
 
 using lsst::afw::geom::HALFPI;
+using lsst::afw::geom::PI;
+using lsst::afw::geom::TWOPI;
 using lsst::afw::geom::AffineTransform;
 using lsst::afw::geom::LinearTransform;
 using lsst::afw::geom::Point2D;
@@ -102,11 +104,16 @@ namespace {
                 cov = Eigen::Matrix2d::Constant(std::numeric_limits<double>::quiet_NaN());
             }
         } else {
-            // compute sample covariance matrix ...
+            // compute sample covariance matrix
             cov = Eigen::Matrix2d::Zero();
             for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
-                double dra = i->getRa() - c.getRa();
-                double dde = i->getDec() - c.getDec();
+                double dra = i->getRa().asRadians() - c.getRa().asRadians();
+                if (dra > PI) {
+                    dra = dra - TWOPI;
+                } else if (dra < -PI) {
+                    dra = dra + TWOPI;
+                }
+                double dde = i->getDec().asRadians() - c.getDec().asRadians();
                 cov(0,0) += dra * dra;
                 cov(0,1) += dra * dde;
                 cov(1,1) += dde * dde;
@@ -381,15 +388,16 @@ boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
 namespace {
 
     typedef std::pair<double, double> FluxAndErr;
+    typedef std::pair<double, double> FluxAndVariance;
 
-    FluxAndErr const weightedMeanFlux(std::vector<FluxAndErr> const & samples)
+    FluxAndErr const weightedMeanFlux(std::vector<FluxAndVariance> const & samples)
     {
-        typedef std::vector<FluxAndErr>::const_iterator Iter;
+        typedef std::vector<FluxAndVariance>::const_iterator Iter;
         if (samples.empty()) {
             return FluxAndErr(std::numeric_limits<double>::quiet_NaN(),
                               std::numeric_limits<double>::quiet_NaN());
         } else if (samples.size() == 1) {
-            return std::make_pair(samples[0].first, std::sqrt(samples[0].second));
+            return FluxAndErr(samples[0].first, std::sqrt(samples[0].second));
         }
         // compute weighted mean x_w = sum(w_i * x_i) / sum(w_i), where
         // w_i = 1/Var(x_i)
@@ -443,8 +451,9 @@ void computeFluxMean(
         for (++j; j != e && filterId == j->getExposureInfo()->getFilter().getId(); ++j) { }
         // iterate over [i, j), storing all valid flux/error pairs
         // after calibrating them.
-        std::vector<FluxAndErr> samples;
+        std::vector<FluxAndVariance> samples;
         samples.reserve(j - i);
+        std::string const filter = i->getExposureInfo()->getFilter().getName();
         for (; i < j; ++i) {
             SourceRecord const * r = i->getSource().get();
             double flux = r->get(sourceFluxKey);
@@ -465,7 +474,6 @@ void computeFluxMean(
             samples.push_back(i->getExposureInfo()->calibrateFlux(flux, fluxErr, fluxScale));
         }
         FluxAndErr mean = weightedMeanFlux(samples);
-        std::string const filter = i->getExposureInfo()->getFilter().getName();
         Flux::MeasKey const measKey = clusterSchema[filter + "." + fluxDef];
         cluster.set(measKey, mean.first);
         Flux::ErrKey const errKey = clusterSchema[filter + "." + fluxDef + ".err"];
@@ -538,7 +546,8 @@ void computeShapeMean(
         for (++j; j != e && filterId == j->getExposureInfo()->getFilter().getId(); ++j) { }
         // iterate over [i, j) storing all valid shape/error pairs in samples
         std::vector<ShapeAndErr> samples;
-        samples.reserve(j - i); 
+        samples.reserve(j - i);
+        std::string const filter = i->getExposureInfo()->getFilter().getName();
         for (; i < j; ++i) {
             SourceRecord const * r = i->getSource().get();
             bool skip = false;
@@ -583,7 +592,6 @@ void computeShapeMean(
         }
         ShapeAndErr mean;
         weightedMeanShape(mean, samples);
-        std::string const filter = i->getExposureInfo()->getFilter().getName();
         Shape::MeasKey const measKey = clusterSchema[filter + "." + shapeDef];
         cluster.set(measKey, mean.first);
         Shape::ErrKey const errKey = clusterSchema[filter + "." + shapeDef + ".err"];

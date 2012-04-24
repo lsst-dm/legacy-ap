@@ -286,29 +286,44 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         table->defineNumSources(*filt, "obs.num");
         if (!control.exposurePrefix.empty()) {
             table->defineTimeMin(*filt, "obs.time.min");
-            table->defineTimeMin(*filt, "obs.time.max");
+            table->defineTimeMax(*filt, "obs.time.max");
         }
-        std::string def = prototype.getPsfFluxDefinition();
         Iter flux = control.fluxFields.begin(), eFlux = control.fluxFields.end();
-        if (std::find(flux, eFlux, def) != eFlux) {
-            table->definePsfFlux(*filt, def);
+        if (prototype.getPsfFluxKey().isValid() &&
+            prototype.getPsfFluxErrKey().isValid()) {
+            std::string def = prototype.getPsfFluxDefinition();
+            if (std::find(flux, eFlux, def) != eFlux) {
+                table->definePsfFlux(*filt, def);
+            }
         }
-        def = prototype.getModelFluxDefinition();
-        if (std::find(flux, eFlux, def) != eFlux) {
-            table->defineModelFlux(*filt, def);
+        if (prototype.getModelFluxKey().isValid() &&
+            prototype.getModelFluxErrKey().isValid()) {
+            std::string def = prototype.getModelFluxDefinition();
+            if (std::find(flux, eFlux, def) != eFlux) {
+                table->defineModelFlux(*filt, def);
+            }
         }
-        def = prototype.getApFluxDefinition();
-        if (std::find(flux, eFlux, def) != eFlux) {
-            table->defineApFlux(*filt, def);
+        if (prototype.getApFluxKey().isValid() &&
+            prototype.getApFluxErrKey().isValid()) {
+            std::string def = prototype.getApFluxDefinition();
+            if (std::find(flux, eFlux, def) != eFlux) {
+                table->defineApFlux(*filt, def);
+            }
         }
-        def = prototype.getInstFluxDefinition();
-        if (std::find(flux, eFlux, def) != eFlux) {
-            table->defineInstFlux(*filt, def);
+        if (prototype.getInstFluxKey().isValid() &&
+            prototype.getInstFluxErrKey().isValid()) {
+            std::string def = prototype.getInstFluxDefinition();
+            if (std::find(flux, eFlux, def) != eFlux) {
+                table->defineInstFlux(*filt, def);
+            }
         }
-        def = prototype.getShapeDefinition();
-        Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
-        if (std::find(shape, eShape, def) != eShape) {
-            table->defineShape(*filt, def);
+        if (prototype.getShapeKey().isValid() &&
+            prototype.getShapeErrKey().isValid()) {
+            std::string def = prototype.getShapeDefinition();
+            Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
+            if (std::find(shape, eShape, def) != eShape) {
+                table->defineShape(*filt, def);
+            }
         }
     }
     return table;
