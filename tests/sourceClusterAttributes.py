@@ -54,7 +54,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         for filter in "ugrizy":
             filterId = afwImage.Filter(filter).getId()
             ps = dafBase.PropertySet()
-            ps.setLong("scienceCcdExposureId", filterId)
+            ps.setLong("Computed_ccdExposureId", filterId)
             ps.setString("FILTER", filter)
             ps.setString("TIME-MID", "2000-01-%02dT11:59:28.000000000Z" % (filterId + 1))
             ps.setDouble("EXPTIME", 10.0)

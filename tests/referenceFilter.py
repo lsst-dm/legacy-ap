@@ -89,7 +89,7 @@ class ReferenceFilterTestCase(unittest.TestCase):
         afwImageUtils.defineFilter('y', 971.68, alias=['y4']) # official y filter
         afwImageUtils.defineFilter('y3', 1002.44) # candidate y-band
         ps = dafBase.PropertySet()
-        ps.setInt("scienceCcdExposureId", 0)
+        ps.setInt("Computed_ccdExposureId", 0)
         ps.setString("RADESYS", "ICRS")
         ps.setString("FILTER", "u")
         ps.setInt("NAXIS1", 1000)

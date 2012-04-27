@@ -92,7 +92,6 @@ makeOutputSourceTable(
   *     - "coord"                 (Coord)          : mean sky-coordinates (from minimal schema)
   *     - "coord.err"             (Cov<Point<F8>>) : uncertainty of coord
   *     - "obs.num"               (I4)             : number of sources in cluster
-  *     - "flags.bad"             (Flag)           : was cluster created from a single bad source?
   *     - "flags.noise"           (Flag)           : was cluster created from a single noise source?
   *     - "<filter>.obs.num"      (I4)             : numer of sources in a specific filter
   *
@@ -134,6 +133,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
   *     - source footprints are discarded
   *     - source sky-coordinate errors are computed
   *     - exposure information (ID, filter ID, etc...) is added to each source.
+  *     - the cluster coordinates for a source are set to the source coordinates.
   *
   * The output catalogs will typically have been constructed from tables obtained
   * via makeOutputSourceTable() - their schemas and slot mappings must all be 

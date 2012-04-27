@@ -6,7 +6,6 @@ setupRequired(geom >= 4.6.0.0)
 setupRequired(skypix >= 4.6.0.0)
 
 setupOptional(doxygen >= 1.7.5.1)
-setupOptional(pex_harness >= 4.7.3.0)
 
 envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
 envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)

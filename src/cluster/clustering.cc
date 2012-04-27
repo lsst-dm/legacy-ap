@@ -200,9 +200,6 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         "obs.num",
         "number of sources in cluster");
     schema.addField<Flag>(
-        "flags.bad",
-        "set if cluster was created from a single bad source");
-    schema.addField<Flag>(
         "flags.noise",
         "set if cluster was created from a single noise source");
     if (prototype.getCentroidKey().isValid() &&
@@ -423,6 +420,7 @@ void processSources(
     Key<Covariance<lsst::afw::table::Point<double> > > centroidErrKey =
         sources.getTable()->getCentroidErrKey();
     Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey;
+    Key<lsst::afw::coord::Coord> clusterCoordKey;
     try {
         coordErrKey = sources.getSchema()["coord.err"];
     } catch (NotFoundException &) {
@@ -434,6 +432,10 @@ void processSources(
         expFilterIdKey = schema[control.exposurePrefix + ".filter.id"];
         expTimeKey = schema[control.exposurePrefix + ".time"];
         expTimeMidKey = schema[control.exposurePrefix + ".time.mid"];
+    }
+    if (!control.clusterPrefix.empty()) {
+        Schema schema = mapper.getOutputSchema();
+        clusterCoordKey = schema[control.clusterPrefix + ".coord"];
     }
     size_t ngood = 0, nbad = 0, ninvalid = 0, noutside = 0;
     // Loop over input sources
@@ -495,7 +497,10 @@ void processSources(
         if (expTimeMidKey.isValid()) {
             os->set(expTimeMidKey, expInfo.getEpoch());
         }
-
+        // Source cluster coords default to source coordinates
+        if (clusterCoordKey.isValid()) {
+            os->set(clusterCoordKey, s->getCoord());
+        }
         // Compute sky-coordinate errors
         if (!invalid && coordErrKey.isValid() && centroidErrKey.isValid()) {
             Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(

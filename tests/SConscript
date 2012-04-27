@@ -4,7 +4,6 @@ import os
 from lsst.sconsUtils import scripts, env
 
 ignoreList=[ "NightlyPipelineTest.py", "ResultsTest.py" ] # broken, will be fixed during nightly rewrite
-ignoreList+=[ "sourceAssocPipelineTest.py" ] # waiting on afw tag and updated boost persisted source inputs
 
 envKeys = ['LSST_DB_AUTH', 'LSST_RNG_SEED', 'LSST_RNG_ALGORITHM']
 for key in envKeys:

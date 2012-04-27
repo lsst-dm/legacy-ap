@@ -66,7 +66,7 @@ namespace lsst { namespace ap { namespace match {
 
 // -- ExposureInfo implementation ----
 
-std::string const ExposureInfo::DEF_ID_KEY("scienceCcdExposureId");
+std::string const ExposureInfo::DEF_ID_KEY("Computed_ccdExposureId");
 
 ExposureInfo::ExposureInfo(
     lsst::daf::base::PropertySet::Ptr metadata, ///< FITS metadata for image
