@@ -134,6 +134,10 @@ struct CsvControl {
         "at end of every record, immediately preceding the line terminator. "
         "The default is false.");
 
+    LSST_CONTROL_FIELD(nonfiniteAsNull, bool,
+        "If true, then non-finite (NaN, Inf, -Inf) floating point values are "
+        "written out as NULL field values.");
+
     /** Returns true if database NULLs are recognizable in this dialect.
       * This is the case when hasNull is true, or when escapeChar is not
       * '\\0' and standardEscapes is true (in which case "\N" is recognized

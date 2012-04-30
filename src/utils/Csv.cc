@@ -37,6 +37,7 @@
 #include "boost/filesystem.hpp"
 #include "boost/regex.hpp"
 
+#include "lsst/utils/ieee.h"
 #include "lsst/pex/exceptions.h"
 
 using std::ifstream;
@@ -761,6 +762,10 @@ void CsvWriter::appendField(float v) {
     char buf[64];
     char fmt[32];
     int n = 0;
+    if (_control.nonfiniteAsNull && !lsst::utils::isfinite(v)) {
+        appendNull();
+        return;
+    }
 #if FLT_RADIX == 2
     if (FLT_MANT_DIG == 24) {
         // 32 bit IEEE fast path
@@ -795,6 +800,10 @@ void CsvWriter::appendField(double v) {
     char buf[64];
     char fmt[32];
     int n = 0;
+    if (_control.nonfiniteAsNull && !lsst::utils::isfinite(v)) {
+        appendNull();
+        return;
+    }
 #if FLT_RADIX == 2
     if (DBL_MANT_DIG == 53) {
         // 64 bit IEEE fast path
@@ -829,6 +838,10 @@ void CsvWriter::appendField(long double v) {
     char buf[64];
     char fmt[32];
     int n = 0;
+    if (_control.nonfiniteAsNull && !lsst::utils::isfinite(v)) {
+        appendNull();
+        return;
+    }
 #if FLT_RADIX == 2
     if (LDBL_MANT_DIG == 64) {
         // 80bit IEEE long double fast path

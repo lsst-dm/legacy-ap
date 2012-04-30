@@ -46,7 +46,8 @@ CsvControl::CsvControl() :
     skipInitialSpace(false),
     doubleQuote(false),
     standardEscapes(true),
-    trailingDelimiter(false)
+    trailingDelimiter(false),
+    nonfiniteAsNull(false)
 {
     validate();
 }
@@ -90,6 +91,12 @@ void CsvControl::validate() const {
     if (getEscapeChar() == '\0' && standardEscapes) {
         throw LSST_EXCEPT(InvalidParameterException,
                           "escapeChar set to '\\0', but standardEscapes = true");
+    }
+    if (quoting != "QUOTE_MINIMAL" && quoting != "QUOTE_ALL" &&
+        quoting != "QUOTE_NONE") {
+        throw LSST_EXCEPT(InvalidParameterException,
+                          "quoting must be one of 'QUOTE_MINIMAL', 'QUOTE_ALL' "
+                          "or 'QUOTE_NONE'");
     }
     if (getQuoteChar() == '\0' && quoting != "QUOTE_NONE") {
         throw LSST_EXCEPT(InvalidParameterException,

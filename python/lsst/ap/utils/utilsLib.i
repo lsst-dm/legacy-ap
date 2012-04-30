@@ -45,6 +45,7 @@ Access to association pipeline utilities.
 #include "lsst/ap/utils/CsvControl.h"
 #include "lsst/ap/utils/ImageUtils.h"
 #include "lsst/ap/utils/PT1SkyTile.h"
+#include "lsst/ap/utils/csvUtils.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
@@ -58,9 +59,11 @@ Access to association pipeline utilities.
 %lsst_exceptions()
 
 %shared_ptr(lsst::ap::utils::CsvControl);
+%shared_ptr(lsst::ap::utils::CsvConversionControl);
 %shared_ptr(lsst::ap::utils::PT1SkyTile);
 
 %include "lsst/ap/utils/ImageUtils.h"
 %include "lsst/ap/utils/PT1SkyTile.h"
 %include "lsst/ap/utils/CsvControl.h"
+%include "lsst/ap/utils/csvUtils.h"
 

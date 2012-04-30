@@ -21,9 +21,13 @@
 #
 
 import lsst.pex.config
-from .utilsLib import CsvControl
+from .utilsLib import CsvControl, CsvConversionControl
 
 @lsst.pex.config.wrap(CsvControl)
 class CsvConfig(lsst.pex.config.Config):
+    pass
+
+@lsst.pex.config.wrap(CsvConversionControl)
+class CsvConversionConfig(lsst.pex.config.Config):
     pass
 
