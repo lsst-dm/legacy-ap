@@ -65,7 +65,12 @@ namespace {
 
     uint8_t const SKIP_FIELD = 0x1;
     uint8_t const NULLABLE_INT = 0x2;
-    uint8_t const COORD_ERR = 0x4;
+    uint8_t const RAD2 = 0x4;
+    uint8_t const RAD4 = 0x8;
+
+    // computed to 30 digit precision with Maple
+    double const ARCSEC2_PER_RAD2 = 4.25451702961521995803707621197e10;
+    double const ARCSEC4_PER_RAD4 = 1.81009151552859144174773079111e21;
 
     int nFlagInts(int count) {
         return (count + 62) / 63;
@@ -95,10 +100,18 @@ namespace {
                 }
             } else if (item.field.getUnits() == "rad^2" &&
                        (boost::is_same<T, Covariance<Point<float> > >::value ||
-                        boost::is_same<T, Covariance<Point<double> > >::value)) {
-                // HACK: if a point covariance matrix has units of rad^2, flag
-                // it as a coordinate error matrix so units get converted to arcsec^2
-                c |= COORD_ERR;
+                        boost::is_same<T, Covariance<Point<double> > >::value ||
+                        boost::is_same<T, Moments<float> >::value ||
+                        boost::is_same<T, Moments<double> >::value)) {
+                // Flag point covariance matrixes and moments with units of
+                // rad^2 for unit conversion to arcsec^2.
+                c |= RAD2;
+            } else if (item.field.getUnits() == "rad^4" &&
+                       (boost::is_same<T, Covariance<Moments<float> > >::value ||
+                        boost::is_same<T, Covariance<Moments<double> > >::value)) {
+                // Flag moment covariance matrixes with units of rad^4 for
+                // unit conversion to arcsec^4.
+                c |= RAD4;
             }
             _fieldFlags[_curField++] = c;
         }
@@ -242,42 +255,37 @@ namespace {
         // moments
         template <typename T>
         void operator()(SchemaItem<Moments<T> > const & item) const {
-            if ((_fieldFlags[_curField++] & SKIP_FIELD) != 0) {
+            uint8_t const c = _fieldFlags[_curField++];
+            if ((c & SKIP_FIELD) != 0) {
                 return;
             }
             typename Field<Moments<T> >::Value p = _record->get(item.key);
-            _writer->appendField(p.getIxx());
-            _writer->appendField(p.getIyy());
-            _writer->appendField(p.getIxy());
+            double const scale = ((c & RAD2) == 0 ? 1.0 : ARCSEC2_PER_RAD2);
+            _writer->appendField(scale * p.getIxx());
+            _writer->appendField(scale * p.getIyy());
+            _writer->appendField(scale * p.getIxy());
         }
 
         // covariances
         template <typename T>
         void operator()(SchemaItem<Covariance<T> > const & item) const {
-            if ((_fieldFlags[_curField++] & SKIP_FIELD) != 0) {
-                return;
-            }
-            typename Field<Covariance<T> >::Value cov = _record->get(item.key);
-            int const sz = item.field.getSize();
-            for (int i = 0; i < sz; ++i) {
-                for (int j = i; j < sz; ++j) {
-                    _writer->appendField(cov(i, j));
-                }
-            }
-        }
-
-        template <typename T>
-        void operator()(SchemaItem<Covariance<Point<T> > > const & item) const {
             uint8_t const c = _fieldFlags[_curField++];
             if ((c & SKIP_FIELD) != 0) {
                 return;
             }
             typename Field<Covariance<T> >::Value cov = _record->get(item.key);
-            // convert coordinate error covariance matrixes from rad^2 to arcsec^2. 
-            double const scale = ((c & COORD_ERR) == 0 ? 1.0 : 4.25451702961521995803707621197e10);
-            _writer->appendField(scale*cov(0,0));
-            _writer->appendField(scale*cov(0,1));
-            _writer->appendField(scale*cov(1,1));
+            int const sz = item.field.getSize();
+            double scale = 1.0;
+            if ((c & RAD2) != 0) {
+                scale = ARCSEC2_PER_RAD2;
+            } else if ((c & RAD4) != 0) {
+                scale = ARCSEC4_PER_RAD4;
+            }
+            for (int i = 0; i < sz; ++i) {
+                for (int j = i; j < sz; ++j) {
+                    _writer->appendField(scale * cov(i, j));
+                }
+            }
         }
 
         // flags
