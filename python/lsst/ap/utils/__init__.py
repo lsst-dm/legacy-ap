@@ -21,4 +21,4 @@
 #
 from .utilsLib import *
 from .skyTileUtils import findWcsCoveringSkyTile, createImageCoveringSkyTile
-from .config import CsvConfig
+from .config import CsvConfig, CsvConversionConfig

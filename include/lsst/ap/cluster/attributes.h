@@ -86,13 +86,13 @@ private:
   * exposures in the same filter are all consecutive.
   *
   * Finally, several other cluster attributes are computed/set:
-  *     - "obs.num" : number of sources in the cluster
+  *     - "obs.count" : number of sources in the cluster
   *     - "obs.time.min", "obs.time.max", "obs.time.mean" :
   *       observation time range
   *     - "coord.weighted", "coord.weighted.err", "coord.weighted.count" :
   *       inverse variance weighted mean coordinate, error, and sample count
   *       (computed only if input sources have a valid CoordErr slot mapping).
-  *     - "<filter>.obs.num" : filter specific source count
+  *     - "<filter>.obs.count" : filter specific source count
   *     - "<filter>.time.min", "<filter>.time.max" : filter specific
   *       observation time range
   *

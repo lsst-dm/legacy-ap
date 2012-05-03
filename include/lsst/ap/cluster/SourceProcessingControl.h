@@ -44,11 +44,11 @@ struct SourceProcessingControl {
 
     LSST_CONTROL_FIELD(exposurePrefix, std::string,
         "Prefix for exposure related fields in the output source schema. "
-        "Defaults to \"exposure\".");
+        "Defaults to \"exposure\", cannot be empty.");
 
     LSST_CONTROL_FIELD(clusterPrefix, std::string,
         "Prefix for cluster related fields in the output source schema. "
-        "Defaults to \"cluster\".");
+        "Defaults to \"cluster\", cannot be empty.");
 
     LSST_CONTROL_FIELD(badFlagFields, std::vector<std::string>,
         "A list of flag field names. If an input source has any of the "
@@ -81,6 +81,7 @@ struct SourceProcessingControl {
         "'<shape>.flags' for each list entry ('<shape>'). The default is: "
         "['shape.sdss']");
 
+    void validate() const;
 };
 
 }}} // namespace lsst::ap::cluster

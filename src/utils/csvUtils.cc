@@ -32,6 +32,7 @@
 
 #include "boost/ref.hpp"
 #include "boost/type_traits/is_integral.hpp"
+#include "boost/type_traits/is_same.hpp"
 
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/coord.h"
@@ -92,22 +93,11 @@ namespace {
                 if (std::find(i, e, name) != e) {
                     c |= NULLABLE_INT;
                 }
-            }
-            _fieldFlags[_curField++] = c;
-        }
-
-        // HACK: if a covariance matrix has units of rad^2, mark it
-        // as a coordinate error matrix so units get converted to arcsec^2
-        // later.
-        template <typename T>
-        void operator()(SchemaItem<Covariance<Point<T> > > const & item) const {
-            std::string name = item.field.getName();
-            StringIter i = _control.ignoreFields.begin();
-            StringIter e =  _control.ignoreFields.end();
-            uint8_t c = 0;
-            if (std::find(i, e, name) != e) {
-                c |= SKIP_FIELD;
-            } else if (item.field.getUnits() == "rad^2") {
+            } else if (item.field.getUnits() == "rad^2" &&
+                       (boost::is_same<T, Covariance<Point<float> > >::value ||
+                        boost::is_same<T, Covariance<Point<double> > >::value)) {
+                // HACK: if a point covariance matrix has units of rad^2, flag
+                // it as a coordinate error matrix so units get converted to arcsec^2
                 c |= COORD_ERR;
             }
             _fieldFlags[_curField++] = c;

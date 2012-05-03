@@ -89,7 +89,7 @@ struct CsvControl {
         "escaping. A value equal to the delimiter or quote character is "
         "illegal, with one exception: both the escape and quote characters "
         "can be '\\0'.  The '\\n' and '\\r' characters are also illegal. "
-        "The default is ','.");
+        "The default is '\\'.");
 
     LSST_CONTROL_FIELD(quoteChar, std::string,
         "A one character string containing the character used to quote fields "
@@ -136,7 +136,7 @@ struct CsvControl {
 
     LSST_CONTROL_FIELD(nonfiniteAsNull, bool,
         "If true, then non-finite (NaN, Inf, -Inf) floating point values are "
-        "written out as NULL field values.");
+        "written out as NULL field values. The default is false.");
 
     /** Returns true if database NULLs are recognizable in this dialect.
       * This is the case when hasNull is true, or when escapeChar is not

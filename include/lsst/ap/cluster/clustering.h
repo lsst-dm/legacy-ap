@@ -88,19 +88,19 @@ makeOutputSourceTable(
   * The following additional fields will be created (names not configurable
   * at the moment):
   *
-  *     - "id"                    (I8)             : cluster ID (from minimal schema)
-  *     - "coord"                 (Coord)          : mean sky-coordinates (from minimal schema)
-  *     - "coord.err"             (Cov<Point<F8>>) : uncertainty of coord
-  *     - "obs.num"               (I4)             : number of sources in cluster
-  *     - "flags.noise"           (Flag)           : was cluster created from a single noise source?
-  *     - "<filter>.obs.num"      (I4)             : numer of sources in a specific filter
+  *     - "id"                  (I8)             : cluster ID (from minimal schema)
+  *     - "coord"               (Coord)          : mean sky-coordinates (from minimal schema)
+  *     - "coord.err"           (Cov<Point<F8>>) : uncertainty of coord
+  *     - "obs.count"           (I4)             : number of sources in cluster
+  *     - "flag.noise"          (Flag)           : was cluster created from a single noise source?
+  *     - "<filter>.obs.count"  (I4)             : numer of sources in a specific filter
   *
   * If the input table has valid centroid and centroid error slot keys,
   * then the following fields are added:
   *
-  *     - "coord.weighted"        (Coord)          : inverse variance weighted mean sky-coordinates
-  *     - "coord.weighted.err"    (Cov<Point<F8>>) : covariance matrix for coord.weighted
-  *     - "coord.weighted.count"  (I4)             : number of samples included in "coord.weighted"
+  *     - "coord.weightedmean"       (Coord)          : inverse variance weighted mean sky-coordinates
+  *     - "coord.weightedmean.err"   (Cov<Point<F8>>) : covariance matrix for coord.weighted
+  *     - "coord.weightedmean.count" (I4)             : number of samples included in "coord.weighted"
   *
   * Finally, if the "<exposure>.time.mid" field exists in the input table, then:
   *

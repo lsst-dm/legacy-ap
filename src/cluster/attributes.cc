@@ -293,18 +293,18 @@ namespace {
             Eigen::Matrix2d cov = invCovSum.inverse();
             wmean = cov * wmean;
             wmean = proj.neToSky(wmean);
-            cluster.setWeightedCoord(IcrsCoord(
+            cluster.setWeightedMeanCoord(IcrsCoord(
                 wmean.x() * radians, wmean.y() * radians));
-            cluster.setWeightedCoordErr(proj.neToSky(cov));
+            cluster.setWeightedMeanCoordErr(proj.neToSky(cov));
             // chi-squared correction for cov?
         } else {
-            cluster.setWeightedCoord(IcrsCoord(
+            cluster.setWeightedMeanCoord(IcrsCoord(
                 std::numeric_limits<double>::quiet_NaN() * radians,
                 std::numeric_limits<double>::quiet_NaN() * radians));
-            cluster.setWeightedCoordErr(Eigen::Matrix2d::Constant(
+            cluster.setWeightedMeanCoordErr(Eigen::Matrix2d::Constant(
                 std::numeric_limits<double>::quiet_NaN()));
         }
-        cluster.setWeightedCoordCount(n);
+        cluster.setWeightedMeanCoordCount(n);
     }
 
 

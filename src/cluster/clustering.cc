@@ -197,24 +197,24 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         "sample covariance matrix for coord field (unweighted mean sky-coordinates)",
         "rad^2");
     schema.addField<int>(
-        "obs.num",
+        "obs.count",
         "number of sources in cluster");
     schema.addField<Flag>(
-        "flags.noise",
+        "flag.noise",
         "set if cluster was created from a single noise source");
     if (prototype.getCentroidKey().isValid() &&
         prototype.getCentroidErrKey().isValid()) {
         schema.addField<lsst::afw::table::Coord>(
-            "coord.weighted",
+            "coord.weightedmean",
             "inverse variance weighted mean sky-coordinates (ICRS)",
             "rad");
         schema.addField<Covariance<lsst::afw::table::Point<double> > >(
-            "coord.weighted.err",
-            "covariance matrix for coord.weighted field",
+            "coord.weightedmean.err",
+            "covariance matrix for coord.weightedmean field",
             "rad^2");
         schema.addField<int>(
-            "coord.weighted.count",
-            "number of samples used to compute coord.weighted");
+            "coord.weightedmean.count",
+            "number of samples used to compute coord.weightedmean");
     }
     if (!control.exposurePrefix.empty()) {
         schema.addField<double>(
@@ -234,7 +234,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
     std::vector<std::string> const filters = Filter::getNames();
     for (Iter filt = filters.begin(), eFilt = filters.end(); filt != eFilt; ++filt) {
         schema.addField<int>(
-            *filt + ".obs.num",
+            *filt + ".obs.count",
             "number of " + *filt + "-filter sources in cluster");
         if (!control.exposurePrefix.empty()) {
             schema.addField<double>(
@@ -266,12 +266,12 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
 
     // setup slot mappings
     table->defineCoordErr("coord.err");
-    table->defineNumSources("obs.num");
+    table->defineNumSources("obs.count");
     if (prototype.getCentroidKey().isValid() &&
         prototype.getCentroidErrKey().isValid()) {
-        table->defineWeightedCoord("coord.weighted");
-        table->defineWeightedCoordErr("coord.weighted.err");
-        table->defineWeightedCoordCount("coord.weighted.count");
+        table->defineWeightedMeanCoord("coord.weightedmean");
+        table->defineWeightedMeanCoordErr("coord.weightedmean.err");
+        table->defineWeightedMeanCoordCount("coord.weightedmean.count");
     }
     if (!control.exposurePrefix.empty()) {
         table->defineTimeMin("obs.time.min");
@@ -280,7 +280,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
     }
     for (Iter filt = filters.begin(), eFilt = filters.end();
          filt != eFilt; ++filt) {
-        table->defineNumSources(*filt, "obs.num");
+        table->defineNumSources(*filt, "obs.count");
         if (!control.exposurePrefix.empty()) {
             table->defineTimeMin(*filt, "obs.time.min");
             table->defineTimeMax(*filt, "obs.time.max");

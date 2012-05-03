@@ -93,9 +93,9 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         schema, boost::make_shared<SourceClusterIdFactory>(1)));
 
     outcat.getTable()->defineCoordErr(coordErr);
-    outcat.getTable()->defineWeightedCoord(weightedCoord);
-    outcat.getTable()->defineWeightedCoordErr(weightedCoordErr);
-    outcat.getTable()->defineWeightedCoordCount(weightedCoordCount);
+    outcat.getTable()->defineWeightedMeanCoord(weightedCoord);
+    outcat.getTable()->defineWeightedMeanCoordErr(weightedCoordErr);
+    outcat.getTable()->defineWeightedMeanCoordCount(weightedCoordCount);
     outcat.getTable()->defineNumSources(numSources);
     outcat.getTable()->defineTimeMin(timeMin);
     outcat.getTable()->defineTimeMean(timeMean);
@@ -131,9 +131,9 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                 0.75, 1.25;
         rec->setCoord(c1);
         rec->setCoordErr(cov1);
-        rec->setWeightedCoord(c2);
-        rec->setWeightedCoordErr(cov2);
-        rec->setWeightedCoordCount(-999);
+        rec->setWeightedMeanCoord(c2);
+        rec->setWeightedMeanCoordErr(cov2);
+        rec->setWeightedMeanCoordCount(-999);
         rec->setNumSources(15);
         rec->setTimeMin(10.0);
         rec->setTimeMax(20.0);
@@ -148,8 +148,8 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(rec->getCoordErr(), cov1);
         cov = rec->get(weightedCoordErr);
         BOOST_CHECK_EQUAL(cov, cov2);
-        BOOST_CHECK_EQUAL(rec->getWeightedCoordErr(), cov2);
-        BOOST_CHECK_EQUAL(rec->getWeightedCoordCount(), -999);
+        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordErr(), cov2);
+        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordCount(), -999);
         BOOST_CHECK_EQUAL(rec->getNumSources(), 15);
         BOOST_CHECK_EQUAL(rec->get(numSources), 15);
         BOOST_CHECK_EQUAL(rec->getTimeMin(), 10.0);
@@ -255,12 +255,12 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
 
     BOOST_CHECK_EQUAL(incat.getTable()->getCoordErrKey(),
                       outcat.getTable()->getCoordErrKey());
-    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordKey(),
-                      outcat.getTable()->getWeightedCoordKey());
-    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordErrKey(),
-                      outcat.getTable()->getWeightedCoordErrKey());
-    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedCoordCountKey(),
-                      outcat.getTable()->getWeightedCoordCountKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedMeanCoordKey(),
+                      outcat.getTable()->getWeightedMeanCoordKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedMeanCoordErrKey(),
+                      outcat.getTable()->getWeightedMeanCoordErrKey());
+    BOOST_CHECK_EQUAL(incat.getTable()->getWeightedMeanCoordCountKey(),
+                      outcat.getTable()->getWeightedMeanCoordCountKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getNumSourcesKey(),
                       outcat.getTable()->getNumSourcesKey());
     BOOST_CHECK_EQUAL(incat.getTable()->getTimeMinKey(),
@@ -321,9 +321,9 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         SourceClusterRecord const & b = incat[0];
         BOOST_CHECK_EQUAL(a.getCoord(), b.getCoord());
         BOOST_CHECK_EQUAL(a.getCoordErr(), b.getCoordErr());
-        BOOST_CHECK_EQUAL(a.getWeightedCoord(), b.getWeightedCoord());
-        BOOST_CHECK_EQUAL(a.getWeightedCoordErr(), b.getWeightedCoordErr());
-        BOOST_CHECK_EQUAL(a.getWeightedCoordCount(), b.getWeightedCoordCount());
+        BOOST_CHECK_EQUAL(a.getWeightedMeanCoord(), b.getWeightedMeanCoord());
+        BOOST_CHECK_EQUAL(a.getWeightedMeanCoordErr(), b.getWeightedMeanCoordErr());
+        BOOST_CHECK_EQUAL(a.getWeightedMeanCoordCount(), b.getWeightedMeanCoordCount());
         BOOST_CHECK_EQUAL(a.getNumSources(), b.getNumSources());
         BOOST_CHECK_EQUAL(a.getTimeMin(), b.getTimeMin());
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMean()) &&
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(a.getApFlux("u"), b.getApFlux("u"));
         BOOST_CHECK_EQUAL(a.getModelFlux("u"), b.getModelFlux("u"));
         Eigen::Matrix2d cova = a.getCoordErr(), covb = b.getCoordErr(),
-                        cov2a = a.getWeightedCoordErr(), cov2b = b.getWeightedCoordErr();
+                        cov2a = a.getWeightedMeanCoordErr(), cov2b = b.getWeightedMeanCoordErr();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < 2; ++j) {
                 BOOST_CHECK(lsst::utils::isnan(cova(i,j)) &&
@@ -369,12 +369,12 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
                             lsst::utils::isnan(cov2b(i,j)));
             }
         }
-        IcrsCoord ca = a.getWeightedCoord(), cb = b.getWeightedCoord();
+        IcrsCoord ca = a.getWeightedMeanCoord(), cb = b.getWeightedMeanCoord();
         BOOST_CHECK(lsst::utils::isnan(ca.getLongitude().asRadians()) &&
                     lsst::utils::isnan(ca.getLatitude().asRadians()) &&
                     lsst::utils::isnan(cb.getLongitude().asRadians()) &&
                     lsst::utils::isnan(cb.getLatitude().asRadians()));
-        BOOST_CHECK(a.getWeightedCoordCount() == 0 && b.getWeightedCoordCount() == 0);
+        BOOST_CHECK(a.getWeightedMeanCoordCount() == 0 && b.getWeightedMeanCoordCount() == 0);
         BOOST_CHECK(a.getNumSources("r") == 0 && b.getNumSources("r") == 0);
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMin("r")) && lsst::utils::isnan(b.getTimeMin("r")));
         BOOST_CHECK(lsst::utils::isnan(a.getTimeMax("r")) && lsst::utils::isnan(b.getTimeMax("r")));

@@ -165,18 +165,18 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         self.assertEqual(coordErr[0,1], coordErr[1,0])
         self.assertAlmostEqual(coordErr[0,1], 0.0)
         # test whether weighted mean position was computed as expected
-        self.assertEqual(cluster.getWeightedCoordCount(), 9)
-        coord = cluster.getWeightedCoord()
+        self.assertEqual(cluster.getWeightedMeanCoordCount(), 9)
+        coord = cluster.getWeightedMeanCoord()
         self.assertAlmostEqual(coord.getLongitude().asRadians(), 0.0)
         self.assertAlmostEqual(coord.getLatitude().asRadians(), 0.0)
-        coordErr = cluster.getWeightedCoordErr()
+        coordErr = cluster.getWeightedMeanCoordErr()
         self.assertEqual(coordErr[0,1], coordErr[1,0])
         self.assertAlmostEqual(coordErr[0,1], 0.0)
         scale2 = math.radians(1.0/3600.0)**2
         self.assertAlmostEqual(coordErr[0,0], scale2*10.0/9.0)
         self.assertAlmostEqual(coordErr[1,1], scale2*20.0/9.0)
         # test remaining basic attributes
-        self.assertEqual(cluster["obs.num"], 9)
+        self.assertEqual(cluster["obs.count"], 9)
         self.assertEqual(cluster["obs.time.min"], self.exposures.get(0).getEpoch())
         self.assertEqual(cluster["obs.time.max"], self.exposures.get(4).getEpoch())
         self.assertAlmostEqual(cluster["obs.time.mean"], self.exposures.get(2).getEpoch())

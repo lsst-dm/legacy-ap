@@ -28,6 +28,10 @@
   */
 #include "lsst/ap/cluster/SourceProcessingControl.h"
 
+#include "lsst/pex/exceptions.h"
+
+using lsst::pex::exceptions::InvalidParameterException;
+
 
 namespace lsst { namespace ap { namespace cluster {
 
@@ -48,5 +52,16 @@ SourceProcessingControl::SourceProcessingControl() :
 }
 
 SourceProcessingControl::~SourceProcessingControl() { }
+
+void SourceProcessingControl::validate() const {
+    if (exposurePrefix.empty()) {
+        throw LSST_EXCEPT(InvalidParameterException,
+                          "exposurePrefix cannot be empty!");
+    }
+    if (clusterPrefix.empty()) {
+        throw LSST_EXCEPT(InvalidParameterException, 
+                          "clusterPrefix cannot be empty!");
+    }
+}
 
 }}} // namespace lsst::ap::cluster

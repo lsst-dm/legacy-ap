@@ -200,9 +200,9 @@ namespace {
                         "Tells lsst::afw to load this as a SourceClusterTable.");
         // save filter agnostic slots
         SAVE_SLOT(COORD_ERR, CoordErr)
-        SAVE_SLOT(WCOORD, WeightedCoord)
-        SAVE_SLOT(WCOORD_ERR, WeightedCoordErr)
-        SAVE_SLOT(WCOORD_COUNT, WeightedCoordCount)
+        SAVE_SLOT(WMCOORD, WeightedMeanCoord)
+        SAVE_SLOT(WMCOORD_ERR, WeightedMeanCoordErr)
+        SAVE_SLOT(WMCOORD_COUNT, WeightedMeanCoordCount)
         SAVE_SLOT(NUM_SOURCES, NumSources)
         SAVE_SLOT(TIME_MIN, TimeMin)
         SAVE_SLOT(TIME_MEAN, TimeMean)
@@ -252,9 +252,9 @@ namespace {
             schema, PTR(lsst::afw::table::IdFactory)());
         // read in filter agnostic slots
         LOAD_SLOT(COORD_ERR, CoordErr)
-        LOAD_SLOT(WCOORD, WeightedCoord)
-        LOAD_SLOT(WCOORD_ERR, WeightedCoordErr)
-        LOAD_SLOT(WCOORD_COUNT, WeightedCoordCount)
+        LOAD_SLOT(WMCOORD, WeightedMeanCoord)
+        LOAD_SLOT(WMCOORD_ERR, WeightedMeanCoordErr)
+        LOAD_SLOT(WMCOORD_COUNT, WeightedMeanCoordCount)
         LOAD_SLOT(NUM_SOURCES, NumSources)
         LOAD_SLOT(TIME_MIN, TimeMin)
         LOAD_SLOT(TIME_MEAN, TimeMean)
@@ -316,9 +316,9 @@ SourceClusterTable::SourceClusterTable(
     PTR(lsst::afw::table::IdFactory) const & idFactory
 ) : lsst::afw::table::SimpleTable(schema, idFactory),
     _keyCoordErr(),
-    _keyWeightedCoord(),
-    _keyWeightedCoordErr(),
-    _keyWeightedCoordCount(),
+    _keyWeightedMeanCoord(),
+    _keyWeightedMeanCoordErr(),
+    _keyWeightedMeanCoordCount(),
     _keyNumSources(),
     _keyTimeMin(),
     _keyTimeMean(),
@@ -329,9 +329,9 @@ SourceClusterTable::SourceClusterTable(
 SourceClusterTable::SourceClusterTable(SourceClusterTable const & other) :
     lsst::afw::table::SimpleTable(other),
     _keyCoordErr(other._keyCoordErr),
-    _keyWeightedCoord(other._keyWeightedCoord),
-    _keyWeightedCoordErr(other._keyWeightedCoordErr),
-    _keyWeightedCoordCount(other._keyWeightedCoordCount),
+    _keyWeightedMeanCoord(other._keyWeightedMeanCoord),
+    _keyWeightedMeanCoordErr(other._keyWeightedMeanCoordErr),
+    _keyWeightedMeanCoordCount(other._keyWeightedMeanCoordCount),
     _keyNumSources(other._keyNumSources),
     _keyTimeMin(other._keyTimeMin),
     _keyTimeMean(other._keyTimeMean),
