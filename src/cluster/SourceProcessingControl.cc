@@ -38,6 +38,7 @@ namespace lsst { namespace ap { namespace cluster {
 SourceProcessingControl::SourceProcessingControl() :
     exposurePrefix("exposure"),
     clusterPrefix("cluster"),
+    numExposureIdBits(39),
     badFlagFields(),
     fluxScale(3.63078054770101342467371212362e-20),
     fluxUnit("erg/s/cm^2/Hz"),
@@ -61,6 +62,10 @@ void SourceProcessingControl::validate() const {
     if (clusterPrefix.empty()) {
         throw LSST_EXCEPT(InvalidParameterException, 
                           "clusterPrefix cannot be empty!");
+    }
+    if (numExposureIdBits > 55) {
+        throw LSST_EXCEPT(InvalidParameterException,
+                          "numExposureIdBits is too large (> 55)");
     }
 }
 

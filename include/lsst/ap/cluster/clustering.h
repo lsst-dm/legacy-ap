@@ -47,13 +47,13 @@ namespace lsst { namespace ap { namespace cluster {
   *
   * In particular, the following additions are performed:
   *
-  *     - "coord.err"            (Cov<Point<F8>>) : Source sky-coordinate error
-  *     - "<exposure>.id"        (I8)             : ID of exposure source was measured on.
-  *     - "<exposure>.filter.id" (I4)             : ID of filter for exposure.
-  *     - "<exposure>.time"      (F4)             : Exposure time (s).
-  *     - "<exposure>.time.mid"  (F8)             : Middle of exposure time (MJD).
-  *     - "<cluster>.id"         (I8)             : ID of cluster containing source.
-  *     - "<cluster>.coord"      (Coord)          : ICRS coordinates of cluster containing source.
+  *     - "coord.err"             (Cov<Point<F8>>) : Source sky-coordinate error
+  *     - "<exposure>.id"         (I8)             : ID of exposure source was measured on.
+  *     - "<exposure>.filter.id"  (I4)             : ID of filter for exposure.
+  *     - "<exposure>.time.range" (F4)             : Exposure time (s).
+  *     - "<exposure>.time.mid"   (F8)             : Middle of exposure time (MJD).
+  *     - "<cluster>.id"          (I8)             : ID of cluster containing source.
+  *     - "<cluster>.coord"       (Coord)          : ICRS coordinates of cluster containing source.
   *
   * "<exposure>" and "<cluster>" are field name prefixes obtained from SourceProcessingControl.
   * If either prefix is empty, the corresponding fields will not be added. Note however that
@@ -129,9 +129,10 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
   *
   * Sources not lying in the given sky-tile are discarded.
   *
-  * Existing fields in the input sources are not touched in any way. However:
+  * Existing fields in the input sources are modified as follows:
+  *     - the MSBs of each source ID are set to the exposure ID
   *     - source footprints are discarded
-  *     - source sky-coordinate errors are computed
+  *     - source sky-coordinate errors are computed and added
   *     - exposure information (ID, filter ID, etc...) is added to each source.
   *     - the cluster coordinates for a source are set to the source coordinates.
   *

@@ -86,7 +86,7 @@ namespace {
 
         template <typename T>
         void operator()(SchemaItem<T> const & item) const {
-            std::string name = item.field.getName();
+            std::string const name = item.field.getName();
             StringIter i = _control.ignoreFields.begin();
             StringIter e =  _control.ignoreFields.end();
             uint8_t c = 0;

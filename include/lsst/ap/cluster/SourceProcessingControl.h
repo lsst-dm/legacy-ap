@@ -50,6 +50,14 @@ struct SourceProcessingControl {
         "Prefix for cluster related fields in the output source schema. "
         "Defaults to \"cluster\", cannot be empty.");
 
+    LSST_CONTROL_FIELD(numExposureIdBits, int,
+        "Number of bits an exposure ID fits into. Non-positive values "
+        "result in source IDs being passed through as is; otherwise, "
+        "source IDs are assumed to be sequential (1,2,....), and the "
+        "exposure ID is packed into the MSBs of the source ID to make "
+        "them unique within a run. The default is 39 bits (suitable "
+        "for LSST sim data).");
+
     LSST_CONTROL_FIELD(badFlagFields, std::vector<std::string>,
         "A list of flag field names. If an input source has any of the "
         "corresponding flag bits set, then the source is considered \"bad\", "

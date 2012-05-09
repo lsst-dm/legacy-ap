@@ -347,6 +347,7 @@ std::vector<std::string> const SourceClusterTable::getFilters() const {
     for (Iter i = _filterSlots.begin(), e = _filterSlots.end(); i != e; ++i) {
         filters.push_back(i->first);
     }
+    std::sort(filters.begin(), filters.end());
     return filters;
 }
 

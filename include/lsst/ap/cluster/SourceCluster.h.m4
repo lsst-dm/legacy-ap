@@ -362,7 +362,7 @@ public:
     DECLARE_SLOT_DEFINERS(`TimeMax', `double')
     //@}
 
-    /// @brief Get the list of filter names for which slot mappings have been defined.
+    /// @brief Get the lexicographically sorted list of filter names for which slots have been defined.
     std::vector<std::string> const getFilters() const;
 
     //@{

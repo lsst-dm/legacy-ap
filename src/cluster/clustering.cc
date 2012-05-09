@@ -37,6 +37,7 @@
 
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::pex::exceptions::NotFoundException;
+using lsst::pex::exceptions::RuntimeErrorException;
 
 using lsst::pex::logging::Log;
 
@@ -111,6 +112,14 @@ namespace {
         return true;
     }
 
+    struct FilterNameCmp {
+        bool operator()(std::string const &, std::string const &) const; 
+    };
+
+    bool FilterNameCmp::operator()(std::string const & a, std::string const & b) const {
+        return Filter(a, false).getId() < Filter(b, false).getId();
+    }
+
 }   // namespace <anonymous>
 
 
@@ -140,7 +149,7 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
             control.exposurePrefix + ".filter.id",
             "ID of filter for exposure"));
         mapper.addOutputField(Field<float>(
-            control.exposurePrefix + ".time",
+            control.exposurePrefix + ".time.range",
             "exposure time",
             "s"));
         mapper.addOutputField(Field<double>(
@@ -230,8 +239,10 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
             "latest observation time of sources in cluster (TAI)",
             "mjd");
     }
+    std::vector<std::string> filters = Filter::getNames();
+    // Sort filter names by ID so that fields are added in a consistent order
+    std::sort(filters.begin(), filters.end(), FilterNameCmp());
     // Add filter specific fields
-    std::vector<std::string> const filters = Filter::getNames();
     for (Iter filt = filters.begin(), eFilt = filters.end(); filt != eFilt; ++filt) {
         schema.addField<int>(
             *filt + ".obs.count",
@@ -415,7 +426,7 @@ void processSources(
     // Set up keys to additional fields
     Key<int64_t> expIdKey;
     Key<int> expFilterIdKey;
-    Key<float> expTimeKey;
+    Key<float> expTimeRangeKey;
     Key<double> expTimeMidKey;
     Key<Covariance<lsst::afw::table::Point<double> > > centroidErrKey =
         sources.getTable()->getCentroidErrKey();
@@ -430,7 +441,7 @@ void processSources(
         Schema schema = mapper.getOutputSchema();
         expIdKey = schema[control.exposurePrefix + ".id"];
         expFilterIdKey = schema[control.exposurePrefix + ".filter.id"];
-        expTimeKey = schema[control.exposurePrefix + ".time"];
+        expTimeRangeKey = schema[control.exposurePrefix + ".time.range"];
         expTimeMidKey = schema[control.exposurePrefix + ".time.mid"];
     }
     if (!control.clusterPrefix.empty()) {
@@ -438,6 +449,11 @@ void processSources(
         clusterCoordKey = schema[control.clusterPrefix + ".coord"];
     }
     size_t ngood = 0, nbad = 0, ninvalid = 0, noutside = 0;
+    int64_t maxExposureId = 0, maxSourceId = 0;
+    if (control.numExposureIdBits > 0) {
+        maxExposureId = (static_cast<int64_t>(1) << control.numExposureIdBits) - 1;
+        maxSourceId = (static_cast<int64_t>(1) << (63 - control.numExposureIdBits)) - 1;
+    }
     // Loop over input sources
     for (SourceIter s = expSources.begin(), es = expSources.end(); s != es; ++s) {
         // Check source validity
@@ -484,6 +500,24 @@ void processSources(
         }
         os->assign(*s, mapper);
 
+        // Make source ID unique across run
+        if (control.numExposureIdBits > 0) {
+            int64_t expId = expInfo.getId();
+            int64_t srcId = os->getId();
+            if (expId < 0 || expId > maxExposureId) {
+                throw LSST_EXCEPT(RuntimeErrorException, "exposure ID is "
+                    "negative or too large - try increasing the value of the "
+                    "numExposureIdBits config parameter (in "
+                    "SourceProcessingConfig)");
+            }
+            if (srcId > maxSourceId) {
+                throw LSST_EXCEPT(RuntimeErrorException, "source ID is "
+                    "negative or too large - try decreasing the value of the "
+                    "numExposureIdBits config parameter (in "
+                    "SourceProcessingConfig)");
+            }
+            os->setId(srcId | (expId << (63 - control.numExposureIdBits)));
+        }
         // Add exposure parameters
         if (expIdKey.isValid()) {
             os->set(expIdKey, expInfo.getId());
@@ -491,8 +525,8 @@ void processSources(
         if (expFilterIdKey.isValid()) {
             os->set(expFilterIdKey, expInfo.getFilter().getId());
         }
-        if (expTimeKey.isValid()) {
-            os->set(expTimeKey, expInfo.getExposureTime());
+        if (expTimeRangeKey.isValid()) {
+            os->set(expTimeRangeKey, expInfo.getExposureTime());
         }
         if (expTimeMidKey.isValid()) {
             os->set(expTimeMidKey, expInfo.getEpoch());
