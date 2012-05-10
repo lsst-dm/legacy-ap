@@ -47,8 +47,8 @@ CatalogControl::CatalogControl() :
     maxAngularVelocity(numeric_limits<double>::quiet_NaN()),
     fieldNames(),
     outputFields(),
-    idColumn(),
-    epochColumn(),
+    idColumn("id"),
+    epochColumn("epoch"),
     epoch(51544.5), // J2000.0 MJD
     raColumn("ra"),
     raScale(0.0174532925199432957692369076849), // rad/deg

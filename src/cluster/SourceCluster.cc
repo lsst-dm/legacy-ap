@@ -174,10 +174,10 @@ namespace {
         explicit SourceClusterFitsWriter(lsst::afw::fits::Fits * fits) :
             FitsWriter(fits) { }
     protected:
-        virtual void _writeTable(CONST_PTR(BaseTable) const & table);
+        virtual void _writeTable(CONST_PTR(BaseTable) const & table, size_t nRows);
     };
 
-    void SourceClusterFitsWriter::_writeTable(CONST_PTR(BaseTable) const & t) {
+    void SourceClusterFitsWriter::_writeTable(CONST_PTR(BaseTable) const & t, size_t nRows) {
         CONST_PTR(SourceClusterTable) table =
             boost::dynamic_pointer_cast<SourceClusterTable const>(t);
         if (!table) {
@@ -189,7 +189,7 @@ namespace {
         if (metadata && metadata->exists("FILTERS")) {
             metadata->remove("FILTERS");
         }
-        FitsWriter::_writeTable(table);
+        FitsWriter::_writeTable(table, nRows);
         metadata = boost::make_shared<PropertyList>();
         std::vector<std::string> const filters = table->getFilters();
         if (!filters.empty()) {

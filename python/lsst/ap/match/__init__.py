@@ -20,4 +20,4 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 from .matchLib import *
-from .config import CatalogConfig, ReferenceMatchConfig, ReferenceFilterConfig
+from .config import CatalogConfig, ReferenceMatchConfig

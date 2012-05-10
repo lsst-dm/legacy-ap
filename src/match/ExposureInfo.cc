@@ -68,21 +68,7 @@ namespace lsst { namespace ap { namespace match {
 
 std::string const ExposureInfo::DEF_ID_KEY("Computed_ccdExposureId");
 
-ExposureInfo::ExposureInfo(
-    lsst::daf::base::PropertySet::Ptr metadata, ///< FITS metadata for image
-    std::string const &idKey ///< Metadata key for unique integer image id
-) :
-    _center(),
-    _earthPos(),
-    _id(metadata->getAsInt64(idKey)),
-    _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
-    _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
-    _extent(),
-    _wcs(lsst::afw::image::makeWcs(metadata, false)),
-    _filter(trim_copy(metadata->getAsString("FILTER")), false),
-    _canCalibrateFlux(false),
-    _epValid(false)
-{
+void ExposureInfo::_init(lsst::daf::base::PropertySet::Ptr metadata) {
     // get image extents
     _extent.setX(metadata->getAsInt("NAXIS1"));
     _extent.setY(metadata->getAsInt("NAXIS2"));
@@ -126,6 +112,42 @@ ExposureInfo::ExposureInfo(
     _radius = max(_radius, angularSeparation(c, lrc));
     _radius = max(_radius, angularSeparation(c, urc));
     _alpha = maxAlpha(_radius, _center.getLatitude());
+}
+
+ExposureInfo::ExposureInfo(
+    lsst::daf::base::PropertySet::Ptr metadata, ///< FITS metadata for image
+    std::string const &idKey ///< Metadata key for unique integer image id
+) :
+    _center(),
+    _earthPos(),
+    _id(metadata->getAsInt64(idKey)),
+    _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
+    _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
+    _extent(),
+    _wcs(lsst::afw::image::makeWcs(metadata, false)),
+    _filter(trim_copy(metadata->getAsString("FILTER")), false),
+    _canCalibrateFlux(false),
+    _epValid(false)
+{
+    _init(metadata);
+}
+
+ExposureInfo::ExposureInfo(
+    lsst::daf::base::PropertySet::Ptr metadata, ///< FITS metadata for image
+    int64_t id ///< Unique integer image id
+) :
+    _center(),
+    _earthPos(),
+    _id(id),
+    _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
+    _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
+    _extent(),
+    _wcs(lsst::afw::image::makeWcs(metadata, false)),
+    _filter(trim_copy(metadata->getAsString("FILTER")), false),
+    _canCalibrateFlux(false),
+    _epValid(false)
+{
+    _init(metadata);
 }
 
 ExposureInfo::~ExposureInfo() { }
@@ -300,7 +322,7 @@ void readExposureInfos(
     int const stringCol = reader.getIndexOf("stringValue");
     if (idCol == -1) {
         throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
-                          "has no column named " + idCol);
+                          "has no column named " + idColumn);
     }
     if (keyCol == -1) {
         throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
@@ -324,10 +346,10 @@ void readExposureInfos(
         int64_t id = reader.get<int64_t>(idCol);
         if (id != lastId) {
             if (ps) {
-                exposures.push_back(ExposureInfo::Ptr(new ExposureInfo(ps)));
+                exposures.push_back(ExposureInfo::Ptr(
+                    new ExposureInfo(ps, lastId)));
             }
             ps.reset(new PropertySet());
-            ps->set(idColumn, id);
             lastId = id;
         }
         std::string const key = reader.get(keyCol);
@@ -346,7 +368,8 @@ void readExposureInfos(
         }
     }
     if (ps) {
-        exposures.push_back(ExposureInfo::Ptr(new ExposureInfo(ps)));
+        exposures.push_back(ExposureInfo::Ptr(
+            new ExposureInfo(ps, lastId)));
     }
 }
 

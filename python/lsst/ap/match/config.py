@@ -21,6 +21,7 @@
 #
 
 import lsst.pex.config as pexConfig
+import lsst.afw.geom as afwGeom
 
 from lsst.ap.utils import CsvConfig
 from .matchLib import CatalogControl
@@ -46,6 +47,14 @@ class ReferenceMatchConfig(pexConfig.Config):
         dtype=CsvConfig,
         doc="CSV format of the position catalog file (delimiter, quoting, etc...)")
 
+    expDialect = pexConfig.ConfigField(
+        dtype=CsvConfig,
+        doc="CSV format of the exposure metadata file (delimiter, quoting, etc...)")
+
+    outDialect = pexConfig.ConfigField(
+        dtype=CsvConfig,
+        doc="CSV format of the output file (delimiter, quoting, etc...)")
+
     radius = pexConfig.RangeField(
         dtype=float,
         doc="Match radius (arcsec)",
@@ -55,30 +64,22 @@ class ReferenceMatchConfig(pexConfig.Config):
 
     parallaxThresh = pexConfig.RangeField(
         dtype=float,
-        doc="""Parallax threshold (milliarcsec). Positions of reference catalog
-               entries with parallax below this value will not be subject to
-               reduction from barycentric to geocentric place.""",
+        doc="Parallax threshold (milliarcsec). Positions of reference catalog "
+            "entries with parallax below this value will not be subject to "
+            "reduction from barycentric to geocentric place.",
         default=10.0,
         min=0.0)
 
-class ReferenceFilterConfig(pexConfig.Config):
-    ref = pexConfig.ConfigField(
-        dtype=CatalogConfig,
-        doc="Columns and properties of the reference catalog")
+    expIdKey = pexConfig.Field(
+        dtype=str,
+        default="Computed_ccdExposureId",
+        doc="Name of metadata key corresponding to the exposure ID")
 
-    refDialect = pexConfig.ConfigField(
-        dtype=CsvConfig,
-        doc="CSV format of the reference catalog file (delimiter, quoting, etc...)")
+    def getRadius(self):
+        """Return the radius parameter value as an lsst.afw.geom.Angle"""
+        return self.radius * afwGeom.arcseconds
 
-    expDialect = pexConfig.ConfigField(
-        dtype=CsvConfig,
-        doc="CSV format of the exposure metadata file (delimiter, quoting, etc...)")
-
-    parallaxThresh = pexConfig.RangeField(
-        dtype=float,
-        doc="""Parallax threshold (milliarcsec). Positions of reference catalog
-               entries with parallax below this value will not be subject to
-               reduction from barycentric to geocentric place.""",
-        default=10.0,
-        min=0.0)
+    def getParallaxThresh(self):
+        """Return the self.parallaxThresh parameter value as an lsst.afw.geom.Angle""" 
+        return self.parallaxThresh/1000.0 * afwGeom.arcseconds
 

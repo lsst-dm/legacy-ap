@@ -28,6 +28,7 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
 import lsst.afw.image as afwImage
 
+__all__ = ["findWcsCoveringSkyTile", "createImageCoveringSkyTile"]
 
 def findWcsCoveringSkyTile(skyPixelization, skyTileId, imageRes):
     """Computes and returns a TAN WCS such that a 2D image with the

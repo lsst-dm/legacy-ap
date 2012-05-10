@@ -111,7 +111,7 @@ class ReferenceFilterTestCase(unittest.TestCase):
         ps.setDouble("EXPTIME", 10.0)
         self.exposures = apMatch.ExposureInfoVector()
         self.exposures.append(apMatch.ExposureInfo(ps))
-        self.config = apMatch.ReferenceFilterConfig()
+        self.config = apMatch.ReferenceMatchConfig()
         self.config.ref.idColumn = "refObjectId"
         self.config.ref.fieldNames = ["refObjectId", "ra", "decl", "uCov", "x", "y"]
         self.config.ref.outputFields = ["refObjectId", "ra", "decl", "uCov", "x", "y"] 

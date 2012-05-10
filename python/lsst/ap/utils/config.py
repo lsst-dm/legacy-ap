@@ -23,6 +23,8 @@
 import lsst.pex.config
 from .utilsLib import CsvControl, CsvConversionControl
 
+__all__ = ["CsvConfig", "CsvConversionConfig"]
+
 @lsst.pex.config.wrap(CsvControl)
 class CsvConfig(lsst.pex.config.Config):
     pass

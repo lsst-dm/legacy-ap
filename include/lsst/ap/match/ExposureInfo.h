@@ -67,6 +67,8 @@ public:
 
      ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
                   std::string const &idKey=DEF_ID_KEY);
+     ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
+                  int64_t id);
      ~ExposureInfo();
 
      /** Returns a unique integer identifier for the exposure.
@@ -142,6 +144,7 @@ public:
 
 private:
      Eigen::Vector3d const _pixToSky(double x, double y) const;
+     void _init(lsst::daf::base::PropertySet::Ptr props);
 
      lsst::afw::coord::IcrsCoord _center;
      lsst::afw::geom::Angle _radius;

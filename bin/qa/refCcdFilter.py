@@ -2,7 +2,7 @@
 
 # 
 # LSST Data Management System
-# Copyright 2008, 2009, 2010 LSST Corporation.
+# Copyright 2008, 2009, 2010, 2012 LSST Corporation.
 # 
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
@@ -21,147 +21,110 @@
 # the GNU General Public License along with this program.  If not, 
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
-import optparse
-from textwrap import dedent
+import argparse
+import traceback
 
-import lsst.daf.persistence as dafPersistence
-import lsst.pex.logging as pexLogging
-import lsst.pex.policy as pexPolicy
+import lsst.afw.geom as afwGeom
 import lsst.ap.match as apMatch
-from lsst.obs.lsstSim import LsstSimMapper
+import lsst.ap.utils as apUtils
+
+__all__ = [
+    "ConfigOverride",
+    "ConfigFileOverride",
+    "referenceFilter",
+]
+
+class ConfigOverride(argparse.Action):
+    """Override config parameters using name=value pairs."""
+    def __call__(self, parser, namespace, values, option_string):
+        for nv in values:
+            name, _, value = nv.partition("=")
+            if not value:
+                parser.error(str.format(
+                    "{} value {} not in name=value form", option_string, nv))
+            components = name.split(".")
+            item = namespace.config
+            for c in component[-1]:
+                item = getattr(item, c)
+            try:
+                setattr(item, components[-1], value)
+            except:
+                try:
+                    value = eval(value, {})
+                except:
+                    parser.error(str.format(
+                        "Cannot parse {} as a value for {}: {}",
+                        repr(value), name, traceback.format_exc()))
+                try:
+                    setattr(item, components[-1], value)
+                except:
+                    parser.error(str.format(
+                        "Cannot set config.{}={}\n{}",
+                        name, repr(value), traceback.format_exc()))
 
 
-def getScienceCcdExposureId(visit, raft, sensor):
-    r1, comma, r2 = raft
-    s1, comma, s2 = sensor
-    raftId = int(r1)*5 + int(r2)
-    ccdNum = int(s1)*3 + int(s2)
-    return (long(visit) << 9) + raftId*10 + ccdNum
+class ConfigFileOverride(argparse.Action):
+    """Override config parameters with overrides from file(s)."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        for f in values:
+            try:
+                namespace.config.load(f)
+            except:
+                parser.error(str.format(
+                    "Cannot load config file {}: {}", f, traceback.format_exc()))
+
+
+def referenceFilter(config, outputFile, referenceCatalog, exposureMetadataFiles):
+    exposures = apMatch.ExposureInfoVector()
+    for file in exposureMetadataFiles:
+        apMatch.readExposureInfos(
+            exposures,
+            file,
+            config.expDialect.makeControl(),
+            config.expIdKey)
+    apMatch.referenceFilter(
+        exposures,
+        referenceCatalog,
+        config.ref.makeControl(),
+        config.refDialect.makeControl(),
+        outputFile,
+        config.outDialect.makeControl(),
+        config.getParallaxThresh(),
+        True)
 
 
 def main():
-    parser = optparse.OptionParser(dedent("""\
-        %prog [options] <ref catalog> <output file> [<root> [<registry>]]
-
-        Filters a reference catalog against the science CCD exposures in a run.
-        The reference catalog must be in increasing declination order. Note that
-        <root> (and <registry>) need not be specified if exposure metadata is
-        being read from CSV files (specified with the -e option).
-
-        Only reference catalog entries observable in at least one exposure are
-        written out. For each entry written out, 6 fields are appended to the
-        requested output fields: uCov, gCov, rCov, iCov, zCov, yCov. These give
-        the number of exposures in each filter (u,g,r,i,z,y) containing the
-        entry."""))
-    parser.add_option(
-        "-R", "--ref-policy", type="string", dest="refPolicy",
-        help=dedent("""\
-        Optional reference catalog policy file - defaults are taken from
-        policy/ReferenceCatalogDictionary.paf in the ap package."""))
-    parser.add_option(
-        "-M", "--match-policy", type="string", dest="matchPolicy",
-        help=dedent("""\
-        Optional match policy file - defaults are taken from
-        policy/ReferenceMatchDictionary.paf in the ap package."""))
-    parser.add_option(
-        "-p", "--parallaxThresh", type="float", dest="parallaxThresh",
-        help=dedent("""\
-        Parallax threshold (milliarcsec) above which a reduction for
-        parallax from barycentric to geocentric place is applied to
-        reference catalog positions. This option overrides the value
-        stored in the match policy file."""))
-    parser.add_option(
-        "-s", "--no-ssb-to-geo", action="store_true", dest="noSsbToGeo",
-        help=dedent("""\
-        Disables reduction for parallax from barycentric to geocentric
-        place."""))
-    parser.add_option(
-        "-F", "--ref-fields", type="string", dest="refFields",
-        help=dedent("""\
-        A comma separated list of the field names in the reference catalog.
-        If omitted, the first line in the reference catalog is expected to
-        contain field names."""))
-    parser.add_option(
-        "-o", "--output-fields", type="string", dest="outputFields",
-        help=dedent("""\
-        A comma separated list of reference catalog fields to output.
-        Overrides the value of the "outputFields" policy parameter value in
-        the reference catalog policy file. If this option is unspecified and
-        the reference catalog policy file does not specify "outputFields",
-        then all reference catalog fields are output. This can also be
-        explictly requested with -f "*"."""))
-    parser.add_option(
-        "-e", "--exposure-metadata", action="append", type="string",
-        dest="exposureMetadata", help=dedent("""\
-        The name of an exposure metadata key-value CSV table. This option
-        may be specified more than once. If present, exposure metadata is
-        obtained from the given CSV file(s) rather than the butler. This
-        is a significant performance win - using the butler to retrieve
-        metadata for tens of thousands of CCDs can take hours as it involves
-        reading the FITS header of every desired CCD."""))
-    parser.add_option(
-        "-E", "--exposure-policy", type="string", dest="exposurePolicy",
-        help=dedent("""\
-        Optional exposure table policy file - defaults are taken from
-        policy/ExposureMetadataTableDictionary.paf in the ap package."""))
-         
-    opts, args = parser.parse_args()
-    if len(args) < 2 or len(args) > 4:
-        parser.error("2-4 arguments expected")
-    if opts.refPolicy != None:
-        refPolicy = pexPolicy.Policy(opts.refPolicy)
-    else:
-        refPolicy = pexPolicy.Policy()
-    if opts.refFields != None:
-        refPolicy.remove("fieldNames")
-        for n in opts.refFields.split(","):
-            refPolicy.add("fieldNames", n.strip())
-    if opts.outputFields != None:
-        refPolicy.remove("outputFields")
-        for n in opts.outputFields.split(","):
-            refPolicy.add("outputFields", n.strip())
-    if not refPolicy.exists("outputFields"):
-        refPolicy.set("outputFields", "*")
-    if opts.matchPolicy != None:
-        matchPolicy = pexPolicy.Policy(opts.matchPolicy)
-    else:
-        matchPolicy = pexPolicy.Policy()
-    if opts.exposurePolicy != None:
-        exposurePolicy = pexPolicy.Policy(opts.exposurePolicy)
-    else:
-        exposurePolicy = pexPolicy.Policy()
-    if opts.parallaxThresh != None:
-        matchPolicy.set("parallaxThresh", opts.parallaxThresh)
-    if opts.noSsbToGeo:
-        matchPolicy.set("parallaxThresh", float("INF"))
-    # Retrieve CCD metadata
-    log = pexLogging.Log(pexLogging.getDefaultLog(), "lsst.ap.match")
-    exposures = apMatch.ExposureInfoVector()
-    if opts.exposureMetadata == None:
-        # Create butler
-        if len(args) == 2:
-            parser.error("A butler root directory or CCD exposure metadata " +
-                         "CSV file(s) must be specified")
-        root = args[2]
-        registry = None
-        if len(args) == 4:
-            registry = args[3]
-        mapper = LsstSimMapper(root=root, registry=registry)
-        butler = dafPersistence.ButlerFactory(mapper=mapper).create()
-        log.log(log.INFO, "Retrieving science CCD exposure metadata for all CCDs in " + root)
-        metadata = butler.queryMetadata("raw", "sensor", ("visit", "raft", "sensor"))
-        for visit, raft, sensor in metadata:
-            if butler.datasetExists("calexp_md", visit=visit, raft=raft, sensor=sensor):
-                ps = butler.get("calexp_md", visit=visit, raft=raft, sensor=sensor)
-                ps.set("scienceCcdExposureId", getScienceCcdExposureId(visit, raft, sensor))
-                exposures.append(apMatch.ExposureInfo(ps))
-    else:
-        if not hasattr(opts.exposureMetadata, "__iter__"):
-            opts.exposureMetadata = [opts.exposureMetadata]
-        for table in opts.exposureMetadata:
-            apMatch.readExposureInfos(exposures, table, exposurePolicy)
-    log.log(log.INFO, "Retrieved metadata for %d science CCDs" % len(exposures))
-    apMatch.referenceFilter(args[0], args[1], exposures, refPolicy, matchPolicy)
+    parser = argparse.ArgumentParser(description=
+        "Filters a reference catalog against the science CCD exposures in a "
+        "run. The reference catalog must be in increasing declination order. "
+        "Only reference catalog entries observable in at least one exposure "
+        "are written out. For each entry written out, N fields are appended to "
+        "the requested output fields; they correspond to the number of "
+        "exposures containing the entry for each filter of the specified "
+        "camera (--camera). Filtering is controlled by "
+        "lsst.ap.match.ReferenceMatchConfig - supply overrides with -c or -C.")
+    parser.add_argument("-c", "--config", nargs="*", action=ConfigOverride,
+        help="config override(s), e.g. -c foo='qux' bar.baz=3",
+        metavar="NAME=VALUE")
+    parser.add_argument("-C", "--config-file", nargs="*",
+        action=ConfigFileOverride, help="config override file(s)")
+    parser.add_argument("--camera", dest="camera", default="lsstSim",
+        help="Name of desired camera (defaults to %(default)s)")
+    parser.add_argument("outputFile", help="Name of output CSV file")
+    parser.add_argument("referenceCatalog",
+        help="Name of reference catalog CSV file")
+    parser.add_argument("exposureMetadata", nargs="+",
+        help="One or more exposure metadata CSV file names")
+    ns = argparse.Namespace()
+    ns.config = apMatch.ReferenceMatchConfig()
+    ns = parser.parse_args(namespace=ns)
+    # make sure filters are setup
+    apUtils.makeMapper(ns.camera)
+    # match 
+    referenceFilter(ns.config, 
+                    ns.outputFile,
+                    ns.referenceCatalog,
+                    ns.exposureMetadata)
 
 if __name__ == "__main__":
     main()
