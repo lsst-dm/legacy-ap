@@ -449,11 +449,6 @@ void processSources(
         clusterCoordKey = schema[control.clusterPrefix + ".coord"];
     }
     size_t ngood = 0, nbad = 0, ninvalid = 0, noutside = 0;
-    int64_t maxExposureId = 0, maxSourceId = 0;
-    if (control.numExposureIdBits > 0) {
-        maxExposureId = (static_cast<int64_t>(1) << control.numExposureIdBits) - 1;
-        maxSourceId = (static_cast<int64_t>(1) << (63 - control.numExposureIdBits)) - 1;
-    }
     // Loop over input sources
     for (SourceIter s = expSources.begin(), es = expSources.end(); s != es; ++s) {
         // Check source validity
@@ -499,25 +494,6 @@ void processSources(
             os = sources.addNew();
         }
         os->assign(*s, mapper);
-
-        // Make source ID unique across run
-        if (control.numExposureIdBits > 0) {
-            int64_t expId = expInfo.getId();
-            int64_t srcId = os->getId();
-            if (expId < 0 || expId > maxExposureId) {
-                throw LSST_EXCEPT(RuntimeErrorException, "exposure ID is "
-                    "negative or too large - try increasing the value of the "
-                    "numExposureIdBits config parameter (in "
-                    "SourceProcessingConfig)");
-            }
-            if (srcId > maxSourceId) {
-                throw LSST_EXCEPT(RuntimeErrorException, "source ID is "
-                    "negative or too large - try decreasing the value of the "
-                    "numExposureIdBits config parameter (in "
-                    "SourceProcessingConfig)");
-            }
-            os->setId(srcId | (expId << (63 - control.numExposureIdBits)));
-        }
         // Add exposure parameters
         if (expIdKey.isValid()) {
             os->set(expIdKey, expInfo.getId());
