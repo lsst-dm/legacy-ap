@@ -291,8 +291,6 @@ namespace {
 
 // -- SourceClusterRecord implementation --------
 
-SourceClusterRecord::~SourceClusterRecord() { }
-
 SourceClusterRecord::SourceClusterRecord(PTR(SourceClusterTable) const & table) :
     lsst::afw::table::SimpleRecord(table) { }
 

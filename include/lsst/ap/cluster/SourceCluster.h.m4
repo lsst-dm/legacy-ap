@@ -224,8 +224,6 @@ public:
     typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> Catalog;
     typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstCatalog;
 
-    ~SourceClusterRecord();
-
     CONST_PTR(SourceClusterTable) getTable() const {
         return boost::static_pointer_cast<SourceClusterTable const>(
             lsst::afw::table::BaseRecord::getTable());
