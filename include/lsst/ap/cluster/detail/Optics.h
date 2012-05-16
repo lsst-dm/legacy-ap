@@ -35,8 +35,8 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_OPTICS_H
-#define LSST_AP_CLUSTER_OPTICS_OPTICS_H
+#ifndef LSST_AP_CLUSTER_DETAIL_OPTICS_H
+#define LSST_AP_CLUSTER_DETAIL_OPTICS_H
 
 #include <vector>
 
@@ -50,7 +50,7 @@
 #include "SeedList.h"
 
 
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 /** @internal
   * Class that encapsulates parameters and state operated on by the
@@ -89,6 +89,6 @@ private:
     void expandClusterOrder(int i, MetricT const & metric);
 };
 
-}}}} // namespace lsst:ap::cluster::optics
+}}}} // namespace lsst:ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_OPTICS_H
+#endif // LSST_AP_CLUSTER_DETAIL_OPTICS_H

@@ -28,8 +28,8 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_KDTREE_H
-#define LSST_AP_CLUSTER_OPTICS_KDTREE_H
+#ifndef LSST_AP_CLUSTER_DETAIL_KDTREE_H
+#define LSST_AP_CLUSTER_DETAIL_KDTREE_H
 
 #include <limits>
 
@@ -38,7 +38,7 @@
 #include "Eigen/Core"
 
 
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 /** A pointer-less node in a k-d tree. A dimension, splitting value along
   * that dimension, and the index of the point following the last point
@@ -164,6 +164,6 @@ private:
     void build(double leafExtentThreshold);
 };
 
-}}}} // namespace lsst::ap::cluster::optics
+}}}} // namespace lsst::ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_KDTREE_H
+#endif // LSST_AP_CLUSTER_DETAIL_KDTREE_H

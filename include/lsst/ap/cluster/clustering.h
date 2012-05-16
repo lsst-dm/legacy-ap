@@ -168,7 +168,16 @@ void processSources(
     lsst::afw::table::SourceCatalog & invalidSources
 );
 
-/** Spatially cluster sources using the OPTICS algorithm.
+/** Spatially cluster sources using the OPTICS algorithm. For details,
+  * see the following paper:
+  *
+  * "OPTICS: Ordering Points To Identify the Clustering Structure".
+  * Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, Jorg Sander (1999).
+  * ACM SIGMOD international conference on Management of data.
+  * ACM Press. pp. 49-60.
+  *
+  * http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.129.6542
+  * http://en.wikipedia.org/wiki/OPTICS_algorithm
   * 
   * @param[in] sources  Sources to cluster.
   * @param[in] control  Clustering parameters.

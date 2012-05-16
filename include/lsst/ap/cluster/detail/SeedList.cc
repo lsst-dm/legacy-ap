@@ -28,13 +28,13 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
-#define LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
+#ifndef LSST_AP_CLUSTER_DETAIL_SEEDLIST_CC
+#define LSST_AP_CLUSTER_DETAIL_SEEDLIST_CC
 
 #include "SeedList.h"
 
 
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 template <int K, typename DataT>
 SeedList<K, DataT>::SeedList(Point<K, DataT> * points, int numPoints) :
@@ -232,6 +232,6 @@ bool SeedList<K, DataT>::checkInvariants() const {
     return true;
 }
 
-}}}} // namespace lsst:ap::cluster::optics
+}}}} // namespace lsst:ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_SEEDLIST_CC
+#endif // LSST_AP_CLUSTER_DETAIL_SEEDLIST_CC

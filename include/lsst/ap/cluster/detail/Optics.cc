@@ -28,8 +28,8 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_OPTICS_CC
-#define LSST_AP_CLUSTER_OPTICS_OPTICS_CC
+#ifndef LSST_AP_CLUSTER_DETAIL_OPTICS_CC
+#define LSST_AP_CLUSTER_DETAIL_OPTICS_CC
 
 #include "Optics.h"
 
@@ -42,7 +42,7 @@
 #include "SeedList.cc"
 
 
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 
 /** Initializes data structures required by the OPTICS to run over the given
@@ -63,7 +63,7 @@ Optics<K, RecordT>::Optics(Point<K, boost::shared_ptr<RecordT> > * points,
     _numPoints(numPoints),
     _minNeighbors(minNeighbors),
     _ran(false),
-    _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.optics")
+    _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.detail")
 {
     if (_points == 0) {
         throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
@@ -197,6 +197,6 @@ void Optics<K, RecordT>::expandClusterOrder(int i, MetricT const & metric)
     }
 }
 
-}}}} // namespace lsst:ap::cluster::optics
+}}}} // namespace lsst:ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_OPTICS_CC
+#endif // LSST_AP_CLUSTER_DETAIL_OPTICS_CC

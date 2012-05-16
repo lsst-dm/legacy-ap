@@ -28,15 +28,15 @@
 #include "boost/test/unit_test.hpp"
 
 #include "lsst/afw/math/Random.h"
-#include "lsst/ap/cluster/optics/SeedList.cc"
+#include "lsst/ap/cluster/detail/SeedList.cc"
 
 
-namespace optics = lsst::ap::cluster::optics;
+namespace cluster = lsst::ap::cluster;
 
 using lsst::afw::math::Random;
 
-typedef optics::Point<1, void *> Point;
-typedef optics::SeedList<1, void *> SeedList;
+typedef cluster::detail::Point<1, void *> Point;
+typedef cluster::detail::SeedList<1, void *> SeedList;
 
 namespace {
 

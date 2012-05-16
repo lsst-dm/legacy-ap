@@ -32,8 +32,8 @@
 #include "lsst/pex/logging/Log.h"
 #include "lsst/afw/image/ImageUtils.h"
 #include "lsst/afw/table/SchemaMapper.h"
-#include "lsst/ap/cluster/optics/Metrics.h"
-#include "lsst/ap/cluster/optics/Optics.cc"
+#include "lsst/ap/cluster/detail/Metrics.h"
+#include "lsst/ap/cluster/detail/Optics.cc"
 
 using lsst::pex::exceptions::InvalidParameterException;
 using lsst::pex::exceptions::NotFoundException;
@@ -533,8 +533,8 @@ void processSources(
 
 namespace {
 
-    typedef optics::Point<3, boost::shared_ptr<SourceRecord> > OpticsPoint;
-    typedef optics::Optics<3, SourceRecord> Optics;
+    typedef detail::Point<3, boost::shared_ptr<SourceRecord> > OpticsPoint;
+    typedef detail::Optics<3, SourceRecord> Optics;
 
     /// @internal  Maximum number of sources that can be clustered at once.
     unsigned int const MAX_SOURCES =
@@ -572,7 +572,7 @@ std::vector<SourceCatalog> const cluster(
             let = 4.0 * let * let;
         }
         Optics optics(entries.get(), i, control.minNeighbors, eps, let, control.pointsPerLeaf);
-        optics.run(sources.getTable(), clusters, optics::SquaredEuclidianDistanceOverSphere());
+        optics.run(sources.getTable(), clusters, detail::SquaredEuclidianDistanceOverSphere());
     }
     return clusters;
 }

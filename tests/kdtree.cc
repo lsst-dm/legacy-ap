@@ -33,12 +33,12 @@
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/coord/Coord.h"
 #include "lsst/ap/utils/SpatialUtils.h"
-#include "lsst/ap/cluster/optics/KDTree.cc"
-#include "lsst/ap/cluster/optics/Metrics.h"
+#include "lsst/ap/cluster/detail/KDTree.cc"
+#include "lsst/ap/cluster/detail/Metrics.h"
 
 
 namespace utils = lsst::ap::utils;
-namespace optics = lsst::ap::cluster::optics;
+namespace cluster = lsst::ap::cluster;
 namespace afwGeom = lsst::afw::geom;
 
 using lsst::afw::math::Random;
@@ -118,8 +118,8 @@ struct MatchOracle {
     }
 };
 
-typedef optics::Point<3, MatchOracle *> Point;
-typedef optics::KDTree<3, MatchOracle *> KDTree;
+typedef cluster::detail::Point<3, MatchOracle *> Point;
+typedef cluster::detail::KDTree<3, MatchOracle *> KDTree;
 
 // randomly shuffles an input sequence
 template <typename RandomAccessIterT>
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(RangeQuery) {
     double d = 2.0 * std::sin(0.5 * radius.asRadians());
     d = d * d;
 
-    optics::SquaredEuclidianDistanceOverSphere metric;
+    cluster::detail::SquaredEuclidianDistanceOverSphere metric;
     std::vector<Point> points;
     std::vector<MatchOracle> queryPoints;
     makePoints(points, queryPoints, radius);

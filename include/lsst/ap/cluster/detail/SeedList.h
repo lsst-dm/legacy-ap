@@ -28,14 +28,14 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_SEEDLIST_H
-#define LSST_AP_CLUSTER_OPTICS_SEEDLIST_H
+#ifndef LSST_AP_CLUSTER_DETAIL_SEEDLIST_H
+#define LSST_AP_CLUSTER_DETAIL_SEEDLIST_H
 
 #include "../../Common.h"
 #include "KDTree.h"
 
 
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 /** Class for managing the OPTICS ordered seeds. Methods to add a seed,
   * remove the seed with smallest reachability distance and to decrease the 
@@ -66,6 +66,6 @@ private:
     inline void siftDown(int pointIndex);
 };
 
-}}}} // namespace lsst:ap::cluster::optics
+}}}} // namespace lsst:ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_SEEDLIST_H
+#endif // LSST_AP_CLUSTER_DETAIL_SEEDLIST_H

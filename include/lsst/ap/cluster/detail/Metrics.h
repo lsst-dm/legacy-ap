@@ -32,17 +32,15 @@
   * @ingroup ap
   * @author Serge Monkewitz
   */
-#ifndef LSST_AP_CLUSTER_OPTICS_METRICS_H
-#define LSST_AP_CLUSTER_OPTICS_METRICS_H
+#ifndef LSST_AP_CLUSTER_DETAIL_METRICS_H
+#define LSST_AP_CLUSTER_DETAIL_METRICS_H
 
 #include <cmath>
 
 #include "Eigen/Core"
 
-#include "../../Common.h"
 
-
-namespace lsst { namespace ap { namespace cluster { namespace optics {
+namespace lsst { namespace ap { namespace cluster { namespace detail {
 
 /** Metric that computes the squared euclidian distance. Defined
   * over the set of 3-vectors with unit L2 norm.
@@ -64,6 +62,6 @@ struct SquaredEuclidianDistanceOverSphere {
     }
 };
 
-}}}} // lsst::ap::cluster::optics
+}}}} // lsst::ap::cluster::detail
 
-#endif // LSST_AP_CLUSTER_OPTICS_METRICS_H
+#endif // LSST_AP_CLUSTER_DETAIL_METRICS_H
