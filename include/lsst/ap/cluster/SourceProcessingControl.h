@@ -44,11 +44,11 @@ struct SourceProcessingControl {
 
     LSST_CONTROL_FIELD(exposurePrefix, std::string,
         "Prefix for exposure related fields in the output source schema. "
-        "Defaults to \"exposure\", cannot be empty.");
+        "Cannot be empty.");
 
     LSST_CONTROL_FIELD(clusterPrefix, std::string,
         "Prefix for cluster related fields in the output source schema. "
-        "Defaults to \"cluster\", cannot be empty.");
+        "Cannot be empty.");
 
     LSST_CONTROL_FIELD(badFlagFields, std::vector<std::string>,
         "A list of flag field names. If an input source has any of the "
@@ -58,28 +58,22 @@ struct SourceProcessingControl {
     LSST_CONTROL_FIELD(fluxScale, double,
         "Scaling factor applied to F/F_0 prior to averaging, where F is "
         "an uncalibrated source flux and F_0 is the flux of a 0-magnitude "
-        "object for the corresponding exposure. The default scaling factor "
-        "S is chosen such that the AB magnitude "
-        "-2.5*log10(S*F/F_0) - 48.6 = 0 when F = F_0, and is equal to "
-        "3.63078054770101342467371212362e-20");
+        "object for the corresponding exposure.");
 
     LSST_CONTROL_FIELD(fluxUnit, std::string,
-        "Unit of calibrated flux. The default corresponds to an 'AB flux': "
-        "erg/s/cm^2/Hz.");
+        "Unit of calibrated flux.");
 
     LSST_CONTROL_FIELD(fluxFields, std::vector<std::string>,
         "A list of flux field names which should be carried over from input "
         "source tables to output source cluster tables. Input source tables "
         "are expected to contain fields '<flux>', '<flux>.err' and "
-        "'<flux>.flags' for each list entry ('<flux>'). The default is: "
-        "['flux.gaussian', 'flux.naive', 'flux.psf', 'flux.sinc']");
+        "'<flux>.flags' for each list entry ('<flux>').");
 
     LSST_CONTROL_FIELD(shapeFields, std::vector<std::string>,
         "A list of shape field names which should be carried over from input "
         "source tables to output source cluster tables. Input source tables "
         "are expected to contain fields '<shape>', '<shape>.err' and "
-        "'<shape>.flags' for each list entry ('<shape>'). The default is: "
-        "['shape.sdss']");
+        "'<shape>.flags' for each list entry ('<shape>').");
 
     void validate() const;
 };

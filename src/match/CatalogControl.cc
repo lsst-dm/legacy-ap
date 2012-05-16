@@ -51,18 +51,18 @@ CatalogControl::CatalogControl() :
     epochColumn("epoch"),
     epoch(51544.5), // J2000.0 MJD
     raColumn("ra"),
-    raScale(0.0174532925199432957692369076849), // rad/deg
+    raScale(0.0174532925199432957692369076849), // rad / deg
     declColumn("decl"),
-    declScale(0.0174532925199432957692369076849), // rad/deg
+    declScale(0.0174532925199432957692369076849), // rad / deg
     muRaColumn("muRa"),
-    muRaScale(1.32734751843815467101961424328e-11), // (rad/day)/(milliarcsec/yr)
+    muRaScale(1.32734751843815467101961424328e-11), // (rad / (Julian day)) / (milliarcsec / (Julian yr))
     muRaTrueAngle(true),
     muDeclColumn("muDecl"),
-    muDeclScale(1.32734751843815467101961424328e-11), // (rad/day)/(milliarcsec/yr)
+    muDeclScale(1.32734751843815467101961424328e-11), // (rad / (Julian day)) / (milliarcsec / (Julian yr))
     parallaxColumn("parallax"),
-    parallaxScale(4.84813681109535993589914102357e-9), // rad/milliarcsec
+    parallaxScale(4.84813681109535993589914102357e-9), // rad / milliarcsec
     vRadialColumn("vRad"),
-    vRadialScale(0.000577548327363993690854050371186) // (AU/day)/(km/s)
+    vRadialScale(0.000577548327363993690854050371186) // (AU / day) / (km / s)
 {
     outputFields.push_back(string("*"));
 }

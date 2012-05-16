@@ -39,6 +39,9 @@ SourceProcessingControl::SourceProcessingControl() :
     exposurePrefix("exposure"),
     clusterPrefix("cluster"),
     badFlagFields(),
+    // The default flux scale S is chosen such that the AB magnitude
+    // -2.5*log10(S*F/F_0) - 48.6 = 0 when F = F_0, where F is an
+    // uncalibrated flux and F_0 is the flux of a 0-magnitude source.
     fluxScale(3.63078054770101342467371212362e-20),
     fluxUnit("erg/s/cm^2/Hz"),
     fluxFields(),

@@ -45,30 +45,27 @@ struct CatalogControl {
 
     // pre-computed catalog statistics
     LSST_CONTROL_FIELD(minEpoch, double,
-        "Minimum epoch of catalog positions, MJD. The default is NaN, "
-        "in which case the actual value will be computed (if required) "
-        "by scanning the catalog.");
+        "Minimum epoch of catalog positions, MJD. If set to NaN, the actual "
+        "value will be computed (if required) by scanning the catalog.");
 
     LSST_CONTROL_FIELD(maxEpoch, double,
-        "Maximum epoch of catalog positions, MJD. The default is NaN, "
-        "in which case the actual value will be computed (if required) "
-        "by scanning the catalog.");              
+        "Maximum epoch of catalog positions, MJD. If set to NaN, the actual "
+        "value will be computed (if required) by scanning the catalog.");              
 
     LSST_CONTROL_FIELD(maxParallax, double,
         "Maximum parallax (milliarcsec) of any catalog entry. If catalog "
         "entries have no associated parallax, the value should be set to "
-        "0.0 or NaN. A value to NaN (the default) will cause the "
-        "maximum to be computed (if required) by scanning the catalog.");
+        "0.0 or NaN. A value of NaN will cause the maximum to be computed "
+        "(if required) by scanning the catalog.");
 
     LSST_CONTROL_FIELD(maxAngularVelocity, double,
         "Maximum angular velocity (milliarcsec/yr) of any catalog entry. If "
         "catalog entries have no associated proper motions, the value should "
-        "be set to 0.0 or NaN. A value of NaN (the default) will cause the "
-        "maximum to be computed (if required) by scanning the catalog. Note "
-        "that angular velocity V is related to proper motion components muRa "
-        "and muDecl via V = sqrt(muRa**2 + muDecl**2), assuming muRa is in "
-        "terms of true angle rather than coordinate angle, i.e. "
-        "muRa = dRA/dt*cos(decl).");
+        "be set to 0.0 or NaN. A value of NaN will cause the maximum to be "
+        "computed (if required) by scanning the catalog. Note that angular "
+        "velocity V is related to proper motion components muRa and muDecl "
+        "via V = sqrt(muRa**2 + muDecl**2), assuming muRa is in terms of true "
+        "angle rather than coordinate angle, i.e. muRa = dRA/dt*cos(decl).");
 
     // field names and output options
     LSST_CONTROL_FIELD(fieldNames, std::vector<std::string>,
@@ -92,24 +89,21 @@ struct CatalogControl {
         "are illegal.");
     LSST_CONTROL_FIELD(epoch, double,
         "Epoch to assign to catalog entries if the catalog has no epoch "
-        "columns. Values must be in MJD, and the default is 51544.5 "
-        "(J2000.0 MJD).");
+        "columns; MJD.");
 
     LSST_CONTROL_FIELD(raColumn, std::string,
         "Name of the ICRS right ascension column. Must be present in the "
         "catalog. NULL values are illegal.");
     LSST_CONTROL_FIELD(raScale, double,
         "Scaling factor to apply to ra column values on reading - must convert "
-        "from catalog units to radians. By default, catalog units are assumed "
-        "to be degrees.");
+        "from catalog units to radians.");
 
     LSST_CONTROL_FIELD(declColumn, std::string,
         "Name of the ICRS declination column. Must be present in the catalog. "
         "NULL values are illegal.");
     LSST_CONTROL_FIELD(declScale, double,
         "Scaling factor to apply to decl column values on reading - must "
-        "convert from catalog units to radians. By default, catalog units are "
-        "assumed to be degrees.");
+        "convert from catalog units to radians.");
 
     LSST_CONTROL_FIELD(muRaColumn, std::string,
         "Name of the right ascension proper motion column. Need not be present "
@@ -117,12 +111,11 @@ struct CatalogControl {
         "entry to be treated as stationary and infinitely distant.");
     LSST_CONTROL_FIELD(muRaScale, double,
         "Scaling factor to apply to muRa column values on reading - must "
-        "convert from catalog units to radians per Julian day. By default, "
-        "catalog units are assumed to be milliarcseconds per Julian year.");
+        "convert from catalog units to radians per Julian day.");
     LSST_CONTROL_FIELD(muRaTrueAngle, bool,
-        "True (the default) if the muRa column gives a true angular rate of "
-        "change (muRa = dRA/dt*cos(decl)). False if it gives the rate of "
-        "change of the coordinate angle (muRa = dRA/dt).");
+        "True if the muRa column gives a true angular rate of change "
+        "(muRa = dRA/dt*cos(decl)). False if it gives the rate of change "
+        "of the coordinate angle (muRa = dRA/dt).");
 
     LSST_CONTROL_FIELD(muDeclColumn, std::string,
         "Name of the declination proper motion column. Need not be present "
@@ -130,8 +123,7 @@ struct CatalogControl {
         "entry to be treated as stationary and infinitely distant.");
     LSST_CONTROL_FIELD(muDeclScale, double,
         "Scaling factor to apply to muDecl column values on reading - must "
-        "convert from catalog units to radians per Julian day. By default, "
-        "catalog units are assumed to be milliarcseconds per Julian year.");
+        "convert from catalog units to radians per Julian day.");
 
     LSST_CONTROL_FIELD(parallaxColumn, std::string,
         "Name of the parallax column. Need not be present in the catalog. "
@@ -139,8 +131,7 @@ struct CatalogControl {
         "to be treated as stationary and infinitely distant.");
     LSST_CONTROL_FIELD(parallaxScale, double,
         "Scaling factor to apply to parallax column values on reading - must "
-        "convert from catalog units to radians. By default, catalog units "
-        "are assumed to be milliarcseconds.");
+        "convert from catalog units to radians.");
 
     LSST_CONTROL_FIELD(vRadialColumn, std::string,
         "Name of the radial velocity column. Need not be present in the "
@@ -148,8 +139,7 @@ struct CatalogControl {
         "values are also treated as equivalent to 0.0.");
     LSST_CONTROL_FIELD(vRadialScale, double,
         "Scaling factor to apply to vRadial column values on reading - must "
-        "convert from catalog units to AU per day. By default, catalog units "
-        "are assumed to be km/s.");
+        "convert from catalog units to AU per day.");
 
     CatalogControl();
     ~CatalogControl();

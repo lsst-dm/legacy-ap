@@ -61,8 +61,8 @@ struct ClusteringControl {
         "assigned to a cluster, set the value to zero.  However, setting the "
         "value to a non-negligeable fraction of the number of times the sky is "
         "covered by the data-set in question will typically result in better "
-        "clusters.  Note though that for now, there is no way to adjust the "
-        "value to account for data-sets with non uniform coverage.");
+        "clusters.  There is currently no way to adjust the value to account "
+        "for data-sets with non uniform coverage.");
 
     LSST_CONTROL_FIELD(pointsPerLeaf, int,
         "A performance tuning parameter for the k-d tree used internally by "
@@ -77,7 +77,7 @@ struct ClusteringControl {
         "should be of the same order as epsilonArcsec - nodes much smaller "
         "than this are useless in the sense that the sources belonging to "
         "such a node become increasingly likely to all lie in the "
-        "neighborhood of a query point.  Note also that in the k-d tree "
+        "neighborhood of a query point.  Note also that the k-d tree "
         "implementation does not store bounding boxes for nodes, meaning "
         "that an entire node cannot be determined to satify a range "
         "query without traversal of its children/contents.  This saves on tree "
