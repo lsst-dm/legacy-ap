@@ -60,14 +60,17 @@ namespace lsst { namespace ap { namespace cluster {
   * the exposure related fields are necessary for attribute computation and database ingest
   * into the LSST schema. The cluster related fields are required only for database ingest.
   *
+  * @param[in] prototype Prototypical schema/slot mappings.
+  * @param[in] control   Source processing parameters.
+  *
   * @return An output SourceTable and a SchemaMapper that can be used to copy common
   *         field values between input and output records.
   */
 std::pair<boost::shared_ptr<lsst::afw::table::SourceTable>,
           lsst::afw::table::SchemaMapper> const
 makeOutputSourceTable(
-    lsst::afw::table::SourceTable const & prototype, ///< @param[in] Prototypical schema/slot mappings.
-    SourceProcessingControl const & control          ///< @param[in] Source processing parameters.
+    lsst::afw::table::SourceTable const & prototype,
+    SourceProcessingControl const & control
 );
 
 /** Create a source cluster table based on a prototypical input source table.
@@ -112,13 +115,17 @@ makeOutputSourceTable(
   *
   * are added (where the "<exposure>" prefix is obtained from SourceProcessingControl).
   *
+  * @param[in] prototype Prototypical schema/slot mappings.
+  * @param[in] idFactory ID generator.
+  * @param[in] control   Source processing parameters.
+  *
   * @return A SourceClusterTable corresponding to clusters of sources having
   *         the given prototypical schema and slots.
   */
 boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
-    lsst::afw::table::SourceTable const & prototype,                  ///< @param[in] Prototypical schema/slot mappings.
-    boost::shared_ptr<lsst::afw::table::IdFactory> const & idFactory, ///< @param[in] ID generator.
-    SourceProcessingControl const & control                           ///< @param[in] Source processing parameters.
+    lsst::afw::table::SourceTable const & prototype,
+    boost::shared_ptr<lsst::afw::table::IdFactory> const & idFactory,
+    SourceProcessingControl const & control
 );
 
 /** Process input sourcees, distributing them to one of 3 output catalogs.
@@ -140,23 +147,35 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
   * via makeOutputSourceTable() - their schemas and slot mappings must all be 
   * identical. The input table slots must match output table slots, and the
   * input schema must be fully contained in the output schema.
+  *
+  * @param[in]  expSources     Single exposure sources to process.
+  * @param[in]  expInfo        Exposure information.
+  * @param[in]  skyTile        Sky-tile being processed.
+  * @param[in]  control        Source processing parameters.
+  * @param[in]  mapper         Maps between input and output source records.
+  * @param[out] sources        Catalog for sources that will be clustered.
+  * @param[out] badSources     Catalog for sources with bad measurement flags.
+  * @param[out] invalidSources Catalog for sources with invalid measurements.
   */
 void processSources(
-    lsst::afw::table::SourceCatalog const & expSources, ///< @param[in] Single exposure sources to process.
-    lsst::ap::match::ExposureInfo const & expInfo,      ///< @param[in] Exposure information.
-    lsst::ap::utils::PT1SkyTile const & skyTile,        ///< @param[in] Sky-tile being processed.
-    SourceProcessingControl const & control,            ///< @param[in] Source processing parameters.
-    lsst::afw::table::SchemaMapper const & mapper,      ///< @param[in] Maps between input and output source records.
-    lsst::afw::table::SourceCatalog & sources,          ///< @param[out] Catalog for sources that will be clustered.
-    lsst::afw::table::SourceCatalog & badSources,       ///< @param[out] Catalog for sources with bad measurement flags.
-    lsst::afw::table::SourceCatalog & invalidSources    ///< @param[out] Catalog for sources with invalid measurements.
+    lsst::afw::table::SourceCatalog const & expSources,
+    lsst::ap::match::ExposureInfo const & expInfo,
+    lsst::ap::utils::PT1SkyTile const & skyTile,
+    SourceProcessingControl const & control,
+    lsst::afw::table::SchemaMapper const & mapper,
+    lsst::afw::table::SourceCatalog & sources,
+    lsst::afw::table::SourceCatalog & badSources,
+    lsst::afw::table::SourceCatalog & invalidSources
 );
 
 /** Spatially cluster sources using the OPTICS algorithm.
+  * 
+  * @param[in] sources  Sources to cluster.
+  * @param[in] control  Clustering parameters.
   */
 std::vector<lsst::afw::table::SourceCatalog> const cluster(
-    lsst::afw::table::SourceCatalog const & sources, ///< @param[in] Sources to cluster.
-    ClusteringControl const & control                ///< @param[in] Clustering parameters.
+    lsst::afw::table::SourceCatalog const & sources,
+    ClusteringControl const & control
 );
 
 /** Set the "<cluster>.id" and "<cluster>.coord" fields of each source
@@ -169,11 +188,15 @@ std::vector<lsst::afw::table::SourceCatalog> const cluster(
   * (for which clusters are a temporary stand-in) are partitioned by position.
   * Denormalizing the output source schema by appending cluster position avoids
   * a potentially very expensive join during database ingest.
+  *
+  * @param[out] sources  Sources to update.
+  * @param[in]  record   Cluster to obtain ID/sky-coordinates from.
+  * @param[in]  control  Supplies cluster field name prefix.
   */  
 void setClusterFields(
-    lsst::afw::table::SourceCatalog & sources, ///< @param[out] Sources to update.
-    SourceClusterRecord const & record,        ///< @param[in]  Cluster to obtain ID/sky-coordinates from.
-    SourceProcessingControl const & control    ///< @param[in]  Supplies cluster field name prefix.
+    lsst::afw::table::SourceCatalog & sources,
+    SourceClusterRecord const & record,
+    SourceProcessingControl const & control
 );
 
 }}} // namespace lsst::ap::cluster

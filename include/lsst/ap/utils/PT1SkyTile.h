@@ -46,8 +46,10 @@ public:
     PT1SkyTile(int resolution, int root, int x, int y, int id);
     ~PT1SkyTile();
 
+    /// @brief Return the integer sky-tile ID.
     int getId() const { return _id; }
 
+    /// @brief Return true if the given coordinates lie inside the sky tile.
     bool contains(lsst::afw::coord::Coord const & coord) const;
 
 private:

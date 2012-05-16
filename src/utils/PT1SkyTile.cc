@@ -77,13 +77,6 @@ PT1SkyTile::PT1SkyTile(int resolution, int root, int x, int y, int id) :
 
 PT1SkyTile::~PT1SkyTile() { }
 
-/** Tests whether a point given in spherical coordinates is inside the sky tile.
-  *
-  * @param[in] theta    Longitude angle (radians).
-  * @param[in] phi      Latitude angle (radians).
-  *
-  * @return     @c true iff @c (theta,phi) is inside this sky-tile.
-  */
 bool PT1SkyTile::contains(Coord const & coord) const {
     double theta = coord.getLongitude().asRadians();
     double phi = coord.getLatitude().asRadians();

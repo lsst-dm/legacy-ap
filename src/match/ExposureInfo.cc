@@ -152,13 +152,7 @@ ExposureInfo::ExposureInfo(
 
 ExposureInfo::~ExposureInfo() { }
 
-/** Returns a flux value calibrated using the flux of a zero magnitude object
-  * associated with this exposure.
-  */
-double ExposureInfo::calibrateFlux(
-    double flux,            ///< flux to calibrate, DN
-    double fluxScale        ///< flux scaling factor, must be \> 0.0
-) const {
+double ExposureInfo::calibrateFlux(double flux, double fluxScale) const {
     if (fluxScale <= 0.0) {
         throw LSST_EXCEPT(InvalidParameterException, "flux "
                           "scaling factor is <= 0");
@@ -170,13 +164,10 @@ double ExposureInfo::calibrateFlux(
     return fluxScale*flux/_fluxMag0;
 }
 
-/** Returns a calibrated flux and its variance. The flux of a zero magnitude
-  * object associated with this exposure is used to perform the calibration.
-  */
 std::pair<double, double> const ExposureInfo::calibrateFlux(
-    double flux,            ///< flux to calibrate, DN
-    double fluxSigma,       ///< standard deviation of @a flux
-    double fluxScale        ///< flux scaling factor, must be \> 0.0
+    double flux,
+    double fluxSigma,
+    double fluxScale
 ) const {
     if (fluxScale <= 0.0) {
         throw LSST_EXCEPT(InvalidParameterException, "flux "
@@ -293,16 +284,11 @@ std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
 } // namespace lsst::ap::match::<anonymous>
 
 
-/** Reads an exposure metadata key-value CSV file (where metadata keys
-  * must have been grouped by exposure id). An ExposureInfo object
-  * is created for each input exposure and appended to @a exposures.
-  */
 void readExposureInfos(
-    std::vector<ExposureInfo::Ptr> & exposures, ///< ExposureInfo objects are
-                                                ///  appended to this vector.
-    std::string const & csvFile,                ///< Metadata table path.
-    CsvControl  const & control,                ///< Metadata table CSV format.
-    std::string const & idColumn                ///< Name of ID column, e.g. "scienceCcdExposureId".
+    std::vector<ExposureInfo::Ptr> & exposures,
+    std::string const & csvFile,
+    CsvControl  const & control,
+    std::string const & idColumn
 ) {
     typedef std::tr1::unordered_map<std::string, int> FkMap;
     typedef FkMap::const_iterator FkIter;

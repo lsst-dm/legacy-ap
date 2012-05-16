@@ -1658,27 +1658,15 @@ void referenceMatch(
 }
 
 
-/** Computes the number of times a reference catalog should have been observed in
-  * each filter with an ideal observatory, given a set of exposures. The per-filter
-  * observation counts are appended as columns "<filter>Cov", in order of filter ID.
-  * Note that filter IDs are required to be contiguous integers 0, 1, .... N - 1.
-  *
-  * Reference catalog entries not falling on any of the given exposures are dropped
-  * from the output.
-  *
-  * Note that a reduction for parallax from barycentric to geocentric place is 
-  * applied to reference catalog entries with parallax above parallaxThresh.
-  * To disable this reduction, use a large threshold (e.g. +Inf).
-  */
 void referenceFilter(
-    std::vector<ExposureInfo::Ptr> &exposures,    ///< Exposures to filter against - reordered by the call.
-    std::string            const &refFile,        ///< Declination sorted reference catalog CSV file name.
-    CatalogControl         const &refControl,     ///< CSV dialect of reference catalog CSV file. 
-    CsvControl             const &refDialect,     ///< CSV dialect of reference catalog CSV file.
-    std::string            const &outFile,        ///< Output file name.
-    CsvControl             const &outDialect,     ///< Output file CSV dialect.
-    lsst::afw::geom::Angle const  parallaxThresh, ///< Parallax threshold
-    bool                          truncateOutFile ///< Truncate outFile before appending to it?
+    std::vector<ExposureInfo::Ptr> &exposures,
+    std::string            const &refFile,
+    CatalogControl         const &refControl,
+    CsvControl             const &refDialect,
+    std::string            const &outFile,
+    CsvControl             const &outDialect,
+    lsst::afw::geom::Angle const  parallaxThresh,
+    bool                          truncateOutFile
 ) {
     typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
     if (exposures.empty()) {

@@ -92,28 +92,33 @@ private:
   *     - "coord.weighted", "coord.weighted.err", "coord.weighted.count" :
   *       inverse variance weighted mean coordinate, error, and sample count
   *       (computed only if input sources have a valid CoordErr slot mapping).
-  *     - "<filter>.obs.count" : filter specific source count
-  *     - "<filter>.time.min", "<filter>.time.max" : filter specific
+  *     - "\<filter\>.obs.count" : filter specific source count
+  *     - "\<filter\>.time.min", "\<filter\>.time.max" : filter specific
   *       observation time range
+  *
+  * @param[out] cluster         SourceClusterRecord to store results in.
+  * @param[in]  sources         Sources in cluster.
+  * @param[in]  exposures       Map from exposure ID to exposure information.
+  * @param[in]  exposurePrefix  Exposure column name prefix.
   *
   * @return    A list of (source, exposure information, transform) tuples,
   *            grouped by filter.
   */
 boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
-    SourceClusterRecord & cluster,                      ///< @param[out] Cluster to store results in.
-    lsst::afw::table::SourceCatalog const & sources,    ///< @param[in]  Sources in cluster.
-    lsst::ap::match::ExposureInfoMap const & exposures, ///< @param[in]  Map from exposure ID to exposure information.
-    std::string const & exposurePrefix                  ///< @param[in]  Exposure column name prefix.
+    SourceClusterRecord & cluster,
+    lsst::afw::table::SourceCatalog const & sources,
+    lsst::ap::match::ExposureInfoMap const & exposures,
+    std::string const & exposurePrefix
 );
 
 /** Compute per-filter calibrated flux means for a cluster of sources.
   *
   * The input source vector is assumed to be grouped by filter. Flux
-  * measurments and errors are obtained from fields named '<fluxDef>'
-  * and '<fluxDef>.err'. Results are stored in fields named 
-  * '<filter>.<fluxDef>' and '<filter>.<fluxDef>.err', with a sample count
-  * stored in '<filter>.<fluxDef>.count' field. For an input source
-  * to be included in the mean, the following must hold:
+  * measurments and errors are obtained from fields named '\<fluxDef\>'
+  * and '\<fluxDef\>.err'. Results are stored in fields named 
+  * '\<filter\>.\<fluxDef\>' and '\<filter\>.\<fluxDef\>.err',
+  * with a sample count stored in '\<filter\>.\<fluxDef\>.count' field.
+  * For an input source to be included in the mean, the following must hold:
   *     - the source must have finite flux
   *     - the source must have positive flux error
   *     - none of the flag fields in skipFlags must be set.
@@ -124,24 +129,29 @@ boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
   * available, the input flux and error are calibrated and stored directly.
   * If no samples are available, the output flux, error, and sample count
   * fields are set to NaN, NaN, and 0.
+  *
+  * @param[out] cluster    Cluster to store results in.
+  * @param[in]  sources    List of sources and their exposures.
+  * @param[in]  fluxDef    Name of flux field to operate on.
+  * @param[in]  skipFlags  Flags marking sources to skip.
+  * @param[in]  fluxScale  Flux scaling factor.
   */
 void computeFluxMean(
-    SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
-    std::vector<SourceAndExposure> const & sources, ///< @param[in]  List of sources and their exposures.
-    std::string const & fluxDef,                    ///< @param[in]  Name of flux field to operate on.
+    SourceClusterRecord & cluster,
+    std::vector<SourceAndExposure> const & sources,
+    std::string const & fluxDef,
     std::vector<lsst::afw::table::Key<lsst::afw::table::Flag > > const & skipFlags,
-                                                    ///< @param[in]  Flags marking sources to skip.
-    double fluxScale                                ///< @param[in]  Flux scaling factor.
+    double fluxScale
 );
 
 /** Compute per-filter shape means for a cluster.
   *
   * The input source vector is assumed to be grouped by filter. Shape 
-  * measurments and errors are obtained from fields named '<shapeDef>'
-  * and '<shapeDef>.err'. Results are stored in fields named 
-  * '<filter>.<shapeDef>' and '<filter>.<shapeDef>.err', with a sample
-  * count stored in '<filter>.<shapeDef>.count' field. For an input
-  * source to be included in the mean, the following must hold:
+  * measurments and errors are obtained from fields named '\<shapeDef\>'
+  * and '\<shapeDef\>.err'. Results are stored in fields named 
+  * '\<filter\>.\<shapeDef\>' and '\<filter\>.\<shapeDef\>.err',
+  * with a sample count stored in '\<filter\>.\<shapeDef\>.count' field.
+  * For an input source to be included in the mean, the following must hold:
   *     - the source must have finite moments
   *     - the source must have positive entries in the covariance
   *       matrix diagonals
@@ -156,13 +166,17 @@ void computeFluxMean(
   * one sample is available, the input shape and error are transformed to S
   * and stored directly. If no samples are available, the output moments and
   * covariance matrix are set to NaNs, and the sample count is zeroed.
+  *
+  * @param[out] cluster    Cluster to store results in.
+  * @param[in]  sources    List of sources and their exposures.
+  * @param[in]  shapeDef   Name of shape field to operate on.
+  * @param[in]  skipFlags  Flags marking sources to skip.
   */
 void computeShapeMean(
-    SourceClusterRecord & cluster,                  ///< @param[out] Cluster to store results in.
-    std::vector<SourceAndExposure> const & sources, ///< @param[in]  List of sources and their exposures.
-    std::string const & shapeDef,                   ///< @param[in]  Name of shape field to operate on.
+    SourceClusterRecord & cluster,
+    std::vector<SourceAndExposure> const & sources,
+    std::string const & shapeDef,
     std::vector<lsst::afw::table::Key<lsst::afw::table::Flag > > const & skipFlags
-                                                    ///< @param[in]  Flags marking sources to skip.
 );
 
 }}} // namespace lsst::ap::cluster

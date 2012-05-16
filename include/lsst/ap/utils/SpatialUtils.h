@@ -40,7 +40,7 @@
 
 namespace lsst { namespace ap { namespace utils {
 
-/** Clamps the given latitude/declination to <tt>[-&pi;/2, &pi/2]</tt> radians.
+/** Clamps the given latitude/declination to <tt>[-PI/2, PI/2]</tt> radians.
   */
 inline lsst::afw::geom::Angle const clampPhi(lsst::afw::geom::Angle const a) {
     using lsst::afw::geom::Angle;

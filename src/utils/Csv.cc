@@ -74,8 +74,8 @@ int const CsvReader::DEFAULT_CAPACITY = 128*1024;
 /** Creates a new CsvReader for a file and reads the first record.
   */
 CsvReader::CsvReader(
-    std::string const &path,   ///< Input file name
-    CsvControl const &control, ///< CSV format of the input file
+    std::string const &path,   ///< Input file name.
+    CsvControl const &control, ///< CSV format of the input file.
     bool namesInFirstRecord    ///< Set field names to the strings in the
                                ///  first record of the input file?
    ) :
@@ -645,8 +645,8 @@ template <> char CsvReader::_get<char>(char const *field) const {
 /** Creates a new CsvWriter that outputs to the given file.
   */
 CsvWriter::CsvWriter(
-    std::string const &path,   ///< Name of file to write to
-    CsvControl const &control,
+    std::string const &path,   ///< Name of file to write to.
+    CsvControl const &control, ///< CSV format of the output file.
     bool truncate              ///< If true, an existing file is truncated
                                ///  Otherwise, an attempt to create a writer
                                ///  for an existing file raises an exception.

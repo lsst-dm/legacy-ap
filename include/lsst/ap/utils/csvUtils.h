@@ -68,11 +68,11 @@ struct CsvConversionControl {
 
 /// @brief Convert an afw Catalog to a CSV file.
 void writeCsv(
-    lsst::afw::table::BaseCatalog const & catalog, ///< @param[in] Catalog to convert.
-    CsvConversionControl const & cnvControl,       ///< @param]in] Conversion parameters.
-    CsvControl const & csvControl,                 ///< @param[in] CSV dialect.
-    std::string const & csvFile,                   ///< @param[in] Name of file to write to
-    bool truncate                                  ///< @param[in] Truncate csvFile if it already exists?
+    lsst::afw::table::BaseCatalog const & catalog, ///< @param[in] catalog    Catalog to convert.
+    CsvConversionControl const & cnvControl,       ///< @param[in] cnvControl Conversion parameters.
+    CsvControl const & csvControl,                 ///< @param[in] csvControl CSV dialect.
+    std::string const & csvFile,                   ///< @param[in] csvFile    Name of file to write to
+    bool truncate                                  ///< @param[in] truncate   Truncate csvFile if it already exists?
 );
 
 }}} // namespace lsst::ap::utils

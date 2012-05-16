@@ -41,6 +41,25 @@ namespace lsst { namespace ap { namespace match {
 
 // -- Functions to perform the match
 
+/** Matches a declination sorted reference catalog (stored as a CSV file)
+  * to a table of positions.
+  *
+  * Note that a reduction for parallax from barycentric to geocentric place is 
+  * applied to reference catalog entries with parallax above parallaxThresh.
+  * To disable this reduction, use a large threshold (e.g. +Inf).
+  *
+  * @param[in] refFile          Declination sorted reference catalog CSV file name.
+  * @param[in] refControl       Reference catalog CSV file properties.
+  * @param[in] refDialect       CSV dialect of reference catalog CSV file.
+  * @param[in] posFile          Declination sorted position CSV file name.
+  * @param[in] posControl       Position CSV file properties.
+  * @param[in] posDialect       CSV dialect of position CSV file.
+  * @param[in] outFile          Output file name.
+  * @param[in] outDialect       Output file CSV dialect.
+  * @param[in] radius           Match radius.
+  * @param[in] parallaxThresh   Parallax threshold.
+  * @param[in] truncateOutFile  Truncate outFile before appending to it?
+  */
 void referenceMatch(
     std::string                 const &refFile,
     CatalogControl              const &refControl,
@@ -54,6 +73,27 @@ void referenceMatch(
     lsst::afw::geom::Angle      const  parallaxThresh=0.01*lsst::afw::geom::arcseconds,
     bool                               truncateOutFile=false);
 
+/** Computes the number of times a reference catalog should have been observed in
+  * each filter with an ideal observatory, given a set of exposures. The per-filter
+  * observation counts are appended as columns "<filter>Cov", in order of filter ID.
+  * Note that filter IDs are required to be contiguous integers 0, 1, .... N - 1.
+  *
+  * Reference catalog entries not falling on any of the given exposures are dropped
+  * from the output.
+  *
+  * Note that a reduction for parallax from barycentric to geocentric place is 
+  * applied to reference catalog entries with parallax above parallaxThresh.
+  * To disable this reduction, use a large threshold (e.g. +Inf).
+  *
+  * @param[in] exposures        Exposures to filter against - reordered by the call.
+  * @param[in] refFile          Declination sorted reference catalog CSV file name.
+  * @param[in] refControl       CSV dialect of reference catalog CSV file. 
+  * @param[in] refDialect       CSV dialect of reference catalog CSV file.
+  * @param[in] outFile          Output file name.
+  * @param[in] outDialect       Output file CSV dialect.
+  * @param[in] parallaxThresh   Parallax threshold
+  * @param[in] truncateOutFile  Truncate outFile before appending to it?
+  */
 void referenceFilter(
     std::vector<ExposureInfo::Ptr>    &exposures,
     std::string                 const &refFile,

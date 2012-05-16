@@ -60,107 +60,109 @@ namespace lsst { namespace ap { namespace match {
   */
 class ExposureInfo : public BBox {
 public:
-     typedef boost::shared_ptr<ExposureInfo> Ptr;
-     typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
+    typedef boost::shared_ptr<ExposureInfo> Ptr;
+    typedef boost::shared_ptr<ExposureInfo const> ConstPtr;
 
-     static std::string const DEF_ID_KEY;
+    static std::string const DEF_ID_KEY;
 
-     ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
-                  std::string const &idKey=DEF_ID_KEY);
-     ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
-                  int64_t id);
-     ~ExposureInfo();
+    ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
+                 std::string const &idKey=DEF_ID_KEY);
+    ExposureInfo(lsst::daf::base::PropertySet::Ptr props,
+                 int64_t id);
+    ~ExposureInfo();
 
-     /** Returns a unique integer identifier for the exposure.
-       */
-     int64_t getId() const { return _id; }
+    /// @brief Return the unique integer identifier for the exposure.
+    int64_t getId() const { return _id; }
 
-     /** Returns the filter of the exposure
- *     */
-     lsst::afw::image::Filter const & getFilter() const { return _filter; }
+    /// @brief Return the filter of the exposure
+    lsst::afw::image::Filter const & getFilter() const { return _filter; }
 
-     /** Returns the exposure mid-point, MJD TAI.
-       */
-     double getEpoch() const { return _epoch; }
+    /// Return the exposure mid-point, MJD TAI.
+    double getEpoch() const { return _epoch; }
 
-     /** Returns the exposure time, s.
-       */
-     double getExposureTime() const { return _expTime; }
+    /// @brief Return the exposure time, s.
+    double getExposureTime() const { return _expTime; }
 
-     /** Returns the ICRS coordinates of the image center (rad).
-       */
-     lsst::afw::coord::IcrsCoord const & getCenter() const {
-         return _center;
-     }
+    /// @brief Return the ICRS coordinates of the image center (rad).
+    lsst::afw::coord::IcrsCoord const & getCenter() const {
+        return _center;
+    }
 
-     /** Returns the SSB coordinates of the earth at t = getEpoch().
-       */
-     Eigen::Vector3d const & getEarthPosition() const {
-         if (!_epValid) {
-             _earthPos = lsst::ap::utils::earthPosition(_epoch);
-             _epValid = true;
-         }
-         return _earthPos;
-     }
+    /// @brief Return the SSB coordinates of the earth at t = getEpoch().
+    Eigen::Vector3d const & getEarthPosition() const {
+        if (!_epValid) {
+            _earthPos = lsst::ap::utils::earthPosition(_epoch);
+            _epValid = true;
+        }
+        return _earthPos;
+    }
 
-     /** Gets exposure width and/or height.
-       */
-     ///@{
-     int getWidth() const  { return _extent.getX(); }
-     int getHeight() const { return _extent.getY(); }
-     lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
-     ///@}
+    /// @brief Get exposure width and/or height.
+    ///@{
+    int getWidth() const  { return _extent.getX(); }
+    int getHeight() const { return _extent.getY(); }
+    lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
+    ///@}
 
-     /** Is there enough information to calibrate fluxes?
-       */
-     bool canCalibrateFlux() const { return _canCalibrateFlux; }
+    /// @brief Is there enough information to calibrate fluxes?
+    bool canCalibrateFlux() const { return _canCalibrateFlux; }
 
-     double calibrateFlux(double flux, double fluxScale) const;
+    /** Returns a flux value calibrated using the flux of a zero magnitude object
+      * associated with this exposure.
+      */
+    double calibrateFlux(
+        double flux,     ///< flux to calibrate, DN
+        double fluxScale ///< flux scaling factor, must be \> 0.0
+    ) const;
 
-     std::pair<double, double> const calibrateFlux(double flux,
-                                                   double fluxSigma,
-                                                   double fluxScale) const;
+    /** Returns a calibrated flux and its variance. The flux of a zero magnitude
+      * object associated with this exposure is used to perform the calibration.
+      */
+    std::pair<double, double> const calibrateFlux(
+        double flux,       ///< flux to calibrate, DN
+        double fluxSigma,  ///< standard deviation of @a flux
+        double fluxScale   ///< flux scaling factor, must be \> 0.0
+    ) const;
 
-     /** Returns the exposure WCS.
-       */
-     ///@{
-     lsst::afw::image::Wcs::ConstPtr getWcs() const {
-         return _wcs;
-     }
-     lsst::afw::image::Wcs::Ptr getWcs() {
-         return _wcs;
-     }
-     ///@}
+    /// @brief Return the exposure WCS.
+    ///@{
+    lsst::afw::image::Wcs::ConstPtr getWcs() const {
+        return _wcs;
+    }
+    lsst::afw::image::Wcs::Ptr getWcs() {
+        return _wcs;
+    }
+    ///@}
 
-     // BBox API
-     virtual double getMinCoord0() const;
-     virtual double getMaxCoord0() const;
-     virtual double getMinCoord1() const;
-     virtual double getMaxCoord1() const;
+    // BBox API
+    virtual double getMinCoord0() const;
+    virtual double getMaxCoord0() const;
+    virtual double getMinCoord1() const;
+    virtual double getMaxCoord1() const;
 
 #ifndef SWIG
-     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 #endif
 
 private:
-     Eigen::Vector3d const _pixToSky(double x, double y) const;
-     void _init(lsst::daf::base::PropertySet::Ptr props);
+    Eigen::Vector3d const _pixToSky(double x, double y) const;
+    void _init(lsst::daf::base::PropertySet::Ptr props);
 
-     lsst::afw::coord::IcrsCoord _center;
-     lsst::afw::geom::Angle _radius;
-     lsst::afw::geom::Angle _alpha;
-     mutable Eigen::Vector3d _earthPos;
-     int64_t _id;
-     double _epoch;
-     double _expTime;
-     double _fluxMag0;
-     double _fluxMag0Sigma;
-     lsst::afw::geom::Extent2I _extent;
-     lsst::afw::image::Wcs::Ptr _wcs;
-     lsst::afw::image::Filter _filter;
-     int _filterId;
-     bool _canCalibrateFlux;
-     mutable bool _epValid;
+    lsst::afw::coord::IcrsCoord _center;
+    lsst::afw::geom::Angle _radius;
+    lsst::afw::geom::Angle _alpha;
+    mutable Eigen::Vector3d _earthPos;
+    int64_t _id;
+    double _epoch;
+    double _expTime;
+    double _fluxMag0;
+    double _fluxMag0Sigma;
+    lsst::afw::geom::Extent2I _extent;
+    lsst::afw::image::Wcs::Ptr _wcs;
+    lsst::afw::image::Filter _filter;
+    int _filterId;
+    bool _canCalibrateFlux;
+    mutable bool _epValid;
 };
 
 
@@ -168,40 +170,49 @@ private:
   */
 class ExposureInfoMap {
 public:
-     typedef boost::shared_ptr<ExposureInfoMap> Ptr;
-     typedef boost::shared_ptr<ExposureInfoMap const> ConstPtr;
+    typedef boost::shared_ptr<ExposureInfoMap> Ptr;
+    typedef boost::shared_ptr<ExposureInfoMap const> ConstPtr;
 
-     ExposureInfoMap();
-     ~ExposureInfoMap();
+    ExposureInfoMap();
+    ~ExposureInfoMap();
 
-     size_t size() const { return _map.size(); }
-     bool empty() const { return _map.empty(); }
-     bool contains(int64_t id) const { return _map.find(id) != _map.end(); }
+    size_t size() const { return _map.size(); }
+    bool empty() const { return _map.empty(); }
+    bool contains(int64_t id) const { return _map.find(id) != _map.end(); }
 
-     ExposureInfo::Ptr get(int64_t id) {
-         Map::const_iterator i = _map.find(id);
-         return (i == _map.end()) ? ExposureInfo::Ptr() : i->second;
-     }
-     ExposureInfo::ConstPtr get(int64_t id) const {
-         Map::const_iterator i = _map.find(id);
-         return (i == _map.end()) ? ExposureInfo::ConstPtr() : i->second;
-     }
+    ExposureInfo::Ptr get(int64_t id) {
+        Map::const_iterator i = _map.find(id);
+        return (i == _map.end()) ? ExposureInfo::Ptr() : i->second;
+    }
+    ExposureInfo::ConstPtr get(int64_t id) const {
+        Map::const_iterator i = _map.find(id);
+        return (i == _map.end()) ? ExposureInfo::ConstPtr() : i->second;
+    }
 
-     void insert(ExposureInfo::Ptr info);
-     void clear();
-     bool erase(int64_t id);
+    void insert(ExposureInfo::Ptr info);
+    void clear();
+    bool erase(int64_t id);
 
 private:
-     typedef std::tr1::unordered_map<int64_t, ExposureInfo::Ptr> Map;
-     Map _map;
+    typedef std::tr1::unordered_map<int64_t, ExposureInfo::Ptr> Map;
+    Map _map;
 };
 
 
+/** Reads an exposure metadata key-value CSV file (where metadata keys
+  * must have been grouped by exposure id). An ExposureInfo object
+  * is created for each input exposure and appended to @a exposures.
+  *
+  * @param[in,out] exposures  ExposureInfo objects are appended to this vector.
+  * @param[in]     csvFile    Metadata table path.
+  * @param[in]     control    Metadata table CSV format.
+  * @param[in]     idColumn   Name of ID column, e.g. "scienceCcdExposureId".
+  */
 void readExposureInfos(
     std::vector<ExposureInfo::Ptr> & exposures,
     std::string const & csvFile,
     lsst::ap::utils::CsvControl const &control,
-    std::string const & idKey);
+    std::string const & idColumn);
 
 }}} // namespace lsst::ap::match
 
