@@ -24,7 +24,7 @@
 import argparse
 
 import lsst.ap.match as apMatch
-from refCcdFilter import ConfigOverride, ConfigFileOverride
+from lsst.pipe.base import ConfigFileAction, ConfigValueAction
 
 __all__ = ["referenceMatch"]
 
@@ -48,11 +48,11 @@ def main():
         "Both the reference catalog and position table must be "
         "in increasing declination order. Matching is controlled by "
         "lsst.ap.match.ReferenceMatchConfig - supply overrides with -c or -C.")
-    parser.add_argument("-c", "--config", nargs="*", action=ConfigOverride,
+    parser.add_argument("-c", "--config", nargs="*", action=ConfigValueAction,
         help="config override(s), e.g. -c foo=qux bar.baz=3",
         metavar="NAME=VALUE")
     parser.add_argument("-C", "--config-file", nargs="*",
-        action=ConfigFileOverride, help="config override file(s)")
+        action=ConfigFileAction, help="config override file(s)")
     parser.add_argument("--camera", dest="camera", default="lsstSim",
         help="Name of desired camera (defaults to %(default)s)")
     parser.add_argument("outputFile", help="Name of output CSV file")

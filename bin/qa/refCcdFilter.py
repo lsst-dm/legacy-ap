@@ -27,52 +27,9 @@ import traceback
 import lsst.afw.geom as afwGeom
 import lsst.ap.match as apMatch
 import lsst.ap.utils as apUtils
+from lsst.pipe.base import ConfigFileAction, ConfigValueAction
 
-__all__ = [
-    "ConfigOverride",
-    "ConfigFileOverride",
-    "referenceFilter",
-]
-
-class ConfigOverride(argparse.Action):
-    """Override config parameters using name=value pairs."""
-    def __call__(self, parser, namespace, values, option_string):
-        for nv in values:
-            name, _, value = nv.partition("=")
-            if not value:
-                parser.error(str.format(
-                    "{} value {} not in name=value form", option_string, nv))
-            components = name.split(".")
-            item = namespace.config
-            for c in component[-1]:
-                item = getattr(item, c)
-            try:
-                setattr(item, components[-1], value)
-            except:
-                try:
-                    value = eval(value, {})
-                except:
-                    parser.error(str.format(
-                        "Cannot parse {} as a value for {}: {}",
-                        repr(value), name, traceback.format_exc()))
-                try:
-                    setattr(item, components[-1], value)
-                except:
-                    parser.error(str.format(
-                        "Cannot set config.{}={}\n{}",
-                        name, repr(value), traceback.format_exc()))
-
-
-class ConfigFileOverride(argparse.Action):
-    """Override config parameters with overrides from file(s)."""
-    def __call__(self, parser, namespace, values, option_string=None):
-        for f in values:
-            try:
-                namespace.config.load(f)
-            except:
-                parser.error(str.format(
-                    "Cannot load config file {}: {}", f, traceback.format_exc()))
-
+__all__ = ["referenceFilter",]
 
 def referenceFilter(config, outputFile, referenceCatalog, exposureMetadataFiles):
     exposures = apMatch.ExposureInfoVector()
@@ -92,7 +49,6 @@ def referenceFilter(config, outputFile, referenceCatalog, exposureMetadataFiles)
         config.getParallaxThresh(),
         True)
 
-
 def main():
     parser = argparse.ArgumentParser(description=
         "Filters a reference catalog against the science CCD exposures in a "
@@ -103,11 +59,11 @@ def main():
         "exposures containing the entry for each filter of the specified "
         "camera (--camera). Filtering is controlled by "
         "lsst.ap.match.ReferenceMatchConfig - supply overrides with -c or -C.")
-    parser.add_argument("-c", "--config", nargs="*", action=ConfigOverride,
+    parser.add_argument("-c", "--config", nargs="*", action=ConfigValueAction,
         help="config override(s), e.g. -c foo='qux' bar.baz=3",
         metavar="NAME=VALUE")
     parser.add_argument("-C", "--config-file", nargs="*",
-        action=ConfigFileOverride, help="config override file(s)")
+        action=ConfigFileAction, help="config override file(s)")
     parser.add_argument("--camera", dest="camera", default="lsstSim",
         help="Name of desired camera (defaults to %(default)s)")
     parser.add_argument("outputFile", help="Name of output CSV file")

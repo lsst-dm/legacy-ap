@@ -1,9 +1,10 @@
 setupRequired(boost >= 1.47.0)
 setupRequired(numpy >= 1.2.1)
 setupRequired(mysqlclient >= 5.1.50)
-setupRequired(afw >= 4.7.3.0)
+setupRequired(afw >= 5.0.4.0)
 setupRequired(geom >= 4.6.0.0)
 setupRequired(skypix >= 4.6.0.0)
+setupRequired(pipe_base >= 5.0.0.3)
 
 setupOptional(doxygen >= 1.7.5.1)
 
