@@ -48,13 +48,17 @@ class SourceAssocConfig(pexConfig.Config):
         doc="source clustering parameters")
     doCluster = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Cluster sources?")
+        doc="Cluster processed \"good\" sources with the OPTICS spatial "
+            "clustering algorithm? A \"good\" source is one with valid "
+            "coordinates and which has not been identified as \"bad\" by "
+            "one of the flag fields listed in the "
+            "sourceProcessing.badFlagFields configuration parameter.")
     doDiscardNoiseClusters = pexConfig.Field(
         dtype=bool, default=True,
         doc="Discard single source clusters?")
     doWriteClusters = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write source clusters?")
+        doc="Write source clusters to persistent storage via the butler?")
 
     algorithmFlags = pexConfig.DictField(
         keytype=str, itemtype=str,
@@ -66,36 +70,61 @@ class SourceAssocConfig(pexConfig.Config):
 
     doWriteSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write sources?")
+        doc="Write processed \"good\" sources to persistent storage via the "
+            "butler? A \"good\" source is one with valid coordinates and "
+            "which has not been identified as \"bad\" by one of the flag "
+            "fields listed in the sourceProcessing.badFlagFields "
+            "configuration parameter.")
     doWriteBadSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write bad sources?")
+        doc="Write processed \"bad\" sources to persistent storage via the "
+            "butler? A \"bad\" source is one with valid coordinates and "
+            "for which at least one of the flag fields listed in the "
+            "sourceProcessing.badFlagFields configuration parameter has "
+            "been set.")
     doWriteInvalidSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write invalid sources?")
+        doc="Write \"invalid\" sources to persistent storage via the butler? "
+            "An \"invalid\" source is one with invalid coordinates/centroid, "
+            "e.g. because the centroid algorithm failed.")
 
     sourceHistogramResolution = pexConfig.RangeField(
         dtype=int, default=2000, min=1,
-        doc="X and Y resolution of source position histograms")
+        doc="X and Y resolution of 2D source position histograms.")
     doMakeSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Make 2D histogram of source positions?")
+        doc="Make 2D histogram of source positions? If set, a square image "
+            "covering the sky-tile being processed and with resolution equal "
+            "to sourceHistogramResolution will be created. The value of each "
+            "pixel in this image will be the number of \"good\" sources "
+            "inside that pixel.")
     doMakeBadSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Make 2D histogram of bad source positions?")
+        doc="Make 2D histogram of \"bad\" source positions? If set, a square "
+            "image covering the sky-tile being processed and with resolution "
+            "equal to sourceHistogramResolution will be created. The value of "
+            "each pixel in this image will be the number of \"bad\" sources "
+            "inside that pixel.")
+
     doWriteSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write source histogram?")
+        doc="Write \"good\" source histogram to persistent storage via the butler?")
     doWriteBadSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write bad source histogram?")
+        doc="Write \"bad\" source histogram to persistent storage via the butler?")
 
     measPrefix = pexConfig.Field(
         dtype=str, optional=True, default=None,
-        doc="Prefix for all measurement fields")
+        doc="Prefix for all measurement fields. Must match the value of the "
+            "lsst.meas.algorithms.SourceMeasurementConfig.prefix configuration "
+            "parameter, which is typically available as measurement.prefix in "
+            "the CCD processing task configuration.")
     measSlots = pexConfig.ConfigField(
         dtype=measAlgorithms.SourceSlotConfig,
-        doc="Mapping from algorithms to special aliases in Source")
+        doc="Mapping from algorithms to special aliases in Source. Must match "
+            "the value of the lsst.meas.algorithms.SourceMeasurementConfig.slots "
+            "configuration parameter, which is typically available as "
+            "measurement.slots in the CCD processing task configuration.")
 
     def setDefaults(self):
         self.sourceProcessing.badFlagFields = ["flags.negative",
