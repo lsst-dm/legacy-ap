@@ -214,7 +214,6 @@ class SourceAssocTask(pipeBase.CmdLineTask):
         del root, x, y
         spControl = self.config.sourceProcessing.makeControl()
         sourceTable = None
-        keys = butler.getKeys(datasetType="src").keys()
         results = pipeBase.Struct(
             sources = None,
             badSources = None,
@@ -225,23 +224,22 @@ class SourceAssocTask(pipeBase.CmdLineTask):
             badSourceHistogram = None
         )
 
-        for values in butler.queryMetadata("raw", "sensor", keys, skyTile=skyTileId):
-            dataId = dict(zip(keys, values))
-            if not butler.datasetExists("src", dataId):
+        for dataRef in butler.subset("src", "sensor", skyTile=skyTileId):
+            if not dataRef.datasetExists("src"):
                 continue
             try:
-                expMd = butler.get("calexp_md", dataId, immediate=True)
-                expSources = butler.get("src", dataId, immediate=True)
-                expConfig = butler.get("processCcd_config", dataId, immediate=True)
+                expMd = dataRef.get("calexp_md", immediate=True)
+                expSources = dataRef.get("src", immediate=True)
+                expConfig = dataRef.get("processCcd_config", immediate=True)
                 if (self.config.measPrefix != expConfig.measurement.prefix or
                     self.config.measSlots != expConfig.measurement.slots):
                     self.log.warn(str.format(
                         "skipping {} : processCcd measurement prefix and slot configuration"
-                        "do not match sourceAssoc configuration", str(dataId)))
+                        "do not match sourceAssoc configuration", str(dataRef.dataId)))
             except:
                 self.log.warn(str.format(
                     "skipping {} : failed to unpersist src or calexp_md dataset",
-                    str(dataId)))
+                    str(dataRef.dataId)))
                 continue
             if sourceTable == None:
                 # create output source table
