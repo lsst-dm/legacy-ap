@@ -37,99 +37,209 @@ __all__ = ["SourceAssocConfig", "SourceAssocTask"]
 
 
 class SourceAssocConfig(pexConfig.Config):
-    """Config for SourceAssocTask.
+    """Configuration parameters for SourceAssocTask.
     """
     sourceProcessing = pexConfig.ConfigField(
         dtype=apCluster.SourceProcessingConfig,
-        doc="source processing parameters")
+        doc="""
+            Source processing parameters.
+
+            To see their descriptions:
+
+            >>> from lsst.ap.cluster import SourceProcessingConfig
+            >>> help(SourceProcessingConfig)
+            """)
 
     clustering = pexConfig.ConfigField(
         dtype=apCluster.ClusteringConfig,
-        doc="source clustering parameters")
+        doc="""
+            Source clustering parameters.
+
+            To see their descriptions:
+
+            >>> from lsst.ap.cluster import ClusteringConfig
+            >>> help(ClusteringConfig)
+            """)
     doCluster = pexConfig.Field(
         dtype=bool, default=True,
-        doc="If set, then \"good\" sources are clustered with the OPTICS "
-            "algorithm. If unset, then the source association task reduces "
-            "to simply processing sources - this involves adding an exposure "
-            "ID, filter, and middle-of-exposure time to each source, as well "
-            "as computation of sky-coordinate errors. In other words, sources "
-            "are prepared for database ingest, but not associated with one "
-            "another. Note that a \"good\" source is one with valid sky-"
-            "coordinates and which has not been identified as \"bad\" by "
-            "one of the flag fields listed in the "
-            "sourceProcessing.badFlagFields configuration parameter.")
+        doc="""
+            If set to True, then "good" sources are clustered with the 
+            OPTICS algorithm - this is an attempt to group sources from
+            individual exposures which correspond to measurements of the
+            same astronomical object.
+
+            If set to False, then running SourceAssocTask reduces to simply
+            processing sources - this involves adding exposure ID, filter,
+            and middle-of-exposure time fields to each source, as well as
+            computation of sky-coordinate errors from centroid errors. In
+            other words, sources are prepared for database ingest into the
+            LSST Source database table, but are not associated with one
+            another.
+
+            Note that a "good" source is one with valid sky-coordinates and
+            which has not been identified as "bad" by one of the flag fields
+            listed in the sourceProcessing.badFlagFields configuration
+            parameter.
+            """)
     doDiscardNoiseClusters = pexConfig.Field(
         dtype=bool, default=True,
         doc="Discard single source clusters?")
     doWriteClusters = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write source clusters to persistent storage via the butler?")
+        doc="""
+            Write source clusters to persistent storage via the butler?
 
+            Source clusters are stored as lsst.ap.cluster.SourceClusterCatalog
+            instances; one such catalog is stored per sky-tile. The
+            corresponding butler dataset name is "object", so they can
+            be retrieved using e.g.:
+
+            >>> clusters = butler.get("object", skyTile=12345)
+
+            Note that if no clusters were generated for a sky-tile, say
+            because the doCluster configuration parameter was set to False,
+            then nothing (not even an empty catalog!) is written to persistent
+            storage. In other words:
+
+            >>> butler.datasetExists("object", skyTile=12345)
+
+            can return False, even after SourceAssocTask has been run on
+            sky-tile 12345.
+            """)
     algorithmFlags = pexConfig.DictField(
         keytype=str, itemtype=str,
-        doc="A dictionary mapping from algorithm names to strings "
-            "containing comma separated lists of flag field names. "
-            "If any flag is set for a source, then that source is "
-            "ignored when computing the measurement mean of the "
-            "corresponding algorithm.")
+        doc="""
+            A dictionary mapping from algorithm names to strings containing
+            comma separated lists of flag field names. If any flag is set for
+            a source, then that source is ignored when computing the
+            measurement mean of the corresponding algorithm.
+            """)
 
     doWriteSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write processed \"good\" sources to persistent storage via the "
-            "butler? A \"good\" source is one with valid coordinates and "
-            "which has not been identified as \"bad\" by one of the flag "
-            "fields listed in the sourceProcessing.badFlagFields "
-            "configuration parameter.")
+        doc="""
+            Write processed "good" sources to persistent storage via the butler?
+
+            A "good" source is one with valid coordinates and which has not
+            been identified as "bad" by one of the flag fields listed in the
+            sourceProcessing.badFlagFields configuration parameter. Sources are
+            stored as lsst.afw.table.SourceCatalog instances; one such catalog
+            is stored per sky-tile. The corresponding butler dataset name is
+            "source", so they can be retrieved using e.g.:
+
+            >>> sources = butler.get("source", skyTile=12345)
+
+            Note that if no "good" sources were identified for a sky-tile, then
+            nothing (not even an empty catalog!) is written to persistent
+            storage. In other words:
+
+            >>> butler.datasetExists("source", skyTile=12345)
+
+            can return False. In this case, the clustering algorithm had no
+            input, so no "object" dataset will have been written for the
+            sky-tile either.
+            """)
     doWriteBadSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write processed \"bad\" sources to persistent storage via the "
-            "butler? A \"bad\" source is one with valid coordinates and "
-            "for which at least one of the flag fields listed in the "
-            "sourceProcessing.badFlagFields configuration parameter has "
-            "been set.")
+        doc="""
+            Write processed "bad" sources to persistent storage via the butler?
+
+            A "bad" source is one with valid coordinates and for which at least
+            one of the flag fields listed in the sourceProcessing.badFlagFields
+            configuration parameter has been set. Bad sources are stored as
+            lsst.afw.table.SourceCatalog instances; one such catalog is
+            stored per sky-tile. The corresponding butler dataset name is
+            "badSource", so they can be retrieved using e.g.:
+
+            >>> badSources = butler.get("badSource", skyTile=12345)
+
+            If no "bad" sources were identified in the sky-tile, no
+            dataset is written (not even an empty catalog).
+            """)
     doWriteInvalidSources = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write \"invalid\" sources to persistent storage via the butler? "
-            "An \"invalid\" source is one with invalid coordinates/centroid, "
-            "e.g. because the centroid algorithm failed.")
+        doc="""
+            Write "invalid" sources to persistent storage via the butler?
+
+            An "invalid" source is one with invalid coordinates/centroid,
+            e.g. because the centroid algorithm failed. Invalid sources are
+            stored as lsst.afw.table.SourceCatalog instances; one such catalog
+            is stored per sky-tile. The corresponding butler dataset name is
+            "invalidSource", so they can be retrieved using e,g,:
+
+            >>> invalidSources =  butler.get("invalidSource", skyTile=12345)
+
+            As for the other datasets, if no "invalid" sources were
+            identified for the sky-tile, no dataset is written.
+            """)
 
     sourceHistogramResolution = pexConfig.RangeField(
         dtype=int, default=2000, min=1,
         doc="X and Y resolution of 2D source position histograms.")
     doMakeSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Make 2D histogram of source positions? If set, a square image "
-            "covering the sky-tile being processed and with resolution equal "
-            "to sourceHistogramResolution will be created. The value of each "
-            "pixel in this image will be the number of \"good\" sources "
-            "inside that pixel.")
+        doc="""
+            Make 2D histogram of "good" source positions? If set, a square
+            image covering the sky-tile being processed and with resolution
+            equal to sourceHistogramResolution will be created. The value of
+            each pixel in this image will be the number of "good" sources
+            inside that pixel.
+            """)
     doMakeBadSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Make 2D histogram of \"bad\" source positions? If set, a square "
-            "image covering the sky-tile being processed and with resolution "
-            "equal to sourceHistogramResolution will be created. The value of "
-            "each pixel in this image will be the number of \"bad\" sources "
-            "inside that pixel.")
+        doc="""
+            Make 2D histogram of "bad" source positions? If set, a square
+            image covering the sky-tile being processed and with resolution
+            equal to sourceHistogramResolution will be created. The value of
+            each pixel in this image will be the number of "bad" sources
+            inside that pixel.
+            """)
 
     doWriteSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write \"good\" source histogram to persistent storage via the butler?")
+        doc="""
+            Write "good" source histogram to persistent storage via the butler?
+
+            If True, one histogram image is written per sky-tile containing
+            at least one "good" source, via the butler. The corresponding
+            dataset name is "sourceHist", and the type of these histograms is
+            lsst.afw.image.DecoratedImageU. They can be retrieved using e.g.:
+
+            >>> img = butler.get("sourceHist", skyTile=12345)
+            """)
     doWriteBadSourceHistogram = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Write \"bad\" source histogram to persistent storage via the butler?")
+        doc="""
+            Write "bad" source histogram to persistent storage via the butler?
+            If True, one histogram image is written per sky-tile containing
+            at least one "bad" source, via the butler. The corresponding
+            dataset name is "nadSourceHist", and the type of these histograms
+            is lsst.afw.image.DecoratedImageU. They can be retrieved using e.g.:
+
+            >>> img = butler.get("badSourceHist", skyTile=12345)
+            """)
 
     measPrefix = pexConfig.Field(
         dtype=str, optional=True, default=None,
-        doc="Prefix for all measurement fields. Must match the value of the "
-            "lsst.meas.algorithms.SourceMeasurementConfig.prefix configuration "
-            "parameter, which is typically available as measurement.prefix in "
-            "the CCD processing task configuration.")
+        doc="""
+            Prefix for all source measurement fields. Must match the value
+            of the lsst.meas.algorithms.SourceMeasurementConfig prefix
+            configuration parameter, which is typically available as
+            measurement.prefix in the CCD processing task configuration.
+            """)
     measSlots = pexConfig.ConfigField(
         dtype=measAlgorithms.SourceSlotConfig,
-        doc="Mapping from algorithms to special aliases in Source. Must match "
-            "the value of the lsst.meas.algorithms.SourceMeasurementConfig.slots "
-            "configuration parameter, which is typically available as "
-            "measurement.slots in the CCD processing task configuration.")
+        doc="""
+            Mapping from algorithms to special aliases in
+            lsst.afw.table.SourceTable. Must match the value of the
+            lsst.meas.algorithms.SourceMeasurementConfig slots
+            configuration parameter, which is typically available as
+            measurement.slots in the CCD processing task configuration.
+            For the details:
+
+            >>> from lsst.meas.algorithms import SourceSlotConfig
+            >>> help(SourceSlotConfig)
+            """)
 
     def setDefaults(self):
         self.sourceProcessing.badFlagFields = ["flags.negative",
@@ -176,18 +286,84 @@ def _flagKeys(schema, config, alg):
 
 
 class SourceAssocTask(pipeBase.CmdLineTask):
-    """Cluster the sources belonging to a sky-tile, and compute
-       cluster attributes.
+    """Cluster the sources inside a sky-tile using the OPTICS algorithm - 
+       this is an attempt to group sources from individual exposures that
+       correspond to measurements of the same astronomical object. For each
+       cluster, means of individual source measurements (currently including
+       fluxes, shapes, and sky-coordinates) are computed; these cluster
+       attributes are suitable for ingest into the LSST Object database table.
+
+       For details on the clustering algorithm used, see:
+
+           "OPTICS: Ordering Points To Identify the Clustering Structure".
+           Mihael Ankerst, Markus M. Breunig, Hans-Peter Kriegel, Jorg Sander (1999).
+           ACM SIGMOD international conference on Management of data.
+           ACM Press. pp. 49-60.
+
+           http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.129.6542
+           http://en.wikipedia.org/wiki/OPTICS_algorithm
+
+       The parameters of this algorithm can be adjusted via the 'clustering'
+       attribute of the lsst.ap.tasks.SourceAssocConfig instance passed to
+       to this task, e.g.
+
+       >>> from lsst.ap.tasks import *
+       >>> from lsst.ap.cluster import ClusteringConfig
+       >>> # display documentation for top-level task configuration parameters
+       ... help(SourceAssocConfig)
+       >>> # display documentation for clustering parameters
+       ... help(ClusteringConfig)    
+       >>> # create a task configuration and fiddle with a value
+       >>> config = SourceAssocConfig()
+       >>> config.clustering.minNeighbors = 2
+
+       Some control over which sources participate in spatial clustering is
+       provided via the 'sourceProcessing.badFlagFields' configuration 
+       parameter - this is a list of flag field names. If at least one of
+       these flags is set for an input source, then that source is deemed "bad"
+       and does not participate in spatial clustering. Here's how one would
+       set it and get more help:
+
+       >>> from lsst.ap.tasks import *
+       >>> from lsst.ap.cluster import SourceProcessingConfig
+       >>> # display documentation for source processing
+       ... # configuration parameters
+       >>> help(SourceProcessingConfig)
+       >>> config = SourceAssocConfig()
+       >>> config.processing.badFlagFields = ["flags.evil", "flags.devilish"]
+
+       Inputs and Assumptions:
+       -----------------------
+
+       This task retrieves "src", "calexp_md", and "processCcd_config" datasets
+       from the butler. It assumes that single frame measurement has been run
+       (e.g. via lsst.pipe.tasks.ProcessCcdTask or some camera specific variant
+       thereof). Note also that care is required when interleaving CCD processing
+       and source association - this task does not support incremental updates
+       to source clusters. In other words, one should ensure that all CCDs
+       overlapping a sky-tile T have been processed before running this task
+       on T. Otherwise, multiple runs on T will be required, where each run
+       processes all the data for the sky-tile from scratch.
+
+       Outputs:
+       --------
+
+       This task write "object", "source", "badSource", "invalidSource",
+       "sourceHist", and "badSourceHist" datasets via the butler. Whether any 
+       of these is actually written for a sky-tile depends on configuration
+       parameters and the input data.
     """
     ConfigClass = SourceAssocConfig
     _DefaultName = "sourceAssoc"
 
     def __init__(self, *args, **kwds):
+        """Pass all parameters through to the the base class constructor."""
         pipeBase.Task.__init__(self, *args, **kwds)
 
     @pipeBase.timeMethod
     def cluster(self, skyTileId, butler):
-        """Cluster sources falling inside the given sky-tile.
+        """Cluster sources falling inside the given sky-tile with the OPTICS
+           algorithm.
 
            @param skyTileId: Integer sky-tile ID
            @param butler:    Butler responsible for retrieving calibrated

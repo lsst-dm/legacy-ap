@@ -43,37 +43,37 @@ struct SourceProcessingControl {
     ~SourceProcessingControl();
 
     LSST_CONTROL_FIELD(exposurePrefix, std::string,
-        "Prefix for exposure related fields in the output source schema. "
-        "Cannot be empty.");
+        "Prefix for exposure related fields in the output source schema.\n"
+        "Cannot be empty.\n");
 
     LSST_CONTROL_FIELD(clusterPrefix, std::string,
-        "Prefix for cluster related fields in the output source schema. "
-        "Cannot be empty.");
+        "Prefix for cluster related fields in the output source schema.\n"
+        "Cannot be empty.\n");
 
     LSST_CONTROL_FIELD(badFlagFields, std::vector<std::string>,
-        "A list of flag field names. If an input source has any of the "
-        "corresponding flag bits set, then the source is considered \"bad\", "
-        "and does not participate in spatial clustering.");
+        "A list of flag field names. If an input source has any of the\n"
+        "corresponding flag bits set, then the source is considered \"bad\",\n"
+        "and does not participate in spatial clustering.\n");
 
     LSST_CONTROL_FIELD(fluxScale, double,
-        "Scaling factor applied to F/F_0 prior to averaging, where F is "
-        "an uncalibrated source flux and F_0 is the flux of a 0-magnitude "
-        "object for the corresponding exposure.");
+        "Scaling factor applied to F/F_0 prior to averaging, where F is\n"
+        "an uncalibrated source flux and F_0 is the flux of a 0-magnitude\n"
+        "object for the corresponding exposure.\n");
 
     LSST_CONTROL_FIELD(fluxUnit, std::string,
-        "Unit of calibrated flux.");
+        "Unit of calibrated flux.\n");
 
     LSST_CONTROL_FIELD(fluxFields, std::vector<std::string>,
-        "A list of flux field names which should be carried over from input "
-        "source tables to output source cluster tables. Input source tables "
-        "are expected to contain fields '<flux>', '<flux>.err' and "
-        "'<flux>.flags' for each list entry ('<flux>').");
+        "A list of flux field names which should be carried over from input\n"
+        "source tables to output source cluster tables. Input source tables\n"
+        "are expected to contain fields '<flux>', '<flux>.err' and\n"
+        "'<flux>.flags' for each list entry ('<flux>').\n");
 
     LSST_CONTROL_FIELD(shapeFields, std::vector<std::string>,
-        "A list of shape field names which should be carried over from input "
-        "source tables to output source cluster tables. Input source tables "
-        "are expected to contain fields '<shape>', '<shape>.err' and "
-        "'<shape>.flags' for each list entry ('<shape>').");
+        "A list of shape field names which should be carried over from input\n"
+        "source tables to output source cluster tables. Input source tables\n"
+        "are expected to contain fields '<shape>', '<shape>.err' and\n"
+        "'<shape>.flags' for each list entry ('<shape>').\n");
 
     void validate() const;
 };

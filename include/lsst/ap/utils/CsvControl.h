@@ -56,20 +56,20 @@ struct CsvControl {
     ~CsvControl();
 
     LSST_CONTROL_FIELD(null, std::string,
-        "String representation of NULL field values. Never quoted on output. "
-        "If specified, the representation may not contain any delimiter, "
-        "quote, escape or line terminator characters ('\\n'/'\\r').");
+        "String representation of NULL field values. Never quoted on output.\n"
+        "If specified, the representation may not contain any delimiter,\n"
+        "quote, escape or line terminator characters ('\\n'/'\\r').\n");
 
     LSST_CONTROL_FIELD(hasNull, bool,
-        "Indicates whether the null string is valid. If set to false, the only "
-        "way NULLs can be recognized/written is if standardEscapes is set to "
-        "true (in which case '\\N' is mapped to NULL, assuming that '\\' is "
-        "the escape character).");
+        "Indicates whether the null string is valid. If set to false, the only\n"
+        "way NULLs can be recognized/written is if standardEscapes is set to\n"
+        "true (in which case '\\N' is mapped to NULL, assuming that '\\' is\n"
+        "the escape character).\n");
 
     LSST_CONTROL_FIELD(quoting, std::string,
         "Field quoting style for CSV input/output. Legal values are:\n"
         "\n"
-        "'QUOTE_MINIMAL': Only quote fields when necessary - for instance, "
+        "'QUOTE_MINIMAL': Only quote fields when necessary - for instance,\n"
         "                 when a field value contains a delimiter character.\n"
         "\n"
         "'QUOTE_NONE':    Never quote fields.\n"
@@ -77,38 +77,38 @@ struct CsvControl {
         "'QUOTE_ALL':     Always quote fields.\n");
 
     LSST_CONTROL_FIELD(delimiter, std::string,
-        "A one character string containing the field delimiter character. "
-        "Values of '\\0', '\\n', or '\\r' are illegal.");
+        "A one character string containing the field delimiter character.\n"
+        "Values of '\\0', '\\n', or '\\r' are illegal.\n");
 
     LSST_CONTROL_FIELD(escapeChar, std::string,
-        "A one character string containing the escape character. An empty "
-        "string is mapped to an escape character of '\\0', which disables "
-        "escaping. A value equal to the delimiter or quote character is "
-        "illegal, with one exception: both the escape and quote characters "
-        "can be '\\0'.  The '\\n' and '\\r' characters are also illegal.");
+        "A one character string containing the escape character. An empty\n"
+        "string is mapped to an escape character of '\\0', which disables\n"
+        "escaping. A value equal to the delimiter or quote character is\n"
+        "illegal, with one exception: both the escape and quote characters\n"
+        "can be '\\0'.  The '\\n' and '\\r' characters are also illegal.\n");
 
     LSST_CONTROL_FIELD(quoteChar, std::string,
-        "A one character string containing the character used to quote fields "
-        "when quoting is set to either 'QUOTE_ALL' or 'QUOTE_MINIMAL'. An "
-        "empty string is mapped to a quote character of '\\0', which disables "
-        "quoting (and is only legal when quoting is set to 'QUOTE_NONE'). A "
-        "value equal to the delimiter or quote character is illegal, with one "
-        "exception: both the escape and quote characters can be '\\0'. The "
-        "'\\n' and '\\r' characters are also illegal.");
+        "A one character string containing the character used to quote fields\n"
+        "when quoting is set to either 'QUOTE_ALL' or 'QUOTE_MINIMAL'. An\n"
+        "empty string is mapped to a quote character of '\\0', which disables\n"
+        "quoting (and is only legal when quoting is set to 'QUOTE_NONE'). A\n"
+        "value equal to the delimiter or quote character is illegal, with one\n"
+        "exception: both the escape and quote characters can be '\\0'. The\n"
+        "'\\n' and '\\r' characters are also illegal.\n");
 
     LSST_CONTROL_FIELD(skipInitialSpace, bool,
         "If true, whitespace immediately following the delimiter is ignored.");
 
     LSST_CONTROL_FIELD(doubleQuote, bool,
-        "If true, embedded quote characters are escaped with a leading quote "
-        "character. Otherwise the escape character is used. If escaping and "
-        "double-quoting are disabled, writing a field  with embedded quote "
-        "character will raise an exception.");
+        "If true, embedded quote characters are escaped with a leading quote\n"
+        "character. Otherwise the escape character is used. If escaping and\n"
+        "double-quoting are disabled, writing a field  with embedded quote\n"
+        "character will raise an exception.\n");
 
     LSST_CONTROL_FIELD(standardEscapes, bool,
-        "Flag indicating whether standard escape sequences should be handled. "
-        "If false, then the character sequence '\\C', where C is any character, "
-        "is mapped to C (assuming '\\' is the escape character). If true, "
+        "Flag indicating whether standard escape sequences should be handled.\n"
+        "If false, then the character sequence '\\C', where C is any character,\n"
+        "is mapped to C (assuming '\\' is the escape character). If true,\n"
         "the following special cases are handled differently:\n"
         "\n"
         "- '\\b' is mapped to BS - backspace (ASCII 8)\n"
@@ -117,18 +117,18 @@ struct CsvControl {
         "- '\\r' is mapped to CR - carriage return (ASCII 13)\n"
         "- '\\t' is mapped to TAB - horizontal tab (ASCII 9)\n"
         "- '\\v' is mapped to VT - vertical tab (ASCII 11)\n"
-        "- '\\xD' and '\\xDD', where D is a hexadecimal digit, is mapped to "
-        "the character with that numeric code.\n"
-        "- A field value of exactly '\\N' (no quotes, whitespace, or other "
-        "content) is treated as a NULL.\n");
+        "- '\\xD' and '\\xDD', where D is a hexadecimal digit, is mapped to\n"
+        "  the character with that numeric code.\n"
+        "- A field value of exactly '\\N' (no quotes, whitespace, or other\n"
+        "  content) is treated as a NULL.\n");
 
     LSST_CONTROL_FIELD(trailingDelimiter, bool,
-        "If true, then a trailing delimiter character is expected and written "
-        "at end of every record, immediately preceding the line terminator.");
+        "If true, then a trailing delimiter character is expected and written\n"
+        "at end of every record, immediately preceding the line terminator.\n");
 
     LSST_CONTROL_FIELD(nonfiniteAsNull, bool,
-        "If true, then non-finite (NaN, Inf, -Inf) floating point values are "
-        "written out as NULL field values.");
+        "If true, then non-finite (NaN, Inf, -Inf) floating point values are\n"
+        "written out as NULL field values.\n");
 
     /** Returns true if database NULLs are recognizable in this dialect.
       * This is the case when hasNull is true, or when escapeChar is not
