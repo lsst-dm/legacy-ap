@@ -48,8 +48,13 @@ class SourceAssocConfig(pexConfig.Config):
         doc="source clustering parameters")
     doCluster = pexConfig.Field(
         dtype=bool, default=True,
-        doc="Cluster processed \"good\" sources with the OPTICS spatial "
-            "clustering algorithm? A \"good\" source is one with valid "
+        doc="If set, then \"good\" sources are clustered with the OPTICS "
+            "algorithm. If unset, then the source association task reduces "
+            "to simply processing sources - this involves adding an exposure "
+            "ID, filter, and middle-of-exposure time to each source, as well "
+            "as computation of sky-coordinate errors. In other words, sources "
+            "are prepared for database ingest, but not associated with one "
+            "another. Note that a \"good\" source is one with valid sky-"
             "coordinates and which has not been identified as \"bad\" by "
             "one of the flag fields listed in the "
             "sourceProcessing.badFlagFields configuration parameter.")
@@ -400,15 +405,14 @@ class SourceAssocTask(pipeBase.CmdLineTask):
         for skyTileId in parsedCmd.skyTileIds:
             parsedCmd.butler.put(
                 parsedCmd.config, name + "_config", skyTile=skyTileId)
-            if parsedCmd.doraise:
+            try:
                 task.run(skyTileId, parsedCmd.butler)
-            else:
-                try:
-                    task.run(skyTileId, parsedCmd.butler)
-                except Exception, e:
-                    task.log.fatal(str.format(
-                        "Failed on skyTile {}: {}", skyTileId, e))
-                    traceback.print_exc(file=sys.stderr)
+            except Exception, e:
+                if parsedCmd.doraise:
+                    raise
+                task.log.fatal(str.format(
+                    "Failed on skyTile {}: {}", skyTileId, e))
+                traceback.print_exc(file=sys.stderr)
             parsedCmd.butler.put(
                 task.getFullMetadata(), name + "_metadata", skyTile=skyTileId)
 
