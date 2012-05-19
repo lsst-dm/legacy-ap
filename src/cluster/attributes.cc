@@ -286,8 +286,7 @@ namespace {
             //        sample should be ignored because a computation failed,
             //        or whether it should be zeroed because the algorithm
             //        never computes it.
-            cov(0,1) = 0.0;
-            cov(1,0) = 0.0;
+            cov(0,1) = 0.0; cov(1,0) = 0.0;
             Point2D p = r.getCentroid();
             Eigen::Matrix2d m = i->getTransform().getLinear().getMatrix();
             Eigen::Matrix2d invCov = (m * cov * m.transpose()).inverse();
