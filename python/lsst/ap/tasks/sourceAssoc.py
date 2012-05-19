@@ -314,7 +314,7 @@ class SourceAssocTask(pipeBase.CmdLineTask):
        >>> # display documentation for clustering parameters
        ... help(ClusteringConfig)    
        >>> # create a task configuration and fiddle with a value
-       >>> config = SourceAssocConfig()
+       ... config = SourceAssocConfig()
        >>> config.clustering.minNeighbors = 2
 
        Some control over which sources participate in spatial clustering is
@@ -322,13 +322,13 @@ class SourceAssocTask(pipeBase.CmdLineTask):
        parameter - this is a list of flag field names. If at least one of
        these flags is set for an input source, then that source is deemed "bad"
        and does not participate in spatial clustering. Here's how one would
-       set it and get more help:
+       set it (and discover other source processing parameters):
 
        >>> from lsst.ap.tasks import *
        >>> from lsst.ap.cluster import SourceProcessingConfig
        >>> # display documentation for source processing
        ... # configuration parameters
-       >>> help(SourceProcessingConfig)
+       ... help(SourceProcessingConfig)
        >>> config = SourceAssocConfig()
        >>> config.processing.badFlagFields = ["flags.evil", "flags.devilish"]
 
@@ -337,18 +337,18 @@ class SourceAssocTask(pipeBase.CmdLineTask):
 
        This task retrieves "src", "calexp_md", and "processCcd_config" datasets
        from the butler. It assumes that single frame measurement has been run
-       (e.g. via lsst.pipe.tasks.ProcessCcdTask or some camera specific variant
-       thereof). Note also that care is required when interleaving CCD processing
-       and source association - this task does not support incremental updates
-       to source clusters. In other words, one should ensure that all CCDs
-       overlapping a sky-tile T have been processed before running this task
-       on T. Otherwise, multiple runs on T will be required, where each run
-       processes all the data for the sky-tile from scratch.
+       (e.g. via lsst.pipe.tasks.processCcd.ProcessCcdTask, or some camera
+       specific variant thereof). Note also that care is required when
+       interleaving CCD processing and source association - this task does not
+       support incremental updates to source clusters. In other words, one should
+       ensure that all CCDs overlapping a sky-tile T have been processed before
+       running this task on T. Otherwise, multiple runs on T will be required,
+       where each run processes all the data for the sky-tile from scratch.
 
        Outputs:
        --------
 
-       This task write "object", "source", "badSource", "invalidSource",
+       This task writes "object", "source", "badSource", "invalidSource",
        "sourceHist", and "badSourceHist" datasets via the butler. Whether any 
        of these is actually written for a sky-tile depends on configuration
        parameters and the input data.
