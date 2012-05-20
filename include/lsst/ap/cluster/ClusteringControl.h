@@ -80,7 +80,7 @@ struct ClusteringControl {
         "such a node become increasingly likely to all lie in the\n"
         "neighborhood of a query point.  Note also that the k-d tree\n"
         "implementation does not store bounding boxes for nodes, meaning\n"
-        "that an entire node cannot be determined to satify a range\n"
+        "that an entire node cannot be determined to satisfy a range\n"
         "query without traversal of its children/contents.  This saves on tree\n"
         "size, and makes sense for the target use-case because query regions\n"
         "are typically very small.\n");

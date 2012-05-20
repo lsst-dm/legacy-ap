@@ -213,7 +213,7 @@ class SourceAssocConfig(pexConfig.Config):
             Write "bad" source histogram to persistent storage via the butler?
             If True, one histogram image is written per sky-tile containing
             at least one "bad" source, via the butler. The corresponding
-            dataset name is "nadSourceHist", and the type of these histograms
+            dataset name is "badSourceHist", and the type of these histograms
             is lsst.afw.image.DecoratedImageU. They can be retrieved using e.g.:
 
             >>> img = butler.get("badSourceHist", skyTile=12345)
