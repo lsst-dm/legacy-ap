@@ -20,6 +20,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 import sys
+import traceback
 
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
@@ -417,10 +418,10 @@ class SourceAssocTask(pipeBase.CmdLineTask):
                     self.log.warn(str.format(
                         "skipping {} : processCcd measurement prefix and slot configuration"
                         "do not match sourceAssoc configuration", str(dataRef.dataId)))
-            except:
+            except Exception:
                 self.log.warn(str.format(
-                    "skipping {} : failed to unpersist src or calexp_md dataset",
-                    str(dataRef.dataId)))
+                    "skipping {} : failed to unpersist src or calexp_md dataset: {}",
+                    str(dataRef.dataId), traceback.format_exc()))
                 continue
             if sourceTable == None:
                 # create output source table

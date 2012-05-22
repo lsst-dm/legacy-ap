@@ -286,7 +286,13 @@ namespace {
             //        sample should be ignored because a computation failed,
             //        or whether it should be zeroed because the algorithm
             //        never computes it.
-            cov(0,1) = 0.0; cov(1,0) = 0.0;
+            if (cov(0,1) != cov(1,0)) {
+                if (lsst::utils::isnan(cov(0,1)) && lsst::utils::isnan(cov(1,0))) {
+                    cov(0,1) = 0.0; cov(1,0) = 0.0;
+                } else {
+                    continue; // covariance matrix not symmetric
+                }
+            }
             Point2D p = r.getCentroid();
             Eigen::Matrix2d m = i->getTransform().getLinear().getMatrix();
             Eigen::Matrix2d invCov = (m * cov * m.transpose()).inverse();
@@ -590,9 +596,17 @@ void computeShapeMean(
             //        sample should be ignored because a computation failed,
             //        or whether it should be zeroed because the algorithm
             //        never computes it.
-            cov(0,1) = 0.0; cov(1,0) = 0.0;
-            cov(0,2) = 0.0; cov(2,0) = 0.0;
-            cov(1,2) = 0.0; cov(2,1) = 0.0;
+            if (cov(0,1) != cov(1,0) || cov(0,2) != cov(2,0) || cov(1,2) != cov(2,1)) {
+                if (lsst::utils::isnan(cov(0,1)) && lsst::utils::isnan(cov(1,0)) &&
+                    lsst::utils::isnan(cov(0,2)) && lsst::utils::isnan(cov(2,0)) &&
+                    lsst::utils::isnan(cov(1,2)) && lsst::utils::isnan(cov(2,1))) {
+                    cov(0,1) = 0.0; cov(1,0) = 0.0;
+                    cov(0,2) = 0.0; cov(2,0) = 0.0;
+                    cov(1,2) = 0.0; cov(2,1) = 0.0;
+                } else {
+                    continue; // covariance matrix not symmetric
+                }
+            }
             // transform moments and covariance matrix to N,E basis
             LinearTransform const * xform = &(i->getTransform().getLinear());
             Eigen::Matrix3d j = q.transform(*xform).d();

@@ -516,16 +516,29 @@ void processSources(
             Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(
                 s->getCentroid(), radians).getLinear().getMatrix();
             Eigen::Matrix2d cov = s->getCentroidErr();
-            // FIXME: for now, no measurement algorithms actually
-            //        compute full covariance matrixes, and the
-            //        off diagonal matrix elements are always NaN.
-            //        Longer term, we will need some algorithm metadata
-            //        to decide whether an off-diagonal NaN means a
-            //        sample should be ignored because a computation failed,
-            //        or whether it should be zeroed because the algorithm
-            //        never computes it.
-            cov(0,1) = 0.0; cov(1,0) = 0.0;
-            os->set(coordErrKey, m * cov * m.transpose());
+            bool computeErr = true;
+            if (lsst::utils::isnan(cov(0,0)) || lsst::utils::isnan(cov(1,1))) {
+                computeErr = false;
+            } else if (cov(0,1) != cov(1,0)) {
+                // FIXME: for now, no measurement algorithms actually
+                //        compute full covariance matrixes, and the
+                //        off diagonal matrix elements are always NaN.
+                //        Longer term, we will need some algorithm metadata
+                //        to decide whether an off-diagonal NaN means a
+                //        sample should be ignored because a computation failed,
+                //        or whether it should be zeroed because the algorithm
+                //        never computes it.
+                if (lsst::utils::isnan(cov(0,1)) && lsst::utils::isnan(cov(1,0))) {
+                    cov(0,1) = 0.0; cov(1,0) = 0.0;
+                } else {
+                    computeErr = false;
+                }
+            }
+            if (computeErr) {
+                Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(
+                    s->getCentroid(), radians).getLinear().getMatrix();
+                os->set(coordErrKey, m * cov * m.transpose());
+            }
         }
     }
     log.format(Log::INFO, "processed %lld sources (invalid: %lld, "
