@@ -149,7 +149,7 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
             control.exposurePrefix + ".filter.id",
             "ID of filter for exposure"));
         mapper.addOutputField(Field<float>(
-            control.exposurePrefix + ".time.range",
+            control.exposurePrefix + ".time",
             "exposure time",
             "s"));
         mapper.addOutputField(Field<double>(
@@ -426,7 +426,7 @@ void processSources(
     // Set up keys to additional fields
     Key<int64_t> expIdKey;
     Key<int> expFilterIdKey;
-    Key<float> expTimeRangeKey;
+    Key<float> expTimeKey;
     Key<double> expTimeMidKey;
     Key<Covariance<lsst::afw::table::Point<double> > > centroidErrKey =
         sources.getTable()->getCentroidErrKey();
@@ -441,7 +441,7 @@ void processSources(
         Schema schema = mapper.getOutputSchema();
         expIdKey = schema[control.exposurePrefix + ".id"];
         expFilterIdKey = schema[control.exposurePrefix + ".filter.id"];
-        expTimeRangeKey = schema[control.exposurePrefix + ".time.range"];
+        expTimeKey = schema[control.exposurePrefix + ".time"];
         expTimeMidKey = schema[control.exposurePrefix + ".time.mid"];
     }
     if (!control.clusterPrefix.empty()) {
@@ -501,8 +501,8 @@ void processSources(
         if (expFilterIdKey.isValid()) {
             os->set(expFilterIdKey, expInfo.getFilter().getId());
         }
-        if (expTimeRangeKey.isValid()) {
-            os->set(expTimeRangeKey, expInfo.getExposureTime());
+        if (expTimeKey.isValid()) {
+            os->set(expTimeKey, expInfo.getExposureTime());
         }
         if (expTimeMidKey.isValid()) {
             os->set(expTimeMidKey, expInfo.getEpoch());

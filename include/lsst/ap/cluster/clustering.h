@@ -50,7 +50,7 @@ namespace lsst { namespace ap { namespace cluster {
   *     - "coord.err"             (Cov<Point<F8>>) : Source sky-coordinate error
   *     - "<exposure>.id"         (I8)             : ID of exposure source was measured on.
   *     - "<exposure>.filter.id"  (I4)             : ID of filter for exposure.
-  *     - "<exposure>.time.range" (F4)             : Exposure time (s).
+  *     - "<exposure>.time"       (F4)             : Exposure time (s).
   *     - "<exposure>.time.mid"   (F8)             : Middle of exposure time (MJD).
   *     - "<cluster>.id"          (I8)             : ID of cluster containing source.
   *     - "<cluster>.coord"       (Coord)          : ICRS coordinates of cluster containing source.
