@@ -40,16 +40,6 @@ __all__ = ["SourceAssocConfig", "SourceAssocTask"]
 class SourceAssocConfig(pexConfig.Config):
     """Configuration parameters for SourceAssocTask.
     """
-    skyTileQueryDataset = pexConfig.Field(
-        dtype=str, default="raw",
-        doc="""
-            Dataset name to use when querying the butler for the IDs of
-            inhabited sky-tiles, which is camera specific. Note that the
-            value of this parameter is generally supplied by an override
-            file in the obs_<camera> package, so that end-users need not
-            set it themselves.
-            """)
-
     sourceProcessing = pexConfig.ConfigField(
         dtype=apCluster.SourceProcessingConfig,
         doc="""
@@ -567,7 +557,8 @@ class SourceAssocTask(pipeBase.CmdLineTask):
     def _makeArgumentParser(cls):
         """Create an argument parser
         """
-        return SourceAssocArgumentParser(name=cls._DefaultName)
+        return SourceAssocArgumentParser(name=cls._DefaultName,
+                datasetType="source")
 
     @classmethod
     def parseAndRun(cls, args=None, config=None, log=None):
@@ -589,7 +580,7 @@ class SourceAssocTask(pipeBase.CmdLineTask):
         if not hasattr(parsedCmd, "skyTileIds") or len(parsedCmd.skyTileIds) == 0:
             print >>sys.stderr, "Running on all sky-tiles"
             parsedCmd.skyTileIds = parsedCmd.butler.queryMetadata(
-                parsedCmd.config.skyTileQueryDataset, "skyTile")
+                "source", "skyTile")
         for skyTileId in parsedCmd.skyTileIds:
             parsedCmd.butler.put(
                 parsedCmd.config, name + "_config", skyTile=skyTileId)
