@@ -40,6 +40,27 @@ __all__ = ["SourceAssocConfig", "SourceAssocTask"]
 class SourceAssocConfig(pexConfig.Config):
     """Configuration parameters for SourceAssocTask.
     """
+    inputLevel = pexConfig.Field(
+        dtype=str, default="sensor",
+        doc="""
+            Level of input datasets identified by the
+            inputSourceDataset and inputCalexpMetadataDataset
+            configuration parameters.
+            """)
+    inputSourceDataset = pexConfig.Field(
+        dtype=str, default="src",
+        doc="Name of the butler dataset for input sources.")
+    inputCalexpMetadataDataset = pexConfig.Field(
+        dtype=str, default="calexp_md",
+        doc="""
+            Name of the butler dataset for calibrated exposure metadata.
+
+            Note that this dataset must yield metadata for the calibrated
+            exposures that the sources from inputSourceDataset were detected
+            and measured on; otherwise, the SourceAssoc pipeline behavior 
+            is undefined.
+            """)
+
     sourceProcessing = pexConfig.ConfigField(
         dtype=apCluster.SourceProcessingConfig,
         doc="""
@@ -337,7 +358,9 @@ class SourceAssocTask(pipeBase.CmdLineTask):
        -----------------------
 
        This task retrieves "src", "calexp_md", and "processCcd_config" datasets
-       from the butler. It assumes that single frame measurement has been run
+       from the butler (but note that the names of the input source and
+       calibrated exposure metadata datasets can be changed via configuration
+       parameters). It assumes that single frame measurement has been run
        (e.g. via lsst.pipe.tasks.processCcd.ProcessCcdTask, or some camera
        specific variant thereof). Note also that care is required when
        interleaving CCD processing and source association - this task does not
@@ -406,12 +429,14 @@ class SourceAssocTask(pipeBase.CmdLineTask):
             badSourceHistogram = None
         )
 
-        for dataRef in butler.subset("src", "sensor", skyTile=skyTileId):
-            if not dataRef.datasetExists("src"):
+        for dataRef in butler.subset(
+            self.config.inputSourceDataset, self.config.inputLevel, skyTile=skyTileId):
+
+            if not dataRef.datasetExists(self.config.inputSourceDataset):
                 continue
             try:
-                expMd = dataRef.get("calexp_md", immediate=True)
-                expSources = dataRef.get("src", immediate=True)
+                expMd = dataRef.get(self.config.inputCalexpMetadataDataset, immediate=True)
+                expSources = dataRef.get(self.config.inputSourceDataset, immediate=True)
                 expConfig = dataRef.get("processCcd_config", immediate=True)
                 if (self.config.measPrefix != expConfig.measurement.prefix or
                     self.config.measSlots != expConfig.measurement.slots):
