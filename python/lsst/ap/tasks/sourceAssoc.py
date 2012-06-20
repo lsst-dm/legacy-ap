@@ -32,6 +32,12 @@ import lsst.ap.match as apMatch
 import lsst.ap.utils as apUtils
 import lsst.ap.cluster as apCluster
 
+# Hack to be able to read multiShapelet configs
+try:
+    import lsst.meas.extensions.multiShapelet
+except:
+    pass
+
 from .sourceAssocArgumentParser import SourceAssocArgumentParser
 
 __all__ = ["SourceAssocConfig", "SourceAssocTask"]
@@ -276,10 +282,14 @@ class SourceAssocConfig(pexConfig.Config):
                          ])
         self.algorithmFlags = {
             "flux.gaussian": "flux.gaussian.flags,flux.gaussian.flags.badapcorr," + flags,
-            "flux.naive":    "flux.naive.flags," + flags,
-            "flux.psf":      "flux.psf.flags," + flags,
-            "flux.sinc":     "flux.sinc.flags," + flags,
-            "shape.sdss":    "shape.sdss.flags.unweightedbad," + flags,
+            "flux.naive": "flux.naive.flags," + flags,
+            "flux.psf": "flux.psf.flags," + flags,
+            "flux.sinc": "flux.sinc.flags," + flags,
+            "flux.kron": "flux.kron.flags,flux.kron.flags.aperture," + flags,
+            "multishapelet.exp.flux":   "multishapelet.exp.flux.flags," + flags,
+            "multishapelet.dev.flux":   "multishapelet.dev.flux.flags," + flags,
+            "multishapelet.combo.flux": "multishapelet.combo.flux.flags," + flags,
+            "shape.sdss": "shape.sdss.flags.unweightedbad," + flags,
         }
         self.measSlots.centroid = "centroid.sdss"
         self.measSlots.shape = "shape.sdss"
@@ -519,9 +529,11 @@ class SourceAssocTask(pipeBase.CmdLineTask):
         scCat = apCluster.SourceClusterCatalog(scTable)
         algorithmFlags = dict()
         for alg in spControl.fluxFields:
-            algorithmFlags[alg] = _flagKeys(clusters[0].getSchema(), self.config, alg)
+            if alg in clusters[0].getSchema():
+                algorithmFlags[alg] = _flagKeys(clusters[0].getSchema(), self.config, alg)
         for alg in spControl.shapeFields:
-            algorithmFlags[alg] = _flagKeys(clusters[0].getSchema(), self.config, alg)
+            if alg in clusters[0].getSchema():
+                algorithmFlags[alg] = _flagKeys(clusters[0].getSchema(), self.config, alg)
         numNoise = 0
         for sources in clusters:
             if len(sources) == 1 and minNeighbors > 0:

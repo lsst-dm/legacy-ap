@@ -103,9 +103,18 @@ namespace {
         addShapeFields(schema, filter, name, doc);
     }
 
-    bool hasField(Schema const & schema, std::string const & name) {
+    bool hasFluxField(Schema const & schema, std::string const & name) {
         try {
-            lsst::afw::table::SubSchema ss = schema[name];
+            schema.find<Flux::MeasTag>(name);
+        } catch (NotFoundException &) {
+            return false;
+        }
+        return true;
+    }
+
+    bool hasShapeField(Schema const & schema, std::string const & name) {
+        try {
+            schema.find<Shape::MeasTag>(name);
         } catch (NotFoundException &) {
             return false;
         }
@@ -259,13 +268,13 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
         }
         for (Iter flux = control.fluxFields.begin(), eFlux = control.fluxFields.end();
              flux != eFlux; ++flux) {
-            if (hasField(prototype.getSchema(), *flux)) {
+            if (hasFluxField(prototype.getSchema(), *flux)) {
                  addFlux(schema, prototype.getSchema(), *filt, *flux, control.fluxUnit);
             }
         }
         for (Iter shape = control.shapeFields.begin(), eShape = control.shapeFields.end();
              shape != eShape; ++shape) {
-            if (hasField(prototype.getSchema(), *shape)) {
+            if (hasShapeField(prototype.getSchema(), *shape)) {
                  addShape(schema, prototype.getSchema(), *filt, *shape);
             }
         }

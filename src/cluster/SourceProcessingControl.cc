@@ -51,6 +51,10 @@ SourceProcessingControl::SourceProcessingControl() :
     fluxFields.push_back("flux.naive");
     fluxFields.push_back("flux.psf");
     fluxFields.push_back("flux.sinc");
+    fluxFields.push_back("flux.kron");
+    fluxFields.push_back("multishapelet.exp.flux");
+    fluxFields.push_back("multishapelet.dev.flux");
+    fluxFields.push_back("multishapelet.combo.flux");
     shapeFields.push_back("shape.sdss");
 }
 
