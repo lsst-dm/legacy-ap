@@ -548,10 +548,12 @@ class SourceAssocTask(pipeBase.CmdLineTask):
             sev = apCluster.computeBasicAttributes(
                 sc, sources, exposures, spControl.exposurePrefix)
             for alg in spControl.fluxFields:
-                apCluster.computeFluxMean(sc, sev, alg, algorithmFlags[alg],
-                                          spControl.fluxScale)
+                if alg in algorithmFlags:
+                    apCluster.computeFluxMean(sc, sev, alg, algorithmFlags[alg],
+                                              spControl.fluxScale)
             for alg in spControl.shapeFields:
-                apCluster.computeShapeMean(sc, sev, alg, algorithmFlags[alg]) 
+                if alg in algorithmFlags:
+                    apCluster.computeShapeMean(sc, sev, alg, algorithmFlags[alg]) 
             apCluster.setClusterFields(sources, sc, spControl)
         msg = "Computed attributes for {} clusters"
         if self.config.doDiscardNoiseClusters:
