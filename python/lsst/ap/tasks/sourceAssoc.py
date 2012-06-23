@@ -451,12 +451,14 @@ class SourceAssocTask(pipeBase.CmdLineTask):
                 if (self.config.measPrefix != expConfig.measurement.prefix or
                     self.config.measSlots != expConfig.measurement.slots):
                     self.log.warn(str.format(
-                        "skipping {} : processCcd measurement prefix and slot configuration"
+                        "skipping {} : processCcd measurement prefix and slot configuration "
                         "do not match sourceAssoc configuration", str(dataRef.dataId)))
+                    continue
             except Exception:
                 self.log.warn(str.format(
-                    "skipping {} : failed to unpersist src or calexp_md dataset: {}",
-                    str(dataRef.dataId), traceback.format_exc()))
+                    "skipping {} : failed to unpersist {}, {}, or processCcd_config dataset: {}",
+                    str(dataRef.dataId), self.config.inputCalexpMetadataDataset,
+                    self.config.inputSourceDataset, traceback.format_exc()))
                 continue
             if sourceTable == None:
                 # create output source table
@@ -469,7 +471,13 @@ class SourceAssocTask(pipeBase.CmdLineTask):
             # process sources: segregate into "good", "bad", and "invalid"
             # sets, discard sources outside sky-tile, and denormalize the
             # source schema.
-            expInfo = apMatch.ExposureInfo(expMd)
+            try:
+                expInfo = apMatch.ExposureInfo(expMd)
+            except:
+                self.log.warn(str.format(
+                    "skipping {} : failed to convert {} dataset to ExposureInfo",
+                    str(dataRef.dataId), self.config.inputCalexpMetadataDataset))
+                continue
             results.exposures.insert(expInfo)
             apCluster.processSources(
                 expSources,
