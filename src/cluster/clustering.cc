@@ -47,6 +47,7 @@ using lsst::afw::geom::AffineTransform;
 using lsst::afw::geom::Angle;
 using lsst::afw::geom::radians;
 
+using lsst::afw::image::indexToPosition;
 using lsst::afw::image::Filter;
 
 using lsst::afw::table::Covariance;
@@ -154,17 +155,21 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
         mapper.addOutputField(Field<int64_t>(
             control.exposurePrefix + ".id",
             "ID of exposure source was measured on"));
-        mapper.addOutputField(Field<int>(
-            control.exposurePrefix + ".filter.id",
-            "ID of filter for exposure"));
-        mapper.addOutputField(Field<float>(
-            control.exposurePrefix + ".time",
-            "exposure time",
-            "s"));
-        mapper.addOutputField(Field<double>(
-            control.exposurePrefix + ".time.mid",
-            "middle of exposure time",
-            "mjd"));
+        if (!control.multiBand) {
+            mapper.addOutputField(Field<int>(
+                control.exposurePrefix + ".filter.id",
+                "ID of filter for exposure"));
+        }
+        if (!control.coadd) {
+            mapper.addOutputField(Field<float>(
+                control.exposurePrefix + ".time",
+                "exposure time",
+                "s"));
+            mapper.addOutputField(Field<double>(
+                control.exposurePrefix + ".time.mid",
+                "middle of exposure time",
+                "mjd"));
+        }
     }
     if (!control.clusterPrefix.empty()) {
         // add cluster related fields
@@ -381,7 +386,7 @@ namespace {
 void processSources(
     SourceCatalog const & expSources,
     ExposureInfo const & expInfo,
-    PT1SkyTile const & skyTile,
+    lsst::ap::utils::PT1SkyTile const * skyTile,
     SourceProcessingControl const & control,
     SchemaMapper const & mapper,
     SourceCatalog & sources,
@@ -427,10 +432,13 @@ void processSources(
                     e = control.badFlagFields.end(); i != e; ++i) {
         badKeys.push_back(expSources.getSchema().find<Flag>(*i).key);
     }
-    // extract exposure X/Y bounds
-    double const xyMin = lsst::afw::image::indexToPosition(0) - 0.5;
-    double const xMax  = lsst::afw::image::indexToPosition(expInfo.getWidth() - 1) + 0.5;
-    double const yMax  = lsst::afw::image::indexToPosition(expInfo.getHeight() - 1) + 0.5;
+    // Extract exposure X/Y bounds relative to parent exposure (if there is one).
+    // This is because centroids of coadd-sources are in the pixel coordinate system
+    // of the tract exposure containing the patch they were measured on, NOT in
+    // the pixel coordinate system of the patch.
+    double const xyMin = indexToPosition(0) - 0.5;
+    double const xMax = indexToPosition(expInfo.getWidth() - 1) + 0.5;
+    double const yMax = indexToPosition(expInfo.getHeight() - 1) + 0.5;
     
     // Set up keys to additional fields
     Key<int64_t> expIdKey;
@@ -449,9 +457,13 @@ void processSources(
     if (!control.exposurePrefix.empty()) {
         Schema schema = mapper.getOutputSchema();
         expIdKey = schema[control.exposurePrefix + ".id"];
-        expFilterIdKey = schema[control.exposurePrefix + ".filter.id"];
-        expTimeKey = schema[control.exposurePrefix + ".time"];
-        expTimeMidKey = schema[control.exposurePrefix + ".time.mid"];
+        if (!control.multiBand) {
+            expFilterIdKey = schema[control.exposurePrefix + ".filter.id"];
+        }
+        if (!control.coadd) {
+            expTimeKey = schema[control.exposurePrefix + ".time"];
+            expTimeMidKey = schema[control.exposurePrefix + ".time.mid"];
+        }
     }
     if (!control.clusterPrefix.empty()) {
         Schema schema = mapper.getOutputSchema();
@@ -462,7 +474,8 @@ void processSources(
     for (SourceIter s = expSources.begin(), es = expSources.end(); s != es; ++s) {
         // Check source validity
         bool invalid = false;
-        double x = s->getX(), y = s->getY();
+        double x = s->getX() + expInfo.getOffsetX();
+        double y = s->getY() + expInfo.getOffsetY();
         if (lsst::utils::isnan(x) || lsst::utils::isnan(y)) {
             log.format(Log::WARN, "Centroid of source %lld contains NaNs",
                        static_cast<long long>(s->getId()));
@@ -477,7 +490,7 @@ void processSources(
                        static_cast<long long>(s->getId()));
             invalid = true;
         }
-        if (!invalid && !skyTile.contains(s->getCoord())) {
+        if (!invalid && skyTile && !skyTile->contains(s->getCoord())) {
             // skip sources outside the sky-tilea
             noutside += 1;
             continue;

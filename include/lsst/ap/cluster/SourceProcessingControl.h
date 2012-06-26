@@ -44,11 +44,20 @@ struct SourceProcessingControl {
 
     LSST_CONTROL_FIELD(exposurePrefix, std::string,
         "Prefix for exposure related fields in the output source schema.\n"
-        "Cannot be empty.\n");
+        "May be empty.\n");
 
     LSST_CONTROL_FIELD(clusterPrefix, std::string,
         "Prefix for cluster related fields in the output source schema.\n"
-        "Cannot be empty.\n");
+        "May be empty.\n");
+
+    LSST_CONTROL_FIELD(multiBand, bool,
+        "If true, sources have been detected/measured on multi-band\n"
+        "exposures (e.g. chi-squared coadds) and are not filter\n"
+        "specific.\n");
+
+    LSST_CONTROL_FIELD(coadd, bool,
+        "If true, sources have been detected/measured on coadd exposures,\n"
+        "and have no associated time-stamp/epoch.\n");
 
     LSST_CONTROL_FIELD(badFlagFields, std::vector<std::string>,
         "A list of flag field names. If an input source has any of the\n"
@@ -74,8 +83,6 @@ struct SourceProcessingControl {
         "source tables to output source cluster tables. Input source tables\n"
         "are expected to contain fields '<shape>', '<shape>.err' and\n"
         "'<shape>.flags' for each list entry ('<shape>').\n");
-
-    void validate() const;
 };
 
 }}} // namespace lsst::ap::cluster
