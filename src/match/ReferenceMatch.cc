@@ -1152,7 +1152,7 @@ RefReader<Ref>::~RefReader() { }
   */
 class RefPosMatcher {
 public:
-    RefPosMatcher();
+    RefPosMatcher(bool outputRefExtras);
     ~RefPosMatcher();
 
     // Sweep event call-backs
@@ -1189,15 +1189,19 @@ private:
     CsvWriter *_writer;
     RefReader<MatchableRef> *_refReader;
     MatchablePosReader *_posReader;
+
+    // output corrected reference object position and flags?
+    bool _outputRefExtras;
 };
 
-RefPosMatcher::RefPosMatcher() :
+RefPosMatcher::RefPosMatcher(bool outputRefExtras) :
     _arena(),
     _posSweep(),
     _refSweep(),
     _writer(0),
     _refReader(0),
-    _posReader(0)
+    _posReader(0),
+    _outputRefExtras(outputRefExtras)
 { }
 
 RefPosMatcher::~RefPosMatcher() {
@@ -1265,16 +1269,20 @@ void RefPosMatcher::_writeMatch(RefPosMatch const *m) {
     MatchablePos const *p = m->getPos();
     _writer->appendField(r->getReferencePosition().getId());
     _writer->appendField(p->getId());
-    _writer->appendField(
-        m->getSphericalCoordinates().getLongitude().asDegrees());
-    _writer->appendField(
-        m->getSphericalCoordinates().getLatitude().asDegrees());
+    if (_outputRefExtras) {
+        _writer->appendField(
+            m->getSphericalCoordinates().getLongitude().asDegrees());
+        _writer->appendField(
+            m->getSphericalCoordinates().getLatitude().asDegrees());
+    }
     _writer->appendField(m->getAngularSeparation().asArcseconds());
     _writer->appendField(r->getNumMatches());
     _writer->appendField(p->getNumMatches());
     _writer->appendField(r->getClosestId() == p->getId());
     _writer->appendField(p->getClosestId() == r->getReferencePosition().getId());
-    _writer->appendField(r->getReferencePosition().getFlags());
+    if (_outputRefExtras) {
+        _writer->appendField(r->getReferencePosition().getFlags());
+    }
     if (_refReader->haveOutputRecord()) {
         _writer->write(_writer->getControl().getDelimiter());
         _writer->write(r->getRecord());
@@ -1296,14 +1304,18 @@ void RefPosMatcher::_finish(MatchablePos *p) {
         // p has no matches - write out p and delete it immediately.
         _writer->appendNull();
         _writer->appendField(p->getId());
-        _writer->appendNull();
-        _writer->appendNull();
+        if (_outputRefExtras) {
+            _writer->appendNull();
+            _writer->appendNull();
+        }
         _writer->appendNull();
         _writer->appendNull();
         _writer->appendField(0);
         _writer->appendNull();
         _writer->appendNull();
-        _writer->appendNull();
+        if (_outputRefExtras) {
+            _writer->appendNull();
+        }
         if (_refReader->haveOutputRecord()) {
             _writer->write(_writer->getControl().getDelimiter());
             _writer->write(_refReader->getNullRecord());
@@ -1354,14 +1366,18 @@ void RefPosMatcher::_finish(MatchableRef *r) {
         // r has no matches - write out r and delete it immediately.
         _writer->appendField(r->getReferencePosition().getId());
         _writer->appendNull();
-        _writer->appendNull();
-        _writer->appendNull();
+        if (_outputRefExtras) {
+            _writer->appendNull();
+            _writer->appendNull();
+        }
         _writer->appendNull();
         _writer->appendField(0);
         _writer->appendNull();
         _writer->appendNull();
         _writer->appendNull();
-        _writer->appendNull();
+        if (_outputRefExtras) {
+            _writer->appendNull();
+        }
         if (_refReader->haveOutputRecord()) {
             _writer->write(_writer->getControl().getDelimiter());
             _writer->write(r->getRecord());
@@ -1618,25 +1634,19 @@ void checkFilters() {
 } // namespace lsst::ap::match::<anonymous>
 
 
-/** Matches a declination sorted reference catalog (stored as a CSV file)
-  * to a table of positions.
-  *
-  * Note that a reduction for parallax from barycentric to geocentric place is 
-  * applied to reference catalog entries with parallax above parallaxThresh.
-  * To disable this reduction, use a large threshold (e.g. +Inf).
-  */
 void referenceMatch(
-    std::string            const &refFile,        ///< Declination sorted reference catalog CSV file name.
-    CatalogControl         const &refControl,     ///< Reference catalog CSV file properties.
-    CsvControl             const &refDialect,     ///< CSV dialect of reference catalog CSV file.
-    std::string            const &posFile,        ///< Declination sorted position CSV file name.
-    CatalogControl         const &posControl,     ///< Position CSV file properties.
-    CsvControl             const &posDialect,     ///< CSV dialect of position CSV file.
-    std::string            const &outFile,        ///< Output file name.
-    CsvControl             const &outDialect,     ///< Output file CSV dialect.
-    lsst::afw::geom::Angle const  radius,         ///< Match radius
-    lsst::afw::geom::Angle const  parallaxThresh, ///< Parallax threshold
-    bool                          truncateOutFile ///< Truncate outFile before appending to it?
+    std::string            const &refFile,
+    CatalogControl         const &refControl,
+    CsvControl             const &refDialect,
+    std::string            const &posFile,
+    CatalogControl         const &posControl,
+    CsvControl             const &posDialect,
+    std::string            const &outFile,
+    CsvControl             const &outDialect,
+    lsst::afw::geom::Angle const  radius,
+    lsst::afw::geom::Angle const  parallaxThresh,
+    bool                          outputRefExtras,
+    bool                          truncateOutFile
 ) {
     Log log(Log::getDefaultLog(), "lsst.ap.match");
     log.log(Log::INFO, "Matching reference catalog to position table...");
@@ -1648,7 +1658,7 @@ void referenceMatch(
         refFile, refControl, refDialect, outDialect,
         posReader.getMinEpoch(), posReader.getMaxEpoch(), parallaxThresh);
     CsvWriter writer(outFile, outDialect, truncateOutFile);
-    RefPosMatcher matcher;
+    RefPosMatcher matcher(outputRefExtras);
 
     log.log(Log::INFO, "Starting reference catalog to position table match");
     matcher.match(writer, refReader, posReader);
