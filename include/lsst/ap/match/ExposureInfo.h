@@ -105,12 +105,11 @@ public:
     lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
     ///@}
 
-    /// @brief Get offset that, when added to parent exposure pixel coordinates,
-    ///        transforms to local exposure pixel coordinates (LTV[12]).
+    /// @brief Get pixel coordinates of sub-image pixel (0,0) in the parent exposure.
     ///@{
-    int getOffsetX() const { return _offset.getX(); }
-    int getOffsetY() const { return _offset.getY(); }
-    lsst::afw::geom::Point2I const getOffset() const { return _offset; }
+    int getX0() const { return _xy0.getX(); }
+    int getY0() const { return _xy0.getY(); }
+    lsst::afw::geom::Point2I const getXY0() const { return _xy0; }
     ///@}
 
     /// @brief Is there enough information to calibrate fluxes?
@@ -167,7 +166,7 @@ private:
     double _fluxMag0;
     double _fluxMag0Sigma;
     lsst::afw::geom::Extent2I _extent;
-    lsst::afw::geom::Point2I _offset;
+    lsst::afw::geom::Point2I _xy0;
     lsst::afw::image::Wcs::Ptr _wcs;
     lsst::afw::image::Filter _filter;
     int _filterId;

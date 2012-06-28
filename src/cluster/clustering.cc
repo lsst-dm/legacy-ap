@@ -436,9 +436,10 @@ void processSources(
     // This is because centroids of coadd-sources are in the pixel coordinate system
     // of the tract exposure containing the patch they were measured on, NOT in
     // the pixel coordinate system of the patch.
-    double const xyMin = indexToPosition(0) - 0.5;
-    double const xMax = indexToPosition(expInfo.getWidth() - 1) + 0.5;
-    double const yMax = indexToPosition(expInfo.getHeight() - 1) + 0.5;
+    double const xMin = indexToPosition(expInfo.getX0()) - 0.5;
+    double const yMin = indexToPosition(expInfo.getY0()) - 0.5;
+    double const xMax = indexToPosition(expInfo.getX0() + expInfo.getWidth() - 1) + 0.5;
+    double const yMax = indexToPosition(expInfo.getY0() + expInfo.getHeight() - 1) + 0.5;
     
     // Set up keys to additional fields
     Key<int64_t> expIdKey;
@@ -474,13 +475,13 @@ void processSources(
     for (SourceIter s = expSources.begin(), es = expSources.end(); s != es; ++s) {
         // Check source validity
         bool invalid = false;
-        double x = s->getX() + expInfo.getOffsetX();
-        double y = s->getY() + expInfo.getOffsetY();
+        double x = s->getX();
+        double y = s->getY();
         if (lsst::utils::isnan(x) || lsst::utils::isnan(y)) {
             log.format(Log::WARN, "Centroid of source %lld contains NaNs",
                        static_cast<long long>(s->getId()));
             invalid = true;
-        } else if (x < xyMin || x > xMax || y < xyMin || y > yMax) {
+        } else if (x < xMin || x > xMax || y < yMin || y > yMax) {
             log.format(Log::WARN, "Centroid of source %lld does not lie on exposure",
                        static_cast<long long>(s->getId()));
             invalid = true;

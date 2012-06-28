@@ -1605,10 +1605,10 @@ void RefExpMatcher::_candidateMatch(RefWithCov *r, ExposureInfo *e) {
         epoch, e->getEarthPosition());
     IcrsCoord sc = cartesianToIcrs(v);
     lsst::afw::geom::Point2D p = e->getWcs()->skyToPixel(sc);
-    if (p.getX() >= PixelZeroPos - 0.5 &&
-        p.getX() <= e->getWidth() + PixelZeroPos - 0.5 &&
-        p.getY() >= PixelZeroPos - 0.5 &&
-        p.getY() <= e->getHeight() + PixelZeroPos - 0.5) {
+    if (p.getX() >= e->getX0() + PixelZeroPos - 0.5 &&
+        p.getX() <= e->getX0() + e->getWidth() + PixelZeroPos - 0.5 &&
+        p.getY() >= e->getY0() + PixelZeroPos - 0.5 &&
+        p.getY() <= e->getY0() + e->getHeight() + PixelZeroPos - 0.5) {
         r->appendMatch(e);
     }
 }
