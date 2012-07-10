@@ -275,7 +275,7 @@ class SourceAssocConfig(pexConfig.Config):
                           "flags.pixel.saturated.center",
                          ])
         self.algorithmFlags = {
-            "flux.gaussian": "flux.gaussian.flags,flux.gaussian.flags.badapcorr," + flags,
+            "flux.gaussian": "flux.gaussian.flags," + flags,
             "flux.naive": "flux.naive.flags," + flags,
             "flux.psf": "flux.psf.flags," + flags,
             "flux.sinc": "flux.sinc.flags," + flags,
