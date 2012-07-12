@@ -34,6 +34,11 @@ import lsst.ap.cluster as apCluster
 
 from .sourceAssocArgumentParser import SourceAssocArgumentParser
 
+try:
+    import lsst.meas.extensions.multiShapelet
+except:
+    pass
+
 __all__ = ["SourceAssocConfig", "SourceAssocTask"]
 
 
