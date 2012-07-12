@@ -336,9 +336,10 @@ void writeCsv(BaseCatalog const & catalog,
               CsvConversionControl const & cnvControl,
               CsvControl const & csvControl,
               std::string const & csvFile,
-              bool truncate)
+              bool truncate,
+              bool append)
 {
-    CsvWriter writer(csvFile, csvControl, truncate);
+    CsvWriter writer(csvFile, csvControl, truncate, append);
     Schema schema = catalog.getSchema();
     CsvConverter cnv(writer, schema, cnvControl);
     boost::reference_wrapper<CsvConverter> cnvRef = boost::ref(cnv);

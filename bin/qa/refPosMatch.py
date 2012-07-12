@@ -40,6 +40,7 @@ def referenceMatch(config, outputFile, referenceCatalog, positionCatalog):
         config.outDialect.makeControl(),
         config.getRadius(),
         config.getParallaxThresh(),
+        config.doOutputRefExtras,
         True)
 
 def main():

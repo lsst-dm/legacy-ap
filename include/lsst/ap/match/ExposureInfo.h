@@ -74,13 +74,14 @@ public:
     /// @brief Return the unique integer identifier for the exposure.
     int64_t getId() const { return _id; }
 
-    /// @brief Return the filter of the exposure
+    /// @brief Return the filter of the exposure. UNKNOWN for multi-band
+    //         exposures (e.g. chi-squared coadds).
     lsst::afw::image::Filter const & getFilter() const { return _filter; }
 
-    /// Return the exposure mid-point, MJD TAI.
+    /// Return the exposure mid-point, MJD TAI. NaN for coadds.
     double getEpoch() const { return _epoch; }
 
-    /// @brief Return the exposure time, s.
+    /// @brief Return the exposure time, s. NaN for coadds.
     double getExposureTime() const { return _expTime; }
 
     /// @brief Return the ICRS coordinates of the image center (rad).
@@ -102,6 +103,13 @@ public:
     int getWidth() const  { return _extent.getX(); }
     int getHeight() const { return _extent.getY(); }
     lsst::afw::geom::Extent2I const getExtent() const { return _extent; }
+    ///@}
+
+    /// @brief Get pixel coordinates of sub-image pixel (0,0) in the parent exposure.
+    ///@{
+    int getX0() const { return _xy0.getX(); }
+    int getY0() const { return _xy0.getY(); }
+    lsst::afw::geom::Point2I const getXY0() const { return _xy0; }
     ///@}
 
     /// @brief Is there enough information to calibrate fluxes?
@@ -158,6 +166,7 @@ private:
     double _fluxMag0;
     double _fluxMag0Sigma;
     lsst::afw::geom::Extent2I _extent;
+    lsst::afw::geom::Point2I _xy0;
     lsst::afw::image::Wcs::Ptr _wcs;
     lsst::afw::image::Filter _filter;
     int _filterId;

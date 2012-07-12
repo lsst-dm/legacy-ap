@@ -250,7 +250,8 @@ class CsvWriter {
 public:
     CsvWriter(std::string const &path,
               CsvControl const &control,
-              bool truncate=false);
+              bool truncate=false,
+              bool append=false);
     CsvWriter(std::ostream &out,
               CsvControl const &control);
     ~CsvWriter();

@@ -32,12 +32,6 @@ import lsst.ap.match as apMatch
 import lsst.ap.utils as apUtils
 import lsst.ap.cluster as apCluster
 
-# Hack to be able to read multiShapelet configs
-try:
-    import lsst.meas.extensions.multiShapelet
-except:
-    pass
-
 from .sourceAssocArgumentParser import SourceAssocArgumentParser
 
 __all__ = ["SourceAssocConfig", "SourceAssocTask"]

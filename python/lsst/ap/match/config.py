@@ -70,6 +70,14 @@ class ReferenceMatchConfig(pexConfig.Config):
         default=10.0,
         min=0.0)
 
+    doOutputRefExtras = pexConfig.Field(
+        dtype=bool,
+        doc="If set, match records will contain the proper-motion/parallax "
+            "corrected position of the reference object at the epoch of the "
+            "matched position, as well as flags indicating which corrections "
+            "were performed.",
+        default=True)
+
     expIdKey = pexConfig.Field(
         dtype=str,
         default="Computed_ccdExposureId",

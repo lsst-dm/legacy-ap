@@ -51,8 +51,8 @@ def referenceFilter(config, outputFile, referenceCatalog, exposureMetadataFiles)
 
 def main():
     parser = argparse.ArgumentParser(description=
-        "Filters a reference catalog against the science CCD exposures in a "
-        "run. The reference catalog must be in increasing declination order. "
+        "Filters a reference catalog against the exposures in a run. "
+        "The reference catalog must be in increasing declination order. "
         "Only reference catalog entries observable in at least one exposure "
         "are written out. For each entry written out, N fields are appended to "
         "the requested output fields; they correspond to the number of "

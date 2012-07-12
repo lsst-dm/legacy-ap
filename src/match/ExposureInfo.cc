@@ -69,13 +69,26 @@ namespace lsst { namespace ap { namespace match {
 std::string const ExposureInfo::DEF_ID_KEY("Computed_ccdExposureId");
 
 void ExposureInfo::_init(lsst::daf::base::PropertySet::Ptr metadata) {
+    if (metadata->exists("FILTER")) {
+        _filter = Filter(trim_copy(metadata->getAsString("FILTER")), false);
+    }
     // get image extents
     _extent.setX(metadata->getAsInt("NAXIS1"));
     _extent.setY(metadata->getAsInt("NAXIS2"));
+    if (metadata->exists("LTV1")) {
+        _xy0.setX(-metadata->getAsInt("LTV1"));
+    }
+    if (metadata->exists("LTV2")) {
+        _xy0.setY(-metadata->getAsInt("LTV2"));
+    }
     // get image exposure time and mid-point
-    DateTime mid(metadata->getAsString("TIME-MID"));
-    _epoch = mid.get(DateTime::MJD, DateTime::TAI);
-    _expTime = metadata->getAsDouble("EXPTIME");
+    if (metadata->exists("TIME-MID")) {
+        DateTime mid(metadata->getAsString("TIME-MID"));
+        _epoch = mid.get(DateTime::MJD, DateTime::TAI);
+    }
+    if (metadata->exists("EXPTIME")) {
+        _expTime = metadata->getAsDouble("EXPTIME");
+    }
     // get image flux
     if (metadata->exists("FLUXMAG0")) {
         if (metadata->exists("FLUXMAG0ERR")) {
@@ -95,16 +108,16 @@ void ExposureInfo::_init(lsst::daf::base::PropertySet::Ptr metadata) {
         _canCalibrateFlux = true;
     }
     // compute image center and corners
-    Eigen::Vector3d c = _pixToSky(0.5*_extent.getX() + PixelZeroPos,
-                                  0.5*_extent.getY() + PixelZeroPos);
-    Eigen::Vector3d llc = _pixToSky(PixelZeroPos - 0.5,
-                                    PixelZeroPos - 0.5);
-    Eigen::Vector3d ulc = _pixToSky(PixelZeroPos - 0.5,
-                                    _extent.getY() - 0.5 + PixelZeroPos);
-    Eigen::Vector3d lrc = _pixToSky(_extent.getX() - 0.5 + PixelZeroPos,
-                                    PixelZeroPos - 0.5);
-    Eigen::Vector3d urc = _pixToSky(_extent.getX() - 0.5 + PixelZeroPos,
-                                    _extent.getY() - 0.5 + PixelZeroPos);
+    Eigen::Vector3d c = _pixToSky(_xy0.getX() + 0.5*_extent.getX() + PixelZeroPos,
+                                  _xy0.getY() + 0.5*_extent.getY() + PixelZeroPos);
+    Eigen::Vector3d llc = _pixToSky(_xy0.getX() + PixelZeroPos - 0.5,
+                                    _xy0.getY() + PixelZeroPos - 0.5);
+    Eigen::Vector3d ulc = _pixToSky(_xy0.getX() + PixelZeroPos - 0.5,
+                                    _xy0.getY() + _extent.getY() - 0.5 + PixelZeroPos);
+    Eigen::Vector3d lrc = _pixToSky(_xy0.getX() + _extent.getX() - 0.5 + PixelZeroPos,
+                                    _xy0.getY() + PixelZeroPos - 0.5);
+    Eigen::Vector3d urc = _pixToSky(_xy0.getX() + _extent.getX() - 0.5 + PixelZeroPos,
+                                    _xy0.getY() + _extent.getY() - 0.5 + PixelZeroPos);
     // compute bounding box from bounding circle
     _center = cartesianToIcrs(c);
     _radius = angularSeparation(c, llc);
@@ -121,11 +134,14 @@ ExposureInfo::ExposureInfo(
     _center(),
     _earthPos(),
     _id(metadata->getAsInt64(idKey)),
+    _epoch(std::numeric_limits<double>::quiet_NaN()),
+    _expTime(std::numeric_limits<double>::quiet_NaN()),
     _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
     _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
     _extent(),
+    _xy0(0, 0),
     _wcs(lsst::afw::image::makeWcs(metadata, false)),
-    _filter(trim_copy(metadata->getAsString("FILTER")), false),
+    _filter(),
     _canCalibrateFlux(false),
     _epValid(false)
 {
@@ -139,11 +155,14 @@ ExposureInfo::ExposureInfo(
     _center(),
     _earthPos(),
     _id(id),
+    _epoch(std::numeric_limits<double>::quiet_NaN()),
+    _expTime(std::numeric_limits<double>::quiet_NaN()),
     _fluxMag0(std::numeric_limits<double>::quiet_NaN()),
     _fluxMag0Sigma(std::numeric_limits<double>::quiet_NaN()),
     _extent(),
+    _xy0(0, 0),
     _wcs(lsst::afw::image::makeWcs(metadata, false)),
-    _filter(trim_copy(metadata->getAsString("FILTER")), false),
+    _filter(),
     _canCalibrateFlux(false),
     _epValid(false)
 {
@@ -248,6 +267,7 @@ int const STRING_T = 2;
 std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
     static char const * const I_KEYS[] = {
         "NAXIS1", "NAXIS2",
+        "LTV1", "LTV2",
         "A_ORDER", "B_ORDER",
         "AP_ORDER", "BP_ORDER"
     };

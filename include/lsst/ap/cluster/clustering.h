@@ -47,13 +47,17 @@ namespace lsst { namespace ap { namespace cluster {
   *
   * In particular, the following additions are performed:
   *
-  *     - "coord.err"             (Cov<Point<F8>>) : Source sky-coordinate error
-  *     - "<exposure>.id"         (I8)             : ID of exposure source was measured on.
-  *     - "<exposure>.filter.id"  (I4)             : ID of filter for exposure.
-  *     - "<exposure>.time"       (F4)             : Exposure time (s).
-  *     - "<exposure>.time.mid"   (F8)             : Middle of exposure time (MJD).
-  *     - "<cluster>.id"          (I8)             : ID of cluster containing source.
-  *     - "<cluster>.coord"       (Coord)          : ICRS coordinates of cluster containing source.
+  *     - "coord.err"             (CovPointD) : Source sky-coordinate error
+  *     - "<exposure>.id"         (L)         : ID of exposure source was measured on.
+i *     - "<cluster>.id"          (L)         : ID of cluster containing source.
+  *     - "<cluster>.coord"       (Coord)     : ICRS coordinates of cluster containing source.
+  *
+  * If the control.multiBand config parameter is false:
+  *     - "<exposure>.filter.id"  (I)         : ID of filter for exposure.
+  *
+  * If the control.coadd config parameter is false:
+  *     - "<exposure>.time"       (F)         : Exposure time (s).
+  *     - "<exposure>.time.mid"   (D)         : Middle of exposure time (MJD).
   *
   * "<exposure>" and "<cluster>" are field name prefixes obtained from SourceProcessingControl.
   * If either prefix is empty, the corresponding fields will not be added. Note however that
@@ -91,27 +95,27 @@ makeOutputSourceTable(
   * The following additional fields will be created (names not configurable
   * at the moment):
   *
-  *     - "id"                  (I8)             : cluster ID (from minimal schema)
-  *     - "coord"               (Coord)          : mean sky-coordinates (from minimal schema)
-  *     - "coord.err"           (Cov<Point<F8>>) : uncertainty of coord
-  *     - "obs.count"           (I4)             : number of sources in cluster
-  *     - "flag.noise"          (Flag)           : was cluster created from a single noise source?
-  *     - "<filter>.obs.count"  (I4)             : numer of sources in a specific filter
+  *     - "id"                  (L)         : cluster ID (from minimal schema)
+  *     - "coord"               (Coord)     : mean sky-coordinates (from minimal schema)
+  *     - "coord.err"           (CovPointD) : uncertainty of coord
+  *     - "obs.count"           (I)         : number of sources in cluster
+  *     - "flag.noise"          (Flag)      : was cluster created from a single noise source?
+  *     - "<filter>.obs.count"  (I)         : numer of sources in a specific filter
   *
   * If the input table has valid centroid and centroid error slot keys,
   * then the following fields are added:
   *
-  *     - "coord.weightedmean"       (Coord)          : inverse variance weighted mean sky-coordinates
-  *     - "coord.weightedmean.err"   (Cov<Point<F8>>) : covariance matrix for coord.weighted
-  *     - "coord.weightedmean.count" (I4)             : number of samples included in "coord.weighted"
+  *     - "coord.weightedmean"       (Coord)     : inverse variance weighted mean sky-coordinates
+  *     - "coord.weightedmean.err"   (CovPointD) : covariance matrix for coord.weighted
+  *     - "coord.weightedmean.count" (I)         : number of samples included in "coord.weighted"
   *
   * Finally, if the "<exposure>.time.mid" field exists in the input table, then:
   *
-  *     - "obs.time.min"          (F8)             : earliest observation time of sources in cluster
-  *     - "obs.time.mean"         (F8)             : mean observation time of sources in cluster
-  *     - "obs.time.max"          (F8)             : latest observation time of sources in cluster
-  *     - "<filter>.obs.time.min" (F8)             : earliest observation time in a specific filter
-  *     - "<filter>.obs.time.max" (F8)             : latest observation time in a specific filter
+  *     - "obs.time.min"          (D)       : earliest observation time of sources in cluster
+  *     - "obs.time.mean"         (D)       : mean observation time of sources in cluster
+  *     - "obs.time.max"          (D)       : latest observation time of sources in cluster
+  *     - "<filter>.obs.time.min" (D)       : earliest observation time in a specific filter
+  *     - "<filter>.obs.time.max" (D)       : latest observation time in a specific filter
   *
   * are added (where the "<exposure>" prefix is obtained from SourceProcessingControl).
   *
@@ -134,10 +138,10 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
   *                           identified by one or more flags.
   *     - \a invalidSources:  sources which do not have sky-coordinates or centroids.
   *
-  * Sources not lying in the given sky-tile are discarded.
+  * Sources not lying in the given sky-tile are discarded. Note that one can pass
+  * in a NULL sky-tile pointer, in which case no sources are discarded.
   *
   * Existing fields in the input sources are modified as follows:
-  *     - the MSBs of each source ID are set to the exposure ID
   *     - source footprints are discarded
   *     - source sky-coordinate errors are computed and added
   *     - exposure information (ID, filter ID, etc...) is added to each source.
@@ -150,7 +154,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
   *
   * @param[in]  expSources     Single exposure sources to process.
   * @param[in]  expInfo        Exposure information.
-  * @param[in]  skyTile        Sky-tile being processed.
+  * @param[in]  skyTile        Sky-tile being processed - may be NULL.
   * @param[in]  control        Source processing parameters.
   * @param[in]  mapper         Maps between input and output source records.
   * @param[out] sources        Catalog for sources that will be clustered.
@@ -160,7 +164,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
 void processSources(
     lsst::afw::table::SourceCatalog const & expSources,
     lsst::ap::match::ExposureInfo const & expInfo,
-    lsst::ap::utils::PT1SkyTile const & skyTile,
+    lsst::ap::utils::PT1SkyTile const * skyTile,
     SourceProcessingControl const & control,
     lsst::afw::table::SchemaMapper const & mapper,
     lsst::afw::table::SourceCatalog & sources,

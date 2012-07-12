@@ -72,7 +72,8 @@ void writeCsv(
     CsvConversionControl const & cnvControl,       ///< @param[in] cnvControl Conversion parameters.
     CsvControl const & csvControl,                 ///< @param[in] csvControl CSV dialect.
     std::string const & csvFile,                   ///< @param[in] csvFile    Name of file to write to
-    bool truncate                                  ///< @param[in] truncate   Truncate csvFile if it already exists?
+    bool truncate,                                 ///< @param[in] truncate   Truncate csvFile if it already exists?
+    bool append                                    ///< @param[in] append     Append to csvFile if it exists and truncate is false?
 );
 
 }}} // namespace lsst::ap::utils

@@ -58,6 +58,8 @@ namespace lsst { namespace ap { namespace match {
   * @param[in] outDialect       Output file CSV dialect.
   * @param[in] radius           Match radius.
   * @param[in] parallaxThresh   Parallax threshold.
+  * @param[in] outputRefExtras  Output proper-motion/parallax corrected reference
+  *                             object position and associated flags in match records?
   * @param[in] truncateOutFile  Truncate outFile before appending to it?
   */
 void referenceMatch(
@@ -71,6 +73,7 @@ void referenceMatch(
     lsst::ap::utils::CsvControl const &outDialect,
     lsst::afw::geom::Angle      const  radius=2.0*lsst::afw::geom::arcseconds,
     lsst::afw::geom::Angle      const  parallaxThresh=0.01*lsst::afw::geom::arcseconds,
+    bool                               outputRefExtras=true,
     bool                               truncateOutFile=false);
 
 /** Computes the number of times a reference catalog should have been observed in
