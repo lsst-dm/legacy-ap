@@ -647,9 +647,12 @@ template <> char CsvReader::_get<char>(char const *field) const {
 CsvWriter::CsvWriter(
     std::string const &path,   ///< Name of file to write to.
     CsvControl const &control, ///< CSV format of the output file.
-    bool truncate              ///< If true, an existing file is truncated
+    bool truncate,             ///< If true, an existing file is truncated.
                                ///  Otherwise, an attempt to create a writer
-                               ///  for an existing file raises an exception.
+                               ///  for an existing file raises an exception
+                               ///  unless append is true.
+    bool append                ///  If true, append to an existing file.
+                               ///  Has no effect if truncate is true.
 ) :
     _stream(),
     _out(0),
@@ -658,12 +661,15 @@ CsvWriter::CsvWriter(
     _numLines(0),
     _numFields(0)
 {
-    if (!truncate && boost::filesystem::exists(path)) {
-        throw LSST_EXCEPT(pexExcept::IoErrorException,
-                          "file " + path + " already exists");
-
-    }
     ios::openmode mode = ios::out | ios::binary;
+    if (!truncate && boost::filesystem::exists(path)) {
+        if (append) {
+            mode |= ios::app;
+        } else {
+            throw LSST_EXCEPT(pexExcept::IoErrorException,
+                              "file " + path + " already exists");
+        }
+    }
     if (truncate) {
         mode |= ios::trunc;
     }

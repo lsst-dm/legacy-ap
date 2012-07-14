@@ -203,6 +203,7 @@ class ReferenceMatchTestCase(unittest.TestCase):
                     self.config.refDialect.makeControl(),
                     self.config.radius * afwGeom.arcseconds,
                     self.config.parallaxThresh/1000.0 * afwGeom.arcseconds,
+                    True,
                     True)
                 if False:
                     # print out the generated test data

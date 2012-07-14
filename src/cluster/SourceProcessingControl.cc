@@ -38,6 +38,8 @@ namespace lsst { namespace ap { namespace cluster {
 SourceProcessingControl::SourceProcessingControl() :
     exposurePrefix("exposure"),
     clusterPrefix("cluster"),
+    multiBand(false),
+    coadd(false),
     badFlagFields(),
     // The default flux scale S is chosen such that the AB magnitude
     // -2.5*log10(S*F/F_0) - 48.6 = 0 when F = F_0, where F is an
@@ -59,16 +61,5 @@ SourceProcessingControl::SourceProcessingControl() :
 }
 
 SourceProcessingControl::~SourceProcessingControl() { }
-
-void SourceProcessingControl::validate() const {
-    if (exposurePrefix.empty()) {
-        throw LSST_EXCEPT(InvalidParameterException,
-                          "exposurePrefix cannot be empty!");
-    }
-    if (clusterPrefix.empty()) {
-        throw LSST_EXCEPT(InvalidParameterException, 
-                          "clusterPrefix cannot be empty!");
-    }
-}
 
 }}} // namespace lsst::ap::cluster
