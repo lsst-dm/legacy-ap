@@ -67,7 +67,7 @@ class SourceAssocArgumentParser(pipeBase.ArgumentParser):
         # sense for sourceAssoc
         pipeBase.ArgumentParser.__init__(
             self, conflict_handler='resolve', **kwargs)
-        self.add_argument("--id", action=SkyTileIdAction,
+        self.add_argument("--id", nargs=1, action=SkyTileIdAction,
             help="skytile ID. Can be specified multiple times; if omitted, all "
                  "sky-tiles are processed. Example: --id skyTile=12..23^45^67",
             metavar="skyTile=VALUES")
