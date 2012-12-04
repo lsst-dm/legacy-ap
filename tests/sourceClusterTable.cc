@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(rec->get(flag), true);
         IcrsCoord c1(0.5*radians, 0.25*radians),
                   c2(1.0*radians, 0.5*radians);
-        Eigen::Matrix2d cov1, cov2;
+        Eigen::Matrix2f cov1, cov2;
         cov1 << 1, 4,
                 4, 2;
         cov2 << 0.5, 0.75,
@@ -143,12 +143,12 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         IcrsCoord c = rec->get(weightedCoord);
         BOOST_CHECK_EQUAL(c.getLongitude(), c2.getLongitude());
         BOOST_CHECK_EQUAL(c.getLatitude(), c2.getLatitude());
-        Eigen::Matrix2d cov = rec->get(coordErr).cast<double>();
+        Eigen::Matrix2f cov = rec->get(coordErr);
         BOOST_CHECK_EQUAL(cov, cov1);
         BOOST_CHECK_EQUAL(rec->getCoordErr(), cov1);
-        cov = rec->get(weightedCoordErr).cast<double>();
+        cov = rec->get(weightedCoordErr);
         BOOST_CHECK_EQUAL(cov, cov2);
-        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordErr().cast<double>(), cov2);
+        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordErr(), cov2);
         BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordCount(), -999);
         BOOST_CHECK_EQUAL(rec->getNumSources(), 15);
         BOOST_CHECK_EQUAL(rec->get(numSources), 15);
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(a.getPsfFlux("u"), b.getPsfFlux("u"));
         BOOST_CHECK_EQUAL(a.getApFlux("u"), b.getApFlux("u"));
         BOOST_CHECK_EQUAL(a.getModelFlux("u"), b.getModelFlux("u"));
-        Eigen::Matrix2d cova = a.getCoordErr(), covb = b.getCoordErr(),
+        Eigen::Matrix2f cova = a.getCoordErr(), covb = b.getCoordErr(),
                         cov2a = a.getWeightedMeanCoordErr(), cov2b = b.getWeightedMeanCoordErr();
         for (int i = 0; i < 2; ++i) {
             for (int j = 0; j < 2; ++j) {

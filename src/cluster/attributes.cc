@@ -123,7 +123,7 @@ namespace {
             // of the unweighted coordinate mean
             cov /= static_cast<double>(sources.size() - 1);
         }
-        cluster.setCoordErr(cov);
+        cluster.setCoordErr(cov.cast<float>());
     }
 
 
@@ -307,14 +307,14 @@ namespace {
             wmean = proj.neToSky(wmean);
             cluster.setWeightedMeanCoord(IcrsCoord(
                 wmean.x() * radians, wmean.y() * radians));
-            cluster.setWeightedMeanCoordErr(proj.neToSky(cov));
+            cluster.setWeightedMeanCoordErr(proj.neToSky(cov).cast<float>());
             // chi-squared correction for cov?
         } else {
             cluster.setWeightedMeanCoord(IcrsCoord(
                 std::numeric_limits<double>::quiet_NaN() * radians,
                 std::numeric_limits<double>::quiet_NaN() * radians));
-            cluster.setWeightedMeanCoordErr(Eigen::Matrix2d::Constant(
-                std::numeric_limits<double>::quiet_NaN()));
+            cluster.setWeightedMeanCoordErr(Eigen::Matrix2f::Constant(
+                std::numeric_limits<float>::quiet_NaN()));
         }
         cluster.setWeightedMeanCoordCount(n);
     }
