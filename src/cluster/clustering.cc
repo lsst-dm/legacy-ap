@@ -146,7 +146,7 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
     // add all fields in the input schema to the output schema.
     mapper.addMappingsWhere(True());
     // add coordinate error
-    mapper.addOutputField(Field<Covariance<lsst::afw::table::Point<double> > >(
+    mapper.addOutputField(Field<Covariance<lsst::afw::table::Point<float> > >(
         "coord.err",
         "covariance matrix for source sky-coordinates",
         "rad^2"));
@@ -215,7 +215,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
 
     Schema schema = SourceClusterTable::makeMinimalSchema();
     // Add basic fields
-    schema.addField<Covariance<lsst::afw::table::Point<double> > >(
+    schema.addField<Covariance<lsst::afw::table::Point<float> > >(
         "coord.err",
         "sample covariance matrix for coord field (unweighted mean sky-coordinates)",
         "rad^2");
@@ -231,7 +231,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
             "coord.weightedmean",
             "inverse variance weighted mean sky-coordinates (ICRS)",
             "rad");
-        schema.addField<Covariance<lsst::afw::table::Point<double> > >(
+        schema.addField<Covariance<lsst::afw::table::Point<float> > >(
             "coord.weightedmean.err",
             "covariance matrix for coord.weightedmean field",
             "rad^2");
@@ -446,9 +446,9 @@ void processSources(
     Key<int> expFilterIdKey;
     Key<float> expTimeKey;
     Key<double> expTimeMidKey;
-    Key<Covariance<lsst::afw::table::Point<double> > > centroidErrKey =
+    Key<Covariance<lsst::afw::table::Point<float> > > centroidErrKey =
         sources.getTable()->getCentroidErrKey();
-    Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey;
+    Key<Covariance<lsst::afw::table::Point<float> > > coordErrKey;
     Key<lsst::afw::coord::Coord> clusterCoordKey;
     try {
         coordErrKey = sources.getSchema()["coord.err"];
@@ -538,7 +538,7 @@ void processSources(
         if (!invalid && coordErrKey.isValid() && centroidErrKey.isValid()) {
             Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(
                 s->getCentroid(), radians).getLinear().getMatrix();
-            Eigen::Matrix2d cov = s->getCentroidErr();
+            Eigen::Matrix2d cov = s->getCentroidErr().cast<double>();
             bool computeErr = true;
             if (lsst::utils::isnan(cov(0,0)) || lsst::utils::isnan(cov(1,1))) {
                 computeErr = false;
@@ -560,7 +560,7 @@ void processSources(
             if (computeErr) {
                 Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(
                     s->getCentroid(), radians).getLinear().getMatrix();
-                os->set(coordErrKey, m * cov * m.transpose());
+                os->set(coordErrKey, (m * cov * m.transpose()).cast<float>());
             }
         }
     }

@@ -61,7 +61,7 @@ class SourceClusterTableTestCase(unittest.TestCase):
             numpy.random.randn() * lsst.afw.geom.radians,
             decl * lsst.afw.geom.radians,
         ))
-        record.set(self.coordErrKey, makeCov(2, float))
+        record.set(self.coordErrKey, makeCov(2, numpy.float32))
         record.set(self.numSourcesKey, numpy.random.randint(0, 10000))
         record.set(self.timeMinKey, numpy.random.randn())
         record.set(self.timeMaxKey, numpy.random.randn())
@@ -72,7 +72,7 @@ class SourceClusterTableTestCase(unittest.TestCase):
         record.set(self.zFluxErrKey, numpy.random.randn())
         record.set(self.zFluxCountKey, numpy.random.randint(0, 10000))
         record.set(self.gShapeKey, lsst.afw.geom.ellipses.Quadrupole(*numpy.random.randn(3)))
-        record.set(self.gShapeErrKey, makeCov(3, float))
+        record.set(self.gShapeErrKey, makeCov(3, numpy.float32))
         record.set(self.gShapeCountKey, numpy.random.randint(0, 10000))
         record.set(self.rNumSourcesKey, numpy.random.randint(0, 10000))
         record.set(self.rTimeMinKey, numpy.random.randn())
@@ -82,7 +82,7 @@ class SourceClusterTableTestCase(unittest.TestCase):
 
     def setUp(self):
         self.schema = lsst.ap.cluster.SourceClusterTable.makeMinimalSchema()
-        self.coordErrKey = self.schema.addField("coord.err", type="CovPointD")
+        self.coordErrKey = self.schema.addField("coord.err", type="CovPointF")
         self.numSourcesKey = self.schema.addField("obs.num", type="I")
         self.timeMinKey = self.schema.addField("obs.time.min", type="D")
         self.timeMaxKey = self.schema.addField("obs.time.max", type="D")
@@ -93,7 +93,7 @@ class SourceClusterTableTestCase(unittest.TestCase):
         self.zFluxErrKey = self.schema.addField("z.flux.err", type="D")
         self.zFluxCountKey = self.schema.addField("z.flux.count", type="I")
         self.gShapeKey = self.schema.addField("g.shape", type="MomentsD")
-        self.gShapeErrKey = self.schema.addField("g.shape.err", type="CovMomentsD")
+        self.gShapeErrKey = self.schema.addField("g.shape.err", type="CovMomentsF")
         self.gShapeCountKey = self.schema.addField("g.shape.count", type="I")
         self.rNumSourcesKey = self.schema.addField("r.obs.num", type="I")
         self.rTimeMinKey = self.schema.addField("r.obs.time.min", type="D")

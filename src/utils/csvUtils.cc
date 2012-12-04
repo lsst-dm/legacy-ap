@@ -100,7 +100,7 @@ namespace {
                 }
             } else if (item.field.getUnits() == "rad^2" &&
                        (boost::is_same<T, Covariance<Point<float> > >::value ||
-                        boost::is_same<T, Covariance<Point<double> > >::value ||
+                        boost::is_same<T, Covariance<Point<float> > >::value ||
                         boost::is_same<T, Moments<float> >::value ||
                         boost::is_same<T, Moments<double> >::value)) {
                 // Flag point covariance matrixes and moments with units of

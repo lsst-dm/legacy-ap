@@ -97,9 +97,9 @@ namespace {
         if (sources.size() == 1) {
             // copy position error from source (if available)
             try {
-                Key<Covariance<lsst::afw::table::Point<double> > > coordErrKey =
+                Key<Covariance<lsst::afw::table::Point<float> > > coordErrKey =
                     sources[0].getSchema()[std::string("coord.err")];
-                cov = sources[0].get(coordErrKey);
+                cov = sources[0].get(coordErrKey).cast<double>();
             } catch (NotFoundException &) {
                 cov = Eigen::Matrix2d::Constant(std::numeric_limits<double>::quiet_NaN());
             }
@@ -271,7 +271,7 @@ namespace {
         Eigen::Matrix2d invCovSum = Eigen::Matrix2d::Zero();
         for (Iter i = sources.begin(), e = sources.end(); i != e; ++i) {
             SourceRecord const & r = *(i->getSource());
-            Eigen::Matrix2d cov = r.getCentroidErr();
+            Eigen::Matrix2d cov = r.getCentroidErr().cast<double>();
             if (lsst::utils::isnan(cov(0,0)) ||
                 lsst::utils::isnan(cov(1,1))) {
                 continue; // variance is NaN
@@ -578,7 +578,7 @@ void computeShapeMean(
                 !lsst::utils::isfinite(q.getIxy())) {
                 continue; // shape contains NaNs
             }
-            Eigen::Matrix3d cov = r->get(sourceShapeErrKey);
+            Eigen::Matrix3d cov = r->get(sourceShapeErrKey).cast<double>();
             if (lsst::utils::isnan(cov(0,0)) ||
                 lsst::utils::isnan(cov(1,1)) ||
                 lsst::utils::isnan(cov(2,2))) {

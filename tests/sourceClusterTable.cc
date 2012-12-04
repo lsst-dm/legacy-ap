@@ -73,10 +73,10 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
     Key<double> timeMin = schema.addField<double>("obs.time.min", "earliest observation time", "mjd");
     Key<double> timeMean = schema.addField<double>("obs.time.mean", "mean observation time", "mjd");
     Key<double> timeMax = schema.addField<double>("obs.time.max", "latest observation time", "mjd");
-    Key<Covariance<Point<double> > > coordErr = schema.addField<Covariance<Point<double> > >(
+    Key<Covariance<Point<float> > > coordErr = schema.addField<Covariance<Point<float> > >(
         "coord.err", "covariance matrix for coord field", "rad^2");
     Key<Coord> weightedCoord = schema.addField<Coord>("coord2", "another coordinate", "rad");
-    Key<Covariance<Point<double> > > weightedCoordErr = schema.addField<Covariance<Point<double> > >(
+    Key<Covariance<Point<float> > > weightedCoordErr = schema.addField<Covariance<Point<float> > >(
         "coord2.err", "covariance matrix for coord2 field", "rad^2");
     Key<int> weightedCoordCount = schema.addField<int>("coord2.count", "sample count for coord2 field");
     Key<int> rNumSources = schema.addField<int>("r.obs.num", "number of sources");
@@ -143,12 +143,12 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         IcrsCoord c = rec->get(weightedCoord);
         BOOST_CHECK_EQUAL(c.getLongitude(), c2.getLongitude());
         BOOST_CHECK_EQUAL(c.getLatitude(), c2.getLatitude());
-        Eigen::Matrix2d cov = rec->get(coordErr);
+        Eigen::Matrix2d cov = rec->get(coordErr).cast<double>();
         BOOST_CHECK_EQUAL(cov, cov1);
         BOOST_CHECK_EQUAL(rec->getCoordErr(), cov1);
-        cov = rec->get(weightedCoordErr);
+        cov = rec->get(weightedCoordErr).cast<double>();
         BOOST_CHECK_EQUAL(cov, cov2);
-        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordErr(), cov2);
+        BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordErr().cast<double>(), cov2);
         BOOST_CHECK_EQUAL(rec->getWeightedMeanCoordCount(), -999);
         BOOST_CHECK_EQUAL(rec->getNumSources(), 15);
         BOOST_CHECK_EQUAL(rec->get(numSources), 15);
