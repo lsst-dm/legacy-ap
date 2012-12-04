@@ -86,13 +86,13 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
         schema.addField("cluster.id", type="D")
         schema.addField("cluster.coord", type="Coord")
         schema.addField("centroid", type="PointD")
-        schema.addField("centroid.err", type="CovPointD")
+        schema.addField("centroid.err", type="CovPointF")
         schema.addField("centroid.flags", type="Flag")
         schema.addField("flux", type="D")
         schema.addField("flux.err", type="D")
         schema.addField("flux.flags", type="Flag")
         schema.addField("shape", type="MomentsD")
-        schema.addField("shape.err", type="CovMomentsD")
+        schema.addField("shape.err", type="CovMomentsF")
         schema.addField("shape.flags", type="Flag")
         schema.addField("flags.badflux", type="Flag")
         schema.addField("flags.badshape", type="Flag")
@@ -133,7 +133,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             # the coordinates above. That's OK, so long as the
             # unweighted mean coordinates are (0,0)
             s.set(centroidKey, afwGeom.Point2D(1799.5, 1799.5))
-            s.set(centroidErrKey, numpy.matrix([[10.0, 0.0], [0.0, 20.0]]))
+            s.set(centroidErrKey, numpy.matrix([[10.0, 0.0], [0.0, 20.0]], dtype=numpy.float32))
             s.setRa((0.1 * (i - 2)) * afwGeom.radians)
             s.setDec(0.0 * afwGeom.radians)
             if i != 2:
@@ -142,7 +142,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
                 s["exposure.filter.id"] = i
                 s["exposure.time.mid"] = self.exposures.get(i).getEpoch()
                 s.set(centroidKey, afwGeom.Point2D(1799.5, 1799.5))
-                s.set(centroidErrKey, numpy.matrix([[10.0, 0.0], [0.0, 20.0]]))
+                s.set(centroidErrKey, numpy.matrix([[10.0, 0.0], [0.0, 20.0]], dtype=numpy.float32))
                 s.setRa(0.0 * afwGeom.radians)
                 s.setDec(0.1*(i - 2) * afwGeom.radians)
         cluster = clusters.addNew()
@@ -285,7 +285,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             s.setDec(0.0 * afwGeom.radians)
             s.set(centroidKey, afwGeom.Point2D(1799.5, 1799.5))
             s.set(shapeKey, afwGeomEllipses.Quadrupole(i, 2.0*i, 0.5*i))
-            s.set(shapeErrKey, numpy.identity(3))
+            s.set(shapeErrKey, numpy.identity(3, dtype=numpy.float32))
             if i < 1 or i > 3:
                 s.set(badshapeKey, True)
         cluster = clusters.addNew()
