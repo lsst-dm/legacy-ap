@@ -41,6 +41,7 @@ Access to association pipeline utilities.
 #include "lsst/afw/geom.h"
 #include "lsst/afw/table.h"
 #include "lsst/afw/image.h"
+#include "lsst/afw/detection.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/utils/CsvControl.h"
 #include "lsst/ap/utils/ImageUtils.h"

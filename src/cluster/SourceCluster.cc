@@ -235,8 +235,10 @@ namespace {
     // be used whenever a table with AFW_TYPE set to that value is read.
     class SourceClusterFitsReader : public FitsReader {
     public:
-        explicit SourceClusterFitsReader(lsst::afw::fits::Fits * fits) :
-            FitsReader(fits) { }
+        explicit SourceClusterFitsReader(
+            lsst::afw::fits::Fits * fits,
+            boost::shared_ptr<lsst::afw::table::io::InputArchive> archive
+        ) : FitsReader(fits, archive) { }
     protected:
         virtual PTR(BaseTable) _readTable();
     };
@@ -457,6 +459,6 @@ KeyTuple<lsst::afw::table::Flux> addFluxFields(
 
 template class lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord>;
 template class lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord const>;
-template class lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord>;
-template class lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord const>;
+template class lsst::afw::table::SortedCatalogT<lsst::ap::cluster::SourceClusterRecord>;
+template class lsst::afw::table::SortedCatalogT<lsst::ap::cluster::SourceClusterRecord const>;
 

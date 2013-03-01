@@ -536,8 +536,6 @@ void processSources(
         }
         // Compute sky-coordinate errors
         if (!invalid && coordErrKey.isValid() && centroidErrKey.isValid()) {
-            Eigen::Matrix2d m = expInfo.getWcs()->linearizePixelToSky(
-                s->getCentroid(), radians).getLinear().getMatrix();
             Eigen::Matrix2d cov = s->getCentroidErr().cast<double>();
             bool computeErr = true;
             if (lsst::utils::isnan(cov(0,0)) || lsst::utils::isnan(cov(1,1))) {

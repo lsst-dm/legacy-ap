@@ -40,6 +40,7 @@ Access to association pipeline matching functionality.
 #include "lsst/pex/logging.h"
 #include "lsst/afw/table.h"
 #include "lsst/afw/image.h"
+#include "lsst/afw/detection.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/ap/match/ExposureInfo.h"
 #include "lsst/ap/match/ReferenceMatch.h"

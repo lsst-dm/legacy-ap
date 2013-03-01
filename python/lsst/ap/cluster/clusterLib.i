@@ -41,6 +41,7 @@ Access to association pipeline clustering functionality.
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/afw/table.h"
+#include "lsst/afw/detection.h"
 #include "lsst/ap/cluster/ClusteringControl.h"
 #include "lsst/ap/cluster/SourceProcessingControl.h"
 #include "lsst/ap/cluster/SourceCluster.h"
@@ -70,7 +71,6 @@ Access to association pipeline clustering functionality.
 %import "lsst/afw/geom/geomLib.i"
 %import "lsst/afw/coord/coordLib.i"
 %import "lsst/afw/table/tableLib.i"
-
 %include "lsst/pex/config.h"
 
 %lsst_exceptions()
@@ -94,33 +94,40 @@ Access to association pipeline clustering functionality.
 %addCastMethod(lsst::ap::cluster::SourceClusterTable, lsst::afw::table::BaseTable)
 %addCastMethod(lsst::ap::cluster::SourceClusterRecord, lsst::afw::table::BaseRecord)
 
-%template(SourceClusterColumnViewBase) lsst::afw::table::ColumnViewT<lsst::ap::cluster::SourceClusterRecord>;
+%template(_SourceClusterColumnViewBase) lsst::afw::table::ColumnViewT<lsst::ap::cluster::SourceClusterRecord>;
 %template(SourceClusterColumnView) lsst::ap::cluster::SourceClusterColumnViewT<lsst::ap::cluster::SourceClusterRecord>;
 
-%pythondynamic;
+// Due to what I can only assume is a SWIG bug, surrounding the following pair
+// of template instantiations with `%pythondynamic;` and `%pythonnondynamic;` 
+// suddenly started failing to produce wrapper classes that allow attribute
+// addition, completely breaking the catalog column-view caching code from
+// lsst/afw/table/Catalog.i. Luckily, explicitly marking instantiations as
+// dynamic makes SWIG generate correct code.
+%pythondynamic lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord>;
+%pythondynamic lsst::afw::table::SortedCatalogT<lsst::ap::cluster::SourceClusterRecord>;
 
-%template(SourceClusterCatalogBase) lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord>;
-%template(SourceClusterCatalog) lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord>;
-%extend lsst::afw::table::SimpleCatalogT<lsst::ap::cluster::SourceClusterRecord> {
-    %pythoncode %{
-        Table = SourceClusterTable
-        Record = SourceClusterRecord
-        ColumnView = SourceClusterColumnView
-    %}
-}
+%template (_SourceClusterCatalogBase) lsst::afw::table::CatalogT<lsst::ap::cluster::SourceClusterRecord>;
+%template (SourceClusterCatalog) lsst::afw::table::SortedCatalogT<lsst::ap::cluster::SourceClusterRecord>;
+
+%extend lsst::afw::table::SortedCatalogT<lsst::ap::cluster::SourceClusterRecord> {
 %pythoncode %{
-    SourceClusterRecord.Table = SourceClusterTable
-    SourceClusterRecord.Catalog = SourceClusterCatalog
-    SourceClusterRecord.ColumnView = SourceClusterColumnView
-    SourceClusterTable.Record = SourceClusterRecord
-    SourceClusterTable.Catalog = SourceClusterCatalog
-    SourceClusterTable.ColumnView = SourceClusterColumnView
-    SourceClusterColumnView.Record = SourceClusterRecord
-    SourceClusterColumnView.Table = SourceClusterTable
-    SourceClusterColumnView.Catalog = SourceClusterCatalog
+    Table = SourceClusterTable
+    Record = SourceClusterRecord
+    ColumnView = SourceClusterColumnView
 %}
+}
 
-%pythonnondynamic;
+%pythoncode %{ 
+SourceClusterRecord.Table = SourceClusterTable
+SourceClusterRecord.Catalog = SourceClusterCatalog
+SourceClusterRecord.ColumnView = SourceClusterColumnView
+SourceClusterTable.Record = SourceClusterRecord
+SourceClusterTable.Catalog = SourceClusterCatalog
+SourceClusterTable.ColumnView = SourceClusterColumnView
+SourceClusterColumnView.Record = SourceClusterRecord
+SourceClusterColumnView.Table = SourceClusterTable
+SourceClusterColumnView.Catalog = SourceClusterCatalog
+%}
 
 
 // -- clustering --------
@@ -136,7 +143,7 @@ Access to association pipeline clustering functionality.
         lsst::afw::table::SourceCatalog * cat = 
             new lsst::afw::table::SourceCatalog((*(&$1))[i]);
         PyObject * obj = SWIG_NewPointerObj(SWIG_as_voidptr(cat),
-            SWIGTYPE_p_lsst__afw__table__SimpleCatalogTT_lsst__afw__table__SourceRecord_t,
+            SWIGTYPE_p_lsst__afw__table__SortedCatalogTT_lsst__afw__table__SourceRecord_t,
             SWIG_POINTER_OWN);
         PyList_SetItem($result, i, obj);
     }

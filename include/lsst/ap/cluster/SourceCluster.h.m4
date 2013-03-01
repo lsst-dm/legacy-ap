@@ -221,8 +221,8 @@ class SourceClusterRecord : public lsst::afw::table::SimpleRecord {
 public:
     typedef SourceClusterTable Table;
     typedef SourceClusterColumnViewT<SourceClusterRecord> ColumnView;
-    typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> Catalog;
-    typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstCatalog;
+    typedef lsst::afw::table::SortedCatalogT<SourceClusterRecord> Catalog;
+    typedef lsst::afw::table::SortedCatalogT<SourceClusterRecord const> ConstCatalog;
 
     CONST_PTR(SourceClusterTable) getTable() const {
         return boost::static_pointer_cast<SourceClusterTable const>(
@@ -293,8 +293,8 @@ class SourceClusterTable : public lsst::afw::table::SimpleTable {
 public:
     typedef SourceClusterRecord Record;
     typedef SourceClusterColumnViewT<SourceClusterRecord> ColumnView;
-    typedef lsst::afw::table::SimpleCatalogT<Record> Catalog;
-    typedef lsst::afw::table::SimpleCatalogT<Record const> ConstCatalog;
+    typedef lsst::afw::table::SortedCatalogT<Record> Catalog;
+    typedef lsst::afw::table::SortedCatalogT<Record const> ConstCatalog;
 
     /** @brief Construct a new table.
       *
@@ -518,8 +518,8 @@ private:
 
 #ifndef SWIG
 
-typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord> SourceClusterCatalog;
-typedef lsst::afw::table::SimpleCatalogT<SourceClusterRecord const> ConstSourceClusterCatalog;
+typedef lsst::afw::table::SortedCatalogT<SourceClusterRecord> SourceClusterCatalog;
+typedef lsst::afw::table::SortedCatalogT<SourceClusterRecord const> ConstSourceClusterCatalog;
 
 DEFINE_SLOT_ACCESSORS(`CoordErr', `Eigen::Matrix<float,2,2>')
 DEFINE_SLOT_ACCESSORS(`WeightedMeanCoord', `lsst::afw::coord::IcrsCoord')
