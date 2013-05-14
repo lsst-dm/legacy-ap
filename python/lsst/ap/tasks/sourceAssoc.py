@@ -592,8 +592,7 @@ class SourceAssocTask(pipeBase.CmdLineTask):
     def _makeArgumentParser(cls):
         """Create an argument parser
         """
-        return SourceAssocArgumentParser(name=cls._DefaultName,
-                datasetType="source")
+        return SourceAssocArgumentParser(name=cls._DefaultName)
 
     @classmethod
     def parseAndRun(cls, args=None, config=None, log=None):
