@@ -75,6 +75,10 @@ Access to association pipeline clustering functionality.
 
 %lsst_exceptions()
 
+%pythoncode %{
+import numpy
+%}
+
 // -- Control objects --------
 
 %shared_ptr(lsst::ap::cluster::ClusteringControl);
