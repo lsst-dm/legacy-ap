@@ -36,7 +36,7 @@
 
 #include "lsst/afw/geom/Angle.h"
 #include "lsst/afw/coord.h"
-
+#include "lsst/afw/table/BaseRecord.h"
 #include "lsst/ap/utils/Csv.h"
 
 using lsst::afw::geom::Angle;
