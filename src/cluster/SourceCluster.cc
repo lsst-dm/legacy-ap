@@ -171,8 +171,8 @@ namespace {
     // should ensure that SourceClusterFitsReader is used to read it.
     class SourceClusterFitsWriter : public FitsWriter {
     public:
-        explicit SourceClusterFitsWriter(lsst::afw::fits::Fits * fits) :
-            FitsWriter(fits) { }
+        explicit SourceClusterFitsWriter(lsst::afw::fits::Fits * fits, int flags) :
+            FitsWriter(fits, flags) { }
     protected:
         virtual void _writeTable(CONST_PTR(BaseTable) const & table, size_t nRows);
     };
@@ -237,8 +237,9 @@ namespace {
     public:
         explicit SourceClusterFitsReader(
             lsst::afw::fits::Fits * fits,
-            boost::shared_ptr<lsst::afw::table::io::InputArchive> archive
-        ) : FitsReader(fits, archive) { }
+            boost::shared_ptr<lsst::afw::table::io::InputArchive> archive,
+            int flags
+        ) : FitsReader(fits, archive, flags) { }
     protected:
         virtual PTR(BaseTable) _readTable();
     };
@@ -352,9 +353,9 @@ std::vector<std::string> const SourceClusterTable::getFilters() const {
 }
 
 PTR(lsst::afw::table::io::FitsWriter) SourceClusterTable::makeFitsWriter(
-    lsst::afw::table::io::FitsWriter::Fits * fits) const
+    lsst::afw::table::io::FitsWriter::Fits * fits, int flags) const
 {
-    return boost::make_shared<SourceClusterFitsWriter>(fits);
+    return boost::make_shared<SourceClusterFitsWriter>(fits, flags);
 }
 
 SourceClusterTable::FilterSlots const & SourceClusterTable::getFilterSlots(std::string const & filter) const {
