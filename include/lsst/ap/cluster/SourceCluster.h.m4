@@ -401,7 +401,7 @@ private:
 
     // Return a writer object that knows how to save in FITS format.
     virtual PTR(lsst::afw::table::io::FitsWriter) makeFitsWriter(
-        lsst::afw::table::io::FitsWriter::Fits * fits) const;
+        lsst::afw::table::io::FitsWriter::Fits * fits, int flags) const;
 
     FilterSlots const & getFilterSlots(std::string const & filter) const;
 
