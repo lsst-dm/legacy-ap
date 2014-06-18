@@ -93,7 +93,7 @@ CsvReader::CsvReader(
     _fields()
 {
     if (!_stream->good()) {
-        throw LSST_EXCEPT(pexExcept::IoErrorException,
+        throw LSST_EXCEPT(pexExcept::IoError,
                           "failed to open file " + path + " for reading");
     }
     // exception mask for _stream is clear
@@ -135,7 +135,7 @@ CsvReader::CsvReader(
     _fields()
 {
     if (!in.good()) {
-        throw LSST_EXCEPT(pexExcept::IoErrorException,
+        throw LSST_EXCEPT(pexExcept::IoError,
                           "std::istream not good() for reading");
     }
     // clear exception mask
@@ -166,7 +166,7 @@ CsvReader::~CsvReader() {
   */
 void CsvReader::setFieldNames(std::vector<std::string> const &names) {
     if (names.size() > static_cast<size_t>(numeric_limits<int>::max())) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+        throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                           "too many field names");
     }
     // create temporary name->index map.
@@ -178,7 +178,7 @@ void CsvReader::setFieldNames(std::vector<std::string> const &names) {
         pair<FieldIndexes::iterator, bool> p = indexes.insert(make_pair(
             names[i], static_cast<int>(i)));
         if (!p.second) {
-            throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+            throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                               "Duplicate field name: " + names[i]);
         }
     }
@@ -229,7 +229,7 @@ void CsvReader::setFieldNames(
     setFieldNames(fieldNames);
 }
 
-/** Throws an lsst::pex::exceptions::IoErrorException with a file name,
+/** Throws an lsst::pex::exceptions::IoError with a file name,
   * line number and record number.
   */
 void CsvReader::_ioError(char const *msg) const {
@@ -240,10 +240,10 @@ void CsvReader::_ioError(char const *msg) const {
         s << "CSV file " << _path;
     }
     s << " line " << _numLines << " record " << _numRecords << ": " << msg;
-    throw LSST_EXCEPT(pexExcept::IoErrorException, s.str());
+    throw LSST_EXCEPT(pexExcept::IoError, s.str());
 }
 
-/** Throws an lsst::pex::exceptions::RuntimeErrorException with a file name,
+/** Throws an lsst::pex::exceptions::RuntimeError with a file name,
   * line number and record number.
   */
 void CsvReader::_runtimeError(char const *msg) const {
@@ -254,7 +254,7 @@ void CsvReader::_runtimeError(char const *msg) const {
         s << "CSV file " << _path;
     }
     s << " line " << _numLines << " record " << _numRecords << ": " << msg;
-    throw LSST_EXCEPT(pexExcept::RuntimeErrorException, s.str());
+    throw LSST_EXCEPT(pexExcept::RuntimeError, s.str());
 }
 
 /** Reads a single line from the underlying stream.
@@ -520,7 +520,7 @@ void CsvReader::_readRecord() {
                 break;
 
             default:
-                throw LSST_EXCEPT(pexExcept::LogicErrorException,
+                throw LSST_EXCEPT(pexExcept::LogicError,
                                   "CSV parser bug - state machine reached an "
                                   "illegal state");
         }
@@ -666,7 +666,7 @@ CsvWriter::CsvWriter(
         if (append) {
             mode |= ios::app;
         } else {
-            throw LSST_EXCEPT(pexExcept::IoErrorException,
+            throw LSST_EXCEPT(pexExcept::IoError,
                               "file " + path + " already exists");
         }
     }
@@ -675,7 +675,7 @@ CsvWriter::CsvWriter(
     }
     _stream.reset(new ofstream(path.c_str(), mode));
     if (!_stream->good()) {
-        throw LSST_EXCEPT(pexExcept::IoErrorException,
+        throw LSST_EXCEPT(pexExcept::IoError,
                           "failed to open file " + path + " for writing");
     }
     _out = _stream.get();
@@ -699,7 +699,7 @@ CsvWriter::CsvWriter(std::ostream &out, CsvControl const &control) :
     _numFields(0)
 {
     if (!out.good()) {
-        throw LSST_EXCEPT(pexExcept::IoErrorException,
+        throw LSST_EXCEPT(pexExcept::IoError,
                           "std::ostream not good() for writing");
     }
     out.exceptions(ios::eofbit | ios::failbit | ios::badbit);
@@ -735,10 +735,10 @@ void CsvWriter::appendFields(std::vector<std::string> const &fields) {
         char buf[64]; \
         int n = snprintf(buf, sizeof(buf), fmt, static_cast<C>(v)); \
         if (n <= 0) { \
-            throw LSST_EXCEPT(pexExcept::RuntimeErrorException, \
+            throw LSST_EXCEPT(pexExcept::RuntimeError, \
                               "failed to convert " #T " to a string"); \
         } else if (n >= static_cast<int>(sizeof(buf))) { \
-            throw LSST_EXCEPT(pexExcept::LogicErrorException, \
+            throw LSST_EXCEPT(pexExcept::LogicError, \
                               "internal buffer for string conversion too small"); \
         } \
         _write(buf); \
@@ -788,7 +788,7 @@ void CsvWriter::appendField(float v) {
 #endif
         n = snprintf(fmt, sizeof(fmt), "%%.%lug", ndig);
         if (n <= 0 || n >= static_cast<int>(sizeof(fmt))) {
-            throw LSST_EXCEPT(pexExcept::LogicErrorException, \
+            throw LSST_EXCEPT(pexExcept::LogicError, \
                               "internal buffer for string conversion too small"); \
         }
         n = snprintf(buf, sizeof(buf), fmt, static_cast<double>(v));
@@ -796,7 +796,7 @@ void CsvWriter::appendField(float v) {
     }
 #endif
     if (n <= 0 || n >= static_cast<int>(sizeof(buf))) {
-        throw LSST_EXCEPT(pexExcept::LogicErrorException,
+        throw LSST_EXCEPT(pexExcept::LogicError,
                           "snprintf() failed to convert float to string");
     }
     _write(buf);
@@ -826,7 +826,7 @@ void CsvWriter::appendField(double v) {
 #endif
         n = snprintf(fmt, sizeof(fmt), "%%.%lug", ndig);
         if (n <= 0 || n >= static_cast<int>(sizeof(fmt))) {
-            throw LSST_EXCEPT(pexExcept::LogicErrorException,
+            throw LSST_EXCEPT(pexExcept::LogicError,
                               "snprintf() failed to produce format string");
         }
         n = snprintf(buf, sizeof(buf), fmt, v);
@@ -834,7 +834,7 @@ void CsvWriter::appendField(double v) {
     }
 #endif
     if (n <= 0 || n >= static_cast<int>(sizeof(buf))) {
-        throw LSST_EXCEPT(pexExcept::LogicErrorException,
+        throw LSST_EXCEPT(pexExcept::LogicError,
                           "snprintf() failed to convert double to string");
     }
     _write(buf);
@@ -867,7 +867,7 @@ void CsvWriter::appendField(long double v) {
 #endif
         n = snprintf(fmt, sizeof(fmt), "%%.%luLg", ndig);
         if (n <= 0 || n >= static_cast<int>(sizeof(fmt))) {
-            throw LSST_EXCEPT(pexExcept::LogicErrorException,
+            throw LSST_EXCEPT(pexExcept::LogicError,
                               "snprintf() failed to produce format string");
         }
         n = snprintf(buf, sizeof(buf), fmt, v);
@@ -875,7 +875,7 @@ void CsvWriter::appendField(long double v) {
     }
 #endif
     if (n <= 0 || n >= static_cast<int>(sizeof(buf))) {
-        throw LSST_EXCEPT(pexExcept::LogicErrorException,
+        throw LSST_EXCEPT(pexExcept::LogicError,
                           "snprintf() failed to convert long double to string");
     }
     _write(buf);
@@ -918,7 +918,7 @@ void CsvWriter::_write(char const *s) {
     ++_numFields;
     if (_control.quoting == "QUOTE_NONE") {
         if (_control.hasNull && _control.null == s) {
-            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+            throw LSST_EXCEPT(pexExcept::RuntimeError,
                               "Field value coincides with NULL string "
                               "and quoting is disabled");
         }
@@ -990,7 +990,7 @@ void CsvWriter::_writeQuoted(char const *s) {
                 _out->put(c);
             } else if (_control.getEscapeChar() == '\0') {
                 _out->put(c);
-                throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             } else {
@@ -1009,7 +1009,7 @@ void CsvWriter::_writeQuoted(char const *s) {
             n = 0;
             if (_control.getEscapeChar() == '\0') {
                 _out->put(_control.getQuoteChar());
-                throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             }
@@ -1041,7 +1041,7 @@ void CsvWriter::_writeUnquoted(char const *s) {
             s += n + 1;
             n = 0;
             if (_control.getEscapeChar() == '\0') {
-                throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             }
@@ -1064,7 +1064,7 @@ void CsvWriter::_writeUnquoted(char const *s) {
                 _out->put(c);
                 _out->put(c);
             } else if (_control.getEscapeChar() == '\0') {
-                throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                   "Field value requires escaping, but "
                                   "no escape character is set");
             } else {

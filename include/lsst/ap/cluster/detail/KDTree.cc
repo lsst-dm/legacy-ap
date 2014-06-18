@@ -121,15 +121,15 @@ KDTree<K, DataT>::KDTree(Point<K, DataT> * points,
     _nodes()
 {
     if (points == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "pointer to Point array is null");
     }
     if (numPoints <= 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "number of input points must be > 0");
     }
     if (pointsPerLeaf < 1) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "target number of points per leaf must be > 0");
     }
     // compute tree height

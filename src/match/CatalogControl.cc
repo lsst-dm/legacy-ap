@@ -36,7 +36,7 @@
 using std::numeric_limits;
 using std::string;
 using std::vector;
-using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::InvalidParameterError;
 
 namespace lsst { namespace ap { namespace match {
 
@@ -71,39 +71,39 @@ CatalogControl::~CatalogControl() { }
 
 void CatalogControl::validate() const {
     if (lsst::utils::isinf(minEpoch) || lsst::utils::isinf(maxEpoch)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Infinite catalog minEpoch and/or maxEpoch");
     }
     if (lsst::utils::isinf(maxParallax)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Infinite catalog maxParallax");
     }
     if (lsst::utils::isinf(maxAngularVelocity)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Infinite catalog maxAngularVelocity");
     }
     if (!lsst::utils::isfinite(epoch)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Catalog default epoch is not finite");
     }
     if (!lsst::utils::isfinite(raScale) || !lsst::utils::isfinite(declScale)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Catalog raScale and/or declScale (converts from catalog units "
             "to radians) is not finite");
     }
     if (!lsst::utils::isfinite(muRaScale) ||
         !lsst::utils::isfinite(muDeclScale)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Catalog muRaScale and/or muDeclScale (converts from catalog "
             "units to radians per Julian day) is not finite");
     }
     if (!lsst::utils::isfinite(parallaxScale)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Catalog parallaxScale (converts from catalog units to radians) "
             "is not finite");
     }
     if (!lsst::utils::isfinite(vRadialScale)) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
             "Catalog vRadialScale (converts from catalog units to AU per day) "
             "is not finite");
     }

@@ -47,8 +47,8 @@ using std::max;
 
 using boost::algorithm::trim_copy;
 
-using lsst::pex::exceptions::InvalidParameterException;
-using lsst::pex::exceptions::RuntimeErrorException;
+using lsst::pex::exceptions::InvalidParameterError;
+using lsst::pex::exceptions::RuntimeError;
 using lsst::pex::logging::Log;
 using lsst::daf::base::DateTime;
 using lsst::daf::base::PropertySet;
@@ -94,7 +94,7 @@ void ExposureInfo::_init(lsst::daf::base::PropertySet::Ptr metadata) {
         if (metadata->exists("FLUXMAG0ERR")) {
             _fluxMag0Sigma = metadata->getAsDouble("FLUXMAG0ERR");
             if (_fluxMag0Sigma < 0.0) {
-                throw LSST_EXCEPT(InvalidParameterException,
+                throw LSST_EXCEPT(InvalidParameterError,
                                   "negative magnitude zero point error");
             }
         } else {
@@ -102,7 +102,7 @@ void ExposureInfo::_init(lsst::daf::base::PropertySet::Ptr metadata) {
         }
         _fluxMag0 = metadata->getAsDouble("FLUXMAG0");
         if (_fluxMag0 <= 0.0) {
-            throw LSST_EXCEPT(InvalidParameterException,
+            throw LSST_EXCEPT(InvalidParameterError,
                               "magnitude zero point is negative or zero");
         }
         _canCalibrateFlux = true;
@@ -173,11 +173,11 @@ ExposureInfo::~ExposureInfo() { }
 
 double ExposureInfo::calibrateFlux(double flux, double fluxScale) const {
     if (fluxScale <= 0.0) {
-        throw LSST_EXCEPT(InvalidParameterException, "flux "
+        throw LSST_EXCEPT(InvalidParameterError, "flux "
                           "scaling factor is <= 0");
     }
     if (!canCalibrateFlux()) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Cannot calibrate "
+        throw LSST_EXCEPT(RuntimeError, "Cannot calibrate "
                           "flux without fluxMag0");
     }
     return fluxScale*flux/_fluxMag0;
@@ -189,14 +189,14 @@ std::pair<double, double> const ExposureInfo::calibrateFlux(
     double fluxScale
 ) const {
     if (fluxScale <= 0.0) {
-        throw LSST_EXCEPT(InvalidParameterException, "flux "
+        throw LSST_EXCEPT(InvalidParameterError, "flux "
                           "scaling factor is <= 0");
     }
     if (fluxSigma <= 0.0) {
-        throw LSST_EXCEPT(InvalidParameterException, "flux error is <= 0");
+        throw LSST_EXCEPT(InvalidParameterError, "flux error is <= 0");
     }
     if (!canCalibrateFlux()) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Cannot calibrate "
+        throw LSST_EXCEPT(RuntimeError, "Cannot calibrate "
                           "flux without fluxMag0");
     }
     // Use delta method to estimate the variance oF flux/fluxMag0.
@@ -237,12 +237,12 @@ ExposureInfoMap::~ExposureInfoMap() { }
 
 void ExposureInfoMap::insert(ExposureInfo::Ptr info) {
     if (!info) {
-        throw LSST_EXCEPT(InvalidParameterException, "Cannot insert a "
+        throw LSST_EXCEPT(InvalidParameterError, "Cannot insert a "
                           "null ExposureInfo into an ExposureInfoMap");
     }
     int64_t id = info->getId();
     if (contains(id)) {
-        throw LSST_EXCEPT(InvalidParameterException, "ExposureInfoMap "
+        throw LSST_EXCEPT(InvalidParameterError, "ExposureInfoMap "
                           "already contains an exposure with the "
                           "specified id");
     }
@@ -327,23 +327,23 @@ void readExposureInfos(
     int const doubleCol = reader.getIndexOf("doubleValue");
     int const stringCol = reader.getIndexOf("stringValue");
     if (idCol == -1) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+        throw LSST_EXCEPT(RuntimeError, "Exposure metadata table "
                           "has no column named " + idColumn);
     }
     if (keyCol == -1) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+        throw LSST_EXCEPT(RuntimeError, "Exposure metadata table "
                           "has no column named metadataKey");
     }
     if (intCol == -1) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+        throw LSST_EXCEPT(RuntimeError, "Exposure metadata table "
                           "has no column named intValue");
     }
     if (doubleCol == -1) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+        throw LSST_EXCEPT(RuntimeError, "Exposure metadata table "
                           "has no column named doubleValue");
     }
     if (stringCol == -1) {
-        throw LSST_EXCEPT(RuntimeErrorException, "Exposure metadata table "
+        throw LSST_EXCEPT(RuntimeError, "Exposure metadata table "
                           "has no column named stringValue");
     }
     PropertySet::Ptr ps;

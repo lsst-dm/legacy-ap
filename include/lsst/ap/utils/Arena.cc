@@ -46,7 +46,7 @@ Arena<T>::Arena(size_t blockCapacity) :
     _free(0)
 {
     if (blockCapacity == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "Cannot create Arena with 0 capacity");
     }
     _grow();

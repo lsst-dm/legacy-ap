@@ -423,7 +423,7 @@ void makeSourceHistogram(
         if (x < 0 || x >= histogram->getWidth() ||
             y < 0 || y >= histogram->getHeight()) {
             if (!ignoreOffImage) {
-                throw LSST_EXCEPT(except::RuntimeErrorException,
+                throw LSST_EXCEPT(except::RuntimeError,
                                   "SourceCatalog contains sources lying "
                                   "outside the histogram image");
             }
@@ -448,11 +448,11 @@ void rasterizePolygon(
     typedef std::vector<Edge>::iterator EdgeIter;
 
     if (img->getWidth() <= 0 || img->getHeight() <= 0) {
-        throw new LSST_EXCEPT(except::InvalidParameterException,
+        throw new LSST_EXCEPT(except::InvalidParameterError,
                               "image width/height must be at least 1");
     }
     if (verts.size() < 3) {
-        throw new LSST_EXCEPT(except::InvalidParameterException,
+        throw new LSST_EXCEPT(except::InvalidParameterError,
                               "polygon must have at least 3 vertices");
     }
     std::vector<Edge> edges;
@@ -522,7 +522,7 @@ void updateCoverageMap(
 {
     typedef std::vector<Point2D>::iterator VertexIter;
     if (width <= 0 || height <= 0) {
-        throw new LSST_EXCEPT(except::InvalidParameterException,
+        throw new LSST_EXCEPT(except::InvalidParameterError,
                               "Width/height of input image must be positive");
     }
     std::vector<Point2D> v;

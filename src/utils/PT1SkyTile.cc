@@ -62,15 +62,15 @@ PT1SkyTile::PT1SkyTile(int resolution, int root, int x, int y, int id) :
     _id(id)
 {
     if (resolution < 3) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(except::InvalidParameterError,
                           "invalid quad-sphere resolution");
     }
     if (root < 0 || root > 5) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(except::InvalidParameterError,
                           "quad-sphere root pixel number not in range [0, 6)");
     }
     if (x < 0 || x >= resolution || y < 0 || y >= resolution) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(except::InvalidParameterError,
                           "quad sphere sky-pixel coordinates out of bounds");
     }
 }

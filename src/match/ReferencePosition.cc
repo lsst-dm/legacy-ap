@@ -101,7 +101,7 @@ void ReferencePosition::setMotion(
     _v.y() = sr*u + _p.x()*muRa - sr*t;
     _v.z() = sd*vRadial + s*muDecl;
     if (_v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "star velocity vector magnitude exceeds half "
                           "the speed of light");
     }

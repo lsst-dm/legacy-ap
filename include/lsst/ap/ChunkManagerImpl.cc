@@ -267,7 +267,7 @@ BlockAllocator<MutexT, DataT, TraitsT>::BlockAllocator(
  * @return  The offset (in bytes relative to the address of this allocator instance)
  *          of the newly allocated block.
  *
- * @throw lsst::pex::exceptions:::MemoryException
+ * @throw lsst::pex::exceptions:::MemoryError
  *      Thrown if there was no free block available.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
@@ -275,7 +275,7 @@ std::size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
     int i[1];
     ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, 1)) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException, "no free blocks remain");
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryError, "no free blocks remain");
     }
     return _offset + i[0]*BLOCK_SIZE;
 }
@@ -288,9 +288,9 @@ std::size_t BlockAllocator<MutexT, DataT, TraitsT>::allocate() {
  *                          allocated memory blocks are stored. Assumed to be of length at least @a n.
  * @param[in]  n            The number of memory blocks to allocate.
  *
- * @throw lsst::pex::exceptions:::MemoryException
+ * @throw lsst::pex::exceptions:::MemoryError
  *      Thrown if there were less than @a n free blocks available.
- * @throw lsst::pex::exceptions:::RangeErrorException
+ * @throw lsst::pex::exceptions:::RangeError
  *      Thrown if the number of blocks to allocate is negative or too large.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
@@ -299,14 +299,14 @@ void BlockAllocator<MutexT, DataT, TraitsT>::allocate(
     int const n
 ) {
     if (n < 0 || n > TraitsT::MAX_BLOCKS_PER_CHUNK) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::RangeErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::RangeError,
             "invalid number of memory blocks in allocation request");
     }
     int i[TraitsT::MAX_BLOCKS_PER_CHUNK];
 
     ScopedLock<MutexT> lock(_mutex);
     if (!_allocator.set(i, n)) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryError,
             "number of free blocks too small to satisfy allocation request");
     }
     for (int j = 0; j < n; ++j) {
@@ -413,7 +413,7 @@ void VisitTracker::print(int const visitId, std::ostream & os) const {
  * @param[in]  visitId      The visit to register interest or create chunks for.
  * @param[in]  chunkIds     A list of identifiers for chunks required by the visit.
  *                          Assumed to be duplicate free.
- * @throw lsst::pex::exceptions:::MemoryException
+ * @throw lsst::pex::exceptions:::MemoryError
  *      Thrown if there is insufficient space to track all requested chunks.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
@@ -429,7 +429,7 @@ void SubManager<MutexT, DataT, TraitsT>::createOrRegisterInterest(
         if (p.second) {
             // new chunk descriptor was allocated
             if (p.first == 0) {
-                throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+                throw LSST_EXCEPT(lsst::pex::exceptions::MemoryError,
                                   "too many chunks in flight");
             }
             p.first->_visitId = visitId;
@@ -729,7 +729,7 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::failVisit(int const visitId) {
 /**
  * Registers the given visit as in-flight without performing any further action.
  *
- * @throw lsst::pex::exceptions::InvalidParameterException
+ * @throw lsst::pex::exceptions::InvalidParameterError
  *      Thrown if the given visit is already in-flight.
  * @throw lsst::pex::exceptions::LengthError
  *      Thrown if too-many visits are currently in-flight.
@@ -738,11 +738,11 @@ template <typename MutexT, typename DataT, typename TraitsT>
 void ChunkManagerImpl<MutexT, DataT, TraitsT>::registerVisit(int const visitId) {
     ScopedLock<MutexT> lock(_mutex);
     if (_visits.find(visitId) != 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
             (boost::format("Cannot start processing visit %1%: visit is already in flight") % visitId).str());
     }
     if (_visits.space() == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
             (boost::format("Cannot register visit %1%: too many visits in-flight") % visitId).str());
     }
     Visit * v = _visits.insert(visitId);
@@ -764,9 +764,9 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::registerVisit(int const visitId) 
  * @param[in]  visitId     The visit to begin.
  * @param[in]  chunkIds    Identifiers for chunks to register an interest in or create.
  *
- * @throw lsst::pex::exceptions::InvalidParameterException
+ * @throw lsst::pex::exceptions::InvalidParameterError
  *      Thrown if the given visit is not currently in-flight.
- * @throw lsst::pex::exceptions::LengthErrorException
+ * @throw lsst::pex::exceptions::LengthError
  *      Thrown if the chunk manager does not have space to track all the chunks for the visit.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
@@ -786,11 +786,11 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::startVisit(
     ScopedLock<MutexT> lock(_mutex);
     // ensure internal resources necessary for success are available
     if (_data.space() < static_cast<int>(chunkIds.size())) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
                           "requested additional chunks exceed chunk manager capacity");
     }
     if (!_visits.isValid(visitId)) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
             (boost::format("Cannot start processing for visit %1%: visit is not in-flight") % visitId).str());
     }
     // having pre-allocated/checked that there is space for everything,
@@ -813,7 +813,7 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::startVisit(
  * @param[in]     visitId   The visit that must wait for chunk ownership.
  * @param[in]     deadline  The point in time after which chunk acquisition should be abandoned.
  *
- * @throw lsst::pex::exceptions::TimeoutException
+ * @throw lsst::pex::exceptions::TimeoutError
  *      Thrown if the visit deadline expired while waiting to acquire chunks.
  */
 template <typename MutexT, typename DataT, typename TraitsT>
@@ -839,7 +839,7 @@ void ChunkManagerImpl<MutexT, DataT, TraitsT>::waitForOwnership(
             // fail, but never relinquish ownership of their chunks. For now, take the draconian measure
             // of rolling back all visits except the current one. This needs to be re-thought for DC3b!
             rollbackAllExcept(visitId);
-            throw LSST_EXCEPT(lsst::pex::exceptions::TimeoutException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::TimeoutError,
                 (boost::format("Deadline for visit %1% expired") % visitId).str());
         }
     }

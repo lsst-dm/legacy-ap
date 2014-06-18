@@ -94,7 +94,7 @@ inline bool CsvReader::isDone() const {
 /** Advances to the next record in the file. If all records have been read,
   * the function has no effect.
   *
-  * @throw lsst::pex::exception::RuntimeErrorException
+  * @throw lsst::pex::exception::RuntimeError
   *        If this exception is thrown, it is because the input file did not
   *        conform to the readers format. The current record will contain
   *        the fields succesfully read-in, but the last field may be
@@ -102,9 +102,9 @@ inline bool CsvReader::isDone() const {
   *        nextRecord() will resume reading at the beginning of the next line
   *        in the file. If fields contain new-lines, this will not necessarily
   *        be at the start of a record!
-  * @throw lsst::pex::exception::IoErrorException
+  * @throw lsst::pex::exception::IoError
   *        A system I/O call failed - one cannot recover in any general way.
-  * @throw lsst::pex::exception::LogicErrorException
+  * @throw lsst::pex::exception::LogicError
   *        There is a serious bug in the internal CSV parser. File a ticket!
   */
 inline void CsvReader::nextRecord() {

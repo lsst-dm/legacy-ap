@@ -75,7 +75,7 @@ template <typename AllocatorT, typename DataT, typename TraitsT>
 void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::reserve(int const n) {
     if (n > capacity()) {
         if (n > 0x3fffffff) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
                 "Requested chunk capacity is too large");
         }
         int nb = (n + ((1 << ENTRIES_PER_BLOCK_LOG2) - 1)) >> ENTRIES_PER_BLOCK_LOG2;
@@ -108,7 +108,7 @@ void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::insert(
        // no current block, or current block is full
        if (block >= _descriptor->_numBlocks) {
            if (block >= MAX_BLOCKS) {
-               throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+               throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
                    "maximum number of blocks per chunk exceeded");
            }
            off = _allocator->allocate();
@@ -320,7 +320,7 @@ void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::applyDeletes(
     // check that all delete indexes are within the specified range
     for (int i = 0; i < numDeletes; ++i) {
         if (deletes[i] < 0 || deletes[i] >= end) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::IoError,
                 "Binary chunk delta file contains an invalid delete marker - delta not applied"
             );
         }
@@ -345,7 +345,7 @@ void doRead(io::SequentialReader & reader, unsigned char * dst, std::size_t dstl
         std::size_t nb = reader.read(dst, dstlen);
         assert(nb <= dstlen);
         if (nb == 0) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, "Unexpected end of file");
+            throw LSST_EXCEPT(lsst::pex::exceptions::IoError, "Unexpected end of file");
         }
         dst    += nb;
         dstlen -= nb;
@@ -397,7 +397,7 @@ void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::read(
     BinChunkHeader header;
     doRead(*reader, reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
     if (!header.isValid() || header._numDeletes != 0 || header._recordSize != sizeof(DataT)) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, badChunkMessage);
+        throw LSST_EXCEPT(lsst::pex::exceptions::IoError, badChunkMessage);
     }
 
     int nr = header._numRecords;
@@ -457,7 +457,7 @@ void lsst::ap::ChunkRef<AllocatorT, DataT, TraitsT>::readDelta(
     BinChunkHeader header;
     doRead(*reader, reinterpret_cast<unsigned char *>(&header), sizeof(BinChunkHeader));
     if (!header.isValid() || header._recordSize != sizeof(DataT)) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::IoErrorException, badChunkMessage);
+        throw LSST_EXCEPT(lsst::pex::exceptions::IoError, badChunkMessage);
     }
 
     // read in indexes of records to delete

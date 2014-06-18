@@ -56,15 +56,15 @@ lsst::ap::ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
     _maxEntriesPerZoneEstimate(maxEntriesPerZoneEstimate)
 {
     if (zonesPerDegree < 1 || zonesPerDegree > 3600) {
-        throw LSST_EXCEPT(ex::RangeErrorException,
+        throw LSST_EXCEPT(ex::RangeError,
                           "zone height must be between 1 arc-second and 1 degree");
     }
     if (zonesPerStripe < 1) {
-        throw LSST_EXCEPT(ex::RangeErrorException,
+        throw LSST_EXCEPT(ex::RangeError,
                           "there must be at least 1 zone per stripe");
     }
     if (maxEntriesPerZoneEstimate < 1) {
-        throw LSST_EXCEPT(ex::RangeErrorException,
+        throw LSST_EXCEPT(ex::RangeError,
                           "the max entries per zone estimate must be at least 1");
     }
     _minZone         = -90*zonesPerDegree;
@@ -81,11 +81,11 @@ lsst::ap::ZoneStripeChunkDecomposition::ZoneStripeChunkDecomposition(
     int const numStripes = _maxStripe - _minStripe + 1;
     double const minWidth = static_cast<double>(zonesPerStripe)/_zonesPerDegree;
     if (numStripes >= 32768) {
-        throw LSST_EXCEPT(ex::RangeErrorException,
+        throw LSST_EXCEPT(ex::RangeError,
                           "Requested spatial parameters result in more than 32767 stripes");
     }
     if (getNumChunksPerStripe(0, minWidth) >= 32768) {
-        throw LSST_EXCEPT(ex::RangeErrorException,
+        throw LSST_EXCEPT(ex::RangeError,
                           "Requested spatial parameters result in more than 32767 chunks per stripe");
     }
 
@@ -313,10 +313,10 @@ void lsst::ap::computeChunkIds(
     int                          const   numWorkers
 ) {
     if (numWorkers < 1) {
-        throw LSST_EXCEPT(ex::InvalidParameterException, "number of workers must be positive");
+        throw LSST_EXCEPT(ex::InvalidParameterError, "number of workers must be positive");
     }
     if (workerId < 0 || workerId >= numWorkers) {
-        throw LSST_EXCEPT(ex::InvalidParameterException,
+        throw LSST_EXCEPT(ex::InvalidParameterError,
             "Worker id must be between 0 and N - 1, where N is the total number of workers");
     }
 
@@ -398,11 +398,11 @@ void lsst::ap::computeChunkIds(
     int                          const   numWorkers
 ) {
     if (numWorkers < 1) {
-        throw LSST_EXCEPT(ex::InvalidParameterException,
+        throw LSST_EXCEPT(ex::InvalidParameterError,
                           "number of workers must be positive");
     }
     if (workerId < 0 || workerId >= numWorkers) {
-       throw LSST_EXCEPT(ex::InvalidParameterException,
+       throw LSST_EXCEPT(ex::InvalidParameterError,
                          "Worker id must be between 0 and N - 1, where N is the total number of workers");
     }
 

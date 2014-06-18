@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(overlappingVisitsTest) {
             deadline.systemTime();
             deadline += 0.02;
             BOOST_CHECK_THROW(mgr.waitForOwnership(toRead, toWaitFor, visitId, deadline),
-                              lsst::pex::exceptions::TimeoutException);
+                              lsst::pex::exceptions::TimeoutError);
             // end the previous visit
             v1.dismiss();
             mgr.endVisit(visitId - 1, false);

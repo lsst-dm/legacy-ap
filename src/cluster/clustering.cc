@@ -35,9 +35,9 @@
 #include "lsst/ap/cluster/detail/Metrics.h"
 #include "lsst/ap/cluster/detail/Optics.cc"
 
-using lsst::pex::exceptions::InvalidParameterException;
-using lsst::pex::exceptions::NotFoundException;
-using lsst::pex::exceptions::RuntimeErrorException;
+using lsst::pex::exceptions::InvalidParameterError;
+using lsst::pex::exceptions::NotFoundError;
+using lsst::pex::exceptions::RuntimeError;
 
 using lsst::pex::logging::Log;
 
@@ -107,7 +107,7 @@ namespace {
     bool hasFluxField(Schema const & schema, std::string const & name) {
         try {
             schema.find<Flux::MeasTag>(name);
-        } catch (NotFoundException &) {
+        } catch (NotFoundError &) {
             return false;
         }
         return true;
@@ -116,7 +116,7 @@ namespace {
     bool hasShapeField(Schema const & schema, std::string const & name) {
         try {
             schema.find<Shape::MeasTag>(name);
-        } catch (NotFoundException &) {
+        } catch (NotFoundError &) {
             return false;
         }
         return true;
@@ -139,7 +139,7 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
 {
     if (!prototype.getCoordKey().isValid() ||
         !prototype.getCentroidKey().isValid()) {
-        throw LSST_EXCEPT(InvalidParameterException, "Prototypical "
+        throw LSST_EXCEPT(InvalidParameterError, "Prototypical "
             "SourceCatalog must have valid Coord and Centroid fields");
     }
     SchemaMapper mapper(prototype.getSchema());
@@ -404,25 +404,25 @@ void processSources(
     // Validate that schemas and slots match as expected
     if (sources.getSchema() != badSources.getSchema() ||
         sources.getSchema() != invalidSources.getSchema()) {
-        throw LSST_EXCEPT(InvalidParameterException, "output "
+        throw LSST_EXCEPT(InvalidParameterError, "output "
             "SourceCatalog schema mismatch");
     }
     if (!sources.getSchema().contains(expSources.getSchema())) {
-        throw LSST_EXCEPT(InvalidParameterException, "output SourceCatalog "
+        throw LSST_EXCEPT(InvalidParameterError, "output SourceCatalog "
             "schema does not contain input SourceCatalog schema");
     }
     if (mapper.getInputSchema() != expSources.getSchema()) {
-        throw LSST_EXCEPT(InvalidParameterException, "SchemaMapper and "
+        throw LSST_EXCEPT(InvalidParameterError, "SchemaMapper and "
             "input source catalog disagree on input schema.");
     }
     if (mapper.getOutputSchema() != sources.getSchema()) {
-        throw LSST_EXCEPT(InvalidParameterException, "SchemaMapper and "
+        throw LSST_EXCEPT(InvalidParameterError, "SchemaMapper and "
             "output source catalogs disagree on output schema.");
     }
     if (!compareSlots(*expSources.getTable(), *sources.getTable()) ||
         !compareSlots(*sources.getTable(), *badSources.getTable()) ||
         !compareSlots(*badSources.getTable(), *invalidSources.getTable())) {
-        throw LSST_EXCEPT(InvalidParameterException, "slot mappings "
+        throw LSST_EXCEPT(InvalidParameterError, "slot mappings "
             "for input and output SourceCatalogs differ");
     }
 
@@ -452,7 +452,7 @@ void processSources(
     Key<lsst::afw::coord::Coord> clusterCoordKey;
     try {
         coordErrKey = sources.getSchema()["coord.err"];
-    } catch (NotFoundException &) {
+    } catch (NotFoundError &) {
         // no easy way to ask whether a field exists by name?
     }
     if (!control.exposurePrefix.empty()) {
@@ -593,7 +593,7 @@ std::vector<SourceCatalog> const cluster(
     typedef SourceCatalog::const_iterator Iter;
 
     if (sources.size() > MAX_SOURCES) {
-        throw LSST_EXCEPT(InvalidParameterException, "too many sources to cluster");
+        throw LSST_EXCEPT(InvalidParameterError, "too many sources to cluster");
     }
     control.validate();
     boost::scoped_array<OpticsPoint> entries(new OpticsPoint[sources.size()]);
@@ -639,7 +639,7 @@ void setClusterFields(
         idKey = sources.getSchema().find<int64_t>(control.clusterPrefix + ".id").key;
         coordKey = sources.getSchema().find<lsst::afw::coord::Coord>(
             control.clusterPrefix + ".coord").key;
-    } catch (NotFoundException &) {
+    } catch (NotFoundError &) {
         // could not find fields with the expected name
         return;
     }

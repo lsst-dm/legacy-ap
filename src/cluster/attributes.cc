@@ -34,8 +34,8 @@
 #include "lsst/ap/utils/SpatialUtils.h"
 
 
-using lsst::pex::exceptions::InvalidParameterException;
-using lsst::pex::exceptions::NotFoundException;
+using lsst::pex::exceptions::InvalidParameterError;
+using lsst::pex::exceptions::NotFoundError;
 
 using lsst::afw::coord::IcrsCoord;
 
@@ -100,7 +100,7 @@ namespace {
                 Key<Covariance<lsst::afw::table::Point<float> > > coordErrKey =
                     sources[0].getSchema()[std::string("coord.err")];
                 cov = sources[0].get(coordErrKey).cast<double>();
-            } catch (NotFoundException &) {
+            } catch (NotFoundError &) {
                 cov = Eigen::Matrix2d::Constant(std::numeric_limits<double>::quiet_NaN());
             }
         } else {
@@ -341,7 +341,7 @@ boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
     typedef std::vector<SourceAndExposure>::const_iterator SeIter;
 
     if (sources.empty()) {
-        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
+        throw LSST_EXCEPT(InvalidParameterError, "No sources in cluster");
     }
     // unweighted mean coordinates
     meanCoord(cluster, sources);
@@ -358,7 +358,7 @@ boost::shared_ptr<std::vector<SourceAndExposure> > const computeBasicAttributes(
         boost::shared_ptr<ExposureInfo> exp =
             const_cast<ExposureInfoMap &>(exposures).get(i->get(expIdKey));
         if (!exp) {
-            throw LSST_EXCEPT(NotFoundException, "No ExposureInfo for source");
+            throw LSST_EXCEPT(NotFoundError, "No ExposureInfo for source");
         }
         se->push_back(SourceAndExposure(
             i, exp, proj.pixelToNeTransform(i->getCentroid().asEigen(), *exp->getWcs())));
@@ -447,7 +447,7 @@ void computeFluxMean(
     typedef std::vector<Key<Flag > >::const_iterator FlagIter;
 
     if (sources.empty()) {
-        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
+        throw LSST_EXCEPT(InvalidParameterError, "No sources in cluster");
     }
     Schema const sourceSchema = sources[0].getSource()->getSchema();
     Schema const clusterSchema = cluster.getSchema();
@@ -542,7 +542,7 @@ void computeShapeMean(
     typedef std::vector<Key<Flag > >::const_iterator FlagIter;
 
     if (sources.empty()) {
-        throw LSST_EXCEPT(InvalidParameterException, "No sources in cluster");
+        throw LSST_EXCEPT(InvalidParameterError, "No sources in cluster");
     }
     Schema const sourceSchema = sources[0].getSource()->getSchema();
     Schema const clusterSchema = cluster.getSchema();

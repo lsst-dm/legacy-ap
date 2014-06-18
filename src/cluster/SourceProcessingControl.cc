@@ -30,7 +30,7 @@
 
 #include "lsst/pex/exceptions.h"
 
-using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::InvalidParameterError;
 
 
 namespace lsst { namespace ap { namespace cluster {

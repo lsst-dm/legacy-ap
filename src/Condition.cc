@@ -50,7 +50,7 @@ template <>
 Condition<Mutex>::Condition() {
     int err = ::pthread_cond_init(&_condition, 0);
     if (err != 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
             (boost::format("pthread_cond_init() failed, return code: %1%") % err).str());
     }
 }
@@ -61,14 +61,14 @@ Condition<SharedMutex>::Condition() {
     ::pthread_condattr_t attr;
     int err = ::pthread_condattr_init(&attr);
     if (err != 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
             (boost::format("pthread_condattr_init() failed, return code: %1%") % err).str());
     }
     ScopeGuard attrGuard(boost::bind(::pthread_condattr_destroy, &attr));
     ::pthread_condattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
     err = ::pthread_cond_init(&_condition, &attr);
     if (err != 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
             (boost::format("pthread_cond_init() failed, return code: %1%") % err).str());
     }
 }

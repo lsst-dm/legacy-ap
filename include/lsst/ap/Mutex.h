@@ -60,7 +60,7 @@ public :
     Mutex() {
         int err = ::pthread_mutex_init(&_mutex, 0);
         if (err != 0) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::RuntimeErrorException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::RuntimeError,
                 (boost::format("pthread_mutex_init() failed, return code: %1%") % err).str());
         }
     }

@@ -80,7 +80,7 @@ public :
     void enqueue(boost::int64_t const elt) {
         int sz = _size;
         if (sz == NumEntries) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
                               "unable to insert element into full FIFO");
         }
         int i = _back;
@@ -97,7 +97,7 @@ public :
     boost::int64_t dequeue() {
         int sz = _size;
         if (sz == 0) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::LengthErrorException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::LengthError,
                               "unable to remove element from empty FIFO");
         }
         int i = _front;

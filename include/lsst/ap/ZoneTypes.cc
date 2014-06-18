@@ -101,7 +101,7 @@ void lsst::ap::ZoneEntryArray<EntryT>::init(int const capacity) {
         std::size_t const nb = sizeof(EntryT) * capacity;
         EntryT * entries = static_cast<EntryT *>(std::malloc(nb));
         if (entries == 0) {
-            throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+            throw LSST_EXCEPT(lsst::pex::exceptions::MemoryError,
                               "failed to allocate zone");
         }
         _entries = entries;
@@ -124,7 +124,7 @@ void lsst::ap::ZoneEntryArray<EntryT>::grow() {
     cap = _capacity + (64 > cap ? 64 : cap);
     EntryT * entries  = static_cast<EntryT *>(std::realloc(_entries, sizeof(EntryT)*cap));
     if (entries == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::MemoryError,
                           "failed to increase zone capacity");
     }
     _entries  = entries;
@@ -226,7 +226,7 @@ void lsst::ap::ZoneIndex<EntryT>::setDecBounds(double const minDec, double const
     int minZone = _zsc.decToZone(minDec);
     int maxZone = _zsc.decToZone(maxDec);
     if (maxZone < minZone) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "min/max zone ids inverted");
     }
     int const cap = maxZone - minZone + 1;
