@@ -37,7 +37,6 @@
 
 using lsst::pex::exceptions::InvalidParameterError;
 using lsst::pex::exceptions::NotFoundError;
-using lsst::pex::exceptions::RuntimeError;
 
 using lsst::pex::logging::Log;
 

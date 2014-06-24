@@ -150,20 +150,23 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
         // failed ...
         if (errno != EEXIST) {
             throw LSST_EXCEPT(ex::RuntimeError,
-                (boost::format("shm_open(): failed to create shared memory object %1%, errno: %2%") % shmObjName % errno).str());
+                (boost::format("shm_open(): failed to create shared memory object %1%, errno: %2%")
+                    % shmObjName % errno).str());
         }
         // because the shared memory object already exists -- so try to open existing object instead
         fd = ::shm_open(shmObjName, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (fd == -1) {
             throw LSST_EXCEPT(ex::RuntimeError,
-                (boost::format("shm_open(): failed to open existing shared memory object %1%, errno: %2%") % shmObjName % errno).str());
+                (boost::format("shm_open(): failed to open existing shared memory object %1%, errno: %2%")
+                    % shmObjName % errno).str());
         }
         ScopeGuard g(boost::bind(::close, fd));
 
         void * mem = ::mmap(0, numBytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (mem == 0) {
             throw LSST_EXCEPT(ex::RuntimeError,
-                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%") % numBytes % shmObjName % errno).str());
+                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%")
+                    % numBytes % shmObjName % errno).str());
         }
         singleton = static_cast<ManagerT *>(mem);
         g.dismiss();
@@ -177,14 +180,17 @@ ManagerT * getSingleton(char const * const shmObjName, char const * const shmLoc
         // set size of shared memory object
         if (::ftruncate(fd, numBytes) != 0) {
             throw LSST_EXCEPT(ex::RuntimeError,
-                (boost::format("ftruncate(): failed to set size of shared memory object %1% to %2% bytes, errno: %3%") % shmObjName % numBytes % errno).str());
+                (boost::format(
+                    "ftruncate(): failed to set size of shared memory object %1% to %2% bytes, errno: %3%")
+                    % shmObjName % numBytes % errno).str());
         }
 
         // map shared memory object
         void * mem = ::mmap(0, numBytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (mem == 0) {
             throw LSST_EXCEPT(ex::RuntimeError,
-                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%") % numBytes % shmObjName % errno).str());
+                (boost::format("mmap(): failed to map %1% bytes of shared memory object %2%, errno: %3%")
+                    % numBytes % shmObjName % errno).str());
         }
         ScopeGuard g3(boost::bind(::munmap, mem, numBytes));
 
@@ -251,7 +257,8 @@ void SharedObjectChunkManager::destroyInstance(std::string const & name) {
     // memory object.
     if (res != 0 && errno != ENOENT && errno != EINVAL) {
         throw LSST_EXCEPT(ex::RuntimeError,
-            (boost::format("shm_unlink(): failed to unlink shared memory object %1%, errno: %2%") % name % errno).str());
+            (boost::format("shm_unlink(): failed to unlink shared memory object %1%, errno: %2%")
+            % name % errno).str());
     }
 }
 
