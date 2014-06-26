@@ -31,7 +31,7 @@
 #include "lsst/pex/exceptions.h"
 
 
-using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::InvalidParameterError;
 
 namespace lsst { namespace ap { namespace cluster {
 
@@ -48,16 +48,16 @@ ClusteringControl::~ClusteringControl() { }
 
 void ClusteringControl::validate() const {
     if (epsilonArcsec < 0.0 || epsilonArcsec > 36000.0) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "epsilonArcsec must lie in the range [0, 36000]");
     }
     if (minNeighbors < 0) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "minNeighbors must be non-negative");
 
     }
     if (pointsPerLeaf <= 0) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "pointsPerLeaf must be positive");
     }
 }

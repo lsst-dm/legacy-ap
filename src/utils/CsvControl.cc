@@ -32,7 +32,7 @@
 
 
 using std::string;
-using lsst::pex::exceptions::InvalidParameterException;
+using lsst::pex::exceptions::InvalidParameterError;
 
 namespace lsst { namespace ap { namespace utils {
 
@@ -56,50 +56,50 @@ CsvControl::~CsvControl() { }
 
 void CsvControl::validate() const {
     if (delimiter.size() != 1) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "delimiter must consist of a single character");
     }
     if (delimiter[0] == '\0' || delimiter[0] == '\n' || delimiter[0] == '\r') {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "delimiter equal to '\\[0nr]'");
 
     }
     if (escapeChar.size() > 1) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "escapeChar string contains more than one character");
 
     }
     if (escapeChar == delimiter ||
         getEscapeChar() == '\n' || getEscapeChar() == '\r') {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "escapeChar equal to delimiter or '\\[nr]'.");
     }
     if (quoteChar.size() > 1) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "quoteChar string contains more than one character");
     }
     if (quoteChar == delimiter ||
         getQuoteChar() == '\n' || getQuoteChar() == '\r') {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "quoteChar equal to delimiter or '\\[nr]'.");
     }
     if (escapeChar == quoteChar && getEscapeChar() != '\0') {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "escapeChar equal to quoteChar. Did you mean to use "
                           "the doubleQuote option instead?");
     }
     if (getEscapeChar() == '\0' && standardEscapes) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "escapeChar set to '\\0', but standardEscapes = true");
     }
     if (quoting != "QUOTE_MINIMAL" && quoting != "QUOTE_ALL" &&
         quoting != "QUOTE_NONE") {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "quoting must be one of 'QUOTE_MINIMAL', 'QUOTE_ALL' "
                           "or 'QUOTE_NONE'");
     }
     if (getQuoteChar() == '\0' && quoting != "QUOTE_NONE") {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "quoteChar set to '\\0', but quoting is not "
                           "'QUOTE_NONE'");
     }
@@ -108,7 +108,7 @@ void CsvControl::validate() const {
         null.find(getDelimiter()) != string::npos ||
         null.find(getEscapeChar()) != string::npos ||
         null.find(getQuoteChar()) != string::npos) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "null string contains '\\n', '\\r', delimiter, "
                           "escapeChar, or quoteChar.");
     }

@@ -181,7 +181,7 @@ namespace {
         CONST_PTR(SourceClusterTable) table =
             boost::dynamic_pointer_cast<SourceClusterTable const>(t);
         if (!table) {
-            throw LSST_EXCEPT(except::LogicErrorException, "SourceClusterFitsWriter "
+            throw LSST_EXCEPT(except::LogicError, "SourceClusterFitsWriter "
                               "can only write out SourceClusterTable instances!");
         }
         PTR(PropertyList) metadata = table->getMetadata();
@@ -305,7 +305,7 @@ PTR(SourceClusterTable) SourceClusterTable::make(
     PTR(lsst::afw::table::IdFactory) const & idFactory)
 {
     if (!checkSchema(schema)) {
-        throw LSST_EXCEPT(except::InvalidParameterException,
+        throw LSST_EXCEPT(except::InvalidParameterError,
             "Schema for SourceClusterTable must contain at least the keys "
             "defined by getMinimalSchema().");
     }
@@ -361,7 +361,7 @@ PTR(lsst::afw::table::io::FitsWriter) SourceClusterTable::makeFitsWriter(
 SourceClusterTable::FilterSlots const & SourceClusterTable::getFilterSlots(std::string const & filter) const {
     FilterSlotsMap::const_iterator i = _filterSlots.find(filter);
     if (i == _filterSlots.end()) {
-        throw LSST_EXCEPT(except::NotFoundException, "SourceClusterTable "
+        throw LSST_EXCEPT(except::NotFoundError, "SourceClusterTable "
             "contains no slot mappings for the filter named " + filter);
     }
     return i->second;
@@ -393,7 +393,7 @@ SourceClusterIdFactory::~SourceClusterIdFactory() { }
 lsst::afw::table::RecordId SourceClusterIdFactory::operator()() {
     lsst::afw::table::RecordId id = _id + 1;
     if (static_cast<int>(id >> 32) != _skyTileId) {
-        throw LSST_EXCEPT(except::OverflowErrorException,
+        throw LSST_EXCEPT(except::OverflowError,
             "Source cluster ID space exhausted! Note that SourceClusterIdFactory "
             "can hand out a maximum of 2^32 - 1 IDs for a given sky-tile. If there "
             "are more than that many clusters, the sky-tile size must be reduced.");
@@ -403,7 +403,7 @@ lsst::afw::table::RecordId SourceClusterIdFactory::operator()() {
 }
 
 void SourceClusterIdFactory::notify(lsst::afw::table::RecordId id) {
-    throw LSST_EXCEPT(except::LogicErrorException,
+    throw LSST_EXCEPT(except::LogicError,
         "SourceClusterIdFactory does not support the notify() method "
         "of lsst::afw::table::IdFactory");
 }

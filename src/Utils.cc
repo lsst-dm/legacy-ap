@@ -62,16 +62,16 @@ void lsst::ap::verifyPathName(std::string const & name) {
 
         ret = ::mkdir(dirName.c_str(), 0777);
         if (ret == -1) {
-            throw LSST_EXCEPT(ex::IoErrorException, "Error creating directory " + dirName);
+            throw LSST_EXCEPT(ex::IoError, "Error creating directory " + dirName);
         }
     }
     else if (ret == -1) {
         // We couldn't read the (existing) directory for some reason.
-        throw LSST_EXCEPT(ex::IoErrorException, "Error searching for directory " + dirName);
+        throw LSST_EXCEPT(ex::IoError, "Error searching for directory " + dirName);
     }
     else if (!S_ISDIR(buf.st_mode)) {
         // It's not a directory.
-        throw LSST_EXCEPT(ex::IoErrorException, "Non-directory in path " + dirName);
+        throw LSST_EXCEPT(ex::IoError, "Non-directory in path " + dirName);
     }
 }
 

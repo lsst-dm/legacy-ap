@@ -336,7 +336,7 @@ struct NewObjectCreator {
             // difference source had no matches - record it as the source of a new object
             boost::int64_t id = entry._data->getId();
             if (id >= idLimit) {
-                throw LSST_EXCEPT(ex::RangeErrorException, "DiaSource id doesn't fit in 56 bits");
+                throw LSST_EXCEPT(ex::RangeError, "DiaSource id doesn't fit in 56 bits");
             }
             // generate a new simplified object (id, position, proper motions, variability probabilities)
             // and assign it to the appropriate chunk
@@ -363,7 +363,7 @@ struct NewObjectCreator {
             int const chunkId = _zsc.radecToChunk(obj._ra, obj._decl);
             ChunkMapIterator c = _chunks.find(chunkId);
             if (c == _chunks.end()) {
-                throw LSST_EXCEPT(ex::RuntimeErrorException,
+                throw LSST_EXCEPT(ex::RuntimeError,
                     (boost::format("new object from DIASource %1% ra,dec=(%2%, %3%) x,y=(%4%, %5%) "
                                    "not in any chunk overlapping FOV with center (%6%, %7%), "
                                    "radius=%8%: new object would go to chunk %9%; distance to FOV "
@@ -465,7 +465,7 @@ void buildZoneIndex(
         }
     } catch(...) {
        index.clear();
-       throw LSST_EXCEPT(ex::RuntimeErrorException, "Failed to build zone index"); 
+       throw LSST_EXCEPT(ex::RuntimeError, "Failed to build zone index"); 
     }
 
     watch.stop();
@@ -790,7 +790,7 @@ void buildObjectIndex(VisitProcessingContext & context) {
     } else {
         // One or more workers failed in the load phase - rollback the visit
         manager.endVisit(context.getVisitId(), true);
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
                           "Association pipeline failed to read Object data for FOV");
     }
 }

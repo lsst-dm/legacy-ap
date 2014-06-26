@@ -163,7 +163,7 @@ std::size_t distanceMatch(
     typedef typename MatchListProcessorT::Match    Match;
 
     if (radius < 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::RangeErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::RangeError,
                           "match radius must be greater than or equal to zero degrees");
     }
 

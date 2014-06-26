@@ -558,7 +558,7 @@ MatchablePosReader::MatchablePosReader(
     _raScale = control.raScale;
     _declScale = control.declScale;
     if (_idCol < 0 || _raCol < 0 || _declCol < 0) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Position table does not contain unique id, "
                           "right ascension, or declination column(s)");
     }
@@ -578,7 +578,7 @@ MatchablePosReader::MatchablePosReader(
                  e = control.outputFields.end(); i != e; ++i) {
                 int idx = _reader->getIndexOf(*i);
                 if (idx < 0) {
-                    throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                    throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                       "Position table has no column named " +
                                       *i);
                 }
@@ -627,29 +627,29 @@ void MatchablePosReader::_read() {
     Angle decl = _reader->get<double>(_declCol)*_declScale * radians;
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "NULL unique id found in position table");
     }
     if (lsst::utils::isnan(ra.asRadians()) ||
         lsst::utils::isnan(decl.asRadians()) ||
         lsst::utils::isnan(epoch)) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Position table contains NULL or NaN right "
                           "ascension, declination, or epoch");
     }
     if (decl < -HALFPI || decl > HALFPI) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Invalid declination found in position table");
     }
     if (epoch < J2000_MJD - 200.0*DAYS_PER_JY ||
         epoch > J2000_MJD + 200.0*DAYS_PER_JY) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Position table epoch is not within 200 years of "
                           "J2000. Check your units - MJD required.");
     }
     // check that input file is declination sorted
     if (decl < _decl) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Position table is not sorted by declination");
     }
     // Construct ancillary column output string
@@ -675,14 +675,14 @@ void MatchablePosReader::_scan(lsst::ap::utils::CsvReader &reader) {
     _minEpoch = reader.get<double>(_epochCol);
     _maxEpoch = _minEpoch;
     if (lsst::utils::isnan(_minEpoch)) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Position table contains NULL or NaN epoch");
     }
     reader.nextRecord();
     while (!reader.isDone()) {
         double epoch = reader.get<double>(_epochCol);
         if (lsst::utils::isnan(epoch)) {
-            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+            throw LSST_EXCEPT(pexExcept::RuntimeError,
                               "Position table contains NULL or NaN epoch");
         }
         if (epoch < _minEpoch) {
@@ -844,7 +844,7 @@ RefReaderBase::RefReaderBase(
     _parallaxScale = control.parallaxScale;
     _muRaTrueAngle = control.muRaTrueAngle;
     if (_idCol < 0 || _raCol < 0 || _declCol < 0) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Reference catalog doesn't contain unique id, "
                           "right ascension, or declination column(s)");
     }
@@ -864,7 +864,7 @@ RefReaderBase::RefReaderBase(
                  e = control.outputFields.end(); i != e; ++i) {
                 int idx = _reader->getIndexOf(*i);
                 if (idx < 0) {
-                    throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+                    throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                                       "Reference catalog has no column "
                                       "named " + *i);
                 }
@@ -941,29 +941,29 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
     Angle decl = _reader->get<double>(_declCol)*_declScale * radians;
     // check for NULLs and illegal values
     if (_reader->isNull(_idCol)) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "NULL unique id found in reference catalog");
     }
     if (lsst::utils::isnan(ra.asRadians()) ||
         lsst::utils::isnan(decl.asRadians()) ||
         lsst::utils::isnan(epoch)) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Reference catalog record contains NULL/NaN right "
                           "ascension, declination, or epoch");
     }
     if (decl < -HALFPI || decl > HALFPI) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Invalid declination found in reference catalog");
     }
     if (epoch < J2000_MJD - 200.0*DAYS_PER_JY ||
         epoch > J2000_MJD + 200.0*DAYS_PER_JY) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Reference catalog epoch is not within 200 years "
                           "of J2000. Check your units - MJD required.");
     }
     // check that input file actually is declination sorted
     if (decl < _decl) {
-        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+        throw LSST_EXCEPT(pexExcept::RuntimeError,
                           "Reference catalog is not sorted by declination");
     }
     // Construct ancillary column output string
@@ -986,7 +986,7 @@ ReferencePosition const * RefReaderBase::_readReferencePosition() {
         double vRadial = (_vRadialCol < 0) ? 0.0 :
                           _reader->get<double>(_vRadialCol)*_vRadialScale;
         if (parallax < 0.0) {
-            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+            throw LSST_EXCEPT(pexExcept::RuntimeError,
                               "Reference catalog contains negative parallax");
         }
         if (!lsst::utils::isnan(muRa) &&
@@ -1019,7 +1019,7 @@ void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
         if (needEpochStats) {
             double epoch = reader.get<double>(_epochCol);
             if (lsst::utils::isnan(epoch)) {
-                throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                throw LSST_EXCEPT(pexExcept::RuntimeError,
                                   "Record contains NULL or NaN epoch");
             }
             if (epoch < _minEpoch) {
@@ -1040,7 +1040,7 @@ void RefReaderBase::_scan(lsst::ap::utils::CsvReader &reader,
                     Angle decl(reader.get<double>(_declCol)*_declScale, radians);
                     if (decl < -HALFPI || decl > HALFPI ||
                         lsst::utils::isnan(decl.asRadians())) {
-                        throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+                        throw LSST_EXCEPT(pexExcept::RuntimeError,
                                           "Invalid declination found in "
                                           "reference catalog");
                     }
@@ -1624,7 +1624,7 @@ void checkFilters() {
     for (Iter i = names.begin(), e = names.end(); i != e; ++i) {
         Filter f = Filter(*i, false);
         if (f.getId() < 0 || f.getId() >= n) {
-            throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+            throw LSST_EXCEPT(pexExcept::RuntimeError,
                               "Filter IDs do not have contiguous IDs starting at 0");
         }
     }
@@ -1680,7 +1680,7 @@ void referenceFilter(
 ) {
     typedef std::vector<ExposureInfo::Ptr>::const_iterator Iter;
     if (exposures.empty()) {
-        throw LSST_EXCEPT(pexExcept::InvalidParameterException,
+        throw LSST_EXCEPT(pexExcept::InvalidParameterError,
                           "no input exposure information");
     }
     checkFilters();

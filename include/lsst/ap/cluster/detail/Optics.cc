@@ -66,23 +66,23 @@ Optics<K, RecordT>::Optics(Point<K, boost::shared_ptr<RecordT> > * points,
     _log(lsst::pex::logging::Log::getDefaultLog(), "lsst.ap.cluster.detail")
 {
     if (_points == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "Input point array is null");
     }
     if (_numPoints <= 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "Number of input points must be at least 1");
     }
     if (_minNeighbors < 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "OPTICS minNeighbors parameter value is negative");
     }
     if (_epsilon < 0.0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError,
                           "OPTICS epsilon parameter value is negative");
     }
     if (pointsPerLeaf <= 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterException, 
+        throw LSST_EXCEPT(lsst::pex::exceptions::InvalidParameterError, 
                           "K-D tree pointsPerLeaf parameter must be positive");
     }
 
@@ -114,7 +114,7 @@ void Optics<K, RecordT>::run(boost::shared_ptr<typename RecordT::Table> table,
                              MetricT const & metric)
 {
     if (_ran) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::LogicErrorException,
+        throw LSST_EXCEPT(lsst::pex::exceptions::LogicError,
                           "OPTICS has already been run");
     }
     typename RecordT::Catalog cluster(table);

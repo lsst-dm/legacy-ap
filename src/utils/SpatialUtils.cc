@@ -32,8 +32,8 @@
 #include "lsst/pex/exceptions.h"
 #include "lsst/ap/constants.h"
 
-using lsst::pex::exceptions::InvalidParameterException;
-using lsst::pex::exceptions::RuntimeErrorException;
+using lsst::pex::exceptions::InvalidParameterError;
+using lsst::pex::exceptions::RuntimeError;
 
 using lsst::afw::geom::HALFPI;
 using lsst::afw::geom::PI;
@@ -56,7 +56,7 @@ namespace lsst { namespace ap { namespace utils {
 void thetaRangeReduce(Angle &min, Angle &max) {
     if (min > max) {
         if (max < 0.0 || min >= TWOPI) {
-            throw LSST_EXCEPT(InvalidParameterException,
+            throw LSST_EXCEPT(InvalidParameterError,
                               "Invalid longitude angle interval");
         }
     } else if (max - min >= TWOPI) {
@@ -83,7 +83,7 @@ Angle const maxAlpha(
     static const double POLE_EPSILON = 1e-7;
 
     if (radius < 0.0 || radius > HALFPI) {
-        throw LSST_EXCEPT(InvalidParameterException,
+        throw LSST_EXCEPT(InvalidParameterError,
                           "radius must be in range [0, PI/2] deg");
     }
     if (radius == 0.0) {
@@ -149,7 +149,7 @@ void positionAndVelocity(
                         sinRa*u + p.x()*muRa - sinRa*t,
                         sinDecl*vRadial + s*muDecl);
     if (v.squaredNorm() > 0.25*C_AU_PER_DAY*C_AU_PER_DAY) {
-        throw LSST_EXCEPT(RuntimeErrorException,
+        throw LSST_EXCEPT(RuntimeError,
                           "star velocity vector magnitude exceeds half "
                           "the speed of light");
     }

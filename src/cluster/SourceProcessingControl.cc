@@ -28,11 +28,6 @@
   */
 #include "lsst/ap/cluster/SourceProcessingControl.h"
 
-#include "lsst/pex/exceptions.h"
-
-using lsst::pex::exceptions::InvalidParameterException;
-
-
 namespace lsst { namespace ap { namespace cluster {
 
 SourceProcessingControl::SourceProcessingControl() :

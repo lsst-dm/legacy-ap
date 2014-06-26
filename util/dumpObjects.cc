@@ -91,7 +91,7 @@ static char const stripeQuery[] =
 // Check a condition and throw an exception (with errno decoding) if failed.
 static void ioAssert(bool cond, char const* msg) {
     if (!cond) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
                           (boost::format("%1%: error %2%") % msg % errno).str());
     }
 }
@@ -218,11 +218,11 @@ int main(int argc, char** argv) {
     // Set up the MySQL client library and connect to the database.
     // Use MySQL client directly for maximum performance.
     if (mysql_library_init(0, 0, 0)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to initialize mysql library");
+        throw LSST_EXCEPT(ex::RuntimeError, "Unable to initialize mysql library");
     }
     MYSQL* db = mysql_init(0);
     if (db == 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to create empty connection");
+        throw LSST_EXCEPT(ex::RuntimeError, "Unable to create empty connection");
     }
     if (!mysql_real_connect(db, host.c_str(),
                             DbAuth::username(host, port).c_str(),
@@ -230,18 +230,18 @@ int main(int argc, char** argv) {
                             database.c_str(),
                             boost::lexical_cast<long>(port),
                             0, CLIENT_COMPRESS)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, 
+        throw LSST_EXCEPT(ex::RuntimeError, 
                           std::string("Unable to connect to database: ") + mysql_error(db));
     }
 
     // Prepare the query statement.
     MYSQL_STMT* stmt = mysql_stmt_init(db);
     if (stmt == 0) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Out of memory while preparing statement");
+        throw LSST_EXCEPT(ex::RuntimeError, "Out of memory while preparing statement");
     }
     std::string query = (boost::format(numChunks < 1 ? chunkQuery : stripeQuery) % table).str();
     if (mysql_stmt_prepare(stmt, query.c_str(), query.size())) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, 
+        throw LSST_EXCEPT(ex::RuntimeError, 
                           std::string("Unable to prepare statement: ") + mysql_error(db));
     }
 
@@ -305,13 +305,13 @@ int main(int argc, char** argv) {
 
     // Bind and execute the SQL statement.
     if (mysql_stmt_bind_param(stmt, bindArray)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to bind parameters");
+        throw LSST_EXCEPT(ex::RuntimeError, "Unable to bind parameters");
     }
     if (mysql_stmt_execute(stmt)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to execute statement");
+        throw LSST_EXCEPT(ex::RuntimeError, "Unable to execute statement");
     }
     if (mysql_stmt_bind_result(stmt, resultArray)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to bind results");
+        throw LSST_EXCEPT(ex::RuntimeError, "Unable to bind results");
     }
 
     // Set up (most of) a chunk header.
@@ -330,7 +330,7 @@ int main(int argc, char** argv) {
         // Check for nulls.
         for (int i = 0; i < 7 + Object::NUM_FILTERS; ++i) {
             if (isNull[i]) {
-                throw LSST_EXCEPT(ex::RuntimeErrorException, "Unexpected null value found");
+                throw LSST_EXCEPT(ex::RuntimeError, "Unexpected null value found");
             }
         }
 
@@ -340,7 +340,7 @@ int main(int argc, char** argv) {
                 // Rewrite the header, now that we know how many rows we have.
                 off_t pos = lseek(fd, 0, SEEK_SET);
                 if (pos == static_cast<off_t>(-1)) {
-                    throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to rewind output file");
+                    throw LSST_EXCEPT(ex::RuntimeError, "Unable to rewind output file");
                 }
                 ssize_t bytes = write(fd, &header, sizeof(header));
                 ioAssert(bytes == sizeof(header), "Unable to write updated header");
@@ -376,12 +376,12 @@ int main(int argc, char** argv) {
     }
 
     if (err == 1) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException,
+        throw LSST_EXCEPT(ex::RuntimeError,
                           std::string("Error while fetching: ") + mysql_error(db));
     } else if (err == MYSQL_DATA_TRUNCATED) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: data truncated");
+        throw LSST_EXCEPT(ex::RuntimeError, "Error while fetching: data truncated");
     } else if (err != MYSQL_NO_DATA) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while fetching: unknown");
+        throw LSST_EXCEPT(ex::RuntimeError, "Error while fetching: unknown");
     }
 
     // Finish the final chunk.
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
         // Rewrite the header, now that we know how many rows we have.
         off_t pos = lseek(fd, 0, SEEK_SET);
         if (pos == static_cast<off_t>(-1)) {
-            throw LSST_EXCEPT(ex::RuntimeErrorException, "Unable to rewind output file");
+            throw LSST_EXCEPT(ex::RuntimeError, "Unable to rewind output file");
         }
         ssize_t bytes = write(fd, &header, sizeof(header));
         ioAssert(bytes == sizeof(header), "Unable to write updated header");
@@ -401,7 +401,7 @@ int main(int argc, char** argv) {
 
     // Close down MySQL.
     if (mysql_stmt_close(stmt)) {
-        throw LSST_EXCEPT(ex::RuntimeErrorException, "Error while closing statement");
+        throw LSST_EXCEPT(ex::RuntimeError, "Error while closing statement");
     }
     mysql_close(db);
     mysql_library_end();
