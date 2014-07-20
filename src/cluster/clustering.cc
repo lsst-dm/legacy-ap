@@ -183,24 +183,13 @@ std::pair<boost::shared_ptr<SourceTable>, SchemaMapper> const makeOutputSourceTa
     boost::shared_ptr<SourceTable> table =
         SourceTable::make(mapper.getOutputSchema(), boost::shared_ptr<IdFactory>());
     // copy slot mappings from prototype
-    table->definePsfFlux(prototype.getPsfFluxKey(),
-                         prototype.getPsfFluxErrKey(),
-                         prototype.getPsfFluxFlagKey());
-    table->defineModelFlux(prototype.getModelFluxKey(),
-                           prototype.getModelFluxErrKey(),
-                           prototype.getModelFluxFlagKey());
-    table->defineApFlux(prototype.getApFluxKey(),
-                        prototype.getApFluxErrKey(),
-                        prototype.getApFluxFlagKey());
-    table->defineInstFlux(prototype.getInstFluxKey(),
-                          prototype.getInstFluxErrKey(),
-                          prototype.getInstFluxFlagKey());
-    table->defineCentroid(prototype.getCentroidKey(),
-                          prototype.getCentroidErrKey(),
-                          prototype.getCentroidFlagKey());
-    table->defineShape(prototype.getShapeKey(),
-                       prototype.getShapeErrKey(),
-                       prototype.getShapeFlagKey());
+    table->definePsfFlux(prototype.getPsfFluxDefinition());
+    table->defineModelFlux(prototype.getModelFluxDefinition());
+    table->defineApFlux(prototype.getApFluxDefinition());
+    table->defineInstFlux(prototype.getInstFluxDefinition());
+    table->defineCentroid(prototype.getCentroidDefinition());
+    table->defineShape(prototype.getShapeDefinition());
+
     return std::make_pair(table, mapper);
 }
 
@@ -445,7 +434,7 @@ void processSources(
     Key<int> expFilterIdKey;
     Key<float> expTimeKey;
     Key<double> expTimeMidKey;
-    Key<Covariance<lsst::afw::table::Point<float> > > centroidErrKey =
+    afw::table::CovarianceMatrixKey<float,2> centroidErrKey =
         sources.getTable()->getCentroidErrKey();
     Key<Covariance<lsst::afw::table::Point<float> > > coordErrKey;
     Key<lsst::afw::coord::Coord> clusterCoordKey;
