@@ -47,13 +47,13 @@ class ClusterTestCase(unittest.TestCase):
         cfg.minNeighbors = 0
         cfg.pointsPerLeaf = 4
         cfg.leafExtentThresholdArcsec = 7200.0
-        self.assertRaises(ex.LsstException, cluster.cluster, cat, cfg.makeControl())
+        self.assertRaises(ex.Exception, cluster.cluster, cat, cfg.makeControl())
         cfg.epsilonArcsec = 0.0
         cfg.minNeighbors = -1
-        self.assertRaises(ex.LsstException, cluster.cluster, cat, cfg.makeControl())
+        self.assertRaises(ex.Exception, cluster.cluster, cat, cfg.makeControl())
         cfg.minNeighbors = 0
         cfg.pointsPerLeaf = 0
-        self.assertRaises(ex.LsstException, cluster.cluster, cat, cfg.makeControl())
+        self.assertRaises(ex.Exception, cluster.cluster, cat, cfg.makeControl())
         cfg.pointsPerLeaf = 4
         s = cat.addNew()
         s.setRa(0.0 * afwGeom.radians)
