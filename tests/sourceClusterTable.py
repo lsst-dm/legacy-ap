@@ -82,6 +82,7 @@ class SourceClusterTableTestCase(unittest.TestCase):
 
     def setUp(self):
         self.schema = lsst.ap.cluster.SourceClusterTable.makeMinimalSchema()
+        self.schema.setVersion(0)
         self.coordErrKey = self.schema.addField("coord.err", type="CovPointF")
         self.numSourcesKey = self.schema.addField("obs.num", type="I")
         self.timeMinKey = self.schema.addField("obs.time.min", type="D")

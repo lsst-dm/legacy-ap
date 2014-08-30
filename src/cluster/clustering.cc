@@ -202,6 +202,7 @@ boost::shared_ptr<SourceClusterTable> const makeSourceClusterTable(
     typedef std::vector<std::string>::const_iterator Iter;
 
     Schema schema = SourceClusterTable::makeMinimalSchema();
+    schema.setVersion(0);
     // Add basic fields
     schema.addField<Covariance<lsst::afw::table::Point<float> > >(
         "coord.err",
