@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
     string const filename = "tests/testTable.fits";
 
     Schema schema = SourceClusterTable::makeMinimalSchema();
-
+    schema.setVersion(0);
     Key<int> numSources = schema.addField<int>("obs.num", "number of sources");
     Key<Flag> flag = schema.addField<Flag>("flag", "a mysterious boolean value");
     Key<double> timeMin = schema.addField<double>("obs.time.min", "earliest observation time", "mjd");

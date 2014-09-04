@@ -79,6 +79,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             self.exposures.insert(apMatch.ExposureInfo(ps))
         # setup Source table/schema
         schema = afwTable.SourceTable.makeMinimalSchema()
+        schema.setVersion(0)
         schema.addField("exposure.id", type="L")
         schema.addField("exposure.filter.id", type="I")
         schema.addField("exposure.time", type="D")
@@ -108,6 +109,7 @@ class SourceClusterAttributesTestCase(unittest.TestCase):
             self.sourceTable,
             apCluster.SourceClusterIdFactory(0),
             self.spConfig.makeControl())
+        self.clusterTable.getSchema().setVersion(0)
 
     def tearDown(self):
         del self.clusterTable
