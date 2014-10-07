@@ -27,7 +27,7 @@
   * @author Serge Monkewitz
   */
 #ifndef LSST_AP_UTILS_CSVUTILS_H
-#define LSST_AP_UTILS_CSVUTILSL_H
+#define LSST_AP_UTILS_CSVUTILS_H
 
 #include <string>
 #include <vector>

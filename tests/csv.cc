@@ -135,7 +135,7 @@ static char const * const END = NULLF - 1;
 static char const * const ENDR = NULLF - 2;
 
 static void roundTrip(char const * const result,
-                      CsvControl const & control,
+                      CsvControl const control,
                       ...)
 {
     typedef vector<vector<char const *> >::const_iterator RecIter;

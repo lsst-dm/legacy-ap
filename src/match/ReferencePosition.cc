@@ -46,6 +46,9 @@ using lsst::ap::utils::maxAlpha;
 
 namespace lsst { namespace ap { namespace match {
 
+double const ReferencePosition::MIN_PARALLAX = 1e-11; // rad
+
+
 /** Clears the motion parameters of this reference position.
   */
 void ReferencePosition::clearMotion() {

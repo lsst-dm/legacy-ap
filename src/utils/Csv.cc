@@ -599,6 +599,7 @@ template <> char CsvReader::_get<char>(char const *field) const {
 #define LSST_SPECIALIZE_GET(T, C, fun) \
     template <> T CsvReader::_get<T>(char const *field) const { \
         char *e; \
+        errno = 0; \
         C v = fun(field, &e, 10); \
         if (e == field) { \
             _runtimeError("failed to convert field value to " #T); \
@@ -626,6 +627,7 @@ template <> char CsvReader::_get<char>(char const *field) const {
 #define LSST_SPECIALIZE_GET(T, fun) \
     template <> T CsvReader::_get<T>(char const *field) const { \
         char *e; \
+        errno = 0; \
         T v = fun(field, &e); \
         if (e == field) { \
             _runtimeError("failed to convert field value to " #T); \

@@ -55,7 +55,7 @@ public:
                             ///  by getPosition().
     };
 
-    static double const MIN_PARALLAX = 1e-11; // rad
+    static double const MIN_PARALLAX; // rad
 
     inline ReferencePosition(int64_t id,
                              lsst::afw::geom::Angle const ra,

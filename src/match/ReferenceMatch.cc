@@ -1112,7 +1112,7 @@ private:
         ReferencePosition const *p = _readReferencePosition();
         if (p != 0) {
             Ref *r = new (_arena) Ref(*p, getRecord(), _numFilters);
-            _heap.push_back(std::pair<double, Ref *>(r->getMinCoord1(), r));
+            _heap.push_back(std::pair<Angle, Ref *>(Angle(r->getMinCoord1()), r));
             std::push_heap(_heap.begin(), _heap.end());
         }
     }
