@@ -235,6 +235,8 @@ BOOST_AUTO_TEST_CASE(testSourceClusterTable) {
         BOOST_CHECK_EQUAL(schema, incat.getSchema()); // only checks equality of keys
         BOOST_CHECK_EQUAL(incat.getTable()->getMetadata()->get<double>("BOGOSITY"),
                           outcat.getTable()->getMetadata()->get<double>("BOGOSITY"));
+        BOOST_CHECK_EQUAL(incat.getTable()->getMetadata()->nameCount(),
+                          outcat.getTable()->getMetadata()->nameCount());
 
         ExtractSchemaStrings func1;
         schema.forEach(boost::ref(func1));
