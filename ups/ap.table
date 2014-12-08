@@ -9,7 +9,7 @@ setupRequired(meas_algorithms)
 
 setupOptional(doxygen)
 
-envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
-envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
-envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
-envAppend(PATH, ${PRODUCT_DIR}/bin)
+envPrepend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+envPrepend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
+envPrepend(PATH, ${PRODUCT_DIR}/bin)
