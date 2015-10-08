@@ -154,7 +154,7 @@ m4def(`DECLARE_SHAPE_DEFINERS', `DECLARE_COMPOUND_SLOT_DEFINERS(`', `Shape')')dn
 #ifndef LSST_AP_CLUSTER_SOURCECLUSTER_H
 #define LSST_AP_CLUSTER_SOURCECLUSTER_H
 
-#include "lsst/tr1/unordered_map.h"
+#include <unordered_map>
 
 #include "lsst/afw/geom.h"
 #include "lsst/afw/coord.h"
@@ -397,7 +397,7 @@ private:
         ~FilterSlots();
     };
 
-    typedef std::tr1::unordered_map<std::string, FilterSlots> FilterSlotsMap;
+    typedef std::unordered_map<std::string, FilterSlots> FilterSlotsMap;
 
     // Return a writer object that knows how to save in FITS format.
     virtual PTR(lsst::afw::table::io::FitsWriter) makeFitsWriter(

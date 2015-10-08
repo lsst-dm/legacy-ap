@@ -32,6 +32,7 @@
 
 #include <cstddef>
 #include <utility>
+#include <unordered_map>
 
 #include "Eigen/Core"
 
@@ -203,7 +204,7 @@ public:
     bool erase(int64_t id);
 
 private:
-    typedef std::tr1::unordered_map<int64_t, ExposureInfo::Ptr> Map;
+    typedef std::unordered_map<int64_t, ExposureInfo::Ptr> Map;
     Map _map;
 };
 

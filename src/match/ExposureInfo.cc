@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <string>
+#include <unordered_map>
 
 #include "boost/algorithm/string/trim.hpp"
 #include "boost/regex.hpp"
@@ -264,7 +265,7 @@ int const INT_T = 0;
 int const DOUBLE_T = 1;
 int const STRING_T = 2;
 
-std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
+std::unordered_map<std::string, int> const & fitsKeyMap() {
     static char const * const I_KEYS[] = {
         "NAXIS1", "NAXIS2",
         "LTV1", "LTV2",
@@ -285,7 +286,7 @@ std::tr1::unordered_map<std::string, int> const & fitsKeyMap() {
         "CUNIT1", "CUNIT2",
         "CTYPE1", "CTYPE2"
     };
-    static std::tr1::unordered_map<std::string, int> map;
+    static std::unordered_map<std::string, int> map;
     if (map.size() == 0) {
         // build key to type mapping for the FITS cards we care about
         for (size_t i = 0; i < sizeof(I_KEYS)/sizeof(char const *); ++i) {
@@ -310,7 +311,7 @@ void readExposureInfos(
     CsvControl  const & control,
     std::string const & idColumn
 ) {
-    typedef std::tr1::unordered_map<std::string, int> FkMap;
+    typedef std::unordered_map<std::string, int> FkMap;
     typedef FkMap::const_iterator FkIter;
 
     static boost::regex const sipRegex("^[AB]P?_[0-9]+_[0-9]+$");

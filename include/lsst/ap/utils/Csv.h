@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include "lsst/tr1/unordered_map.h"
+#include <unordered_map>
 
 #include "boost/scoped_ptr.hpp"
 #include "boost/scoped_array.hpp"
@@ -174,7 +174,7 @@ public:
     //@}
 
 private:
-    typedef std::tr1::unordered_map<std::string, int> FieldIndexes;
+    typedef std::unordered_map<std::string, int> FieldIndexes;
 
     static std::string const WHITESPACE;
     static int const MAX_RECORD_LENGTH;
